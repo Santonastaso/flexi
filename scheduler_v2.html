@@ -111,14 +111,22 @@
                 setInterval(() => this.updateCurrentTimeLine(), 60000);
             }
 
-            // **NEW**: Helper function to check for task collisions
+            /**
+             * **FIX**: Checks if a given event collides with any existing scheduled events.
+             * @param {object} checkEvent - The event to validate { id, machine, startHour, endHour }.
+             * @returns {boolean} - True if the slot is occupied, false otherwise.
+             */
             isTimeSlotOccupied(checkEvent) {
                 for (const existingEvent of this.scheduledEvents) {
+                    // Skip if it's the same event being moved or on a different machine
                     if (existingEvent.id === checkEvent.id || existingEvent.machine !== checkEvent.machine) {
                         continue;
                     }
+
+                    // Check for time overlap: (StartA < EndB) and (StartB < EndA)
                     const startsBeforeExistingEnds = checkEvent.startHour < existingEvent.endHour;
                     const endsAfterExistingStarts = checkEvent.endHour > existingEvent.startHour;
+
                     if (startsBeforeExistingEnds && endsAfterExistingStarts) {
                         return true; // Collision detected
                     }
@@ -181,7 +189,6 @@
                 const machineRow = document.querySelector(`.machine-row[data-machine-name="${safeMachineName}"]`);
                 const scheduleArea = machineRow?.querySelector('.machine-schedule-area');
                 if (!scheduleArea) {
-                    console.warn(`Machine "${event.machine}" for event "${event.name}" not found or not live. Skipping render.`);
                     return;
                 }
                 
