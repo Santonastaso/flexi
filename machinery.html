@@ -79,7 +79,7 @@
         th {
             background-color: #f3f4f6;
         }
-        .delete-btn, .settings-btn {
+        .action-btn {
             background-color: transparent;
             border: none;
             color: #6b7280;
@@ -89,12 +89,10 @@
             cursor: pointer;
             transition: color 0.2s ease;
         }
-        .delete-btn:hover {
-            color: #dc2626;
-        }
-        .settings-btn:hover {
-            color: #2563eb;
-        }
+        .action-btn svg { vertical-align: middle; }
+        .action-btn:hover { color: #2563eb; }
+        .action-btn.delete:hover { color: #dc2626; }
+        .action-btn:disabled { color: #d1d5db; cursor: not-allowed; }
         .actions {
             display: flex;
             justify-content: space-between;
@@ -131,6 +129,10 @@
             font-size: 14px;
             text-decoration: none;
             z-index: 1000;
+        }
+        td .edit-input, td .edit-select {
+            padding: 4px;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -181,6 +183,7 @@
                         <th>City</th>
                         <th>Live</th>
                         <th style="width: 80px; text-align: center;">Calendar</th>
+                        <th style="width: 80px; text-align: center;">Edit</th>
                         <th style="width: 80px; text-align: center;">Delete</th>
                     </tr>
                 </thead>
@@ -203,28 +206,52 @@
                 { name: 'Gallus 1', city: 'Milan', live: true },
                 { name: 'Mark Andy P7', city: 'Tallinn', live: false }
             ];
+            let currentlyEditingIndex = null;
 
             function saveAndRender() {
                 localStorage.setItem('schedulerMachines', JSON.stringify(machines));
                 machineryTableBody.innerHTML = '';
                 machines.forEach((machine, index) => {
                     const row = document.createElement('tr');
-                    const encodedName = encodeURIComponent(machine.name);
-                    row.innerHTML = `
-                        <td>${machine.name}</td>
-                        <td>${machine.city}</td>
-                        <td><span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; color: white; background-color: ${machine.live ? '#34a853' : '#9ca3af'};">${machine.live ? 'Yes' : 'No'}</span></td>
-                        <td style="text-align: center;">
-                            <a href="machine_settings.html?machine=${encodedName}" class="settings-btn" title="Edit Availability">⚙️</a>
-                        </td>
-                        <td style="text-align: center;">
-                            <button class="delete-btn" data-index="${index}" title="Delete Machine">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18">
-                                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.134H8.09a2.09 2.09 0 00-2.09 2.134v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                                </svg>
-                            </button>
-                        </td>
-                    `;
+                    const isEditing = index === currentlyEditingIndex;
+                    const isDisabled = currentlyEditingIndex !== null && !isEditing;
+
+                    if (isEditing) {
+                        // RENDER EDIT MODE
+                        row.innerHTML = `
+                            <td><input type="text" class="edit-input" value="${machine.name}" id="edit-name-${index}"></td>
+                            <td>
+                                <select class="edit-select" id="edit-city-${index}">
+                                    <option value="Milan" ${machine.city === 'Milan' ? 'selected' : ''}>Milan</option>
+                                    <option value="Tallinn" ${machine.city === 'Tallinn' ? 'selected' : ''}>Tallinn</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select class="edit-select" id="edit-live-${index}">
+                                    <option value="true" ${machine.live ? 'selected' : ''}>Yes</option>
+                                    <option value="false" ${!machine.live ? 'selected' : ''}>No</option>
+                                </select>
+                            </td>
+                            <td style="text-align: center;"><button class="action-btn" disabled>⚙️</button></td>
+                            <td style="text-align: center;"><button class="action-btn save-btn" data-index="${index}" title="Save Changes">✓</button></td>
+                            <td style="text-align: center;"><button class="action-btn delete" disabled>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.134H8.09a2.09 2.09 0 00-2.09 2.134v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                            </button></td>
+                        `;
+                    } else {
+                        // RENDER DISPLAY MODE
+                        const encodedName = encodeURIComponent(machine.name);
+                        row.innerHTML = `
+                            <td>${machine.name}</td>
+                            <td>${machine.city}</td>
+                            <td><span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; color: white; background-color: ${machine.live ? '#34a853' : '#9ca3af'};">${machine.live ? 'Yes' : 'No'}</span></td>
+                            <td style="text-align: center;"><a href="machine_settings.html?machine=${encodedName}" class="action-btn" title="Edit Availability" ${isDisabled ? 'onclick="return false;" style="pointer-events:none; color:#d1d5db;"' : ''}>⚙️</a></td>
+                            <td style="text-align: center;"><button class="action-btn edit-btn" data-index="${index}" title="Edit Machine" ${isDisabled ? 'disabled' : ''}>✏️</button></td>
+                            <td style="text-align: center;"><button class="action-btn delete delete-btn" data-index="${index}" title="Delete Machine" ${isDisabled ? 'disabled' : ''}>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.134H8.09a2.09 2.09 0 00-2.09 2.134v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                            </button></td>
+                        `;
+                    }
                     machineryTableBody.appendChild(row);
                 });
             }
@@ -233,10 +260,8 @@
                 const name = machineNameInput.value.trim();
                 const city = machineCityInput.value;
                 const live = machineLiveInput.value === 'true';
-
                 if (!name) { alert('Please enter a machine name.'); return; }
                 if (machines.some(m => m.name.toLowerCase() === name.toLowerCase())) { alert('A machine with this name already exists.'); return; }
-                
                 machines.push({ name, city, live });
                 machineNameInput.value = '';
                 saveAndRender();
@@ -245,26 +270,52 @@
             function deleteMachine(index) {
                 const machineToDelete = machines[index];
                 const scheduledEvents = JSON.parse(localStorage.getItem('scheduledEvents')) || [];
-                const isMachineInUse = scheduledEvents.some(event => event.machine === machineToDelete.name);
-
-                if (isMachineInUse) {
-                    alert(`Cannot delete "${machineToDelete.name}". It has tasks scheduled on it. Please remove the tasks from the scheduler first.`);
+                if (scheduledEvents.some(event => event.machine === machineToDelete.name)) {
+                    alert(`Cannot delete "${machineToDelete.name}". It has tasks scheduled on it. Please remove tasks from the scheduler first.`);
                     return;
                 }
-
                 machines.splice(index, 1);
                 saveAndRender();
             }
 
-            addMachineBtn.addEventListener('click', addMachine);
+            function saveMachine(index) {
+                const newName = document.getElementById(`edit-name-${index}`).value.trim();
+                const newCity = document.getElementById(`edit-city-${index}`).value;
+                const newLive = document.getElementById(`edit-live-${index}`).value === 'true';
+
+                if (!newName) {
+                    alert('Machine name cannot be empty.');
+                    return;
+                }
+
+                const isNameTaken = machines.some((m, i) => i !== index && m.name.toLowerCase() === newName.toLowerCase());
+                if (isNameTaken) {
+                    alert('Another machine with this name already exists.');
+                    return;
+                }
+
+                machines[index] = { name: newName, city: newCity, live: newLive };
+                currentlyEditingIndex = null;
+                saveAndRender();
+            }
+
             machineryTableBody.addEventListener('click', (e) => {
-                const deleteBtn = e.target.closest('.delete-btn');
-                if (deleteBtn) {
-                    const index = parseInt(deleteBtn.dataset.index);
+                const targetButton = e.target.closest('button');
+                if (!targetButton) return;
+
+                const index = parseInt(targetButton.dataset.index);
+
+                if (targetButton.classList.contains('edit-btn')) {
+                    currentlyEditingIndex = index;
+                    saveAndRender();
+                } else if (targetButton.classList.contains('save-btn')) {
+                    saveMachine(index);
+                } else if (targetButton.classList.contains('delete-btn')) {
                     deleteMachine(index);
                 }
             });
 
+            addMachineBtn.addEventListener('click', addMachine);
             saveAndRender();
         });
     </script>
