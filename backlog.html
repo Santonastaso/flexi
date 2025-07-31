@@ -36,7 +36,7 @@
         }
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 15px;
         }
         .form-group {
@@ -161,8 +161,12 @@
                     <input type="text" id="taskName" placeholder="Enter task name">
                 </div>
                 <div class="form-group">
-                    <label for="taskDuration">Duration (hours)</label>
-                    <input type="number" id="taskDuration" placeholder="Hours" min="1" max="24" value="2">
+                    <label for="taskSetup">Set Up (hours)</label>
+                    <input type="number" id="taskSetup" placeholder="Hours" min="0" value="1">
+                </div>
+                <div class="form-group">
+                    <label for="taskProduction">Production (hours)</label>
+                    <input type="number" id="taskProduction" placeholder="Hours" min="1" value="4">
                 </div>
                 <div class="form-group">
                     <label for="taskColor">Color</label>
@@ -189,7 +193,9 @@
                 <thead>
                     <tr>
                         <th>Task Name</th>
-                        <th>Duration (hours)</th>
+                        <th>Set Up (h)</th>
+                        <th>Production (h)</th>
+                        <th>Total Duration (h)</th>
                         <th>Color</th>
                         <th>Actions</th>
                     </tr>
@@ -204,7 +210,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             const createTaskBtn = document.getElementById('createTask');
             const taskNameInput = document.getElementById('taskName');
-            const taskDurationInput = document.getElementById('taskDuration');
+            const taskSetupInput = document.getElementById('taskSetup');
+            const taskProductionInput = document.getElementById('taskProduction');
             const taskColorInput = document.getElementById('taskColor');
             const backlogTableBody = document.querySelector('#backlog-table tbody');
 
@@ -216,10 +223,11 @@
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${task.name}</td>
-                        <td>${task.duration}</td>
+                        <td>${task.setupHours}</td>
+                        <td>${task.productionHours}</td>
+                        <td><strong>${task.duration}</strong></td>
                         <td style="display: flex; align-items: center;">
                             <div style="width: 20px; height: 20px; background-color: ${task.color}; margin-right: 10px; border-radius: 4px;"></div>
-                            ${task.color}
                         </td>
                         <td><button class="delete-btn" data-index="${index}">Delete</button></td>
                     `;
@@ -229,31 +237,33 @@
 
             function addTask() {
                 const name = taskNameInput.value.trim();
-                const duration = parseInt(taskDurationInput.value);
+                const setupHours = parseFloat(taskSetupInput.value) || 0;
+                const productionHours = parseFloat(taskProductionInput.value) || 0;
                 const color = taskColorInput.value;
+                const duration = setupHours + productionHours;
 
-                if (!name || isNaN(duration) || duration < 1) {
+                if (!name || duration <= 0) {
                     alert('Please enter a valid task name and duration.');
                     return;
                 }
 
-                const newTask = { id: Date.now(), name, duration, color };
+                const newTask = { id: Date.now(), name, setupHours, productionHours, duration, color };
                 backlogTasks.push(newTask);
                 localStorage.setItem('backlogTasks', JSON.stringify(backlogTasks));
                 renderBacklog();
 
                 taskNameInput.value = '';
-                taskDurationInput.value = '2';
+                taskSetupInput.value = '1';
+                taskProductionInput.value = '4';
             }
 
             function deleteTask(index) {
                 const taskToDelete = backlogTasks[index];
                 const scheduledEvents = JSON.parse(localStorage.getItem('scheduledEvents')) || [];
-
                 const isTaskScheduled = scheduledEvents.some(event => event.id === taskToDelete.id);
 
                 if (isTaskScheduled) {
-                    alert(`Cannot delete "${taskToDelete.name}". It is currently scheduled on the Gantt chart. Please remove it from the schedule first by dragging it back to the task pool.`);
+                    alert(`Cannot delete "${taskToDelete.name}". It is currently scheduled. Please remove it from the schedule first by dragging it back to the task pool.`);
                     return;
                 }
 
