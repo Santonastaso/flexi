@@ -244,6 +244,17 @@
             }
 
             function deleteMachine(index) {
+                const machineToDelete = machines[index];
+                const scheduledEvents = JSON.parse(localStorage.getItem('scheduledEvents')) || [];
+                
+                // Check if any scheduled event is on the machine we want to delete
+                const isMachineInUse = scheduledEvents.some(event => event.machine === machineToDelete.name);
+
+                if (isMachineInUse) {
+                    alert(`Cannot delete "${machineToDelete.name}". It has tasks scheduled on it. Please remove the tasks from the scheduler first.`);
+                    return; // Stop the deletion
+                }
+
                 machines.splice(index, 1);
                 saveAndRender();
             }

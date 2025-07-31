@@ -86,7 +86,6 @@
                 this.SLOT_WIDTH = 80;
                 this.LABEL_WIDTH = 150;
                 
-                // DYNAMICALLY LOAD AND FILTER MACHINES
                 const allMachines = JSON.parse(localStorage.getItem('schedulerMachines')) || [
                     { name: 'BOBST M5', city: 'Tallinn', live: true },
                     { name: 'Gallus 1', city: 'Milan', live: true },
@@ -111,147 +110,41 @@
                 this.updateCurrentTimeLine();
                 setInterval(() => this.updateCurrentTimeLine(), 60000);
             }
-            
-            renderGrid() {
-                const container = document.getElementById('calendarContainer');
-                container.innerHTML = '';
 
-                const header = document.createElement('div');
-                header.className = 'calendar-header';
-
-                const labelSpacer = document.createElement('div');
-                labelSpacer.className = 'header-label-spacer';
-                header.appendChild(labelSpacer);
-
-                const timelineGrid = document.createElement('div');
-                timelineGrid.className = 'timeline-grid';
-
-                for (let hour = this.START_HOUR; hour < this.END_HOUR; hour++) {
-                    const timeSlot = document.createElement('div');
-                    timeSlot.className = 'header-time-slot';
-                    timeSlot.textContent = `${hour}:00`;
-                    timelineGrid.appendChild(timeSlot);
-                }
-                header.appendChild(timelineGrid);
-                container.appendChild(header);
-
-                const body = document.createElement('div');
-                body.className = 'calendar-body';
-
-                // Use the machine object's name property for the label
-                this.MACHINES.forEach((machine, index) => {
-                    const machineRow = document.createElement('div');
-                    machineRow.className = 'machine-row';
-                    machineRow.dataset.machine = index;
-
-                    const labelCol = document.createElement('div');
-                    labelCol.className = 'machine-label-col';
-                    labelCol.textContent = machine.name; // Use machine.name
-                    machineRow.appendChild(labelCol);
-                    
-                    const scheduleArea = document.createElement('div');
-                    scheduleArea.className = 'machine-schedule-area';
-
-                    for (let hour = this.START_HOUR; hour < this.END_HOUR; hour++) {
-                        const slot = document.createElement('div');
-                        slot.className = 'machine-slot';
-                        slot.dataset.hour = hour;
-                        scheduleArea.appendChild(slot);
+            // **NEW**: Helper function to check for task collisions
+            isTimeSlotOccupied(checkEvent) {
+                for (const existingEvent of this.scheduledEvents) {
+                    if (existingEvent.id === checkEvent.id || existingEvent.machine !== checkEvent.machine) {
+                        continue;
                     }
-                    machineRow.appendChild(scheduleArea);
-                    body.appendChild(machineRow);
-                });
-                container.appendChild(body);
-                
-                this.setupDropZones();
-            }
-            
-            // ... (The rest of the script is the same as the previous version)
-            setupEventListeners() {
-                document.getElementById('todayBtn').addEventListener('click', () => this.goToToday());
-                document.getElementById('prevDay').addEventListener('click', () => this.previousDay());
-                document.getElementById('nextDay').addEventListener('click', () => this.nextDay());
-            }
-
-            loadTasksIntoPool() {
-                this.tasks.forEach(task => {
-                    const isScheduled = this.scheduledEvents.some(event => event.id === task.id);
-                    if (!isScheduled) {
-                        this.renderTaskInPool(task);
-                    }
-                });
-            }
-            
-            setupDropZones() {
-                const machineSlots = document.querySelectorAll('.machine-slot');
-                machineSlots.forEach(slot => {
-                    slot.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; slot.classList.add('drag-over'); });
-                    slot.addEventListener('dragleave', () => { slot.classList.remove('drag-over'); });
-                    slot.addEventListener('drop', (e) => { e.preventDefault(); slot.classList.remove('drag-over'); this.handleDropOnGrid(e, slot); });
-                });
-
-                const taskPool = document.getElementById('taskPool');
-                taskPool.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; taskPool.classList.add('drag-over'); });
-                taskPool.addEventListener('dragleave', () => { taskPool.classList.remove('drag-over'); });
-                taskPool.addEventListener('drop', (e) => { e.preventDefault(); taskPool.classList.remove('drag-over'); this.handleDropOnPool(e); });
-            }
-            
-            renderTaskInPool(task) {
-                const taskPool = document.getElementById('taskPool');
-                const taskElement = document.createElement('div');
-                taskElement.className = 'task-item';
-                taskElement.id = `pool-task-${task.id}`;
-                taskElement.style.backgroundColor = task.color;
-                taskElement.textContent = `${task.name} (${task.duration}h)`;
-                taskElement.draggable = true;
-                
-                taskElement.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', task.id); taskElement.classList.add('dragging'); });
-                taskElement.addEventListener('dragend', () => { taskElement.classList.remove('dragging'); });
-                
-                taskPool.appendChild(taskElement);
-            }
-            
-            handleDropOnGrid(e, dropZone) {
-                const taskId = e.dataTransfer.getData('text/plain');
-                const poolTask = this.tasks.find(t => t.id == taskId);
-                
-                if (poolTask && !this.scheduledEvents.some(e => e.id == taskId)) {
-                    this.scheduleTask(poolTask, dropZone);
-                    return;
-                }
-                
-                const scheduledEvent = this.scheduledEvents.find(e => e.id == taskId);
-                if (scheduledEvent) {
-                    this.moveEvent(scheduledEvent, dropZone);
-                }
-            }
-            
-            handleDropOnPool(e) {
-                const taskId = e.dataTransfer.getData('text/plain');
-                const eventIndex = this.scheduledEvents.findIndex(evt => evt.id == taskId);
-
-                if (eventIndex > -1) {
-                    const [unscheduledEvent] = this.scheduledEvents.splice(eventIndex, 1);
-                    localStorage.setItem('scheduledEvents', JSON.stringify(this.scheduledEvents));
-                    document.getElementById(`event-${unscheduledEvent.id}`)?.remove();
-                    const originalTask = this.tasks.find(t => t.id === unscheduledEvent.id);
-                    if (originalTask) {
-                        this.renderTaskInPool(originalTask);
+                    const startsBeforeExistingEnds = checkEvent.startHour < existingEvent.endHour;
+                    const endsAfterExistingStarts = checkEvent.endHour > existingEvent.startHour;
+                    if (startsBeforeExistingEnds && endsAfterExistingStarts) {
+                        return true; // Collision detected
                     }
                 }
+                return false; // No collision
             }
 
             scheduleTask(task, dropZone) {
                 const machineRow = dropZone.closest('.machine-row');
-                const machine = parseInt(machineRow.dataset.machine);
+                const machineName = machineRow.dataset.machineName;
                 const startHour = parseInt(dropZone.dataset.hour);
-                
-                if (startHour + task.duration > this.END_HOUR) {
-                    alert('Task does not fit in the schedule.');
+                const endHour = startHour + task.duration;
+
+                if (endHour > this.END_HOUR) {
+                    alert('Task does not fit within the schedule hours.');
+                    return;
+                }
+
+                // **VALIDATION ADDED**
+                const eventToCheck = { id: task.id, machine: machineName, startHour, endHour };
+                if (this.isTimeSlotOccupied(eventToCheck)) {
+                    alert('This time slot is already occupied.');
                     return;
                 }
                 
-                const event = { ...task, machine, startHour, endHour: startHour + task.duration };
+                const event = { ...task, machine: machineName, startHour, endHour };
                 this.scheduledEvents.push(event);
                 localStorage.setItem('scheduledEvents', JSON.stringify(this.scheduledEvents));
                 document.getElementById(`pool-task-${task.id}`)?.remove();
@@ -260,29 +153,37 @@
             
             moveEvent(event, dropZone) {
                 const machineRow = dropZone.closest('.machine-row');
-                const machine = parseInt(machineRow.dataset.machine);
+                const newMachineName = machineRow.dataset.machineName;
                 const startHour = parseInt(dropZone.dataset.hour);
-                
-                if (startHour + event.duration > this.END_HOUR) {
-                    alert('Event does not fit in the schedule.');
+                const endHour = startHour + event.duration;
+
+                if (endHour > this.END_HOUR) {
+                    alert('Task does not fit within the schedule hours.');
                     return;
                 }
-                
-                event.machine = machine;
+
+                // **VALIDATION ADDED**
+                const eventToCheck = { id: event.id, machine: newMachineName, startHour, endHour };
+                if (this.isTimeSlotOccupied(eventToCheck)) {
+                    alert('This time slot is already occupied.');
+                    return;
+                }
+
+                event.machine = newMachineName;
                 event.startHour = startHour;
-                event.endHour = startHour + event.duration;
+                event.endHour = endHour;
                 localStorage.setItem('scheduledEvents', JSON.stringify(this.scheduledEvents));
                 this.repositionEvent(event);
             }
-
-            renderAllScheduledEvents() {
-                this.scheduledEvents.forEach(event => this.renderEvent(event));
-            }
             
             renderEvent(event) {
-                const machineRow = document.querySelector(`.machine-row[data-machine="${event.machine}"]`);
+                const safeMachineName = CSS.escape(event.machine);
+                const machineRow = document.querySelector(`.machine-row[data-machine-name="${safeMachineName}"]`);
                 const scheduleArea = machineRow?.querySelector('.machine-schedule-area');
-                if (!scheduleArea) return;
+                if (!scheduleArea) {
+                    console.warn(`Machine "${event.machine}" for event "${event.name}" not found or not live. Skipping render.`);
+                    return;
+                }
                 
                 const eventElement = document.createElement('div');
                 eventElement.className = 'event';
@@ -292,25 +193,31 @@
                 eventElement.style.width = `${event.duration * this.SLOT_WIDTH}px`;
                 eventElement.textContent = `${event.name} (${event.duration}h)`;
                 eventElement.draggable = true;
-                
                 const resizeHandle = document.createElement('div');
                 resizeHandle.className = 'event-handle';
                 eventElement.appendChild(resizeHandle);
-                
                 eventElement.addEventListener('dragstart', (e) => { e.stopPropagation(); e.dataTransfer.setData('text/plain', event.id); eventElement.classList.add('dragging'); });
                 eventElement.addEventListener('dragend', () => { eventElement.classList.remove('dragging'); });
                 
                 let isResizing = false, startX = 0, startWidth = 0;
-                
                 resizeHandle.addEventListener('mousedown', (e) => { e.stopPropagation(); isResizing = true; startX = e.clientX; startWidth = eventElement.offsetWidth; document.body.style.cursor = 'ew-resize'; eventElement.classList.add('resizing'); });
+                
                 document.addEventListener('mousemove', (e) => {
                     if (!isResizing) return;
                     const deltaX = e.clientX - startX;
                     const newWidth = Math.max(this.SLOT_WIDTH, startWidth + deltaX);
                     const newDuration = Math.max(1, Math.round(newWidth / this.SLOT_WIDTH));
-                    if (event.startHour + newDuration <= this.END_HOUR) {
+                    const newEndHour = event.startHour + newDuration;
+
+                    if (newEndHour <= this.END_HOUR) {
+                        // **VALIDATION ADDED for resizing**
+                        const eventToCheck = { id: event.id, machine: event.machine, startHour: event.startHour, endHour: newEndHour };
+                        if (this.isTimeSlotOccupied(eventToCheck)) {
+                            return; // Prevent resize if it causes overlap
+                        }
+                        
                         event.duration = newDuration;
-                        event.endHour = event.startHour + newDuration;
+                        event.endHour = newEndHour;
                         eventElement.style.width = `${newDuration * this.SLOT_WIDTH}px`;
                         eventElement.textContent = `${event.name} (${event.duration}h)`;
                         eventElement.appendChild(resizeHandle);
@@ -322,33 +229,127 @@
                 scheduleArea.appendChild(eventElement);
             }
             
+            // --- No changes to the functions below this line ---
+            renderGrid() {
+                const container = document.getElementById('calendarContainer');
+                container.innerHTML = '';
+                const header = document.createElement('div');
+                header.className = 'calendar-header';
+                const labelSpacer = document.createElement('div');
+                labelSpacer.className = 'header-label-spacer';
+                header.appendChild(labelSpacer);
+                const timelineGrid = document.createElement('div');
+                timelineGrid.className = 'timeline-grid';
+                for (let hour = this.START_HOUR; hour < this.END_HOUR; hour++) {
+                    const timeSlot = document.createElement('div');
+                    timeSlot.className = 'header-time-slot';
+                    timeSlot.textContent = `${hour}:00`;
+                    timelineGrid.appendChild(timeSlot);
+                }
+                header.appendChild(timelineGrid);
+                container.appendChild(header);
+                const body = document.createElement('div');
+                body.className = 'calendar-body';
+                this.MACHINES.forEach((machine) => {
+                    const machineRow = document.createElement('div');
+                    machineRow.className = 'machine-row';
+                    machineRow.dataset.machineName = machine.name; 
+                    const labelCol = document.createElement('div');
+                    labelCol.className = 'machine-label-col';
+                    labelCol.textContent = machine.name;
+                    machineRow.appendChild(labelCol);
+                    const scheduleArea = document.createElement('div');
+                    scheduleArea.className = 'machine-schedule-area';
+                    for (let hour = this.START_HOUR; hour < this.END_HOUR; hour++) {
+                        const slot = document.createElement('div');
+                        slot.className = 'machine-slot';
+                        slot.dataset.hour = hour;
+                        scheduleArea.appendChild(slot);
+                    }
+                    machineRow.appendChild(scheduleArea);
+                    body.appendChild(machineRow);
+                });
+                container.appendChild(body);
+                this.setupDropZones();
+            }
+            setupEventListeners() {
+                document.getElementById('todayBtn').addEventListener('click', () => this.goToToday());
+                document.getElementById('prevDay').addEventListener('click', () => this.previousDay());
+                document.getElementById('nextDay').addEventListener('click', () => this.nextDay());
+            }
+            loadTasksIntoPool() {
+                this.tasks.forEach(task => {
+                    const isScheduled = this.scheduledEvents.some(event => event.id === task.id);
+                    if (!isScheduled) { this.renderTaskInPool(task); }
+                });
+            }
+            setupDropZones() {
+                const machineSlots = document.querySelectorAll('.machine-slot');
+                machineSlots.forEach(slot => {
+                    slot.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; slot.classList.add('drag-over'); });
+                    slot.addEventListener('dragleave', () => { slot.classList.remove('drag-over'); });
+                    slot.addEventListener('drop', (e) => { e.preventDefault(); slot.classList.remove('drag-over'); this.handleDropOnGrid(e, slot); });
+                });
+                const taskPool = document.getElementById('taskPool');
+                taskPool.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; taskPool.classList.add('drag-over'); });
+                taskPool.addEventListener('dragleave', () => { taskPool.classList.remove('drag-over'); });
+                taskPool.addEventListener('drop', (e) => { e.preventDefault(); taskPool.classList.remove('drag-over'); this.handleDropOnPool(e); });
+            }
+            renderTaskInPool(task) {
+                const taskPool = document.getElementById('taskPool');
+                const taskElement = document.createElement('div');
+                taskElement.className = 'task-item';
+                taskElement.id = `pool-task-${task.id}`;
+                taskElement.style.backgroundColor = task.color;
+                taskElement.textContent = `${task.name} (${task.duration}h)`;
+                taskElement.draggable = true;
+                taskElement.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', task.id); taskElement.classList.add('dragging'); });
+                taskElement.addEventListener('dragend', () => { taskElement.classList.remove('dragging'); });
+                taskPool.appendChild(taskElement);
+            }
+            handleDropOnGrid(e, dropZone) {
+                const taskId = e.dataTransfer.getData('text/plain');
+                const poolTask = this.tasks.find(t => t.id == taskId);
+                if (poolTask && !this.scheduledEvents.some(e => e.id == taskId)) {
+                    this.scheduleTask(poolTask, dropZone);
+                    return;
+                }
+                const scheduledEvent = this.scheduledEvents.find(e => e.id == taskId);
+                if (scheduledEvent) { this.moveEvent(scheduledEvent, dropZone); }
+            }
+            handleDropOnPool(e) {
+                const taskId = e.dataTransfer.getData('text/plain');
+                const eventIndex = this.scheduledEvents.findIndex(evt => evt.id == taskId);
+                if (eventIndex > -1) {
+                    const [unscheduledEvent] = this.scheduledEvents.splice(eventIndex, 1);
+                    localStorage.setItem('scheduledEvents', JSON.stringify(this.scheduledEvents));
+                    document.getElementById(`event-${unscheduledEvent.id}`)?.remove();
+                    const originalTask = this.tasks.find(t => t.id === unscheduledEvent.id);
+                    if (originalTask) { this.renderTaskInPool(originalTask); }
+                }
+            }
+            renderAllScheduledEvents() {
+                this.scheduledEvents.forEach(event => this.renderEvent(event));
+            }
             repositionEvent(event) {
                 const eventElement = document.getElementById(`event-${event.id}`);
-                const newParent = document.querySelector(`.machine-row[data-machine="${event.machine}"] .machine-schedule-area`);
+                const safeMachineName = CSS.escape(event.machine);
+                const newParent = document.querySelector(`.machine-row[data-machine-name="${safeMachineName}"] .machine-schedule-area`);
                 if (eventElement && newParent) {
                     eventElement.style.left = `${(event.startHour - this.START_HOUR) * this.SLOT_WIDTH}px`;
                     newParent.appendChild(eventElement);
                 }
             }
-            
             updateCurrentTimeLine() {
                 const now = new Date();
                 const currentHour = now.getHours() + now.getMinutes() / 60;
                 const calendarBody = document.querySelector('.calendar-body');
-                if (!calendarBody || currentHour < this.START_HOUR || currentHour > this.END_HOUR) {
-                    document.querySelector('.current-time-line')?.remove();
-                    return;
-                }
+                if (!calendarBody || currentHour < this.START_HOUR || currentHour > this.END_HOUR) { document.querySelector('.current-time-line')?.remove(); return; }
                 let timeLine = document.querySelector('.current-time-line');
-                if (!timeLine) {
-                    timeLine = document.createElement('div');
-                    timeLine.className = 'current-time-line';
-                    calendarBody.appendChild(timeLine);
-                }
+                if (!timeLine) { timeLine = document.createElement('div'); timeLine.className = 'current-time-line'; calendarBody.appendChild(timeLine); }
                 const position = (currentHour - this.START_HOUR) * this.SLOT_WIDTH + this.LABEL_WIDTH;
                 timeLine.style.left = `${position}px`;
             }
-
             goToToday() { this.currentDate = new Date(); this.currentDate.setHours(0, 0, 0, 0); this.updateDateDisplay(); }
             previousDay() { this.currentDate.setDate(this.currentDate.getDate() - 1); this.updateDateDisplay(); }
             nextDay() { this.currentDate.setDate(this.currentDate.getDate() + 1); this.updateDateDisplay(); }
