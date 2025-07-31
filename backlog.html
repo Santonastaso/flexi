@@ -136,14 +136,6 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
             transform: translateY(-1px);
         }
-        @media (max-width: 768px) {
-            .home-button {
-                top: 10px;
-                right: 10px;
-                padding: 10px 16px;
-                font-size: 12px;
-            }
-        }
     </style>
 </head>
 <body>
@@ -248,6 +240,16 @@
             }
 
             function deleteTask(index) {
+                const taskToDelete = backlogTasks[index];
+                const scheduledEvents = JSON.parse(localStorage.getItem('scheduledEvents')) || [];
+
+                const isTaskScheduled = scheduledEvents.some(event => event.id === taskToDelete.id);
+
+                if (isTaskScheduled) {
+                    alert(`Cannot delete "${taskToDelete.name}". It is currently scheduled on the Gantt chart. Please remove it from the schedule first by dragging it back to the task pool.`);
+                    return;
+                }
+
                 backlogTasks.splice(index, 1);
                 localStorage.setItem('backlogTasks', JSON.stringify(backlogTasks));
                 renderBacklog();
