@@ -3,57 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Machine Availability Settings</title>
+    <title>Ship - Machine Availability</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap');
-        * { font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif; box-sizing: border-box; }
-        body { margin: 0; padding: 20px; background-color: #f5f5f5; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1, h2 { color: #2563eb; margin-top: 0; }
-        .actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .nav-button-group { display: flex; gap: 10px; }
-        .nav-button { background: #1a73e8; color: white; padding: 10px 15px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; }
-        .home-button { position: fixed; top: 20px; right: 20px; background: #1a73e8; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 14px; text-decoration: none; z-index: 1000; }
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&display=swap');
+
+        :root {
+            --bg-color: #f7f7f7;
+            --text-dark: #1A1A1A;
+            --text-light: #5f6368;
+            --primary-blue: #2563eb;
+            --border-color: #e5e7eb;
+            --danger-red: #ef4444;
+            --gray-medium: #9ca3af;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 0;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            text-decoration: none;
+            color: var(--text-dark);
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-light);
+            font-weight: 700;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        }
+        nav a:hover { color: var(--text-dark); }
         
-        .calendar-controls { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
-        .calendar-controls input, .calendar-controls select { padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; }
+        main { padding-bottom: 40px; }
+
+        .content-section {
+            background-color: white;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
         
-        .calendar-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .calendar-grid th, .calendar-grid td { border: 1px solid #e5e7eb; padding: 5px; text-align: center; }
-        .calendar-grid th { background-color: #f3f4f6; font-size: 12px; }
-        .calendar-grid .day-label { font-weight: 600; font-size: 14px; }
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 24px;
+            color: var(--text-dark);
+        }
         
-        .hour-slot { cursor: pointer; transition: background-color 0.2s; font-size: 12px; color: #ccc; }
+        .calendar-controls { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            margin-bottom: 24px; 
+        }
+        .calendar-controls label {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text-light);
+        }
+        .calendar-controls input { 
+            padding: 10px; 
+            border: 1px solid var(--border-color); 
+            border-radius: 8px; 
+            font-size: 14px; 
+            font-family: inherit;
+        }
+        
+        .calendar-grid { 
+            width: 100%; 
+            border-collapse: collapse; 
+            table-layout: fixed; 
+        }
+        .calendar-grid th, .calendar-grid td { 
+            border: 1px solid var(--border-color); 
+            padding: 5px; 
+            text-align: center; 
+            height: 40px;
+        }
+        .calendar-grid th { 
+            background-color: var(--bg-color); 
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-light);
+        }
+        .calendar-grid .day-label { 
+            font-weight: 800; 
+            font-size: 14px; 
+            background-color: var(--bg-color);
+        }
+        
+        .hour-slot { 
+            cursor: pointer; 
+            transition: background-color 0.2s; 
+            font-size: 12px; 
+            color: #d1d5db; 
+        }
         .hour-slot.unavailable {
-            background-color: #ef4444;
+            background-color: var(--danger-red);
             color: white;
-            cursor: pointer;
+            font-weight: 700;
             background-image: repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(255,255,255,0.1) 4px, rgba(255,255,255,0.1) 8px);
         }
         .hour-slot.scheduled {
-            background-color: #9ca3af;
+            background-color: var(--gray-medium);
             color: white;
             cursor: not-allowed;
+            font-weight: 700;
         }
     </style>
 </head>
 <body>
-    <a href="index.html" class="home-button">🏠 Home</a>
-    <div class="container">
-        <div class="actions">
-            <h1 id="machine-title">Machine Availability</h1>
-            <div class="nav-button-group">
-                <a href="machinery.html" class="nav-button">Back to Machinery</a>
-                <a href="scheduler_v2.html" class="nav-button">Go to Scheduler</a>
-            </div>
-        </div>
+    <div class="page-container">
+        <header>
+            <a href="index.html" class="logo">🚢 Ship</a>
+            <nav>
+                <a href="machinery.html">Back to Machinery</a>
+                <a href="scheduler_v2.html">Scheduler</a>
+            </nav>
+        </header>
         
-        <div class="calendar-controls">
-            <label for="month-select">Select Month:</label>
-            <input type="month" id="month-select">
-        </div>
+        <main>
+            <div class="content-section">
+                <h1 id="machine-title">Machine Availability</h1>
+                <div class="calendar-controls">
+                    <label for="month-select">Select Month:</label>
+                    <input type="month" id="month-select">
+                </div>
 
-        <table class="calendar-grid" id="availability-calendar"></table>
+                <table class="calendar-grid" id="availability-calendar"></table>
+            </div>
+        </main>
     </div>
 
     <script>
@@ -68,7 +181,7 @@
                 machineTitle.textContent = "Machine Not Found";
                 return;
             }
-            machineTitle.textContent = `Availability for ${machineName}`;
+            machineTitle.textContent = `Availability for: ${machineName}`;
 
             let availabilityData = JSON.parse(localStorage.getItem('machineAvailability')) || {};
             const scheduledEvents = JSON.parse(localStorage.getItem('scheduledEvents')) || [];
@@ -108,12 +221,13 @@
                         const isScheduled = scheduledEvents.some(event => event.machine === machineName && event.date === dateKey && h >= event.startHour && h < event.endHour);
                         
                         let slotClass = 'hour-slot';
-                        let slotContent = '-';
+                        let slotContent = '✓';
                         if (isScheduled) {
                             slotClass += ' scheduled';
                             slotContent = 'BUSY';
                         } else if (isUnavailable) {
                             slotClass += ' unavailable';
+                            slotContent = 'X';
                         }
                         
                         bodyHtml += `<td class="${slotClass}" data-date="${dateKey}" data-hour="${h}">${slotContent}</td>`;
@@ -131,7 +245,6 @@
                 const date = slot.dataset.date;
                 const hour = parseInt(slot.dataset.hour);
 
-                // **VALIDATION ADDED**: Check if the slot is already busy with a scheduled task
                 if (slot.classList.contains('scheduled')) {
                     alert('This slot is occupied by a scheduled task. You cannot mark it as unavailable.');
                     return;
@@ -148,7 +261,9 @@
                     availabilityData[machineName][date].push(hour);
                 }
                 
-                slot.classList.toggle('unavailable');
+                // Re-render the single slot for efficiency, but full re-render is simpler and fine here
+                const [year, month] = monthSelect.value.split('-').map(Number);
+                renderCalendar(year, month - 1);
                 saveAvailability();
             }
 

@@ -3,72 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Production Scheduler</title>
+    <title>Ship - Production Scheduler</title>
     <style>
-        /* CSS is identical to the previous version */
-        @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap');
-        * { font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif; box-sizing: border-box; }
-        body { margin: 0; padding: 20px; background-color: #f5f5f5; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1, h2 { color: #2563eb; margin-top: 0; }
-        .section { margin-bottom: 30px; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background-color: #f9fafb; }
-        button { background-color: #2563eb; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: 500; }
-        button:hover { background-color: #1d4ed8; }
-        .actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .nav-button-group { display: flex; gap: 10px; }
-        .nav-button { background: #1a73e8; color: white; padding: 10px 15px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; }
-        .home-button { position: fixed; top: 20px; right: 20px; background: #1a73e8; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 14px; text-decoration: none; z-index: 1000; }
-        .calendar-container { display: flex; flex-direction: column; width: 100%; background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb; }
-        .calendar-header { display: flex; background: #fafbfc; border-bottom: 1px solid #e8eaed; height: 60px; position: sticky; top: 0; z-index: 20; }
-        .machine-label-col, .header-label-spacer { flex: 0 0 150px; border-right: 1px solid #e8eaed; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #202124; font-size: 14px; position: sticky; left: 0; background: #fafbfc; z-index: 21; }
-        .header-label-spacer { border-bottom: 1px solid #e8eaed; }
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&display=swap');
+
+        :root {
+            --bg-color: #f7f7f7;
+            --text-dark: #1A1A1A;
+            --text-light: #5f6368;
+            --primary-blue: #2563eb;
+            --primary-blue-hover: #1d4ed8;
+            --border-color: #e5e7eb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 0;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            text-decoration: none;
+            color: var(--text-dark);
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-light);
+            font-weight: 700;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        }
+        nav a:hover { color: var(--text-dark); }
+        
+        main { padding-bottom: 40px; }
+
+        .content-section {
+            background-color: white;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 40px;
+        }
+        
+        h2 {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+        }
+        
+        p {
+            margin-bottom: 24px;
+            color: var(--text-light);
+            font-size: 16px;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .date-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .date-controls button {
+            background-color: #fff;
+            color: var(--text-light);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        .date-controls button:hover {
+            background-color: var(--bg-color);
+            border-color: #d1d5db;
+        }
+        .date-controls span {
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        /* Scheduler-Specific Styles */
+        #taskPool {
+            min-height: 100px;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            background-color: #fff;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+        #taskPool.drag-over {
+            border-color: var(--primary-blue);
+            background-color: #eff6ff;
+        }
+        .calendar-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+        .calendar-header { display: flex; background: var(--bg-color); border-bottom: 1px solid var(--border-color); height: 60px; position: sticky; top: 0; z-index: 20; }
+        .machine-label-col, .header-label-spacer { flex: 0 0 150px; border-right: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text-dark); font-size: 14px; position: sticky; left: 0; background: var(--bg-color); z-index: 21; }
+        .header-label-spacer { border-bottom: 1px solid var(--border-color); }
         .calendar-body { position: relative; }
         .timeline-grid { display: flex; flex-grow: 1; }
-        .header-time-slot { flex: 0 0 80px; border-right: 1px solid #e8eaed; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #5f6368; font-weight: 500; }
-        .machine-row { display: flex; height: 80px; border-bottom: 1px solid #e8eaed; position: relative; }
+        .header-time-slot { flex: 0 0 80px; border-right: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--text-light); font-weight: 700; }
+        .machine-row { display: flex; height: 80px; border-bottom: 1px solid var(--border-color); position: relative; }
         .machine-row:last-child { border-bottom: none; }
         .machine-schedule-area { flex-grow: 1; display: flex; position: relative; }
-        .machine-slot { flex: 0 0 80px; border-right: 1px solid #e8eaed; background: white; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #e5e7eb; }
-        .machine-slot:not(.unavailable):hover { background: #f8f9fa; }
-        .machine-slot.drag-over { background: #e8f0fe; border: 2px dashed #1a73e8; }
+        .machine-slot { flex: 0 0 80px; border-right: 1px solid var(--border-color); background: white; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--border-color); }
+        .machine-slot:not(.unavailable):hover { background: #fafafa; }
+        .machine-slot.drag-over { background: #eff6ff; border: 2px dashed var(--primary-blue); }
         .machine-slot.unavailable { background-color: #f3f4f6; cursor: not-allowed; color: #d1d5db; }
-        .event { position: absolute; top: 4px; height: calc(100% - 8px); background: #1a73e8; color: white; border-radius: 6px; padding: 8px 12px; font-size: 12px; font-weight: 500; cursor: move; user-select: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); z-index: 10; display: flex; align-items: center; justify-content: center; text-align: center; }
-        .task-item { display: inline-block; padding: 8px 16px; margin: 4px; border-radius: 20px; color: white; font-weight: 500; font-size: 12px; cursor: move; user-select: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); }
+        .event { position: absolute; top: 4px; height: calc(100% - 8px); color: white; border-radius: 6px; padding: 8px 12px; font-size: 12px; font-weight: 700; cursor: move; user-select: none; box-shadow: 0 4px 8px rgba(0,0,0,0.1); z-index: 10; display: flex; align-items: center; justify-content: center; text-align: center; border: 1px solid rgba(0,0,0,0.1); }
+        .task-item { display: inline-block; padding: 8px 16px; margin: 4px; border-radius: 20px; color: white; font-weight: 700; font-size: 12px; cursor: move; user-select: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .current-time-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ea4335; z-index: 15; pointer-events: none; }
         .current-time-line::after { content: ''; position: absolute; top: -4px; left: -3px; width: 8px; height: 8px; background: #ea4335; border-radius: 50%; }
-        #taskPool.drag-over { border-color: #2563eb; background-color: #eef2ff; }
     </style>
 </head>
 <body>
-    <a href="index.html" class="home-button">🏠 Home</a>
-    <div class="container">
-        <div class="actions">
-            <h1>Production Scheduler</h1>
-            <div class="nav-button-group">
-                <a href="machinery.html" class="nav-button">Manage Machinery</a>
-                <a href="backlog.html" class="nav-button">Manage Backlog</a>
+    <div class="page-container">
+        <header>
+            <a href="index.html" class="logo">🚢 Ship</a>
+            <nav>
+                <a href="machinery.html">Manage Machinery</a>
+                <a href="backlog.html">Manage Backlog</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="content-section">
+                <h2>Task Pool</h2>
+                <p>Drag tasks from here to the schedule below, or drag scheduled tasks back to unschedule them.</p>
+                <div id="taskPool"></div>
             </div>
-        </div>
-        <div class="section">
-            <h2>Task Pool</h2>
-            <p style="font-size: 14px; color: #5f6368; margin: 0 0 1rem 0;">Drag tasks from here to the machines below, or drag scheduled tasks back here.</p>
-            <div id="taskPool" style="min-height: 100px; border: 2px dashed #d1d5db; border-radius: 8px; padding: 1rem; background-color: #fff;"></div>
-        </div>
-        <div class="section">
-             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h2>Production Schedule</h2>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <button id="todayBtn" style="padding: 5px 10px; font-size: 14px;">Today</button>
-                    <button id="prevDay" style="padding: 5px 10px; font-size: 14px;">&lt;</button>
-                    <span id="currentDate" style="font-size: 14px; font-weight: 500; color: #202124;"></span>
-                    <button id="nextDay" style="padding: 5px 10px; font-size: 14px;">&gt;</button>
+            
+            <div class="content-section">
+                <div class="section-header">
+                    <div>
+                        <h2>Production Schedule</h2>
+                    </div>
+                    <div class="date-controls">
+                        <button id="todayBtn">Today</button>
+                        <button id="prevDay">&lt;</button>
+                        <span id="currentDate"></span>
+                        <button id="nextDay">&gt;</button>
+                    </div>
                 </div>
+                <div id="calendarContainer" class="calendar-container"></div>
             </div>
-            <div id="calendarContainer" class="calendar-container"></div>
-        </div>
+        </main>
     </div>
 
     <script>
+        // All JavaScript logic is preserved from the previous version.
+        // It operates on the same element IDs and is compatible with the new structure.
         class GoogleCalendarScheduler {
             constructor() {
                 this.START_HOUR = 8;
@@ -97,33 +226,6 @@
                 this.updateDateDisplay();
             }
 
-            scheduleTask(task, dropZone) {
-                const machineRow = dropZone.closest('.machine-row');
-                const machineName = machineRow.dataset.machineName;
-                const startHour = parseInt(dropZone.dataset.hour);
-                const endHour = startHour + task.duration;
-
-                if (endHour > this.END_HOUR) { alert('Task does not fit.'); return; }
-
-                const dateKey = this.currentDate.toISOString().split('T')[0];
-                const eventToCheck = { id: task.id, machine: machineName, startHour, endHour };
-                if (this.isTimeSlotOccupied(eventToCheck)) { alert('This time slot is occupied or unavailable.'); return; }
-                
-                // **UPDATE**: Add the current date to the event object when scheduling
-                const event = { ...task, date: dateKey, machine: machineName, startHour, endHour };
-                this.scheduledEvents.push(event);
-                localStorage.setItem('scheduledEvents', JSON.stringify(this.scheduledEvents));
-                document.getElementById(`pool-task-${task.id}`)?.remove();
-                this.renderEvent(event);
-            }
-            
-            renderAllScheduledEvents() {
-                const dateKey = this.currentDate.toISOString().split('T')[0];
-                // Only render events that are for the currently viewed date
-                this.scheduledEvents.filter(event => event.date === dateKey).forEach(event => this.renderEvent(event));
-            }
-
-            // ... (The rest of the JS is the same, only the two functions above were modified)
             isTimeSlotOccupied(checkEvent) {
                 const dateKey = this.currentDate.toISOString().split('T')[0];
                 for (const existingEvent of this.scheduledEvents) {
@@ -137,6 +239,7 @@
                 }
                 return false;
             }
+
             renderGrid() {
                 const container = document.getElementById('calendarContainer');
                 container.innerHTML = '';
@@ -172,18 +275,23 @@
                 container.appendChild(body);
                 this.setupDropZones();
             }
-            setupDropZones() {
-                const machineSlots = document.querySelectorAll('.machine-slot:not(.unavailable)');
-                machineSlots.forEach(slot => {
-                    slot.addEventListener('dragover', (e) => { e.preventDefault(); slot.classList.add('drag-over'); });
-                    slot.addEventListener('dragleave', () => { slot.classList.remove('drag-over'); });
-                    slot.addEventListener('drop', (e) => { e.preventDefault(); slot.classList.remove('drag-over'); this.handleDropOnGrid(e, slot); });
-                });
-                const taskPool = document.getElementById('taskPool');
-                taskPool.addEventListener('dragover', (e) => { e.preventDefault(); taskPool.classList.add('drag-over'); });
-                taskPool.addEventListener('dragleave', () => { taskPool.classList.remove('drag-over'); });
-                taskPool.addEventListener('drop', (e) => { e.preventDefault(); taskPool.classList.remove('drag-over'); this.handleDropOnPool(e); });
+            
+            scheduleTask(task, dropZone) {
+                const machineRow = dropZone.closest('.machine-row');
+                const machineName = machineRow.dataset.machineName;
+                const startHour = parseInt(dropZone.dataset.hour);
+                const endHour = startHour + task.duration;
+                if (endHour > this.END_HOUR) { alert('Task does not fit.'); return; }
+                const dateKey = this.currentDate.toISOString().split('T')[0];
+                const eventToCheck = { id: task.id, machine: machineName, startHour, endHour };
+                if (this.isTimeSlotOccupied(eventToCheck)) { alert('This time slot is occupied or unavailable.'); return; }
+                const event = { ...task, date: dateKey, machine: machineName, startHour, endHour };
+                this.scheduledEvents.push(event);
+                localStorage.setItem('scheduledEvents', JSON.stringify(this.scheduledEvents));
+                document.getElementById(`pool-task-${task.id}`)?.remove();
+                this.renderEvent(event);
             }
+            
             moveEvent(event, dropZone) {
                 const machineRow = dropZone.closest('.machine-row');
                 const newMachineName = machineRow.dataset.machineName;
@@ -198,6 +306,7 @@
                 localStorage.setItem('scheduledEvents', JSON.stringify(this.scheduledEvents));
                 this.repositionEvent(event);
             }
+            
             renderEvent(event) {
                 const safeMachineName = CSS.escape(event.machine);
                 const machineRow = document.querySelector(`.machine-row[data-machine-name="${safeMachineName}"]`);
@@ -236,65 +345,22 @@
                 document.addEventListener('mouseup', () => { if (isResizing) { isResizing = false; document.body.style.cursor = 'default'; } });
                 scheduleArea.appendChild(eventElement);
             }
-            repositionEvent(event) {
-                const eventElement = document.getElementById(`event-${event.id}`);
-                const safeMachineName = CSS.escape(event.machine);
-                const newParent = document.querySelector(`.machine-row[data-machine-name="${safeMachineName}"] .machine-schedule-area`);
-                if (eventElement && newParent) {
-                    eventElement.style.left = `${(event.startHour - this.START_HOUR) * this.SLOT_WIDTH}px`;
-                    newParent.appendChild(eventElement);
-                }
-            }
-            setupEventListeners() {
-                document.getElementById('todayBtn').addEventListener('click', () => this.goToToday());
-                document.getElementById('prevDay').addEventListener('click', () => this.previousDay());
-                document.getElementById('nextDay').addEventListener('click', () => this.nextDay());
-            }
-            loadTasksIntoPool() {
-                this.tasks.forEach(task => {
-                    const isScheduled = this.scheduledEvents.some(event => event.id === task.id);
-                    if (!isScheduled) { this.renderTaskInPool(task); }
-                });
-            }
-            renderTaskInPool(task) {
-                const taskPool = document.getElementById('taskPool');
-                const taskElement = document.createElement('div');
-                taskElement.className = 'task-item';
-                taskElement.id = `pool-task-${task.id}`;
-                taskElement.style.backgroundColor = task.color;
-                taskElement.textContent = `${task.name} (${task.duration}h)`;
-                taskElement.draggable = true;
-                taskElement.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', task.id); });
-                taskPool.appendChild(taskElement);
-            }
-            handleDropOnGrid(e, dropZone) {
-                const taskId = e.dataTransfer.getData('text/plain');
-                const poolTask = this.tasks.find(t => t.id == taskId);
-                if (poolTask && !this.scheduledEvents.some(e => e.id == taskId)) { this.scheduleTask(poolTask, dropZone); return; }
-                const scheduledEvent = this.scheduledEvents.find(e => e.id == taskId);
-                if (scheduledEvent) { this.moveEvent(scheduledEvent, dropZone); }
-            }
-            handleDropOnPool(e) {
-                const taskId = e.dataTransfer.getData('text/plain');
-                const eventIndex = this.scheduledEvents.findIndex(evt => evt.id == taskId);
-                if (eventIndex > -1) {
-                    const [unscheduledEvent] = this.scheduledEvents.splice(eventIndex, 1);
-                    localStorage.setItem('scheduledEvents', JSON.stringify(this.scheduledEvents));
-                    document.getElementById(`event-${unscheduledEvent.id}`)?.remove();
-                    const originalTask = this.tasks.find(t => t.id === unscheduledEvent.id);
-                    if (originalTask) { this.renderTaskInPool(originalTask); }
-                }
-            }
+
+            // ... (Rest of the script is unchanged)
+            setupEventListeners() { document.getElementById('todayBtn').addEventListener('click', () => this.goToToday()); document.getElementById('prevDay').addEventListener('click', () => this.previousDay()); document.getElementById('nextDay').addEventListener('click', () => this.nextDay()); }
+            loadTasksIntoPool() { this.tasks.forEach(task => { if (!this.scheduledEvents.some(event => event.id === task.id)) { this.renderTaskInPool(task); } }); }
+            setupDropZones() { const machineSlots = document.querySelectorAll('.machine-slot:not(.unavailable)'); machineSlots.forEach(slot => { slot.addEventListener('dragover', (e) => { e.preventDefault(); slot.classList.add('drag-over'); }); slot.addEventListener('dragleave', () => { slot.classList.remove('drag-over'); }); slot.addEventListener('drop', (e) => { e.preventDefault(); slot.classList.remove('drag-over'); this.handleDropOnGrid(e, slot); }); }); const taskPool = document.getElementById('taskPool'); taskPool.addEventListener('dragover', (e) => { e.preventDefault(); taskPool.classList.add('drag-over'); }); taskPool.addEventListener('dragleave', () => { taskPool.classList.remove('drag-over'); }); taskPool.addEventListener('drop', (e) => { e.preventDefault(); taskPool.classList.remove('drag-over'); this.handleDropOnPool(e); }); }
+            renderTaskInPool(task) { const taskPool = document.getElementById('taskPool'); const taskElement = document.createElement('div'); taskElement.className = 'task-item'; taskElement.id = `pool-task-${task.id}`; taskElement.style.backgroundColor = task.color; taskElement.textContent = `${task.name} (${task.duration}h)`; taskElement.draggable = true; taskElement.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', task.id); }); taskPool.appendChild(taskElement); }
+            handleDropOnGrid(e, dropZone) { const taskId = e.dataTransfer.getData('text/plain'); const poolTask = this.tasks.find(t => t.id == taskId); if (poolTask && !this.scheduledEvents.some(e => e.id == taskId)) { this.scheduleTask(poolTask, dropZone); return; } const scheduledEvent = this.scheduledEvents.find(e => e.id == taskId); if (scheduledEvent) { this.moveEvent(scheduledEvent, dropZone); } }
+            handleDropOnPool(e) { const taskId = e.dataTransfer.getData('text/plain'); const eventIndex = this.scheduledEvents.findIndex(evt => evt.id == taskId); if (eventIndex > -1) { const [unscheduledEvent] = this.scheduledEvents.splice(eventIndex, 1); localStorage.setItem('scheduledEvents', JSON.stringify(this.scheduledEvents)); document.getElementById(`event-${unscheduledEvent.id}`)?.remove(); const originalTask = this.tasks.find(t => t.id === unscheduledEvent.id); if (originalTask) { this.renderTaskInPool(originalTask); } } }
+            renderAllScheduledEvents() { const dateKey = this.currentDate.toISOString().split('T')[0]; this.scheduledEvents.filter(event => event.date === dateKey).forEach(event => this.renderEvent(event)); }
+            repositionEvent(event) { const eventElement = document.getElementById(`event-${event.id}`); const safeMachineName = CSS.escape(event.machine); const newParent = document.querySelector(`.machine-row[data-machine-name="${safeMachineName}"] .machine-schedule-area`); if (eventElement && newParent) { eventElement.style.left = `${(event.startHour - this.START_HOUR) * this.SLOT_WIDTH}px`; newParent.appendChild(eventElement); } }
             goToToday() { this.currentDate = new Date("2025-08-01T00:00:00"); this.currentDate.setHours(0,0,0,0); this.renderGrid(); this.renderAllScheduledEvents(); this.updateDateDisplay(); }
             previousDay() { this.currentDate.setDate(this.currentDate.getDate() - 1); this.renderGrid(); this.renderAllScheduledEvents(); this.updateDateDisplay(); }
             nextDay() { this.currentDate.setDate(this.currentDate.getDate() + 1); this.renderGrid(); this.renderAllScheduledEvents(); this.updateDateDisplay(); }
-            updateDateDisplay() {
-                const dateElement = document.getElementById('currentDate');
-                const today = new Date("2025-08-01T00:00:00"); today.setHours(0,0,0,0);
-                if (this.currentDate.getTime() === today.getTime()) { dateElement.textContent = 'Today'; }
-                else { dateElement.textContent = this.currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }); }
-            }
+            updateDateDisplay() { const dateElement = document.getElementById('currentDate'); const today = new Date("2025-08-01T00:00:00"); today.setHours(0,0,0,0); if (this.currentDate.getTime() === today.getTime()) { dateElement.textContent = 'Today'; } else { dateElement.textContent = this.currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }); } }
         }
+        
         const scheduler = new GoogleCalendarScheduler();
     </script>
 </body>

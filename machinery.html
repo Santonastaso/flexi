@@ -1,91 +1,167 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Machinery</title>
+    <title>Ship - Manage Machinery</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&display=swap');
+
+        :root {
+            --bg-color: #f7f7f7;
+            --text-dark: #1A1A1A;
+            --text-light: #5f6368;
+            --primary-green: #278762;
+            --primary-green-hover: #217353;
+            --secondary-gray: #e9e9e9;
+            --secondary-gray-hover: #dcdcdc;
+            --border-color: #e5e7eb;
+        }
+
         * {
-            font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
+
         body {
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
+            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            -webkit-font-smoothing: antialiased;
         }
-        .container {
+
+        .page-container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 0 24px;
         }
-        h1, h2 {
-            color: #2563eb;
-            margin-top: 0;
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 0;
+            margin-bottom: 40px;
         }
-        .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            background-color: #f9fafb;
+
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            text-decoration: none;
+            color: var(--text-dark);
         }
-        .grid {
-            display: grid;
-            gap: 15px;
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 24px;
         }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-        input, select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #d1d5db;
-            border-radius: 4px;
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-light);
+            font-weight: 700;
             font-size: 14px;
+            transition: color 0.2s ease;
         }
-        button {
-            background-color: #2563eb;
-            color: white;
+
+        nav a:hover {
+            color: var(--text-dark);
+        }
+        
+        main { padding-bottom: 40px; }
+        
+        .content-section {
+            background-color: white;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 40px;
+        }
+        
+        h2 {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 24px;
+            color: var(--text-dark);
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 16px;
+            align-items: flex-end;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text-light);
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            background-color: #fff;
+        }
+        
+        .btn {
+            text-decoration: none;
+            padding: 14px 28px;
+            border-radius: 28px;
+            font-size: 14px;
+            font-weight: 700;
             border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
             cursor: pointer;
-            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+            width: 100%;
+            height: 48px; /* Match input height */
         }
-        button:hover {
-            background-color: #1d4ed8;
-        }
-        table {
+        .btn:hover { transform: translateY(-2px); }
+        .btn-primary { background-color: var(--primary-green); color: white; }
+        .btn-primary:hover { background-color: var(--primary-green-hover); }
+
+        .modern-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
         }
-        th, td {
-            border: 1px solid #e5e7eb;
-            padding: 8px 12px;
+        .modern-table th, .modern-table td {
+            padding: 16px;
             text-align: left;
             vertical-align: middle;
+            border-bottom: 1px solid var(--border-color);
         }
-        th {
-            background-color: #f3f4f6;
+        .modern-table th {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+            text-align: center;
+        }
+        .status-badge.live { background-color: var(--primary-green); }
+        .status-badge.not-live { background-color: #9ca3af; }
+        
         .action-btn {
             background-color: transparent;
             border: none;
-            color: #6b7280;
+            color: #9ca3af;
             padding: 5px;
-            font-size: 16px;
-            line-height: 1;
             cursor: pointer;
             transition: color 0.2s ease;
         }
@@ -93,104 +169,76 @@
         .action-btn:hover { color: #2563eb; }
         .action-btn.delete:hover { color: #dc2626; }
         .action-btn:disabled { color: #d1d5db; cursor: not-allowed; }
-        .actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .nav-button-group {
-            display: flex;
-            gap: 10px;
-        }
-        .nav-button {
-            background: #1a73e8;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 14px;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-        }
-        .home-button {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #1a73e8;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 14px;
-            text-decoration: none;
-            z-index: 1000;
-        }
+        
         td .edit-input, td .edit-select {
-            padding: 4px;
+            padding: 8px;
             font-size: 14px;
+            width: 100%;
+            border: 1px solid #2563eb;
+            border-radius: 6px;
+        }
+        
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <a href="index.html" class="home-button">🏠 Home</a>
-    <div class="container">
-        <div class="actions">
-            <h1>Manage Machinery</h1>
-            <div class="nav-button-group">
-                <a href="backlog.html" class="nav-button">Manage Backlog</a>
-                <a href="scheduler_v2.html" class="nav-button">Go to Scheduler</a>
-            </div>
-        </div>
+    <div class="page-container">
+        <header>
+            <a href="index.html" class="logo">🚢 Ship</a>
+            <nav>
+                <a href="backlog.html">Manage Backlog</a>
+                <a href="scheduler_v2.html">Scheduler</a>
+            </nav>
+        </header>
 
-        <div class="section">
-            <h2>Add New Machine</h2>
-            <div class="grid" style="grid-template-columns: 2fr 1fr 1fr auto; align-items: flex-end;">
-                <div class="form-group">
-                    <label for="machineName">Name</label>
-                    <input type="text" id="machineName" placeholder="e.g., BOBST M5">
-                </div>
-                <div class="form-group">
-                    <label for="machineCity">City</label>
-                    <select id="machineCity">
-                        <option value="Milan">Milan</option>
-                        <option value="Tallinn">Tallinn</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="machineLive">Live</label>
-                    <select id="machineLive">
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <button id="addMachine">Add Machine</button>
+        <main>
+            <div class="content-section">
+                <h2>Add New Machine</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="machineName">Name</label>
+                        <input type="text" id="machineName" placeholder="e.g., BOBST M5">
+                    </div>
+                    <div class="form-group">
+                        <label for="machineCity">City</label>
+                        <select id="machineCity">
+                            <option value="Milan">Milan</option>
+                            <option value="Tallinn">Tallinn</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="machineLive">Live</label>
+                        <select id="machineLive">
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button id="addMachine" class="btn btn-primary">Add Machine</button>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="section">
-            <h2>Available Machines</h2>
-            <table id="machinery-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>City</th>
-                        <th>Live</th>
-                        <th style="width: 80px; text-align: center;">Calendar</th>
-                        <th style="width: 80px; text-align: center;">Edit</th>
-                        <th style="width: 80px; text-align: center;">Delete</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
-        </div>
+            <div class="content-section">
+                <h2>Available Machines</h2>
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>City</th>
+                            <th>Live</th>
+                            <th style="width: 80px; text-align: center;">Calendar</th>
+                            <th style="width: 80px; text-align: center;">Edit</th>
+                            <th style="width: 80px; text-align: center;">Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody id="machinery-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </main>
     </div>
 
     <script>
@@ -199,7 +247,7 @@
             const machineNameInput = document.getElementById('machineName');
             const machineCityInput = document.getElementById('machineCity');
             const machineLiveInput = document.getElementById('machineLive');
-            const machineryTableBody = document.querySelector('#machinery-table tbody');
+            const machineryTableBody = document.getElementById('machinery-table-body');
 
             let machines = JSON.parse(localStorage.getItem('schedulerMachines')) || [
                 { name: 'BOBST M5', city: 'Tallinn', live: true },
@@ -215,9 +263,9 @@
                     const row = document.createElement('tr');
                     const isEditing = index === currentlyEditingIndex;
                     const isDisabled = currentlyEditingIndex !== null && !isEditing;
+                    const liveStatusClass = machine.live ? 'live' : 'not-live';
 
                     if (isEditing) {
-                        // RENDER EDIT MODE
                         row.innerHTML = `
                             <td><input type="text" class="edit-input" value="${machine.name}" id="edit-name-${index}"></td>
                             <td>
@@ -239,12 +287,11 @@
                             </button></td>
                         `;
                     } else {
-                        // RENDER DISPLAY MODE
                         const encodedName = encodeURIComponent(machine.name);
                         row.innerHTML = `
                             <td>${machine.name}</td>
                             <td>${machine.city}</td>
-                            <td><span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; color: white; background-color: ${machine.live ? '#34a853' : '#9ca3af'};">${machine.live ? 'Yes' : 'No'}</span></td>
+                            <td><span class="status-badge ${liveStatusClass}">${machine.live ? 'Yes' : 'No'}</span></td>
                             <td style="text-align: center;"><a href="machine_settings.html?machine=${encodedName}" class="action-btn" title="Edit Availability" ${isDisabled ? 'onclick="return false;" style="pointer-events:none; color:#d1d5db;"' : ''}>⚙️</a></td>
                             <td style="text-align: center;"><button class="action-btn edit-btn" data-index="${index}" title="Edit Machine" ${isDisabled ? 'disabled' : ''}>✏️</button></td>
                             <td style="text-align: center;"><button class="action-btn delete delete-btn" data-index="${index}" title="Delete Machine" ${isDisabled ? 'disabled' : ''}>
@@ -255,7 +302,8 @@
                     machineryTableBody.appendChild(row);
                 });
             }
-
+            
+            // ... (The rest of the script is unchanged)
             function addMachine() {
                 const name = machineNameInput.value.trim();
                 const city = machineCityInput.value;
@@ -266,7 +314,6 @@
                 machineNameInput.value = '';
                 saveAndRender();
             }
-
             function deleteMachine(index) {
                 const machineToDelete = machines[index];
                 const scheduledEvents = JSON.parse(localStorage.getItem('scheduledEvents')) || [];
@@ -277,23 +324,13 @@
                 machines.splice(index, 1);
                 saveAndRender();
             }
-
             function saveMachine(index) {
                 const newName = document.getElementById(`edit-name-${index}`).value.trim();
                 const newCity = document.getElementById(`edit-city-${index}`).value;
                 const newLive = document.getElementById(`edit-live-${index}`).value === 'true';
-
-                if (!newName) {
-                    alert('Machine name cannot be empty.');
-                    return;
-                }
-
+                if (!newName) { alert('Machine name cannot be empty.'); return; }
                 const isNameTaken = machines.some((m, i) => i !== index && m.name.toLowerCase() === newName.toLowerCase());
-                if (isNameTaken) {
-                    alert('Another machine with this name already exists.');
-                    return;
-                }
-
+                if (isNameTaken) { alert('Another machine with this name already exists.'); return; }
                 machines[index] = { name: newName, city: newCity, live: newLive };
                 currentlyEditingIndex = null;
                 saveAndRender();
@@ -302,19 +339,11 @@
             machineryTableBody.addEventListener('click', (e) => {
                 const targetButton = e.target.closest('button');
                 if (!targetButton) return;
-
                 const index = parseInt(targetButton.dataset.index);
-
-                if (targetButton.classList.contains('edit-btn')) {
-                    currentlyEditingIndex = index;
-                    saveAndRender();
-                } else if (targetButton.classList.contains('save-btn')) {
-                    saveMachine(index);
-                } else if (targetButton.classList.contains('delete-btn')) {
-                    deleteMachine(index);
-                }
+                if (targetButton.classList.contains('edit-btn')) { currentlyEditingIndex = index; saveAndRender(); } 
+                else if (targetButton.classList.contains('save-btn')) { saveMachine(index); } 
+                else if (targetButton.classList.contains('delete-btn')) { deleteMachine(index); }
             });
-
             addMachineBtn.addEventListener('click', addMachine);
             saveAndRender();
         });
