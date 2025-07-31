@@ -11,8 +11,8 @@
             --bg-color: #f7f7f7;
             --text-dark: #1A1A1A;
             --text-light: #5f6368;
-            --primary-blue: #2563eb;
-            --primary-blue-hover: #1d4ed8;
+            --primary-green: #278762;
+            --primary-green-hover: #217353;
             --border-color: #e5e7eb;
         }
 
@@ -35,7 +35,6 @@
             padding: 0 24px;
         }
 
-        /* Header / Navbar */
         header {
             display: flex;
             justify-content: space-between;
@@ -64,12 +63,10 @@
             font-size: 14px;
             transition: color 0.2s ease;
         }
-
-        nav a:hover {
-            color: var(--text-dark);
-        }
+        nav a:hover { color: var(--text-dark); }
         
-        /* Main Content Sections */
+        main { padding-bottom: 40px; }
+
         .content-section {
             background-color: white;
             padding: 32px;
@@ -85,7 +82,6 @@
             color: var(--text-dark);
         }
         
-        /* Form Styling */
         .form-grid {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr 1fr auto;
@@ -108,25 +104,25 @@
             border-radius: 8px;
             font-size: 14px;
             background-color: #fff;
+            height: 48px;
         }
         
         .btn {
-            background-color: var(--primary-blue);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 700;
+            text-decoration: none;
+            padding: 14px 28px;
+            border-radius: 28px;
             font-size: 14px;
-            transition: background-color 0.2s ease;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.2s ease;
             width: 100%;
+            height: 48px;
         }
-        .btn:hover {
-            background-color: var(--primary-blue-hover);
-        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-primary { background-color: var(--primary-green); color: white; }
+        .btn-primary:hover { background-color: var(--primary-green-hover); }
         
-        /* Table Styling */
         .modern-table {
             width: 100%;
             border-collapse: collapse;
@@ -160,14 +156,10 @@
             .form-grid {
                 grid-template-columns: 1fr 1fr;
             }
-            .form-grid .form-group:first-child {
-                grid-column: 1 / -1; /* Make name full width */
-            }
+            .form-grid .form-group:first-child { grid-column: 1 / -1; }
         }
         @media (max-width: 576px) {
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
+            .form-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -211,7 +203,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <button id="createTask" class="btn">Add Task</button>
+                        <button id="createTask" class="btn btn-primary">Add Task</button>
                     </div>
                 </div>
             </div>
@@ -257,7 +249,7 @@
                         <td>${task.productionHours}</td>
                         <td><strong>${task.duration}</strong></td>
                         <td>
-                            <div style="width: 20px; height: 20px; background-color: ${task.color}; border-radius: 4px;"></div>
+                            <div style="width: 24px; height: 24px; background-color: ${task.color}; border-radius: 6px;"></div>
                         </td>
                         <td style="text-align: center;">
                             <button class="action-btn" data-index="${index}" title="Delete Task">
@@ -279,7 +271,7 @@
                 const duration = setupHours + productionHours;
 
                 if (!name || duration <= 0) {
-                    alert('Please enter a valid task name and duration.');
+                    alert('Please enter a valid task name and a duration greater than zero.');
                     return;
                 }
 
