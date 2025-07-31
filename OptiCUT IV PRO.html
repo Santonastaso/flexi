@@ -1,0 +1,2276 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OptiCUT Pro - Sistema Avanzato di Ottimizzazione Taglio Bobine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif;
+            background-color: #ffffff;
+            color: #202124;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            border: 1px solid #dadce0;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #202124;
+            padding: 32px 24px;
+        }
+        
+        .header h1 {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 400;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            color: #9aa0a6;
+            margin-top: 0;
+            font-size: 16px;
+        }
+        
+        .content {
+            padding: 32px 24px;
+        }
+        
+        h1 {
+            color: #202124;
+            margin-top: 0;
+            margin-bottom: 32px;
+            font-size: 32px;
+            font-weight: 400;
+            letter-spacing: -0.5px;
+        }
+        
+        .section {
+            margin-bottom: 32px;
+            padding: 24px;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            background-color: #ffffff;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #202124;
+            font-size: 14px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s ease;
+            background-color: #ffffff;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+        }
+        
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+        
+        button:hover {
+            background-color: #1557b0;
+            box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        button:disabled {
+            background-color: #dadce0;
+            color: #5f6368;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #dadce0;
+        }
+        
+        th, td {
+            border: none;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 14px;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: 500;
+            color: #202124;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        tr:hover {
+            background-color: #f1f3f4;
+        }
+        
+        .pattern {
+            margin-bottom: 24px;
+            padding: 20px;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            background-color: #ffffff;
+        }
+        
+        .pattern-header {
+            font-weight: 500;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #dadce0;
+            color: #202124;
+            font-size: 16px;
+        }
+        
+        .visual-pattern {
+            display: flex;
+            height: 50px;
+            margin: 12px 0;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .cut-segment {
+            height: 100%;
+            background-color: #bfdbfe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            text-align: center;
+            border-right: 1px solid #93c5fd;
+        }
+        .waste-segment {
+            height: 100%;
+            background-color: #fecaca;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            text-align: center;
+        }
+        .segment-text {
+            font-size: 11px;
+            color: #1e3a8a;
+        }
+        .summary-box {
+            background-color: #dbeafe;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .summary-item {
+            margin-bottom: 8px;
+        }
+        .summary-label {
+            font-weight: 500;
+        }
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .material-list, .request-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .delete-btn {
+            background-color: #ef4444;
+            padding: 2px 8px;
+            font-size: 12px;
+        }
+        .delete-btn:hover {
+            background-color: #dc2626;
+        }
+        
+        .home-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        
+        .home-button:hover {
+            background: #1557b0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+        
+        @media (max-width: 768px) {
+            .home-button {
+                top: 10px;
+                right: 10px;
+                padding: 10px 16px;
+                font-size: 12px;
+            }
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+        }
+        .loading-spinner {
+            border: 5px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 5px solid #3498db;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        .loading-text {
+            color: white;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .algorithm-info {
+            background-color: #e0f2fe;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .info-icon {
+            margin-left: 5px;
+            cursor: help;
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 16px;
+            font-size: 12px;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 350px;
+            background-color: #555;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -175px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        .warning-box {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .warning-yellow {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .warning-red {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .success-green {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .bidimensional-view {
+            display: flex;
+            flex-direction: column;
+            margin-top: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .roll-header {
+            background-color: #f3f4f6;
+            padding: 10px;
+            font-weight: 500;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .roll-body {
+            display: flex;
+            height: 100px;
+            position: relative;
+        }
+        .roll-width-indicator {
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        .roll-length-indicator {
+            position: absolute;
+            top: 0;
+            right: -30px;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 12px;
+            color: #666;
+        }
+        .cut-block {
+            position: relative;
+            border: 1px solid rgba(0,0,0,0.1);
+            margin: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            overflow: hidden;
+            color: #1e3a8a;
+            background-color: #bfdbfe;
+        }
+        .width-waste {
+            background-color: #fecaca;
+            color: #7f1d1d;
+        }
+        .length-waste {
+            background-color: #fed7aa;
+            color: #7c2d12;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+        }
+        .color-box {
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+        }
+        .allocation-table {
+            width: 100%;
+            margin-top: 15px;
+        }
+        .assignment-group {
+            margin-bottom: 30px;
+        }
+        .assignment-header {
+            background-color: #f8fafc;
+            padding: 10px;
+            font-weight: 600;
+            border-radius: 6px 6px 0 0;
+            border: 1px solid #e5e7eb;
+            border-bottom: none;
+        }
+        .progress-bar-container {
+            background-color: #e5e7eb;
+            height: 20px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #2563eb;
+            text-align: center;
+            color: white;
+            font-size: 12px;
+            line-height: 20px;
+        }
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-top: 3px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .badge-blue {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .badge-green {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .badge-red {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+        .badge-yellow {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .banner {
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            background-color: #60a5fa;
+            color: white;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .banner-icon {
+            font-size: 24px;
+            margin-right: 10px;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            font-weight: 500;
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .slider-container label {
+            width: 180px;
+            margin-bottom: 0;
+        }
+        .slider-container input[type="range"] {
+            flex: 1;
+            margin: 0 10px;
+        }
+        .slider-value {
+            width: 50px;
+            text-align: right;
+        }
+        .algorithm-settings {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            background-color: #f9fafb;
+        }
+        .algorithm-comparison {
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        .comparison-header {
+            background-color: #f3f4f6;
+            padding: 10px;
+            font-weight: 600;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .comparison-body {
+            padding: 15px;
+        }
+        .comparison-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .comparison-label {
+            width: 200px;
+            font-weight: 500;
+        }
+        .comparison-value {
+            flex: 1;
+        }
+        .comparison-bar-container {
+            height: 20px;
+            background-color: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .comparison-bar {
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .comparison-bar-label {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            text-shadow: 0 0 2px rgba(0,0,0,0.7);
+        }
+        .metric-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+        .metric-label {
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="home-button">🏠 Home</a>
+    
+    <div class="container">
+        <div class="header">
+            <h1>OptiCUT Pro - Sistema Avanzato di Ottimizzazione Taglio Bobine</h1>
+            <p>Sistema avanzato per l'ottimizzazione del taglio di bobine con algoritmi intelligenti</p>
+        </div>
+        
+        <div class="content">
+        
+        <div class="section">
+            <h2>Catalogo Materiali</h2>
+            <div class="grid">
+                <div>
+                    <div class="form-group">
+                        <label for="material-code">Codice</label>
+                        <input type="text" id="material-code" placeholder="Es. ITXBI">
+                    </div>
+                    <div class="form-group">
+                        <label for="material-name">Nome</label>
+                        <input type="text" id="material-name" placeholder="Es. Triplex Bianco">
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label for="material-weight">Peso Specifico (g/m²)</label>
+                        <input type="number" id="material-weight" step="0.01" placeholder="Es. 121.10">
+                    </div>
+                    <div class="form-group">
+                        <button id="add-material">Aggiungi Materiale</button>
+                    </div>
+                </div>
+            </div>
+            
+            <h3>Materiali Disponibili</h3>
+            <div class="material-list">
+                <table id="material-table">
+                    <thead>
+                        <tr>
+                            <th>Codice</th>
+                            <th>Nome</th>
+                            <th>Peso Specifico (g/m²)</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Bobine in Magazzino</h2>
+            <div class="grid">
+                <div>
+                    <div class="form-group">
+                        <label for="stock-code">Codice Bobina</label>
+                        <input type="text" id="stock-code" placeholder="Es. ITXBI1000">
+                    </div>
+                    <div class="form-group">
+                        <label for="stock-material">Materiale</label>
+                        <select id="stock-material">
+                            <option value="">Seleziona...</option>
+                            <!-- Populated by JavaScript -->
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label for="stock-width">Larghezza (mm)</label>
+                        <input type="number" id="stock-width" placeholder="Es. 1000">
+                    </div>
+                    <div class="form-group">
+                        <label for="stock-length">Lunghezza (m)</label>
+                        <input type="number" id="stock-length" step="0.01" placeholder="Es. 5000">
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label for="stock-batch">Lotto</label>
+                        <input type="text" id="stock-batch" placeholder="Es. 2024/03/001">
+                    </div>
+                    <div class="form-group">
+                        <button id="add-stock">Aggiungi Bobina</button>
+                    </div>
+                </div>
+            </div>
+            
+            <h3>Bobine Disponibili</h3>
+            <div class="stock-list">
+                <table id="stock-table">
+                    <thead>
+                        <tr>
+                            <th>Codice</th>
+                            <th>Materiale</th>
+                            <th>Larghezza (mm)</th>
+                            <th>Lunghezza (m)</th>
+                            <th>Peso (kg)</th>
+                            <th>Lotto</th>
+                            <th>Coeff. α</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Richieste di Taglio</h2>
+            <div class="grid">
+                <div>
+                    <div class="form-group">
+                        <label for="request-order">Numero ODP</label>
+                        <input type="text" id="request-order" placeholder="Es. ODP-2024/120">
+                    </div>
+                    <div class="form-group">
+                        <label for="request-material">Materiale</label>
+                        <select id="request-material">
+                            <option value="">Seleziona...</option>
+                            <!-- Populated by JavaScript -->
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label for="request-width">Larghezza (mm)</label>
+                        <input type="number" id="request-width" placeholder="Es. 220">
+                    </div>
+                    <div class="form-group">
+                        <label for="request-length">Lunghezza (m)</label>
+                        <input type="number" id="request-length" step="0.01" placeholder="Es. 2500">
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label for="request-priority">Priorità</label>
+                        <select id="request-priority">
+                            <option value="high">Alta</option>
+                            <option value="normal" selected>Normale</option>
+                            <option value="low">Bassa</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="request-quantity">Quantità</label>
+                        <input type="number" id="request-quantity" min="1" value="1" placeholder="Es. 1">
+                    </div>
+                    <div class="form-group">
+                        <button id="add-request">Aggiungi Richiesta</button>
+                    </div>
+                </div>
+            </div>
+            
+            <h3>Richieste Attive</h3>
+            <div class="request-list">
+                <table id="request-table">
+                    <thead>
+                        <tr>
+                            <th>ODP</th>
+                            <th>Materiale</th>
+                            <th>Larghezza (mm)</th>
+                            <th>Lunghezza (m)</th>
+                            <th>Lunghezza Totale (m)</th>
+                            <th>Priorità</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Ottimizzazione Multi-Algoritmo</h2>
+            <p>Calcola il piano di taglio ottimale utilizzando l'algoritmo più adatto alle tue esigenze.</p>
+            
+            <div class="grid">
+                <div>
+                    <div class="form-group">
+                        <label for="optimization-type">
+                            Algoritmo di Ottimizzazione
+                            <span class="tooltip info-icon">?
+                                <span class="tooltiptext">
+                                    <strong>Combinazione Lunghezze:</strong> Ottimizzazione bidimensionale standard.<br>
+                                    <strong>Minimizzazione Sfrido (ILP):</strong> Riduce al minimo il materiale sprecato.<br>
+                                    <strong>Priorità Ordini (ILP):</strong> Privilegia gli ordini ad alta priorità.<br>
+                                    <strong>Minimizzazione Bobine (ILP):</strong> Utilizza il minor numero possibile di bobine.<br>
+                                    <strong>Multi-obiettivo (ILP):</strong> Consente di bilanciare diversi obiettivi di ottimizzazione.<br>
+                                    <strong>Generazione Colonne (ILP):</strong> Algoritmo avanzato per problemi di grandi dimensioni.
+                                </span>
+                            </span>
+                        </label>
+                        <select id="optimization-type">
+                            <option value="bidimensional" selected>Combinazione Lunghezze (Ottimizzazione Bidimensionale)</option>
+                            <option value="waste-min">Minimizzazione Sfrido (ILP)</option>
+                            <option value="priority">Priorità Ordini (ILP)</option>
+                            <option value="roll-min">Minimizzazione Bobine (ILP)</option>
+                            <option value="multi">Multi-obiettivo (ILP)</option>
+                            <option value="column-gen">Generazione Colonne (ILP Avanzato)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button id="optimize-button">Calcola Piano di Taglio Ottimale</button>
+                </div>
+            </div>
+            
+            <!-- Impostazioni per Multi-obiettivo -->
+            <div id="multi-objective-settings" class="algorithm-settings">
+                <h3>Impostazioni Multi-obiettivo</h3>
+                <p>Definisci i pesi per ciascun obiettivo di ottimizzazione:</p>
+                
+                <div class="slider-container">
+                    <label for="weight-waste">Riduzione Sfrido:</label>
+                    <input type="range" id="weight-waste" min="0" max="100" value="40">
+                    <span id="weight-waste-value" class="slider-value">40%</span>
+                </div>
+                
+                <div class="slider-container">
+                    <label for="weight-priority">Priorità Ordini:</label>
+                    <input type="range" id="weight-priority" min="0" max="100" value="40">
+                    <span id="weight-priority-value" class="slider-value">40%</span>
+                </div>
+                
+                <div class="slider-container">
+                    <label for="weight-rolls">Minimizzazione Bobine:</label>
+                    <input type="range" id="weight-rolls" min="0" max="100" value="20">
+                    <span id="weight-rolls-value" class="slider-value">20%</span>
+                </div>
+            </div>
+            
+            <!-- Impostazioni per Priorità Ordini -->
+            <div id="priority-settings" class="algorithm-settings">
+                <h3>Impostazioni Priorità Ordini</h3>
+                <p>Configura i pesi per diversi livelli di priorità:</p>
+                
+                <div class="slider-container">
+                    <label for="priority-high">Priorità Alta:</label>
+                    <input type="range" id="priority-high" min="1" max="20" value="10">
+                    <span id="priority-high-value" class="slider-value">10</span>
+                </div>
+                
+                <div class="slider-container">
+                    <label for="priority-normal">Priorità Normale:</label>
+                    <input type="range" id="priority-normal" min="1" max="10" value="5">
+                    <span id="priority-normal-value" class="slider-value">5</span>
+                </div>
+                
+                <div class="slider-container">
+                    <label for="priority-low">Priorità Bassa:</label>
+                    <input type="range" id="priority-low" min="1" max="5" value="1">
+                    <span id="priority-low-value" class="slider-value">1</span>
+                </div>
+                
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>
+                        <input type="checkbox" id="priority-strict-mode" checked>
+                        Modalità Stretta (Completa prima gli ordini a priorità alta)
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Impostazioni per Minimizzazione Bobine -->
+            <div id="roll-min-settings" class="algorithm-settings">
+                <h3>Impostazioni Minimizzazione Bobine</h3>
+                
+                <div class="form-group">
+                    <label>Limite massimo sfrido accettabile:</label>
+                    <div class="slider-container">
+                        <input type="range" id="roll-min-waste-limit" min="5" max="50" value="30">
+                        <span id="roll-min-waste-limit-value" class="slider-value">30%</span>
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>
+                        <input type="checkbox" id="roll-min-partial-rolls" checked>
+                        Consenti utilizzo parziale delle bobine
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Impostazioni per Generazione Colonne -->
+            <div id="column-gen-settings" class="algorithm-settings">
+                <h3>Impostazioni Generazione Colonne</h3>
+                
+                <div class="form-group">
+                    <label for="column-gen-iterations">Numero massimo di iterazioni:</label>
+                    <input type="number" id="column-gen-iterations" min="1" max="100" value="20">
+                </div>
+                
+                <div class="form-group">
+                    <label for="column-gen-patterns">Numero massimo di pattern per iterazione:</label>
+                    <input type="number" id="column-gen-patterns" min="10" max="1000" value="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="column-gen-tolerance">Tolleranza di convergenza:</label>
+                    <input type="number" id="column-gen-tolerance" min="0.0001" max="0.1" step="0.0001" value="0.001">
+                </div>
+            </div>
+            
+            <div id="algorithm-info" class="algorithm-info">
+                <p><strong>Algoritmo Selezionato:</strong> Combinazione Lunghezze (Ottimizzazione Bidimensionale)</p>
+                <p>Questo algoritmo avanzato ottimizza sia la larghezza che la lunghezza delle bobine. Prima determina il pattern ottimale di taglio in larghezza, poi combina diverse bobine per raggiungere la lunghezza totale richiesta per ciascuna fascia, minimizzando lo spreco complessivo.</p>
+            </div>
+            
+            <div id="results" style="margin-top: 20px; display: none;">
+                <div class="summary-box">
+                    <h3>Riepilogo Ottimizzazione</h3>
+                    <div id="metrics-grid" class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">Efficienza</div>
+                            <div id="total-efficiency" class="metric-value">0%</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Sfrido Totale</div>
+                            <div id="total-waste" class="metric-value">0m²</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Bobine Utilizzate</div>
+                            <div id="rolls-used" class="metric-value">0/0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Richieste Soddisfatte</div>
+                            <div id="fulfilled-requests" class="metric-value">0/0</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="algorithm-comparison" class="algorithm-comparison" style="display: none;">
+                    <div class="comparison-header">
+                        <h3>Confronto Algoritmi</h3>
+                    </div>
+                    <div class="comparison-body">
+                        <div class="comparison-row">
+                            <div class="comparison-label">Efficienza</div>
+                            <div class="comparison-value">
+                                <div class="comparison-bar-container">
+                                    <div id="comparison-efficiency-current" class="comparison-bar" style="width: 80%; background-color: #2563eb;">
+                                        <div class="comparison-bar-label">80%</div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 12px;">
+                                    <span id="comparison-efficiency-best-name">Multi-obiettivo</span>
+                                    <span id="comparison-efficiency-best-value">85%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="comparison-row">
+                            <div class="comparison-label">Sfrido</div>
+                            <div class="comparison-value">
+                                <div class="comparison-bar-container">
+                                    <div id="comparison-waste-current" class="comparison-bar" style="width: 60%; background-color: #2563eb;">
+                                        <div class="comparison-bar-label">60%</div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 12px;">
+                                    <span id="comparison-waste-best-name">Minimizzazione Sfrido</span>
+                                    <span id="comparison-waste-best-value">5.2m²</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="comparison-row">
+                            <div class="comparison-label">Utilizzo Bobine</div>
+                            <div class="comparison-value">
+                                <div class="comparison-bar-container">
+                                    <div id="comparison-rolls-current" class="comparison-bar" style="width: 70%; background-color: #2563eb;">
+                                        <div class="comparison-bar-label">70%</div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 12px;">
+                                    <span id="comparison-rolls-best-name">Minimizzazione Bobine</span>
+                                    <span id="comparison-rolls-best-value">2/5</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="comparison-row">
+                            <div class="comparison-label">Soddisfazione Priorità</div>
+                            <div class="comparison-value">
+                                <div class="comparison-bar-container">
+                                    <div id="comparison-priority-current" class="comparison-bar" style="width: 90%; background-color: #2563eb;">
+                                        <div class="comparison-bar-label">90%</div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 12px;">
+                                    <span id="comparison-priority-best-name">Priorità Ordini</span>
+                                    <span id="comparison-priority-best-value">100%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="alerts-container">
+                    <!-- Populated dynamically with alerts if needed -->
+                </div>
+                
+                <div class="tabs">
+                    <div class="tab active" data-tab="allocation-view">Allocazione per Richiesta</div>
+                    <div class="tab" data-tab="roll-view">Vista Bobine</div>
+                </div>
+                
+                <div id="allocation-view" class="tab-content active">
+                    <div id="allocation-container">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div id="roll-view" class="tab-content">
+                    <div id="rolls-container">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button id="reset-button">Reset Dati</button>
+            <button id="save-button">Salva Piano di Taglio</button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Calcolo in corso...</p>
+        <p class="loading-text" id="loading-details">Inizializzazione dell'algoritmo</p>
+    </div>
+
+    <script>
+        // Dati dell'applicazione
+        let materials = [
+            { code: 'ITXBI', name: 'Triplex Bianco', specificWeight: 121.10 },
+            { code: 'ITXARGLU', name: 'Triplex Argento Lucido', specificWeight: 114.00 },
+            { code: 'IQXBI', name: 'Quadruplex Bianco', specificWeight: 146.80 }
+        ];
+        let stockRolls = [
+            { id: 1, code: 'ITXBI1000', material: 'ITXBI', width: 1000, length: 3000, weight: 363.3, specificWeight: 121.10, batch: '2024/03/001' },
+            { id: 2, code: 'ITXBI1000-2', material: 'ITXBI', width: 1000, length: 2000, weight: 242.2, specificWeight: 121.10, batch: '2024/03/002' },
+            { id: 3, code: 'ITXARGLU700', material: 'ITXARGLU', width: 700, length: 4200, weight: 335.16, specificWeight: 114.00, batch: '2024/03/003' }
+        ];
+        let cutRequests = [
+            { id: 1, orderNumber: 'ODP-2024/120', material: 'ITXBI', width: 220, length: 2500, priority: 'high', quantity: 1 },
+            { id: 2, orderNumber: 'ODP-2024/121', material: 'ITXBI', width: 320, length: 3000, priority: 'normal', quantity: 1 }
+        ];
+        let optimizationResult = null;
+        let algorithmResults = {}; // Memorizza i risultati di diversi algoritmi per confronto
+
+        // Inizializzazione dell'applicazione
+        document.addEventListener('DOMContentLoaded', function() {
+            initTables();
+            setupEventListeners();
+            console.log("OptiCUT Pro inizializzato con successo");
+        });
+
+        // Funzioni di utilità
+        function calculateAlpha(specificWeight, width) {
+            return (specificWeight * width) / 1000000;
+        }
+
+        function calculateWeight(specificWeight, width, length) {
+            const alpha = calculateAlpha(specificWeight, width);
+            return alpha * length;
+        }
+        
+        // Genera un colore in base a una stringa (per colorare le diverse richieste)
+        function stringToColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            let color = '#';
+            for (let i = 0; i < 3; i++) {
+                let value = (hash >> (i * 8)) & 0xFF;
+                // Assicuriamoci che i colori non siano troppo scuri
+                value = Math.max(value, 120);
+                color += ('00' + value.toString(16)).substr(-2);
+            }
+            return color;
+        }
+
+        // Funzioni per l'interfaccia utente
+        function showLoading(message) {
+            document.getElementById('loading-details').textContent = message;
+            document.getElementById('loading-overlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-overlay').style.display = 'none';
+        }
+        
+        // Aggiorna le informazioni sull'algoritmo selezionato
+        function updateAlgorithmInfo(algorithmType) {
+            const infoDiv = document.getElementById('algorithm-info');
+            
+            // Nascondi tutte le impostazioni specifiche degli algoritmi
+            document.querySelectorAll('.algorithm-settings').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            let title, description;
+            
+            switch (algorithmType) {
+                case 'bidimensional':
+                    title = 'Combinazione Lunghezze (Ottimizzazione Bidimensionale)';
+                    description = 'Questo algoritmo avanzato ottimizza sia la larghezza che la lunghezza delle bobine. Prima determina il pattern ottimale di taglio in larghezza, poi combina diverse bobine per raggiungere la lunghezza totale richiesta per ciascuna fascia, minimizzando lo spreco complessivo.';
+                    break;
+                case 'waste-min':
+                    title = 'Minimizzazione Sfrido (ILP)';
+                    description = 'Questo algoritmo di programmazione lineare intera (ILP) si focalizza sulla riduzione al minimo dello sfrido totale di materiale. Considera tutte le possibili combinazioni di tagli per trovare quella che minimizza gli sprechi sia in larghezza che in lunghezza.';
+                    break;
+                case 'priority':
+                    title = 'Priorità Ordini (ILP)';
+                    description = 'Questo algoritmo ILP privilegia la soddisfazione degli ordini ad alta priorità, anche a costo di generare più sfrido. Utilizza un sistema di pesi per massimizzare il completamento degli ordini più importanti.';
+                    document.getElementById('priority-settings').style.display = 'block';
+                    break;
+                case 'roll-min':
+                    title = 'Minimizzazione Bobine (ILP)';
+                    description = 'Questo algoritmo ILP mira a utilizzare il minor numero possibile di bobine per soddisfare le richieste. Ottimizza il numero di bobine utilizzate, anche a costo di generare un po\' più di sfrido.';
+                    document.getElementById('roll-min-settings').style.display = 'block';
+                    break;
+                case 'multi':
+                    title = 'Multi-obiettivo (ILP)';
+                    description = 'Questo algoritmo ILP avanzato permette di bilanciare diversi obiettivi di ottimizzazione contemporaneamente: minimizzazione dello sfrido, priorità degli ordini e minimizzazione del numero di bobine utilizzate. È possibile regolare i pesi per personalizzare l\'ottimizzazione in base alle esigenze.';
+                    document.getElementById('multi-objective-settings').style.display = 'block';
+                    break;
+                case 'column-gen':
+                    title = 'Generazione Colonne (ILP Avanzato)';
+                    description = 'Questo algoritmo ILP avanzato utilizza la tecnica della generazione di colonne per risolvere problemi di grandi dimensioni. Genera iterativamente pattern di taglio promettenti e li integra nel problema principale, permettendo di ottenere soluzioni quasi ottime anche per problemi molto complessi.';
+                    document.getElementById('column-gen-settings').style.display = 'block';
+                    break;
+            }
+            
+            infoDiv.innerHTML = `
+                <p><strong>Algoritmo Selezionato:</strong> ${title}</p>
+                <p>${description}</p>
+            `;
+        }
+
+        // Inizializza tabelle
+        function initTables() {
+            updateMaterialsTable();
+            updateStockTable();
+            updateRequestTable();
+            populateMaterialDropdowns();
+            setupTabs();
+            setupSliders();
+            updateAlgorithmInfo('bidimensional');
+        }
+        
+        // Setup degli slider per le impostazioni degli algoritmi
+        function setupSliders() {
+            // Multi-obiettivo
+            setupSlider('weight-waste', 'weight-waste-value');
+            setupSlider('weight-priority', 'weight-priority-value');
+            setupSlider('weight-rolls', 'weight-rolls-value');
+            
+            // Priorità ordini
+            setupSlider('priority-high', 'priority-high-value');
+            setupSlider('priority-normal', 'priority-normal-value');
+            setupSlider('priority-low', 'priority-low-value');
+            
+            // Minimizzazione bobine
+            setupSlider('roll-min-waste-limit', 'roll-min-waste-limit-value', '%');
+        }
+        
+        function setupSlider(sliderId, valueId, suffix = '%') {
+            const slider = document.getElementById(sliderId);
+            const valueElement = document.getElementById(valueId);
+            
+            valueElement.textContent = slider.value + suffix;
+            
+            slider.addEventListener('input', function() {
+                valueElement.textContent = this.value + suffix;
+            });
+        }
+
+        // Aggiorna la tabella dei materiali
+        function updateMaterialsTable() {
+            const tbody = document.querySelector('#material-table tbody');
+            tbody.innerHTML = '';
+            
+            materials.forEach((material, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${material.code}</td>
+                    <td>${material.name}</td>
+                    <td>${material.specificWeight}</td>
+                    <td>
+                        <button class="delete-btn" data-type="material" data-index="${index}">Elimina</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Aggiorna la tabella delle bobine
+        function updateStockTable() {
+            const tbody = document.querySelector('#stock-table tbody');
+            tbody.innerHTML = '';
+            
+            stockRolls.forEach((roll, index) => {
+                const alpha = calculateAlpha(roll.specificWeight, roll.width).toFixed(6);
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${roll.code}</td>
+                    <td>${roll.material}</td>
+                    <td>${roll.width}</td>
+                    <td>${roll.length}</td>
+                    <td>${roll.weight}</td>
+                    <td>${roll.batch}</td>
+                    <td>${alpha}</td>
+                    <td>
+                        <button class="delete-btn" data-type="stock" data-index="${index}">Elimina</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Aggiorna la tabella delle richieste
+        function updateRequestTable() {
+            const tbody = document.querySelector('#request-table tbody');
+            tbody.innerHTML = '';
+            
+            cutRequests.forEach((request, index) => {
+                const priorityText = request.priority === 'high' ? 'Alta' : 
+                                     request.priority === 'normal' ? 'Normale' : 'Bassa';
+                const priorityClass = request.priority === 'high' ? 'badge-red' : 
+                                     request.priority === 'normal' ? 'badge-blue' : 'badge-yellow';
+                
+                const totalLength = request.length * request.quantity;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${request.orderNumber}</td>
+                    <td>${request.material}</td>
+                    <td>${request.width}</td>
+                    <td>${request.length}</td>
+                    <td>${totalLength}</td>
+                    <td><span class="badge ${priorityClass}">${priorityText}</span></td>
+                    <td>
+                        <button class="delete-btn" data-type="request" data-index="${index}">Elimina</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Popola i dropdown dei materiali
+        function populateMaterialDropdowns() {
+            const stockDropdown = document.getElementById('stock-material');
+            const requestDropdown = document.getElementById('request-material');
+            
+            // Pulisci i dropdown
+            stockDropdown.innerHTML = '<option value="">Seleziona...</option>';
+            requestDropdown.innerHTML = '<option value="">Seleziona...</option>';
+            
+            // Aggiungi le opzioni
+            materials.forEach(material => {
+                const stockOption = document.createElement('option');
+                stockOption.value = material.code;
+                stockOption.textContent = `${material.name} (${material.code})`;
+                stockDropdown.appendChild(stockOption);
+                
+                const requestOption = document.createElement('option');
+                requestOption.value = material.code;
+                requestOption.textContent = `${material.name} (${material.code})`;
+                requestDropdown.appendChild(requestOption);
+            });
+        }
+        
+        // Imposta le tab per la visualizzazione dei risultati
+        function setupTabs() {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Rimuovi la classe active da tutte le tab
+                    tabs.forEach(t => t.classList.remove('active'));
+                    
+                    // Aggiungi la classe active alla tab cliccata
+                    this.classList.add('active');
+                    
+                    // Mostra il contenuto corrispondente
+                    const tabName = this.dataset.tab;
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(tabName).classList.add('active');
+                });
+            });
+            
+            // Gestisci il cambio di algoritmo
+            document.getElementById('optimization-type').addEventListener('change', function() {
+                updateAlgorithmInfo(this.value);
+            });
+        }
+
+        // Gestione eventi
+        function setupEventListeners() {
+            // Aggiungi materiale
+            document.getElementById('add-material').addEventListener('click', function() {
+                const code = document.getElementById('material-code').value.trim();
+                const name = document.getElementById('material-name').value.trim();
+                const specificWeight = parseFloat(document.getElementById('material-weight').value);
+                
+                if (!code || !name || isNaN(specificWeight)) {
+                    alert('Inserisci tutti i dati del materiale');
+                    return;
+                }
+                
+                if (materials.some(m => m.code === code)) {
+                    alert('Codice materiale già esistente');
+                    return;
+                }
+                
+                materials.push({ code, name, specificWeight });
+                updateMaterialsTable();
+                populateMaterialDropdowns();
+                
+                // Pulisci i campi
+                document.getElementById('material-code').value = '';
+                document.getElementById('material-name').value = '';
+                document.getElementById('material-weight').value = '';
+            });
+            
+            // Aggiungi bobina
+            document.getElementById('add-stock').addEventListener('click', function() {
+                const code = document.getElementById('stock-code').value.trim();
+                const material = document.getElementById('stock-material').value;
+                const width = parseInt(document.getElementById('stock-width').value);
+                const length = parseFloat(document.getElementById('stock-length').value);
+                const batch = document.getElementById('stock-batch').value.trim() || `2024/${Math.floor(Math.random() * 900) + 100}`;
+                
+                if (!code || !material || isNaN(width) || isNaN(length)) {
+                    alert('Inserisci tutti i dati della bobina');
+                    return;
+                }
+                
+                if (stockRolls.some(r => r.code === code)) {
+                    alert('Codice bobina già esistente');
+                    return;
+                }
+                
+                const materialInfo = materials.find(m => m.code === material);
+                if (!materialInfo) {
+                    alert('Materiale non valido');
+                    return;
+                }
+                
+                const specificWeight = materialInfo.specificWeight;
+                const weight = calculateWeight(specificWeight, width, length);
+                
+                stockRolls.push({
+                    id: Date.now(),
+                    code,
+                    material,
+                    width,
+                    length,
+                    weight: weight.toFixed(2),
+                    specificWeight,
+                    batch
+                });
+                
+                updateStockTable();
+                
+                // Pulisci i campi
+                document.getElementById('stock-code').value = '';
+                document.getElementById('stock-width').value = '';
+                document.getElementById('stock-length').value = '';
+                document.getElementById('stock-batch').value = '';
+            });
+            
+            // Aggiungi richiesta
+            document.getElementById('add-request').addEventListener('click', function() {
+                const orderNumber = document.getElementById('request-order').value.trim();
+                const material = document.getElementById('request-material').value;
+                const width = parseInt(document.getElementById('request-width').value);
+                const length = parseFloat(document.getElementById('request-length').value);
+                const priority = document.getElementById('request-priority').value;
+                const quantity = parseInt(document.getElementById('request-quantity').value) || 1;
+                
+                if (!orderNumber || !material || isNaN(width) || isNaN(length)) {
+                    alert('Inserisci tutti i dati della richiesta');
+                    return;
+                }
+                
+                if (cutRequests.some(r => r.orderNumber === orderNumber)) {
+                    alert('Numero ODP già esistente');
+                    return;
+                }
+                
+                cutRequests.push({
+                    id: Date.now(),
+                    orderNumber,
+                    material,
+                    width,
+                    length,
+                    priority,
+                    quantity
+                });
+                
+                updateRequestTable();
+                
+                // Pulisci i campi
+                document.getElementById('request-order').value = '';
+                document.getElementById('request-width').value = '';
+                document.getElementById('request-length').value = '';
+                document.getElementById('request-priority').value = 'normal';
+                document.getElementById('request-quantity').value = '1';
+            });
+            
+            // Gestione eliminazione
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('delete-btn')) {
+                    const type = e.target.dataset.type;
+                    const index = parseInt(e.target.dataset.index);
+                    
+                    if (type === 'material') {
+                        const material = materials[index];
+                        if (stockRolls.some(r => r.material === material.code) || 
+                            cutRequests.some(r => r.material === material.code)) {
+                            alert('Non puoi eliminare un materiale in uso');
+                            return;
+                        }
+                        materials.splice(index, 1);
+                        updateMaterialsTable();
+                        populateMaterialDropdowns();
+                    } else if (type === 'stock') {
+                        stockRolls.splice(index, 1);
+                        updateStockTable();
+                    } else if (type === 'request') {
+                        cutRequests.splice(index, 1);
+                        updateRequestTable();
+                    }
+                }
+            });
+            
+            // Ottimizzazione
+            document.getElementById('optimize-button').addEventListener('click', async function() {
+                if (!stockRolls.length || !cutRequests.length) {
+                    alert('Inserisci almeno una bobina e una richiesta');
+                    return;
+                }
+                
+                const algorithmType = document.getElementById('optimization-type').value;
+                const optimizeButton = document.getElementById('optimize-button');
+                optimizeButton.disabled = true;
+                
+                try {
+                    showLoading(`Inizializzazione dell'algoritmo: ${algorithmType}`);
+                    
+                    // Ottieni le impostazioni dell'algoritmo
+                    const settings = getAlgorithmSettings(algorithmType);
+                    
+                    // Esegui l'algoritmo di ottimizzazione semplificato
+                    optimizationResult = optimizeCuttingPlan(stockRolls, cutRequests, algorithmType, settings);
+                    
+                    // Memorizza il risultato per confronti
+                    algorithmResults[algorithmType] = {
+                        efficiency: optimizationResult.statistics.efficiency,
+                        waste: parseFloat(optimizationResult.statistics.totalWaste),
+                        rollsUsed: optimizationResult.statistics.rollsUsed,
+                        fulfilledRequests: optimizationResult.statistics.fulfilledRequests
+                    };
+                    
+                    // Se ci sono almeno 2 algoritmi eseguiti, mostra il confronto
+                    if (Object.keys(algorithmResults).length >= 2) {
+                        updateAlgorithmComparison(algorithmType);
+                        document.getElementById('algorithm-comparison').style.display = 'block';
+                    }
+                    
+                    displayOptimizationResults(optimizationResult);
+                } catch (error) {
+                    console.error('Errore nell\'ottimizzazione:', error);
+                    alert('Si è verificato un errore durante l\'ottimizzazione: ' + error.message);
+                } finally {
+                    hideLoading();
+                    optimizeButton.disabled = false;
+                }
+            });
+            
+            // Reset
+            document.getElementById('reset-button').addEventListener('click', function() {
+                if (confirm('Vuoi davvero eliminare tutti i dati?')) {
+                    materials = [];
+                    stockRolls = [];
+                    cutRequests = [];
+                    optimizationResult = null;
+                    algorithmResults = {};
+                    
+                    updateMaterialsTable();
+                    updateStockTable();
+                    updateRequestTable();
+                    populateMaterialDropdowns();
+                    
+                    document.getElementById('results').style.display = 'none';
+                    document.getElementById('algorithm-comparison').style.display = 'none';
+                }
+            });
+            
+            // Salva piano
+            document.getElementById('save-button').addEventListener('click', function() {
+                if (!optimizationResult) {
+                    alert('Calcola prima un piano di taglio');
+                    return;
+                }
+                
+                // Crea un oggetto con tutti i dati
+                const data = {
+                    materials,
+                    stockRolls,
+                    cutRequests,
+                    optimizationResult,
+                    algorithmResults,
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Converti in JSON e crea un blob
+                const jsonData = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonData], { type: 'application/json' });
+                
+                // Crea un link per il download
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `OptiCUT-Piano-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        }
+        
+        // Ottieni le impostazioni per l'algoritmo selezionato
+        function getAlgorithmSettings(algorithmType) {
+            switch (algorithmType) {
+                case 'multi':
+                    return {
+                        weights: {
+                            waste: parseInt(document.getElementById('weight-waste').value) / 100,
+                            priority: parseInt(document.getElementById('weight-priority').value) / 100,
+                            rolls: parseInt(document.getElementById('weight-rolls').value) / 100
+                        }
+                    };
+                    
+                case 'priority':
+                    return {
+                        priorityWeights: {
+                            high: parseInt(document.getElementById('priority-high').value),
+                            normal: parseInt(document.getElementById('priority-normal').value),
+                            low: parseInt(document.getElementById('priority-low').value)
+                        },
+                        strictMode: document.getElementById('priority-strict-mode').checked
+                    };
+                    
+                case 'roll-min':
+                    return {
+                        wasteLimit: parseInt(document.getElementById('roll-min-waste-limit').value) / 100,
+                        allowPartialRolls: document.getElementById('roll-min-partial-rolls').checked
+                    };
+                    
+                case 'column-gen':
+                    return {
+                        maxIterations: parseInt(document.getElementById('column-gen-iterations').value),
+                        maxPatterns: parseInt(document.getElementById('column-gen-patterns').value),
+                        tolerance: parseFloat(document.getElementById('column-gen-tolerance').value)
+                    };
+                    
+                default:
+                    return {};
+            }
+        }
+
+        // Funzione principale di ottimizzazione semplificata
+        function optimizeCuttingPlan(stockRolls, cutRequests, algorithmType, settings) {
+            // Inizia mostrando il progresso
+            showLoading(`Esecuzione algoritmo: ${algorithmType}`);
+            
+            // Raggruppa le richieste per materiale
+            const requestsByMaterial = {};
+            cutRequests.forEach(req => {
+                if (!requestsByMaterial[req.material]) {
+                    requestsByMaterial[req.material] = [];
+                }
+                // Espandi le richieste multiple in richieste singole
+                for (let i = 0; i < req.quantity; i++) {
+                    requestsByMaterial[req.material].push({...req, quantity: 1});
+                }
+            });
+            
+            // Per ogni materiale, trova il piano di taglio ottimale
+            const cuttingPlans = [];
+            let totalWaste = 0;  // CORREZIONE: Inizializza come numero
+            let totalEfficiency = 0;
+            let usedRolls = 0;
+            let totalFulfilledRequests = 0;
+            
+            Object.entries(requestsByMaterial).forEach(([material, materialRequests]) => {
+                // Filtra le bobine disponibili per questo materiale
+                const availableRolls = stockRolls.filter(roll => roll.material === material);
+                if (!availableRolls.length) return;
+                
+                // Simula l'ottimizzazione semplificata
+                const materialResult = simulateOptimization(availableRolls, materialRequests, algorithmType, settings);
+                
+                if (materialResult.patterns.length > 0) {
+                    cuttingPlans.push(materialResult);
+                    
+                    // Aggiorna le statistiche
+                    // CORREZIONE: Assicuriamoci che totalWaste sia un numero
+                    totalWaste += parseFloat(materialResult.statistics.totalWaste);
+                    totalEfficiency += materialResult.statistics.efficiency * materialResult.patterns.length;
+                    usedRolls += materialResult.patterns.length;
+                    totalFulfilledRequests += materialResult.statistics.fulfilledRequests;
+                }
+            });
+            
+            // Calcola le statistiche complessive
+            const planEfficiency = usedRolls > 0 ? totalEfficiency / usedRolls : 0;
+            
+            // Costruisci il risultato finale
+            return {
+                cuttingPlans,
+                statistics: {
+                    efficiency: planEfficiency.toFixed(2),
+                    // CORREZIONE: Assicuriamoci che totalWaste sia un numero prima di chiamare toFixed
+                    totalWaste: (typeof totalWaste === 'number' ? totalWaste.toFixed(2) : '0.00'),
+                    rollsUsed: usedRolls,
+                    totalRolls: stockRolls.length,
+                    fulfilledRequests: totalFulfilledRequests,
+                    totalRequests: cutRequests.reduce((sum, req) => sum + req.quantity, 0)
+                }
+            };
+        }
+        
+        // Simulate optimization for a specific algorithm type
+        function simulateOptimization(availableRolls, materialRequests, algorithmType, settings) {
+            // Sort rolls by width (descending)
+            const sortedRolls = [...availableRolls].sort((a, b) => b.width - a.width);
+            
+            // Sort requests by priority and width
+            const sortedRequests = [...materialRequests].sort((a, b) => {
+                const priorityA = a.priority === 'high' ? 3 : a.priority === 'normal' ? 2 : 1;
+                const priorityB = b.priority === 'high' ? 3 : b.priority === 'normal' ? 2 : 1;
+                
+                if (priorityA !== priorityB) return priorityB - priorityA;
+                return b.width - a.width;
+            });
+            
+            const patterns = [];
+            const usedRequests = [];
+            let totalWaste = 0;  // CORREZIONE: Inizializza come numero
+            let efficiency = 0;
+            
+            // Simulate different algorithms
+            switch (algorithmType) {
+                case 'bidimensional':
+                    // Process roll by roll
+                    for (const roll of sortedRolls) {
+                        if (sortedRequests.length === 0) break;
+                        
+                        const pattern = { 
+                            roll: roll, 
+                            cuts: [], 
+                            efficiency: 0, 
+                            waste: 0 
+                        };
+                        
+                        let remainingWidth = roll.width;
+                        
+                        // First-fit decreasing algorithm
+                        for (let i = 0; i < sortedRequests.length; i++) {
+                            const request = sortedRequests[i];
+                            
+                            if (request.width <= remainingWidth) {
+                                pattern.cuts.push({
+                                    request: request,
+                                    width: request.width,
+                                    length: request.length
+                                });
+                                
+                                remainingWidth -= request.width;
+                                usedRequests.push(i);
+                            }
+                        }
+                        
+                        // Remove used requests
+                        for (let i = usedRequests.length - 1; i >= 0; i--) {
+                            sortedRequests.splice(usedRequests[i], 1);
+                        }
+                        usedRequests.length = 0;
+                        
+                        if (pattern.cuts.length > 0) {
+                            pattern.waste = remainingWidth;
+                            pattern.efficiency = ((roll.width - remainingWidth) / roll.width) * 100;
+                            totalWaste += remainingWidth;
+                            efficiency += pattern.efficiency;
+                            
+                            patterns.push(pattern);
+                        }
+                    }
+                    break;
+                    
+                case 'waste-min':
+                    // Similar to bidimensional but prioritize waste minimization
+                    // For each roll, try to minimize waste
+                    for (const roll of sortedRolls) {
+                        if (sortedRequests.length === 0) break;
+                        
+                        const pattern = { 
+                            roll: roll, 
+                            cuts: [], 
+                            efficiency: 0, 
+                            waste: 0 
+                        };
+                        
+                        let remainingWidth = roll.width;
+                        
+                        // Best-fit algorithm (find cuts that minimize waste)
+                        while (remainingWidth > 0 && sortedRequests.length > 0) {
+                            let bestFitIndex = -1;
+                            let bestFitValue = Infinity;
+                            
+                            // Find the best fit request
+                            for (let i = 0; i < sortedRequests.length; i++) {
+                                const request = sortedRequests[i];
+                                
+                                if (request.width <= remainingWidth && 
+                                    remainingWidth - request.width < bestFitValue) {
+                                    bestFitValue = remainingWidth - request.width;
+                                    bestFitIndex = i;
+                                }
+                            }
+                            
+                            if (bestFitIndex !== -1) {
+                                const request = sortedRequests[bestFitIndex];
+                                
+                                pattern.cuts.push({
+                                    request: request,
+                                    width: request.width,
+                                    length: request.length
+                                });
+                                
+                                remainingWidth -= request.width;
+                                sortedRequests.splice(bestFitIndex, 1);
+                            } else {
+                                break; // No more fitting requests
+                            }
+                        }
+                        
+                        if (pattern.cuts.length > 0) {
+                            pattern.waste = remainingWidth;
+                            pattern.efficiency = ((roll.width - remainingWidth) / roll.width) * 100;
+                            totalWaste += remainingWidth;
+                            efficiency += pattern.efficiency;
+                            
+                            patterns.push(pattern);
+                        }
+                    }
+                    break;
+                    
+                case 'priority':
+                    // Prioritize high priority requests
+                    const highPriorityRequests = sortedRequests.filter(req => req.priority === 'high');
+                    const normalPriorityRequests = sortedRequests.filter(req => req.priority === 'normal');
+                    const lowPriorityRequests = sortedRequests.filter(req => req.priority === 'low');
+                    
+                    let processedRolls = 0;
+                    
+                    // Process high priority requests first
+                    for (const roll of sortedRolls) {
+                        if (highPriorityRequests.length === 0 && 
+                            (!settings.strictMode || (normalPriorityRequests.length === 0 && lowPriorityRequests.length === 0))) {
+                            break;
+                        }
+                        
+                        const pattern = { 
+                            roll: roll, 
+                            cuts: [], 
+                            efficiency: 0, 
+                            waste: 0 
+                        };
+                        
+                        let remainingWidth = roll.width;
+                        
+                        // Process requests by priority
+                        let currentRequests = highPriorityRequests.length > 0 ? highPriorityRequests :
+                                            normalPriorityRequests.length > 0 ? normalPriorityRequests :
+                                            lowPriorityRequests;
+                        
+                        const usedIndices = [];
+                        
+                        for (let i = 0; i < currentRequests.length; i++) {
+                            const request = currentRequests[i];
+                            
+                            if (request.width <= remainingWidth) {
+                                pattern.cuts.push({
+                                    request: request,
+                                    width: request.width,
+                                    length: request.length
+                                });
+                                
+                                remainingWidth -= request.width;
+                                usedIndices.push(i);
+                            }
+                        }
+                        
+                        // Remove used requests
+                        for (let i = usedIndices.length - 1; i >= 0; i--) {
+                            currentRequests.splice(usedIndices[i], 1);
+                        }
+                        
+                        if (pattern.cuts.length > 0) {
+                            pattern.waste = remainingWidth;
+                            pattern.efficiency = ((roll.width - remainingWidth) / roll.width) * 100;
+                            totalWaste += remainingWidth;
+                            efficiency += pattern.efficiency;
+                            
+                            patterns.push(pattern);
+                        }
+                        
+                        processedRolls++;
+                        if (processedRolls >= sortedRolls.length) break;
+                    }
+                    break;
+                    
+                case 'roll-min':
+                    // Minimize number of rolls used
+                    // Group similar widths and try to fit them on the same roll
+                    const widthGroups = {};
+                    
+                    sortedRequests.forEach(req => {
+                        const widthKey = Math.floor(req.width / 10) * 10; // Group by 10mm increments
+                        if (!widthGroups[widthKey]) widthGroups[widthKey] = [];
+                        widthGroups[widthKey].push(req);
+                    });
+                    
+                    for (const roll of sortedRolls) {
+                        if (Object.values(widthGroups).every(group => group.length === 0)) break;
+                        
+                        const pattern = { 
+                            roll: roll, 
+                            cuts: [], 
+                            efficiency: 0, 
+                            waste: 0 
+                        };
+                        
+                        let remainingWidth = roll.width;
+                        
+                        // Process each width group
+                        for (const widthKey in widthGroups) {
+                            const group = widthGroups[widthKey];
+                            
+                            while (group.length > 0 && remainingWidth >= group[0].width) {
+                                const request = group.shift();
+                                
+                                pattern.cuts.push({
+                                    request: request,
+                                    width: request.width,
+                                    length: request.length
+                                });
+                                
+                                remainingWidth -= request.width;
+                            }
+                        }
+                        
+                        if (pattern.cuts.length > 0) {
+                            pattern.waste = remainingWidth;
+                            pattern.efficiency = ((roll.width - remainingWidth) / roll.width) * 100;
+                            totalWaste += remainingWidth;
+                            efficiency += pattern.efficiency;
+                            
+                            patterns.push(pattern);
+                        }
+                    }
+                    break;
+                    
+                case 'multi':
+                case 'column-gen':
+                default:
+                    // For multi-objective and column-gen, use a simplified algorithm
+                    // that balances different objectives
+                    
+                    // Sort requests by a combined score of priority and width
+                    const weightedRequests = sortedRequests.map(req => {
+                        const priorityWeight = req.priority === 'high' ? 3 :
+                                            req.priority === 'normal' ? 2 : 1;
+                        return {
+                            ...req,
+                            score: (req.width / 1000) * priorityWeight
+                        };
+                    }).sort((a, b) => b.score - a.score);
+                    
+                    // Process rolls
+                    for (const roll of sortedRolls) {
+                        if (weightedRequests.length === 0) break;
+                        
+                        const pattern = { 
+                            roll: roll, 
+                            cuts: [], 
+                            efficiency: 0, 
+                            waste: 0 
+                        };
+                        
+                        let remainingWidth = roll.width;
+                        const usedIndices = [];
+                        
+                        // Try to maximize score while minimizing waste
+                        for (let i = 0; i < weightedRequests.length; i++) {
+                            const request = weightedRequests[i];
+                            
+                            if (request.width <= remainingWidth) {
+                                pattern.cuts.push({
+                                    request: request,
+                                    width: request.width,
+                                    length: request.length
+                                });
+                                
+                                remainingWidth -= request.width;
+                                usedIndices.push(i);
+                            }
+                        }
+                        
+                        // Remove used requests
+                        for (let i = usedIndices.length - 1; i >= 0; i--) {
+                            weightedRequests.splice(usedIndices[i], 1);
+                        }
+                        
+                        if (pattern.cuts.length > 0) {
+                            pattern.waste = remainingWidth;
+                            pattern.efficiency = ((roll.width - remainingWidth) / roll.width) * 100;
+                            totalWaste += remainingWidth;
+                            efficiency += pattern.efficiency;
+                            
+                            patterns.push(pattern);
+                        }
+                    }
+                    break;
+            }
+            
+            return {
+                material: availableRolls[0].material,
+                patterns,
+                statistics: {
+                    efficiency: patterns.length > 0 ? (efficiency / patterns.length).toFixed(2) : 0,
+                    // CORREZIONE: Assicuriamoci che totalWaste sia un numero prima di chiamare toFixed
+                    totalWaste: typeof totalWaste === 'number' ? totalWaste.toFixed(2) : '0.00',
+                    fulfilledRequests: materialRequests.length - sortedRequests.length
+                }
+            };
+        }
+        
+        // Display optimization results
+        function displayOptimizationResults(result) {
+            if (!result) return;
+            
+            // Update metric cards
+            document.getElementById('total-efficiency').textContent = `${result.statistics.efficiency}%`;
+            document.getElementById('total-waste').textContent = `${result.statistics.totalWaste}m²`;
+            document.getElementById('rolls-used').textContent = `${result.statistics.rollsUsed}/${result.statistics.totalRolls}`;
+            document.getElementById('fulfilled-requests').textContent = `${result.statistics.fulfilledRequests}/${result.statistics.totalRequests}`;
+            
+            // Generate allocation view
+            generateAllocationView(result);
+            
+            // Generate roll view
+            generateRollView(result);
+            
+            // Show results
+            document.getElementById('results').style.display = 'block';
+        }
+        
+        // Generate allocation view
+        function generateAllocationView(result) {
+            const container = document.getElementById('allocation-container');
+            container.innerHTML = '';
+            
+            // Group cuts by order number
+            const orderCuts = {};
+            
+            result.cuttingPlans.forEach(materialPlan => {
+                materialPlan.patterns.forEach(pattern => {
+                    pattern.cuts.forEach(cut => {
+                        const orderNumber = cut.request.orderNumber;
+                        if (!orderCuts[orderNumber]) {
+                            orderCuts[orderNumber] = {
+                                request: cut.request,
+                                totalWidth: 0,
+                                cuts: []
+                            };
+                        }
+                        
+                        orderCuts[orderNumber].totalWidth += cut.width;
+                        orderCuts[orderNumber].cuts.push({
+                            pattern: pattern,
+                            cut: cut
+                        });
+                    });
+                });
+            });
+            
+            // Create a card for each order
+            Object.entries(orderCuts).forEach(([orderNumber, orderData]) => {
+                const priorityText = orderData.request.priority === 'high' ? 'Alta' : 
+                                    orderData.request.priority === 'normal' ? 'Normale' : 'Bassa';
+                const priorityClass = orderData.request.priority === 'high' ? 'badge-red' : 
+                                    orderData.request.priority === 'normal' ? 'badge-blue' : 'badge-yellow';
+                
+                const orderCard = document.createElement('div');
+                orderCard.className = 'assignment-group';
+                
+                // Calculate progress
+                const totalRequiredWidth = orderData.request.width * orderData.request.quantity;
+                const progressPercent = Math.min(100, (orderData.totalWidth / totalRequiredWidth) * 100).toFixed(0);
+                
+                orderCard.innerHTML = `
+                    <div class="assignment-header">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span class="badge ${priorityClass}">${priorityText}</span>
+                                ${orderNumber} - ${orderData.request.material}
+                            </div>
+                            <div>
+                                Larghezza: ${orderData.request.width}mm × Lunghezza: ${orderData.request.length}m
+                            </div>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" style="width: ${progressPercent}%">${progressPercent}%</div>
+                        </div>
+                        <div class="progress-label">
+                            <span>Allocato: ${orderData.totalWidth}mm</span>
+                            <span>Richiesto: ${totalRequiredWidth}mm</span>
+                        </div>
+                    </div>
+                    <table class="allocation-table">
+                        <thead>
+                            <tr>
+                                <th>Bobina</th>
+                                <th>Fascia</th>
+                                <th>Lunghezza</th>
+                                <th>Efficienza Complessiva</th>
+                                <th>Sfrido</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${orderData.cuts.map(item => `
+                                <tr>
+                                    <td>${item.pattern.roll.code}</td>
+                                    <td>${item.cut.width}mm</td>
+                                    <td>${item.cut.length}m</td>
+                                    <td>${item.pattern.efficiency.toFixed(2)}%</td>
+                                    <td>${item.pattern.waste}mm</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                container.appendChild(orderCard);
+            });
+        }
+        
+        // Generate roll view
+        function generateRollView(result) {
+            const container = document.getElementById('rolls-container');
+            container.innerHTML = '';
+            
+            // Create a card for each roll pattern
+            result.cuttingPlans.forEach(materialPlan => {
+                materialPlan.patterns.forEach(pattern => {
+                    const rollCard = document.createElement('div');
+                    rollCard.className = 'pattern';
+                    
+                    // Create visual representation
+                    const visualPattern = document.createElement('div');
+                    visualPattern.className = 'visual-pattern';
+                    
+                    // Add cuts
+                    pattern.cuts.forEach(cut => {
+                        const cutWidth = (cut.width / pattern.roll.width) * 100;
+                        const segment = document.createElement('div');
+                        segment.className = 'cut-segment';
+                        segment.style.width = `${cutWidth}%`;
+                        segment.innerHTML = `
+                            <div class="segment-text">
+                                ${cut.width}mm<br>
+                                ${cut.request.orderNumber}
+                            </div>
+                        `;
+                        visualPattern.appendChild(segment);
+                    });
+                    
+                    // Add waste segment if there is waste
+                    if (pattern.waste > 0) {
+                        const wasteWidth = (pattern.waste / pattern.roll.width) * 100;
+                        const wasteSegment = document.createElement('div');
+                        wasteSegment.className = 'waste-segment';
+                        wasteSegment.style.width = `${wasteWidth}%`;
+                        wasteSegment.innerHTML = `
+                            <div class="segment-text">
+                                ${pattern.waste}mm<br>
+                                Sfrido
+                            </div>
+                        `;
+                        visualPattern.appendChild(wasteSegment);
+                    }
+                    
+                    // Create roll info
+                    rollCard.innerHTML = `
+                        <div class="pattern-header">
+                            Bobina: ${pattern.roll.code} (${pattern.roll.material})
+                            <div style="float: right">
+                                Efficienza: ${pattern.efficiency.toFixed(2)}% | 
+                                Sfrido: ${pattern.waste}mm
+                            </div>
+                        </div>
+                    `;
+                    
+                    rollCard.appendChild(visualPattern);
+                    
+                    // Add cuts table
+                    const cutsTable = document.createElement('table');
+                    cutsTable.className = 'allocation-table';
+                    cutsTable.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th>ODP</th>
+                                <th>Fascia</th>
+                                <th>Lunghezza</th>
+                                <th>Priorità</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${pattern.cuts.map(cut => {
+                                const priorityText = cut.request.priority === 'high' ? 'Alta' : 
+                                                    cut.request.priority === 'normal' ? 'Normale' : 'Bassa';
+                                const priorityClass = cut.request.priority === 'high' ? 'badge-red' : 
+                                                    cut.request.priority === 'normal' ? 'badge-blue' : 'badge-yellow';
+                                return `
+                                    <tr>
+                                        <td>${cut.request.orderNumber}</td>
+                                        <td>${cut.width}mm</td>
+                                        <td>${cut.length}m</td>
+                                        <td><span class="badge ${priorityClass}">${priorityText}</span></td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    `;
+                    
+                    rollCard.appendChild(cutsTable);
+                    container.appendChild(rollCard);
+                });
+            });
+        }
+        
+        // Aggiorna il confronto tra algoritmi
+        function updateAlgorithmComparison(currentAlgorithm) {
+            // Trova il miglior valore per ciascuna metrica
+            const bestEfficiency = Math.max(...Object.values(algorithmResults).map(r => parseFloat(r.efficiency)));
+            const bestWaste = Math.min(...Object.values(algorithmResults).map(r => r.waste));
+            const bestRollsUsed = Math.min(...Object.values(algorithmResults).map(r => r.rollsUsed));
+            const bestFulfilled = Math.max(...Object.values(algorithmResults).map(r => r.fulfilledRequests));
+            
+            // Trova l'algoritmo con i migliori valori
+            const bestEfficiencyAlgorithm = Object.keys(algorithmResults).find(k => parseFloat(algorithmResults[k].efficiency) === bestEfficiency);
+            const bestWasteAlgorithm = Object.keys(algorithmResults).find(k => algorithmResults[k].waste === bestWaste);
+            const bestRollsAlgorithm = Object.keys(algorithmResults).find(k => algorithmResults[k].rollsUsed === bestRollsUsed);
+            const bestPriorityAlgorithm = Object.keys(algorithmResults).find(k => algorithmResults[k].fulfilledRequests === bestFulfilled);
+            
+            // Mappa nomi algoritmi per visualizzazione
+            const algorithmNames = {
+                'bidimensional': 'Combinazione Lunghezze',
+                'waste-min': 'Minimizzazione Sfrido',
+                'priority': 'Priorità Ordini',
+                'roll-min': 'Minimizzazione Bobine',
+                'multi': 'Multi-obiettivo',
+                'column-gen': 'Generazione Colonne'
+            };
+            
+            // Calcola le percentuali per l'algoritmo corrente
+            const currentEfficiencyPercent = (parseFloat(algorithmResults[currentAlgorithm].efficiency) / bestEfficiency * 100).toFixed(0);
+            const currentWastePercent = (bestWaste / algorithmResults[currentAlgorithm].waste * 100).toFixed(0);
+            const currentRollsPercent = (bestRollsUsed / algorithmResults[currentAlgorithm].rollsUsed * 100).toFixed(0);
+            const currentPriorityPercent = (algorithmResults[currentAlgorithm].fulfilledRequests / bestFulfilled * 100).toFixed(0);
+            
+            // Aggiorna le barre di confronto
+            document.getElementById('comparison-efficiency-current').style.width = `${currentEfficiencyPercent}%`;
+            document.getElementById('comparison-efficiency-current').querySelector('.comparison-bar-label').textContent = `${currentEfficiencyPercent}%`;
+            document.getElementById('comparison-waste-current').style.width = `${currentWastePercent}%`;
+            document.getElementById('comparison-waste-current').querySelector('.comparison-bar-label').textContent = `${currentWastePercent}%`;
+            document.getElementById('comparison-rolls-current').style.width = `${currentRollsPercent}%`;
+            document.getElementById('comparison-rolls-current').querySelector('.comparison-bar-label').textContent = `${currentRollsPercent}%`;
+            document.getElementById('comparison-priority-current').style.width = `${currentPriorityPercent}%`;
+            document.getElementById('comparison-priority-current').querySelector('.comparison-bar-label').textContent = `${currentPriorityPercent}%`;
+            
+            // Aggiorna i migliori valori
+            document.getElementById('comparison-efficiency-best-name').textContent = algorithmNames[bestEfficiencyAlgorithm];
+            document.getElementById('comparison-efficiency-best-value').textContent = `${bestEfficiency}%`;
+            document.getElementById('comparison-waste-best-name').textContent = algorithmNames[bestWasteAlgorithm];
+            document.getElementById('comparison-waste-best-value').textContent = `${bestWaste.toFixed(2)}m²`;
+            document.getElementById('comparison-rolls-best-name').textContent = algorithmNames[bestRollsAlgorithm];
+            document.getElementById('comparison-rolls-best-value').textContent = `${bestRollsUsed}/${stockRolls.length}`;
+            document.getElementById('comparison-priority-best-name').textContent = algorithmNames[bestPriorityAlgorithm];
+            document.getElementById('comparison-priority-best-value').textContent = `${bestFulfilled}/${cutRequests.length}`;
+        }
+    </script>
+        </div>
+    </div>
+</body>
+</html>

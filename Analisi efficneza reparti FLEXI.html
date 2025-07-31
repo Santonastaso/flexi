@@ -1,0 +1,2503 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Dashboard - Analisi Performance Operativa</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif;
+            background-color: #ffffff;
+            color: #202124;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            border: 1px solid #dadce0;
+        }
+
+        /* Header */
+        .header {
+            background: #202124;
+            padding: 32px 24px;
+            margin-bottom: 0;
+        }
+
+        .header h1 {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 400;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            color: #9aa0a6;
+            margin-top: 0;
+            font-size: 16px;
+        }
+
+        .header .date-badge {
+            display: inline-block;
+            margin-top: 16px;
+            padding: 0.5rem 1.5rem;
+            background: #1a73e8;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: white;
+            box-shadow: 0 4px 15px rgba(26, 115, 232, 0.3);
+        }
+        
+        .content {
+            padding: 32px 24px;
+        }
+        
+        .home-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        
+        .home-button:hover {
+            background: #1557b0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+        
+        @media (max-width: 768px) {
+            .home-button {
+                top: 10px;
+                right: 10px;
+                padding: 10px 16px;
+                font-size: 12px;
+            }
+        }
+
+        /* Navigation */
+        .navigation {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 3rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .nav-button {
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .nav-button:hover::before {
+            left: 100%;
+        }
+
+        .nav-button.active {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .nav-button:not(.active) {
+            background: var(--card-bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--card-border);
+        }
+
+        .nav-button:not(.active):hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Metric Cards */
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .metric-card-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .metric-card-title {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-card-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-card-unit {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-left: 0.5rem;
+            font-weight: 400;
+        }
+
+        .metric-card-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .metric-card-trend {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .trend-up {
+            color: #10b981;
+        }
+
+        .trend-down {
+            color: #ef4444;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .chart-container:hover {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .chart-container h3,
+        .chart-container h4 {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .chart-container h3 {
+            font-size: 1.25rem;
+        }
+
+        .chart-container h4 {
+            font-size: 1.125rem;
+        }
+
+        .chart-container h3 i,
+        .chart-container h4 i {
+            font-size: 1rem;
+            opacity: 0.7;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+
+        .chart-wrapper-small {
+            height: 300px;
+        }
+
+        .chart-wrapper-tiny {
+            height: 200px;
+        }
+
+        /* Site Header */
+        .site-header {
+            background: var(--primary-gradient);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .site-header h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .site-header i {
+            opacity: 0.8;
+        }
+
+        /* Grid layouts */
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .grid-cols-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .grid-cols-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        @media (max-width: 1024px) {
+            .grid-cols-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .grid-cols-2,
+            .grid-cols-4 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Tables */
+        .table-container {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .table-container h3,
+        .table-container h4 {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .table-container h3 {
+            font-size: 1.25rem;
+        }
+
+        .table-container h4 {
+            font-size: 1.125rem;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 1rem;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--card-border);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        th.text-center,
+        td.text-center {
+            text-align: center;
+        }
+
+        th.text-right,
+        td.text-right {
+            text-align: right;
+        }
+
+        td.font-medium {
+            font-weight: 500;
+        }
+
+        td.font-semibold {
+            font-weight: 600;
+            color: #3b82f6;
+        }
+
+        .highlight-cell {
+            background: rgba(59, 130, 246, 0.1);
+            font-weight: 600;
+        }
+
+        /* View Container */
+        .view-container {
+            display: none;
+            opacity: 0;
+        }
+
+        .view-container.active {
+            display: block;
+            animation: viewFadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes viewFadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Space utilities */
+        .space-y-8 > * + * {
+            margin-top: 2rem;
+        }
+
+        .mb-8 {
+            margin-bottom: 2rem;
+        }
+
+        /* Comparison details */
+        .comparison-details {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 0.75rem;
+        }
+
+        .comparison-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .comparison-item:last-child {
+            border-bottom: none;
+        }
+
+        .comparison-item span:first-child {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .comparison-item span:last-child {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Executive summary banner */
+        .executive-summary {
+            background: var(--primary-gradient);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 10px 40px rgba(37, 99, 235, 0.3);
+            animation: fadeIn 0.8s ease-out 0.4s both;
+        }
+
+        .executive-summary h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .summary-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Variation section */
+        .variation-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 1rem;
+            border: 1px solid var(--card-border);
+        }
+
+        .variation-section h5 {
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .nav-button {
+                padding: 0.75rem 1.5rem;
+                font-size: 0.875rem;
+            }
+            
+            .metric-card-value {
+                font-size: 2rem;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            
+            .nav-button:not(.active) {
+                display: none;
+            }
+            
+            .chart-container,
+            .table-container,
+            .metric-card {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="home-button">🏠 Home</a>
+    
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Dashboard Performance Operativa</h1>
+            <p class="subtitle">Analisi Integrata dei Centri Produttivi</p>
+            <span class="date-badge">
+                <i class="fas fa-calendar-alt"></i> Q1 2025 - Gennaio/Aprile
+            </span>
+        </div>
+        
+        <div class="content">
+
+        <!-- Executive Summary -->
+        <div class="executive-summary" id="executive-summary">
+            <h2><i class="fas fa-chart-line"></i> Executive Summary</h2>
+            <div class="summary-grid" id="summary-grid">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="navigation">
+            <button class="nav-button active" onclick="setActiveView('overview', event)">
+                <i class="fas fa-th-large"></i> Panoramica Generale
+            </button>
+            <button class="nav-button" onclick="setActiveView('production', event)">
+                <i class="fas fa-industry"></i> Produzione Mensile
+            </button>
+            <button class="nav-button" onclick="setActiveView('efficiency', event)">
+                <i class="fas fa-tachometer-alt"></i> Analisi Efficienza
+            </button>
+            <button class="nav-button" onclick="setActiveView('comparison', event)">
+                <i class="fas fa-balance-scale"></i> Confronto Reparti
+            </button>
+            <button class="nav-button" onclick="setActiveView('busto-garolfo', event)">
+                <i class="fas fa-building"></i> Busto Garolfo
+            </button>
+            <button class="nav-button" onclick="setActiveView('zanica', event)">
+                <i class="fas fa-building"></i> Zanica
+            </button>
+        </div>
+
+        <!-- Overview View -->
+        <div id="overview" class="view-container active">
+            <div class="space-y-8">
+                <!-- Summary Metrics -->
+                <div class="grid grid-cols-4" id="summary-metrics"></div>
+
+                <!-- Overview Chart -->
+                <div class="chart-container">
+                    <h3><i class="fas fa-chart-bar"></i> Efficienza per Ora Lavorata - Confronto Generale</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="overview-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Summary Table -->
+                <div class="table-container">
+                    <h3><i class="fas fa-table"></i> Riepilogo Dati Aggregati Q1 2025</h3>
+                    <div class="table-wrapper">
+                        <table id="summary-table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Production View -->
+        <div id="production" class="view-container">
+            <div class="space-y-8">
+                <div class="grid grid-cols-2">
+                    <div class="chart-container">
+                        <h3><i class="fas fa-boxes"></i> Produzione Mensile Confezionamento</h3>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="production-confez-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <h3><i class="fas fa-print"></i> Produzione Mensile Stampa</h3>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="production-stampa-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2">
+                    <div class="chart-container">
+                        <h3><i class="fas fa-clock"></i> Ore Lavorate Mensili Confezionamento</h3>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="hours-confez-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <h3><i class="fas fa-clock"></i> Ore Lavorate Mensili Stampa</h3>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="hours-stampa-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3><i class="fas fa-layer-group"></i> Panoramica Produzione e Ore per Centro</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="combined-production-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Efficiency View -->
+        <div id="efficiency" class="view-container">
+            <div class="space-y-8">
+                <div class="grid grid-cols-2">
+                    <div class="chart-container">
+                        <h3><i class="fas fa-chart-line"></i> Trend Efficienza Confezionamento (pz/h)</h3>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="efficiency-confez-trend"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <h3><i class="fas fa-chart-line"></i> Trend Efficienza Stampa (mt/h)</h3>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="efficiency-stampa-trend"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3><i class="fas fa-project-diagram"></i> Relazione Ore Lavorate vs Efficienza</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="efficiency-scatter"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <h3><i class="fas fa-list-alt"></i> Dettaglio Efficienza Mensile</h3>
+                    <div class="table-wrapper">
+                        <table id="efficiency-detail-table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison View -->
+        <div id="comparison" class="view-container">
+            <div class="space-y-8">
+                <div class="grid grid-cols-2">
+                    <div class="chart-container">
+                        <h3><i class="fas fa-compress-arrows-alt"></i> Confronto Confezionamento</h3>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="comparison-confez-chart"></canvas>
+                        </div>
+                        <div class="comparison-details" id="comparison-confez-details"></div>
+                    </div>
+                    <div class="chart-container">
+                        <h3><i class="fas fa-compress-arrows-alt"></i> Confronto Stampa</h3>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="comparison-stampa-chart"></canvas>
+                        </div>
+                        <div class="comparison-details" id="comparison-stampa-details"></div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3><i class="fas fa-chart-pie"></i> Distribuzione Ore Lavorate per Centro e Reparto</h3>
+                    <div class="chart-wrapper chart-wrapper-small">
+                        <canvas id="hours-distribution-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <h3><i class="fas fa-analytics"></i> Analisi Comparativa Dettagliata</h3>
+                    <div class="table-wrapper">
+                        <table id="comparative-analysis-table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Busto Garolfo Site Analysis -->
+        <div id="busto-garolfo" class="view-container">
+            <div class="space-y-8">
+                <div class="site-header">
+                    <h2><i class="fas fa-map-marker-alt"></i> Analisi Dettagliata Sito Produttivo - Busto Garolfo</h2>
+                </div>
+                
+                <!-- Site Summary Cards -->
+                <div class="grid grid-cols-4 mb-8" id="bg-summary-metrics"></div>
+
+                <!-- Monthly Trends for Busto Garolfo -->
+                <div class="grid grid-cols-2 mb-8">
+                    <div class="chart-container">
+                        <h4><i class="fas fa-chart-area"></i> Trend Mensile Produzione</h4>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="bg-production-trend"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <h4><i class="fas fa-chart-area"></i> Trend Mensile Ore Lavorate</h4>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="bg-hours-trend"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Efficiency Trends -->
+                <div class="grid grid-cols-2 mb-8">
+                    <div class="chart-container">
+                        <h4><i class="fas fa-chart-line"></i> Efficienza Confezionamento (pz/h)</h4>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="bg-confez-efficiency"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <h4><i class="fas fa-chart-line"></i> Efficienza Stampa (mt/h)</h4>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="bg-stampa-efficiency"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Monthly Table -->
+                <div class="table-container mb-8">
+                    <h4><i class="fas fa-table"></i> Dettaglio Dati Mensili Busto Garolfo</h4>
+                    <div class="table-wrapper">
+                        <table id="bg-monthly-table"></table>
+                    </div>
+                </div>
+
+                <!-- Monthly Variations -->
+                <div class="chart-container">
+                    <h4><i class="fas fa-percentage"></i> Variazioni Mensili Busto Garolfo</h4>
+                    <div class="grid grid-cols-2">
+                        <div class="variation-section">
+                            <h5>Variazioni Efficienza Confezionamento (%)</h5>
+                            <div class="chart-wrapper chart-wrapper-tiny">
+                                <canvas id="bg-confez-variations"></canvas>
+                            </div>
+                        </div>
+                        <div class="variation-section">
+                            <h5>Variazioni Efficienza Stampa (%)</h5>
+                            <div class="chart-wrapper chart-wrapper-tiny">
+                                <canvas id="bg-stampa-variations"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zanica Site Analysis -->
+        <div id="zanica" class="view-container">
+            <div class="space-y-8">
+                <div class="site-header">
+                    <h2><i class="fas fa-map-marker-alt"></i> Analisi Dettagliata Sito Produttivo - Zanica</h2>
+                </div>
+                
+                <!-- Site Summary Cards -->
+                <div class="grid grid-cols-4 mb-8" id="zanica-summary-metrics"></div>
+
+                <!-- Monthly Trends for Zanica -->
+                <div class="grid grid-cols-2 mb-8">
+                    <div class="chart-container">
+                        <h4><i class="fas fa-chart-area"></i> Trend Mensile Produzione</h4>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="zanica-production-trend"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <h4><i class="fas fa-chart-area"></i> Trend Mensile Ore Lavorate</h4>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="zanica-hours-trend"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Efficiency Trends -->
+                <div class="grid grid-cols-2 mb-8">
+                    <div class="chart-container">
+                        <h4><i class="fas fa-chart-line"></i> Efficienza Confezionamento (pz/h)</h4>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="zanica-confez-efficiency"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <h4><i class="fas fa-chart-line"></i> Efficienza Stampa (mt/h)</h4>
+                        <div class="chart-wrapper chart-wrapper-small">
+                            <canvas id="zanica-stampa-efficiency"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Monthly Table -->
+                <div class="table-container mb-8">
+                    <h4><i class="fas fa-table"></i> Dettaglio Dati Mensili Zanica</h4>
+                    <div class="table-wrapper">
+                        <table id="zanica-monthly-table"></table>
+                    </div>
+                </div>
+
+                <!-- Monthly Variations -->
+                <div class="chart-container">
+                    <h4><i class="fas fa-percentage"></i> Variazioni Mensili Zanica</h4>
+                    <div class="grid grid-cols-2">
+                        <div class="variation-section">
+                            <h5>Variazioni Efficienza Confezionamento (%)</h5>
+                            <div class="chart-wrapper chart-wrapper-tiny">
+                                <canvas id="zanica-confez-variations"></canvas>
+                            </div>
+                        </div>
+                        <div class="variation-section">
+                            <h5>Variazioni Efficienza Stampa (%)</h5>
+                            <div class="chart-wrapper chart-wrapper-tiny">
+                                <canvas id="zanica-stampa-variations"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart.js default configuration
+        Chart.defaults.color = 'rgba(255, 255, 255, 0.8)';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        
+        // Dati di produzione
+        const rawData = [
+            // Busto Garolfo - Confezionamento
+            { centro: 'Busto Garolfo', reparto: 'Confezionamento', tipo: 'Confezionamento', mese: 'gennaio', quantita_pezzi: 10684716, ore_lavorate: 4004.25, efficienza_pz_h: 2668.34 },
+            { centro: 'Busto Garolfo', reparto: 'Confezionamento', tipo: 'Confezionamento', mese: 'febbraio', quantita_pezzi: 9225973, ore_lavorate: 3772, efficienza_pz_h: 2445.91 },
+            { centro: 'Busto Garolfo', reparto: 'Confezionamento', tipo: 'Confezionamento', mese: 'marzo', quantita_pezzi: 12540787, ore_lavorate: 4074.75, efficienza_pz_h: 3077.68 },
+            { centro: 'Busto Garolfo', reparto: 'Confezionamento', tipo: 'Confezionamento', mese: 'aprile', quantita_pezzi: 10787827, ore_lavorate: 3448.25, efficienza_pz_h: 3128.49 },
+            
+            // Zanica - Confezionamento  
+            { centro: 'Zanica', reparto: 'Confezionamento', tipo: 'Confezionamento', mese: 'gennaio', quantita_pezzi: 2734144, ore_lavorate: 2130.5, efficienza_pz_h: 1283.33 },
+            { centro: 'Zanica', reparto: 'Confezionamento', tipo: 'Confezionamento', mese: 'febbraio', quantita_pezzi: 1522927, ore_lavorate: 2016.75, efficienza_pz_h: 755.14 },
+            { centro: 'Zanica', reparto: 'Confezionamento', tipo: 'Confezionamento', mese: 'marzo', quantita_pezzi: 2081879, ore_lavorate: 2368.75, efficienza_pz_h: 878.89 },
+            { centro: 'Zanica', reparto: 'Confezionamento', tipo: 'Confezionamento', mese: 'aprile', quantita_pezzi: 1880113, ore_lavorate: 2167, efficienza_pz_h: 867.61 },
+            
+            // Busto Garolfo - Stampa
+            { centro: 'Busto Garolfo', reparto: 'Stampa', tipo: 'Stampa', mese: 'gennaio', quantita_pezzi: 176776, quantita_metri: 114904, ore_lavorate: 552.25, efficienza_mt_h: 208.1 },
+            { centro: 'Busto Garolfo', reparto: 'Stampa', tipo: 'Stampa', mese: 'febbraio', quantita_pezzi: 247980, quantita_metri: 161187, ore_lavorate: 552.25, efficienza_mt_h: 291.9 },
+            { centro: 'Busto Garolfo', reparto: 'Stampa', tipo: 'Stampa', mese: 'marzo', quantita_pezzi: 231745, quantita_metri: 150634, ore_lavorate: 521.25, efficienza_mt_h: 289.0 },
+            { centro: 'Busto Garolfo', reparto: 'Stampa', tipo: 'Stampa', mese: 'aprile', quantita_pezzi: 169480, quantita_metri: 110162, ore_lavorate: 413, efficienza_mt_h: 266.7 },
+            
+            // Zanica - Stampa
+            { centro: 'Zanica', reparto: 'Stampa', tipo: 'Stampa', mese: 'gennaio', quantita_pezzi: 549565, quantita_metri: 357217, ore_lavorate: 435, efficienza_mt_h: 821.1 },
+            { centro: 'Zanica', reparto: 'Stampa', tipo: 'Stampa', mese: 'febbraio', quantita_pezzi: 533167, quantita_metri: 346559, ore_lavorate: 527.7, efficienza_mt_h: 656.7 },
+            { centro: 'Zanica', reparto: 'Stampa', tipo: 'Stampa', mese: 'marzo', quantita_pezzi: 617406, quantita_metri: 401314, ore_lavorate: 571, efficienza_mt_h: 702.8 },
+            { centro: 'Zanica', reparto: 'Stampa', tipo: 'Stampa', mese: 'aprile', quantita_pezzi: 539850, quantita_metri: 510903, ore_lavorate: 500, efficienza_mt_h: 701.8 }
+        ];
+
+        // Variabili globali per i grafici
+        let charts = {};
+
+        // Funzioni di utilità
+        function formatNumber(num) {
+            return new Intl.NumberFormat('it-IT').format(Math.round(num));
+        }
+
+        function formatDecimal(num, decimals = 2) {
+            return new Intl.NumberFormat('it-IT', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            }).format(num);
+        }
+
+        // Calcola dati aggregati
+        function calculateAggregatedData() {
+            const analysis = {};
+            
+            rawData.forEach(item => {
+                const key = `${item.centro}_${item.tipo}`;
+                if (!analysis[key]) {
+                    analysis[key] = {
+                        centro: item.centro,
+                        tipo: item.tipo,
+                        totale_ore: 0,
+                        totale_quantita: 0,
+                        totale_metri: 0,
+                        dati_mensili: []
+                    };
+                }
+                
+                analysis[key].totale_ore += item.ore_lavorate;
+                analysis[key].totale_quantita += item.quantita_pezzi;
+                analysis[key].totale_metri += item.quantita_metri || 0;
+                analysis[key].dati_mensili.push({
+                    mese: item.mese,
+                    ore: item.ore_lavorate,
+                    quantita: item.quantita_pezzi,
+                    metri: item.quantita_metri || 0,
+                    efficienza_pz: item.efficienza_pz_h,
+                    efficienza_mt: item.efficienza_mt_h
+                });
+            });
+
+            Object.keys(analysis).forEach(key => {
+                const data = analysis[key];
+                if (data.tipo === 'Confezionamento') {
+                    data.efficienza_media = data.totale_ore > 0 ? data.totale_quantita / data.totale_ore : 0;
+                    data.unita_misura = 'pz/h';
+                } else {
+                    data.efficienza_media = data.totale_ore > 0 ? data.totale_metri / data.totale_ore : 0;
+                    data.unita_misura = 'mt/h';
+                }
+                
+                // Calcola trend
+                const efficienze = data.dati_mensili.map(m => data.tipo === 'Confezionamento' ? m.efficienza_pz : m.efficienza_mt);
+                data.trend = efficienze[efficienze.length - 1] > efficienze[0];
+            });
+
+            return analysis;
+        }
+
+        // Dati specifici per sito
+        function getSiteData(siteName) {
+            return rawData.filter(item => item.centro === siteName);
+        }
+
+        // Dati mensili per sito specifico
+        function getSiteMonthlyData(siteName) {
+            const siteData = getSiteData(siteName);
+            const mesi = ['gennaio', 'febbraio', 'marzo', 'aprile'];
+            
+            return mesi.map(mese => {
+                const datiMese = siteData.filter(d => d.mese === mese);
+                const confData = datiMese.find(d => d.tipo === 'Confezionamento');
+                const stampaData = datiMese.find(d => d.tipo === 'Stampa');
+                
+                return {
+                    mese: mese.charAt(0).toUpperCase() + mese.slice(1),
+                    confezionamento_quantita: confData?.quantita_pezzi || 0,
+                    confezionamento_ore: confData?.ore_lavorate || 0,
+                    confezionamento_efficienza: confData?.efficienza_pz_h || 0,
+                    stampa_quantita: stampaData?.quantita_pezzi || 0,
+                    stampa_metri: stampaData?.quantita_metri || 0,
+                    stampa_ore: stampaData?.ore_lavorate || 0,
+                    stampa_efficienza: stampaData?.efficienza_mt_h || 0
+                };
+            });
+        }
+
+        // Calcolo variazioni percentuali mese su mese
+        function calculateMonthlyVariations(data, metric) {
+            const variations = [];
+            for (let i = 1; i < data.length; i++) {
+                const prev = data[i-1][metric];
+                const curr = data[i][metric];
+                const variation = prev > 0 ? ((curr - prev) / prev * 100) : 0;
+                variations.push({
+                    mese: data[i].mese,
+                    variazione: variation
+                });
+            }
+            return variations;
+        }
+
+        // Popola Executive Summary
+        function populateExecutiveSummary() {
+            const aggregatedData = calculateAggregatedData();
+            
+            // Calcola totali
+            let totalePezzi = 0;
+            let totaleMetri = 0;
+            let totaleOre = 0;
+            let efficienzaMediaConf = 0;
+            let efficienzaMediaStampa = 0;
+            let countConf = 0;
+            let countStampa = 0;
+            
+            Object.values(aggregatedData).forEach(data => {
+                totaleOre += data.totale_ore;
+                if (data.tipo === 'Confezionamento') {
+                    totalePezzi += data.totale_quantita;
+                    efficienzaMediaConf += data.efficienza_media;
+                    countConf++;
+                } else {
+                    totaleMetri += data.totale_metri;
+                    efficienzaMediaStampa += data.efficienza_media;
+                    countStampa++;
+                }
+            });
+            
+            efficienzaMediaConf = efficienzaMediaConf / countConf;
+            efficienzaMediaStampa = efficienzaMediaStampa / countStampa;
+            
+            const summaryGrid = document.getElementById('summary-grid');
+            summaryGrid.innerHTML = `
+                <div class="summary-item">
+                    <div class="summary-value">${formatNumber(totalePezzi)}</div>
+                    <div class="summary-label">Pezzi Prodotti</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${formatNumber(totaleMetri)}</div>
+                    <div class="summary-label">Metri Stampati</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${formatNumber(totaleOre)}</div>
+                    <div class="summary-label">Ore Lavorate</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${formatNumber(efficienzaMediaConf)}</div>
+                    <div class="summary-label">Efficienza Media Conf. (pz/h)</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value">${formatNumber(efficienzaMediaStampa)}</div>
+                    <div class="summary-label">Efficienza Media Stampa (mt/h)</div>
+                </div>
+            `;
+        }
+
+        // Calcola dati mensili
+        function calculateMonthlyData() {
+            const mesi = ['gennaio', 'febbraio', 'marzo', 'aprile'];
+            
+            return mesi.map(mese => {
+                const datiMese = rawData.filter(d => d.mese === mese);
+                
+                return {
+                    mese: mese.charAt(0).toUpperCase() + mese.slice(1),
+                    'BG Confez. Quantità': datiMese.find(d => d.centro === 'Busto Garolfo' && d.tipo === 'Confezionamento')?.quantita_pezzi || 0,
+                    'BG Confez. Ore': datiMese.find(d => d.centro === 'Busto Garolfo' && d.tipo === 'Confezionamento')?.ore_lavorate || 0,
+                    'BG Confez. Efficienza': datiMese.find(d => d.centro === 'Busto Garolfo' && d.tipo === 'Confezionamento')?.efficienza_pz_h || 0,
+                    'Zanica Confez. Quantità': datiMese.find(d => d.centro === 'Zanica' && d.tipo === 'Confezionamento')?.quantita_pezzi || 0,
+                    'Zanica Confez. Ore': datiMese.find(d => d.centro === 'Zanica' && d.tipo === 'Confezionamento')?.ore_lavorate || 0,
+                    'Zanica Confez. Efficienza': datiMese.find(d => d.centro === 'Zanica' && d.tipo === 'Confezionamento')?.efficienza_pz_h || 0,
+                    'BG Stampa Metri': datiMese.find(d => d.centro === 'Busto Garolfo' && d.tipo === 'Stampa')?.quantita_metri || 0,
+                    'BG Stampa Ore': datiMese.find(d => d.centro === 'Busto Garolfo' && d.tipo === 'Stampa')?.ore_lavorate || 0,
+                    'BG Stampa Efficienza': datiMese.find(d => d.centro === 'Busto Garolfo' && d.tipo === 'Stampa')?.efficienza_mt_h || 0,
+                    'Zanica Stampa Metri': datiMese.find(d => d.centro === 'Zanica' && d.tipo === 'Stampa')?.quantita_metri || 0,
+                    'Zanica Stampa Ore': datiMese.find(d => d.centro === 'Zanica' && d.tipo === 'Stampa')?.ore_lavorate || 0,
+                    'Zanica Stampa Efficienza': datiMese.find(d => d.centro === 'Zanica' && d.tipo === 'Stampa')?.efficienza_mt_h || 0
+                };
+            });
+        }
+
+        // Navigazione tra le viste
+        function setActiveView(viewName, event) {
+            // Aggiorna bottoni
+            document.querySelectorAll('.nav-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+
+            // Aggiorna viste
+            document.querySelectorAll('.view-container').forEach(view => {
+                view.classList.remove('active');
+            });
+            
+            setTimeout(() => {
+                document.getElementById(viewName).classList.add('active');
+                
+                // Inizializza grafici per la vista attiva
+                switch(viewName) {
+                    case 'overview':
+                        initOverviewCharts();
+                        break;
+                    case 'production':
+                        initProductionCharts();
+                        break;
+                    case 'efficiency':
+                        initEfficiencyCharts();
+                        break;
+                    case 'comparison':
+                        initComparisonCharts();
+                        break;
+                    case 'busto-garolfo':
+                        initBustoGarolfoCharts();
+                        break;
+                    case 'zanica':
+                        initZanicaCharts();
+                        break;
+                }
+            }, 50);
+        }
+
+        // Common chart options
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        padding: 15,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleFont: {
+                        size: 14
+                    },
+                    bodyFont: {
+                        size: 13
+                    },
+                    padding: 12,
+                    cornerRadius: 8,
+                    displayColors: true
+                }
+            }
+        };
+
+        // Inizializza grafici Overview
+        function initOverviewCharts() {
+            const aggregatedData = calculateAggregatedData();
+            
+            // Popola metric cards
+            const metricsContainer = document.getElementById('summary-metrics');
+            metricsContainer.innerHTML = '';
+            
+            const icons = {
+                'Busto Garolfo_Confezionamento': 'fa-boxes',
+                'Zanica_Confezionamento': 'fa-box',
+                'Busto Garolfo_Stampa': 'fa-print',
+                'Zanica_Stampa': 'fa-printer'
+            };
+            
+            Object.entries(aggregatedData).forEach(([key, data]) => {
+                const card = document.createElement('div');
+                card.className = 'metric-card';
+                card.innerHTML = `
+                    <i class="fas ${icons[key]} metric-card-icon"></i>
+                    <p class="metric-card-title">${data.centro} ${data.tipo}</p>
+                    <p class="metric-card-value">
+                        ${formatNumber(Math.round(data.efficienza_media))}
+                        <span class="metric-card-unit">${data.unita_misura}</span>
+                    </p>
+                    <p class="metric-card-subtitle">${formatNumber(data.totale_ore)} ore lavorate</p>
+                    <i class="fas fa-chevron-${data.trend ? 'up trend-up' : 'down trend-down'} metric-card-trend"></i>
+                `;
+                metricsContainer.appendChild(card);
+            });
+
+            // Grafico efficienza
+            const efficiencyData = Object.values(aggregatedData).map(data => ({
+                nome: `${data.centro} ${data.tipo}`,
+                efficienza: data.efficienza_media
+            }));
+
+            if (charts.overviewChart) {
+                charts.overviewChart.destroy();
+            }
+
+            const ctx = document.getElementById('overview-chart').getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.8)');
+            gradient.addColorStop(1, 'rgba(59, 130, 246, 0.2)');
+
+            charts.overviewChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: efficiencyData.map(d => d.nome),
+                    datasets: [{
+                        label: 'Efficienza',
+                        data: efficiencyData.map(d => d.efficienza),
+                        backgroundColor: gradient,
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: {
+                        ...commonOptions.plugins,
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                autoSkip: false,
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Popola tabella riepilogo
+            const table = document.getElementById('summary-table');
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Centro</th>
+                        <th>Reparto</th>
+                        <th class="text-right">Ore Totali</th>
+                        <th class="text-right">Volume Prodotto</th>
+                        <th class="text-right">Efficienza Media</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${Object.values(aggregatedData).map(data => `
+                        <tr>
+                            <td class="font-medium">${data.centro}</td>
+                            <td>${data.tipo}</td>
+                            <td class="text-right">${formatNumber(data.totale_ore)}</td>
+                            <td class="text-right">
+                                ${data.tipo === 'Confezionamento' 
+                                    ? `${formatNumber(data.totale_quantita)} pz` 
+                                    : `${formatNumber(data.totale_metri)} mt`
+                                }
+                            </td>
+                            <td class="text-right font-semibold">
+                                ${formatDecimal(data.efficienza_media)} ${data.unita_misura}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+        }
+
+        // Inizializza grafici Production
+        function initProductionCharts() {
+            const monthlyData = calculateMonthlyData();
+            const colors = {
+                bg: ['rgba(59, 130, 246, 0.8)', 'rgba(59, 130, 246, 1)'],
+                zanica: ['rgba(16, 185, 129, 0.8)', 'rgba(16, 185, 129, 1)'],
+                bgStampa: ['rgba(245, 158, 11, 0.8)', 'rgba(245, 158, 11, 1)'],
+                zanicaStampa: ['rgba(239, 68, 68, 0.8)', 'rgba(239, 68, 68, 1)']
+            };
+
+            // Produzione Confezionamento
+            if (charts.productionConfezChart) charts.productionConfezChart.destroy();
+            const ctx1 = document.getElementById('production-confez-chart').getContext('2d');
+            charts.productionConfezChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: monthlyData.map(d => d.mese),
+                    datasets: [
+                        {
+                            label: 'Busto Garolfo',
+                            data: monthlyData.map(d => d['BG Confez. Quantità']),
+                            backgroundColor: colors.bg[0],
+                            borderColor: colors.bg[1],
+                            borderWidth: 2,
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Zanica',
+                            data: monthlyData.map(d => d['Zanica Confez. Quantità']),
+                            backgroundColor: colors.zanica[0],
+                            borderColor: colors.zanica[1],
+                            borderWidth: 2,
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Produzione Stampa
+            if (charts.productionStampaChart) charts.productionStampaChart.destroy();
+            const ctx2 = document.getElementById('production-stampa-chart').getContext('2d');
+            charts.productionStampaChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: monthlyData.map(d => d.mese),
+                    datasets: [
+                        {
+                            label: 'Busto Garolfo',
+                            data: monthlyData.map(d => d['BG Stampa Metri']),
+                            backgroundColor: colors.bgStampa[0],
+                            borderColor: colors.bgStampa[1],
+                            borderWidth: 2,
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Zanica',
+                            data: monthlyData.map(d => d['Zanica Stampa Metri']),
+                            backgroundColor: colors.zanicaStampa[0],
+                            borderColor: colors.zanicaStampa[1],
+                            borderWidth: 2,
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: commonOptions
+            });
+
+            // Ore Confezionamento
+            if (charts.hoursConfezChart) charts.hoursConfezChart.destroy();
+            const ctx3 = document.getElementById('hours-confez-chart').getContext('2d');
+            charts.hoursConfezChart = new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: monthlyData.map(d => d.mese),
+                    datasets: [
+                        {
+                            label: 'Busto Garolfo',
+                            data: monthlyData.map(d => d['BG Confez. Ore']),
+                            borderColor: colors.bg[1],
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            pointBackgroundColor: colors.bg[1],
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        },
+                        {
+                            label: 'Zanica',
+                            data: monthlyData.map(d => d['Zanica Confez. Ore']),
+                            borderColor: colors.zanica[1],
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            pointBackgroundColor: colors.zanica[1],
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        }
+                    ]
+                },
+                options: commonOptions
+            });
+
+            // Ore Stampa
+            if (charts.hoursStampaChart) charts.hoursStampaChart.destroy();
+            const ctx4 = document.getElementById('hours-stampa-chart').getContext('2d');
+            charts.hoursStampaChart = new Chart(ctx4, {
+                type: 'line',
+                data: {
+                    labels: monthlyData.map(d => d.mese),
+                    datasets: [
+                        {
+                            label: 'Busto Garolfo',
+                            data: monthlyData.map(d => d['BG Stampa Ore']),
+                            borderColor: colors.bgStampa[1],
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            pointBackgroundColor: colors.bgStampa[1],
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        },
+                        {
+                            label: 'Zanica',
+                            data: monthlyData.map(d => d['Zanica Stampa Ore']),
+                            borderColor: colors.zanicaStampa[1],
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            pointBackgroundColor: colors.zanicaStampa[1],
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        }
+                    ]
+                },
+                options: commonOptions
+            });
+
+            // Combined Production
+            if (charts.combinedProductionChart) charts.combinedProductionChart.destroy();
+            const ctx5 = document.getElementById('combined-production-chart').getContext('2d');
+            charts.combinedProductionChart = new Chart(ctx5, {
+                type: 'bar',
+                data: {
+                    labels: monthlyData.map(d => d.mese),
+                    datasets: [
+                        {
+                            label: 'BG Confez. Produzione',
+                            data: monthlyData.map(d => d['BG Confez. Quantità']),
+                            backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 2,
+                            type: 'bar',
+                            yAxisID: 'y',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Zanica Confez. Produzione',
+                            data: monthlyData.map(d => d['Zanica Confez. Quantità']),
+                            backgroundColor: 'rgba(16, 185, 129, 0.5)',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            borderWidth: 2,
+                            type: 'bar',
+                            yAxisID: 'y',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'BG Confez. Ore',
+                            data: monthlyData.map(d => d['BG Confez. Ore']),
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'transparent',
+                            type: 'line',
+                            borderWidth: 3,
+                            yAxisID: 'y1',
+                            tension: 0.4,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        },
+                        {
+                            label: 'Zanica Confez. Ore',
+                            data: monthlyData.map(d => d['Zanica Confez. Ore']),
+                            borderColor: '#10b981',
+                            backgroundColor: 'transparent',
+                            type: 'line',
+                            borderWidth: 3,
+                            yAxisID: 'y1',
+                            tension: 0.4,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        }
+                    ]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        },
+                    }
+                }
+            });
+        }
+
+        // Inizializza grafici Efficiency
+        function initEfficiencyCharts() {
+            const monthlyData = calculateMonthlyData();
+            const aggregatedData = calculateAggregatedData();
+
+            // Trend Efficienza Confezionamento
+            if (charts.efficiencyConfezTrend) charts.efficiencyConfezTrend.destroy();
+            const ctx1 = document.getElementById('efficiency-confez-trend').getContext('2d');
+            
+            const gradientBG = ctx1.createLinearGradient(0, 0, 0, 300);
+            gradientBG.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
+            gradientBG.addColorStop(1, 'rgba(59, 130, 246, 0)');
+            
+            const gradientZanica = ctx1.createLinearGradient(0, 0, 0, 300);
+            gradientZanica.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
+            gradientZanica.addColorStop(1, 'rgba(16, 185, 129, 0)');
+            
+            charts.efficiencyConfezTrend = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: monthlyData.map(d => d.mese),
+                    datasets: [
+                        {
+                            label: 'Busto Garolfo',
+                            data: monthlyData.map(d => d['BG Confez. Efficienza']),
+                            borderColor: '#3b82f6',
+                            backgroundColor: gradientBG,
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: '#3b82f6',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Zanica',
+                            data: monthlyData.map(d => d['Zanica Confez. Efficienza']),
+                            borderColor: '#10b981',
+                            backgroundColor: gradientZanica,
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: '#10b981',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }
+                    ]
+                },
+                options: commonOptions
+            });
+
+            // Trend Efficienza Stampa
+            if (charts.efficiencyStampaTrend) charts.efficiencyStampaTrend.destroy();
+            const ctx2 = document.getElementById('efficiency-stampa-trend').getContext('2d');
+            charts.efficiencyStampaTrend = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: monthlyData.map(d => d.mese),
+                    datasets: [
+                        {
+                            label: 'Busto Garolfo',
+                            data: monthlyData.map(d => d['BG Stampa Efficienza']),
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: '#f59e0b',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Zanica',
+                            data: monthlyData.map(d => d['Zanica Stampa Efficienza']),
+                            borderColor: '#ef4444',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: '#ef4444',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }
+                    ]
+                },
+                options: commonOptions
+            });
+
+            // Scatter plot
+            const scatterData = Object.values(aggregatedData).map((data, index) => ({
+                x: data.totale_ore,
+                y: data.efficienza_media,
+                label: `${data.centro} ${data.tipo}`
+            }));
+
+            if (charts.efficiencyScatter) charts.efficiencyScatter.destroy();
+            const ctx3 = document.getElementById('efficiency-scatter').getContext('2d');
+            charts.efficiencyScatter = new Chart(ctx3, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Efficienza vs Ore',
+                        data: scatterData,
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
+                        borderColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
+                        borderWidth: 2,
+                        pointRadius: 10,
+                        pointHoverRadius: 12
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Ore Lavorate',
+                                font: {
+                                    size: 14
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Efficienza',
+                                font: {
+                                    size: 14
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Popola tabella efficienza
+            const table = document.getElementById('efficiency-detail-table');
+            const mesi = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile'];
+            
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Centro/Reparto</th>
+                        ${mesi.map(m => `<th class="text-center">${m}</th>`).join('')}
+                        <th class="text-center">Media</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${Object.values(aggregatedData).map(data => `
+                        <tr>
+                            <td class="font-medium">${data.centro} ${data.tipo}</td>
+                            ${data.dati_mensili.map(mese => `
+                                <td class="text-center">
+                                    ${data.tipo === 'Confezionamento' 
+                                        ? `${formatNumber(Math.round(mese.efficienza_pz || 0))} pz/h`
+                                        : `${formatNumber(Math.round(mese.efficienza_mt || 0))} mt/h`
+                                    }
+                                </td>
+                            `).join('')}
+                            <td class="text-center font-semibold highlight-cell">
+                                ${formatNumber(Math.round(data.efficienza_media))} ${data.unita_misura}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+        }
+
+        // Inizializza grafici Comparison
+        function initComparisonCharts() {
+            const aggregatedData = calculateAggregatedData();
+            const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+
+            // Confronto Confezionamento
+            const confezData = Object.values(aggregatedData).filter(d => d.tipo === 'Confezionamento');
+            
+            if (charts.comparisonConfezChart) charts.comparisonConfezChart.destroy();
+            const ctx1 = document.getElementById('comparison-confez-chart').getContext('2d');
+            
+            const gradientConf = ctx1.createLinearGradient(0, 0, 0, 300);
+            gradientConf.addColorStop(0, 'rgba(59, 130, 246, 0.8)');
+            gradientConf.addColorStop(1, 'rgba(59, 130, 246, 0.2)');
+            
+            charts.comparisonConfezChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: confezData.map(d => d.centro),
+                    datasets: [{
+                        label: 'Efficienza',
+                        data: confezData.map(d => d.efficienza_media),
+                        backgroundColor: gradientConf,
+                        borderColor: '#3b82f6',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: {
+                        ...commonOptions.plugins,
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Dettagli confronto confezionamento
+            const confezDetails = document.getElementById('comparison-confez-details');
+            confezDetails.innerHTML = `
+                ${confezData.map(data => `
+                    <div class="comparison-item">
+                        <span><i class="fas fa-circle" style="color: #3b82f6; font-size: 0.5rem;"></i> ${data.centro}:</span>
+                        <span>${formatDecimal(data.efficienza_media)} pz/h</span>
+                    </div>
+                `).join('')}
+            `;
+
+            // Confronto Stampa
+            const stampaData = Object.values(aggregatedData).filter(d => d.tipo === 'Stampa');
+            
+            if (charts.comparisonStampaChart) charts.comparisonStampaChart.destroy();
+            const ctx2 = document.getElementById('comparison-stampa-chart').getContext('2d');
+            
+            const gradientStampa = ctx2.createLinearGradient(0, 0, 0, 300);
+            gradientStampa.addColorStop(0, 'rgba(245, 158, 11, 0.8)');
+            gradientStampa.addColorStop(1, 'rgba(245, 158, 11, 0.2)');
+            
+            charts.comparisonStampaChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: stampaData.map(d => d.centro),
+                    datasets: [{
+                        label: 'Efficienza',
+                        data: stampaData.map(d => d.efficienza_media),
+                        backgroundColor: gradientStampa,
+                        borderColor: '#f59e0b',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: {
+                        ...commonOptions.plugins,
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Dettagli confronto stampa
+            const stampaDetails = document.getElementById('comparison-stampa-details');
+            stampaDetails.innerHTML = `
+                ${stampaData.map(data => `
+                    <div class="comparison-item">
+                        <span><i class="fas fa-circle" style="color: #f59e0b; font-size: 0.5rem;"></i> ${data.centro}:</span>
+                        <span>${formatDecimal(data.efficienza_media)} mt/h</span>
+                    </div>
+                `).join('')}
+            `;
+
+            // Distribuzione ore
+            if (charts.hoursDistributionChart) charts.hoursDistributionChart.destroy();
+            const ctx3 = document.getElementById('hours-distribution-chart').getContext('2d');
+            charts.hoursDistributionChart = new Chart(ctx3, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.values(aggregatedData).map(d => `${d.centro} ${d.tipo}`),
+                    datasets: [{
+                        data: Object.values(aggregatedData).map(d => d.totale_ore),
+                        backgroundColor: COLORS.map(c => c + '99'),
+                        borderColor: COLORS,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: {
+                        ...commonOptions.plugins,
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Tabella comparativa
+            const table = document.getElementById('comparative-analysis-table');
+            const dataArray = Object.values(aggregatedData);
+            
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Metrica</th>
+                        <th class="text-center">BG Confezionamento</th>
+                        <th class="text-center">Zanica Confezionamento</th>
+                        <th class="text-center">BG Stampa</th>
+                        <th class="text-center">Zanica Stampa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="font-medium">Ore Totali</td>
+                        ${dataArray.map(data => `<td class="text-center">${formatNumber(data.totale_ore)}</td>`).join('')}
+                    </tr>
+                    <tr>
+                        <td class="font-medium">Volume Prodotto</td>
+                        ${dataArray.map(data => `
+                            <td class="text-center">
+                                ${data.tipo === 'Confezionamento' 
+                                    ? `${formatNumber(data.totale_quantita)} pz`
+                                    : `${formatNumber(data.totale_metri)} mt`
+                                }
+                            </td>
+                        `).join('')}
+                    </tr>
+                    <tr>
+                        <td class="font-medium">Efficienza Media</td>
+                        ${dataArray.map(data => `
+                            <td class="text-center font-semibold">
+                                ${formatDecimal(data.efficienza_media)} ${data.unita_misura}
+                            </td>
+                        `).join('')}
+                    </tr>
+                    <tr>
+                        <td class="font-medium">Ore Medie/Mese</td>
+                        ${dataArray.map(data => `<td class="text-center">${formatNumber(Math.round(data.totale_ore / 4))} h</td>`).join('')}
+                    </tr>
+                </tbody>
+            `;
+        }
+
+        // Inizializza grafici Busto Garolfo
+        function initBustoGarolfoCharts() {
+            const aggregatedData = calculateAggregatedData();
+            const siteMonthlyData = getSiteMonthlyData('Busto Garolfo');
+            
+            // Popola metric cards
+            const metricsContainer = document.getElementById('bg-summary-metrics');
+            metricsContainer.innerHTML = '';
+            
+            Object.values(aggregatedData).filter(d => d.centro === 'Busto Garolfo').forEach((data) => {
+                const card = document.createElement('div');
+                card.className = 'metric-card';
+                card.innerHTML = `
+                    <i class="fas ${data.tipo === 'Confezionamento' ? 'fa-boxes' : 'fa-print'} metric-card-icon"></i>
+                    <p class="metric-card-title">Reparto ${data.tipo}</p>
+                    <p class="metric-card-value">
+                        ${formatNumber(Math.round(data.efficienza_media))}
+                        <span class="metric-card-unit">${data.unita_misura}</span>
+                    </p>
+                    <p class="metric-card-subtitle">${formatNumber(data.totale_ore)} ore Q1</p>
+                    <i class="fas fa-chevron-${data.trend ? 'up trend-up' : 'down trend-down'} metric-card-trend"></i>
+                `;
+                metricsContainer.appendChild(card);
+            });
+
+            // Production Trend
+            if (charts.bgProductionTrend) charts.bgProductionTrend.destroy();
+            const ctx1 = document.getElementById('bg-production-trend').getContext('2d');
+            charts.bgProductionTrend = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: siteMonthlyData.map(d => d.mese),
+                    datasets: [
+                        {
+                            label: 'Confez. Pezzi',
+                            data: siteMonthlyData.map(d => d.confezionamento_quantita),
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderColor: '#3b82f6',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Stampa Metri',
+                            data: siteMonthlyData.map(d => d.stampa_metri),
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            type: 'line',
+                            yAxisID: 'y1',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Hours Trend
+            if (charts.bgHoursTrend) charts.bgHoursTrend.destroy();
+            const ctx2 = document.getElementById('bg-hours-trend').getContext('2d');
+            
+            const areaGradient1 = ctx2.createLinearGradient(0, 0, 0, 300);
+            areaGradient1.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+            areaGradient1.addColorStop(1, 'rgba(59, 130, 246, 0)');
+            
+            const areaGradient2 = ctx2.createLinearGradient(0, 0, 0, 300);
+            areaGradient2.addColorStop(0, 'rgba(245, 158, 11, 0.4)');
+            areaGradient2.addColorStop(1, 'rgba(245, 158, 11, 0)');
+            
+            charts.bgHoursTrend = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: siteMonthlyData.map(d => d.mese),
+                    datasets: [
+                        {
+                            label: 'Confez. Ore',
+                            data: siteMonthlyData.map(d => d.confezionamento_ore),
+                            borderColor: '#3b82f6',
+                            backgroundColor: areaGradient1,
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Stampa Ore',
+                            data: siteMonthlyData.map(d => d.stampa_ore),
+                            borderColor: '#f59e0b',
+                            backgroundColor: areaGradient2,
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: commonOptions
+            });
+
+            // Efficiency Charts
+            if (charts.bgConfezEfficiency) charts.bgConfezEfficiency.destroy();
+            const ctx3 = document.getElementById('bg-confez-efficiency').getContext('2d');
+            charts.bgConfezEfficiency = new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: siteMonthlyData.map(d => d.mese),
+                    datasets: [{
+                        label: 'Efficienza',
+                        data: siteMonthlyData.map(d => d.confezionamento_efficienza),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'transparent',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        pointRadius: 8,
+                        pointHoverRadius: 10,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: commonOptions
+            });
+
+            if (charts.bgStampaEfficiency) charts.bgStampaEfficiency.destroy();
+            const ctx4 = document.getElementById('bg-stampa-efficiency').getContext('2d');
+            charts.bgStampaEfficiency = new Chart(ctx4, {
+                type: 'line',
+                data: {
+                    labels: siteMonthlyData.map(d => d.mese),
+                    datasets: [{
+                        label: 'Efficienza',
+                        data: siteMonthlyData.map(d => d.stampa_efficienza),
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'transparent',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        pointRadius: 8,
+                        pointHoverRadius: 10,
+                        pointBackgroundColor: '#f59e0b',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: commonOptions
+            });
+
+            // Monthly Table
+            const table = document.getElementById('bg-monthly-table');
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Mese</th>
+                        <th class="text-center">Confez. Pezzi</th>
+                        <th class="text-center">Confez. Ore</th>
+                        <th class="text-center">Confez. Efficienza</th>
+                        <th class="text-center">Stampa Metri</th>
+                        <th class="text-center">Stampa Ore</th>
+                        <th class="text-center">Stampa Efficienza</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${siteMonthlyData.map(data => `
+                        <tr>
+                            <td class="font-medium">${data.mese}</td>
+                            <td class="text-center">${formatNumber(data.confezionamento_quantita)}</td>
+                            <td class="text-center">${formatNumber(data.confezionamento_ore)}</td>
+                            <td class="text-center font-semibold">${formatNumber(Math.round(data.confezionamento_efficienza))} pz/h</td>
+                            <td class="text-center">${formatNumber(data.stampa_metri)}</td>
+                            <td class="text-center">${formatNumber(data.stampa_ore)}</td>
+                            <td class="text-center font-semibold">${formatNumber(Math.round(data.stampa_efficienza))} mt/h</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+
+            // Variations Charts
+            const confezVariations = calculateMonthlyVariations(siteMonthlyData, 'confezionamento_efficienza');
+            const stampaVariations = calculateMonthlyVariations(siteMonthlyData, 'stampa_efficienza');
+
+            if (charts.bgConfezVariations) charts.bgConfezVariations.destroy();
+            const ctx5 = document.getElementById('bg-confez-variations').getContext('2d');
+            charts.bgConfezVariations = new Chart(ctx5, {
+                type: 'bar',
+                data: {
+                    labels: confezVariations.map(d => d.mese),
+                    datasets: [{
+                        label: 'Variazione %',
+                        data: confezVariations.map(d => d.variazione),
+                        backgroundColor: confezVariations.map(d => d.variazione >= 0 ? 'rgba(16, 185, 129, 0.8)' : 'rgba(239, 68, 68, 0.8)'),
+                        borderColor: confezVariations.map(d => d.variazione >= 0 ? '#10b981' : '#ef4444'),
+                        borderWidth: 2,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: {
+                        ...commonOptions.plugins,
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            if (charts.bgStampaVariations) charts.bgStampaVariations.destroy();
+            const ctx6 = document.getElementById('bg-stampa-variations').getContext('2d');
+            charts.bgStampaVariations = new Chart(ctx6, {
+                type: 'bar',
+                data: {
+                    labels: stampaVariations.map(d => d.mese),
+                    datasets: [{
+                        label: 'Variazione %',
+                        data: stampaVariations.map(d => d.variazione),
+                        backgroundColor: stampaVariations.map(d => d.variazione >= 0 ? 'rgba(16, 185, 129, 0.8)' : 'rgba(239, 68, 68, 0.8)'),
+                        borderColor: stampaVariations.map(d => d.variazione >= 0 ? '#10b981' : '#ef4444'),
+                        borderWidth: 2,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: {
+                        ...commonOptions.plugins,
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // Inizializza grafici Zanica (simile a Busto Garolfo con colori diversi)
+        function initZanicaCharts() {
+            const aggregatedData = calculateAggregatedData();
+            const siteMonthlyData = getSiteMonthlyData('Zanica');
+            
+            // Popola metric cards
+            const metricsContainer = document.getElementById('zanica-summary-metrics');
+            metricsContainer.innerHTML = '';
+            
+            Object.values(aggregatedData).filter(d => d.centro === 'Zanica').forEach((data) => {
+                const card = document.createElement('div');
+                card.className = 'metric-card';
+                card.innerHTML = `
+                    <i class="fas ${data.tipo === 'Confezionamento' ? 'fa-box' : 'fa-printer'} metric-card-icon"></i>
+                    <p class="metric-card-title">Reparto ${data.tipo}</p>
+                    <p class="metric-card-value">
+                        ${formatNumber(Math.round(data.efficienza_media))}
+                        <span class="metric-card-unit">${data.unita_misura}</span>
+                    </p>
+                    <p class="metric-card-subtitle">${formatNumber(data.totale_ore)} ore Q1</p>
+                    <i class="fas fa-chevron-${data.trend ? 'up trend-up' : 'down trend-down'} metric-card-trend"></i>
+                `;
+                metricsContainer.appendChild(card);
+            });
+
+            // Production Trend
+            if (charts.zanicaProductionTrend) charts.zanicaProductionTrend.destroy();
+            const ctx1 = document.getElementById('zanica-production-trend').getContext('2d');
+            charts.zanicaProductionTrend = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: siteMonthlyData.map(d => d.mese),
+                    datasets: [
+                        {
+                            label: 'Confez. Pezzi',
+                            data: siteMonthlyData.map(d => d.confezionamento_quantita),
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                            borderColor: '#10b981',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Stampa Metri',
+                            data: siteMonthlyData.map(d => d.stampa_metri),
+                            borderColor: '#ef4444',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            type: 'line',
+                            yAxisID: 'y1',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Hours Trend
+            if (charts.zanicaHoursTrend) charts.zanicaHoursTrend.destroy();
+            const ctx2 = document.getElementById('zanica-hours-trend').getContext('2d');
+            
+            const areaGradient1 = ctx2.createLinearGradient(0, 0, 0, 300);
+            areaGradient1.addColorStop(0, 'rgba(16, 185, 129, 0.4)');
+            areaGradient1.addColorStop(1, 'rgba(16, 185, 129, 0)');
+            
+            const areaGradient2 = ctx2.createLinearGradient(0, 0, 0, 300);
+            areaGradient2.addColorStop(0, 'rgba(239, 68, 68, 0.4)');
+            areaGradient2.addColorStop(1, 'rgba(239, 68, 68, 0)');
+            
+            charts.zanicaHoursTrend = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: siteMonthlyData.map(d => d.mese),
+                    datasets: [
+                        {
+                            label: 'Confez. Ore',
+                            data: siteMonthlyData.map(d => d.confezionamento_ore),
+                            borderColor: '#10b981',
+                            backgroundColor: areaGradient1,
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Stampa Ore',
+                            data: siteMonthlyData.map(d => d.stampa_ore),
+                            borderColor: '#ef4444',
+                            backgroundColor: areaGradient2,
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: commonOptions
+            });
+
+            // Efficiency Charts
+            if (charts.zanicaConfezEfficiency) charts.zanicaConfezEfficiency.destroy();
+            const ctx3 = document.getElementById('zanica-confez-efficiency').getContext('2d');
+            charts.zanicaConfezEfficiency = new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: siteMonthlyData.map(d => d.mese),
+                    datasets: [{
+                        label: 'Efficienza',
+                        data: siteMonthlyData.map(d => d.confezionamento_efficienza),
+                        borderColor: '#10b981',
+                        backgroundColor: 'transparent',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        pointRadius: 8,
+                        pointHoverRadius: 10,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: commonOptions
+            });
+
+            if (charts.zanicaStampaEfficiency) charts.zanicaStampaEfficiency.destroy();
+            const ctx4 = document.getElementById('zanica-stampa-efficiency').getContext('2d');
+            charts.zanicaStampaEfficiency = new Chart(ctx4, {
+                type: 'line',
+                data: {
+                    labels: siteMonthlyData.map(d => d.mese),
+                    datasets: [{
+                        label: 'Efficienza',
+                        data: siteMonthlyData.map(d => d.stampa_efficienza),
+                        borderColor: '#ef4444',
+                        backgroundColor: 'transparent',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        pointRadius: 8,
+                        pointHoverRadius: 10,
+                        pointBackgroundColor: '#ef4444',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: commonOptions
+            });
+
+            // Monthly Table
+            const table = document.getElementById('zanica-monthly-table');
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Mese</th>
+                        <th class="text-center">Confez. Pezzi</th>
+                        <th class="text-center">Confez. Ore</th>
+                        <th class="text-center">Confez. Efficienza</th>
+                        <th class="text-center">Stampa Metri</th>
+                        <th class="text-center">Stampa Ore</th>
+                        <th class="text-center">Stampa Efficienza</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${siteMonthlyData.map(data => `
+                        <tr>
+                            <td class="font-medium">${data.mese}</td>
+                            <td class="text-center">${formatNumber(data.confezionamento_quantita)}</td>
+                            <td class="text-center">${formatNumber(data.confezionamento_ore)}</td>
+                            <td class="text-center font-semibold">${formatNumber(Math.round(data.confezionamento_efficienza))} pz/h</td>
+                            <td class="text-center">${formatNumber(data.stampa_metri)}</td>
+                            <td class="text-center">${formatNumber(data.stampa_ore)}</td>
+                            <td class="text-center font-semibold">${formatNumber(Math.round(data.stampa_efficienza))} mt/h</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+
+            // Variations Charts
+            const confezVariations = calculateMonthlyVariations(siteMonthlyData, 'confezionamento_efficienza');
+            const stampaVariations = calculateMonthlyVariations(siteMonthlyData, 'stampa_efficienza');
+
+            if (charts.zanicaConfezVariations) charts.zanicaConfezVariations.destroy();
+            const ctx5 = document.getElementById('zanica-confez-variations').getContext('2d');
+            charts.zanicaConfezVariations = new Chart(ctx5, {
+                type: 'bar',
+                data: {
+                    labels: confezVariations.map(d => d.mese),
+                    datasets: [{
+                        label: 'Variazione %',
+                        data: confezVariations.map(d => d.variazione),
+                        backgroundColor: confezVariations.map(d => d.variazione >= 0 ? 'rgba(16, 185, 129, 0.8)' : 'rgba(239, 68, 68, 0.8)'),
+                        borderColor: confezVariations.map(d => d.variazione >= 0 ? '#10b981' : '#ef4444'),
+                        borderWidth: 2,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: {
+                        ...commonOptions.plugins,
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            if (charts.zanicaStampaVariations) charts.zanicaStampaVariations.destroy();
+            const ctx6 = document.getElementById('zanica-stampa-variations').getContext('2d');
+            charts.zanicaStampaVariations = new Chart(ctx6, {
+                type: 'bar',
+                data: {
+                    labels: stampaVariations.map(d => d.mese),
+                    datasets: [{
+                        label: 'Variazione %',
+                        data: stampaVariations.map(d => d.variazione),
+                        backgroundColor: stampaVariations.map(d => d.variazione >= 0 ? 'rgba(16, 185, 129, 0.8)' : 'rgba(239, 68, 68, 0.8)'),
+                        borderColor: stampaVariations.map(d => d.variazione >= 0 ? '#10b981' : '#ef4444'),
+                        borderWidth: 2,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: {
+                        ...commonOptions.plugins,
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // Inizializza la dashboard al caricamento della pagina
+        document.addEventListener('DOMContentLoaded', function() {
+            populateExecutiveSummary();
+            initOverviewCharts();
+        });
+
+        // Gestione resize finestra per responsive charts
+        window.addEventListener('resize', function() {
+            Object.values(charts).forEach(chart => {
+                if (chart) {
+                    chart.resize();
+                }
+            });
+        });
+    </script>
+        </div>
+    </div>
+</body>
+</html>

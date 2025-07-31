@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OptiCUT - Ottimizzazione Taglio Materiali</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif;
+            background-color: #ffffff;
+            color: #202124;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            border: 1px solid #dadce0;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #202124;
+            padding: 32px 24px;
+        }
+        
+        .header h1 {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 400;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            color: #9aa0a6;
+            margin-top: 0;
+            font-size: 16px;
+        }
+        
+        .content {
+            padding: 32px 24px;
+        }
+        
+        .section {
+            margin-bottom: 32px;
+            padding: 24px;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            background-color: #ffffff;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #202124;
+            font-size: 14px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s ease;
+            background-color: #ffffff;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+        }
+        
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+        
+        button:hover {
+            background-color: #1557b0;
+            box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #dadce0;
+        }
+        
+        th, td {
+            border: none;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 14px;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: 500;
+            color: #202124;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        tr:hover {
+            background-color: #f1f3f4;
+        }
+        
+        .pattern {
+            margin-bottom: 24px;
+            padding: 20px;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            background-color: #ffffff;
+        }
+        
+        .pattern-header {
+            font-weight: 500;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #dadce0;
+            color: #202124;
+            font-size: 16px;
+        }
+        
+        .visual-pattern {
+            display: flex;
+            height: 50px;
+            margin: 12px 0;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .cut-segment {
+            height: 100%;
+            background-color: #bfdbfe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            text-align: center;
+            border-right: 1px solid #93c5fd;
+        }
+        
+        .waste-segment {
+            height: 100%;
+            background-color: #fecaca;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .segment-text {
+            font-size: 11px;
+            color: #1e3a8a;
+        }
+        
+        .summary-box {
+            background-color: #dbeafe;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-item {
+            margin-bottom: 8px;
+        }
+        
+        .summary-label {
+            font-weight: 500;
+        }
+        
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .material-list, .request-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .delete-btn {
+            background-color: #ef4444;
+            padding: 2px 8px;
+            font-size: 12px;
+        }
+        
+        .delete-btn:hover {
+            background-color: #dc2626;
+        }
+        
+        .home-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        
+        .home-button:hover {
+            background: #1557b0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+        
+        @media (max-width: 768px) {
+            .home-button {
+                top: 10px;
+                right: 10px;
+                padding: 10px 16px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="home-button">🏠 Home</a>
+    
+    <div class="container">
+        <div class="header">
+            <h1>OptiCUT - Ottimizzazione Taglio Materiali</h1>
+            <p>Sistema di ottimizzazione per il taglio efficiente di materiali</p>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h2>Catalogo Materiali</h2>
+                <div class="grid">
+                    <div>
+                        <div class="form-group">
+                            <label for="material-code">Codice</label>
+                            <input type="text" id="material-code" placeholder="Es. ITXBI">
+                        </div>
+                        <div class="form-group">
+                            <label for="material-name">Nome</label>
+                            <input type="text" id="material-name" placeholder="Es. Triplex Bianco">
+                        </div>
+                    </div>
+                    <div>
+                        <div class="form-group">
+                            <label for="material-weight">Peso Specifico (g/m²)</label>
+                            <input type="number" id="material-weight" step="0.01" placeholder="Es. 121.10">
+                        </div>
+                        <div class="form-group">
+                            <button id="add-material">Aggiungi Materiale</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>Materiali Disponibili</h3>
+                <div class="material-list">
+                    <table id="material-table">
+                        <thead>
+                            <tr>
+                                <th>Codice</th>
+                                <th>Nome</th>
+                                <th>Peso Specifico (g/m²)</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Bobine in Magazzino</h2>
+                <div class="grid">
+                    <div>
+                        <div class="form-group">
+                            <label for="stock-code">Codice Bobina</label>
+                            <input type="text" id="stock-code" placeholder="Es. ITXBI1000">
+                        </div>
+                        <div class="form-group">
+                            <label for="stock-material">Materiale</label>
+                            <select id="stock-material">
+                                <option value="">Seleziona...</option>
+                                <!-- Populated by JavaScript -->
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="form-group">
+                            <label for="stock-width">Larghezza (mm)</label>
+                            <input type="number" id="stock-width" placeholder="Es. 1000">
+                        </div>
+                        <div class="form-group">
+                            <label for="stock-length">Lunghezza (m)</label>
+                            <input type="number" id="stock-length" step="0.01" placeholder="Es. 5000">
+                        </div>
+                    </div>
+                    <div>
+                        <div class="form-group">
+                            <label for="stock-batch">Lotto</label>
+                            <input type="text" id="stock-batch" placeholder="Es. 2024/03/001">
+                        </div>
+                        <div class="form-group">
+                            <button id="add-stock">Aggiungi Bobina</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>Bobine Disponibili</h3>
+                <div class="stock-list">
+                    <table id="stock-table">
+                        <thead>
+                            <tr>
+                                <th>Codice</th>
+                                <th>Materiale</th>
+                                <th>Larghezza (mm)</th>
+                                <th>Lunghezza (m)</th>
+                                <th>Peso (kg)</th>
+                                <th>Lotto</th>
+                                <th>Coeff. α</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Richieste di Taglio</h2>
+                <div class="grid">
+                    <div>
+                        <div class="form-group">
+                            <label for="request-order">Numero ODP</label>
+                            <input type="text" id="request-order" placeholder="Es. ODP-2024/120">
+                        </div>
+                        <div class="form-group">
+                            <label for="request-material">Materiale</label>
+                            <select id="request-material">
+                                <option value="">Seleziona...</option>
+                                <!-- Populated by JavaScript -->
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="form-group">
+                            <label for="request-width">Larghezza (mm)</label>
+                            <input type="number" id="request-width" placeholder="Es. 220">
+                        </div>
+                        <div class="form-group">
+                            <label for="request-length">Lunghezza (m)</label>
+                            <input type="number" id="request-length" step="0.01" placeholder="Es. 2500">
+                        </div>
+                    </div>
+                    <div>
+                        <div class="form-group">
+                            <label for="request-priority">Priorità</label>
+                            <select id="request-priority">
+                                <option value="high">Alta</option>
+                                <option value="normal" selected>Normale</option>
+                                <option value="low">Bassa</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <button id="add-request">Aggiungi Richiesta</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>Richieste Attive</h3>
+                <div class="request-list">
+                    <table id="request-table">
+                        <thead>
+                            <tr>
+                                <th>ODP</th>
+                                <th>Materiale</th>
+                                <th>Larghezza (mm)</th>
+                                <th>Lunghezza (m)</th>
+                                <th>Priorità</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Ottimizzazione</h2>
+                <p>Calcola il piano di taglio ottimale per le richieste inserite.</p>
+                <button id="optimize-button">Calcola Piano di Taglio Ottimale</button>
+                
+                <div id="results" style="margin-top: 20px; display: none;">
+                    <div class="summary-box">
+                        <h3>Riepilogo Ottimizzazione</h3>
+                        <div class="summary-item">
+                            <span class="summary-label">Efficienza Media:</span>
+                            <span id="avg-efficiency">0</span>%
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Sfrido Totale:</span>
+                            <span id="total-waste">0</span>mm
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Piani di Taglio:</span>
+                            <span id="pattern-count">0</span>
+                        </div>
+                    </div>
+                    
+                    <div id="patterns-container">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <button id="reset-button">Reset Dati</button>
+                <button id="save-button">Salva Piano di Taglio</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dati dell'applicazione
+            let materials = [
+                { code: 'ITXBI', name: 'Triplex Bianco', specificWeight: 121.10 },
+                { code: 'ITXARGLU', name: 'Triplex Argento Lucido', specificWeight: 114.00 },
+                { code: 'IQXBI', name: 'Quadruplex Bianco', specificWeight: 146.80 }
+            ];
+            let stockRolls = [
+                { id: 1, code: 'ITXBI1000', material: 'ITXBI', width: 1000, length: 5000, weight: 605.5, specificWeight: 121.10, batch: '2024/03/001' },
+                { id: 2, code: 'ITXARGLU700', material: 'ITXARGLU', width: 700, length: 4200, weight: 335.16, specificWeight: 114.00, batch: '2024/03/002' }
+            ];
+            let cutRequests = [
+                { id: 1, orderNumber: 'ODP-2024/120', material: 'ITXBI', width: 220, length: 2500, priority: 'high' },
+                { id: 2, orderNumber: 'ODP-2024/121', material: 'ITXBI', width: 120, length: 3000, priority: 'normal' }
+            ];
+            let optimizedPlans = null;
+
+            // Funzioni di utilità
+            function calculateAlpha(specificWeight, width) {
+                return (specificWeight * width) / 1000000;
+            }
+
+            function calculateWeight(specificWeight, width, length) {
+                const alpha = calculateAlpha(specificWeight, width);
+                return alpha * length;
+            }
+
+            // Inizializza tabelle
+            function initTables() {
+                updateMaterialsTable();
+                updateStockTable();
+                updateRequestTable();
+                populateMaterialDropdowns();
+            }
+
+            // Aggiorna la tabella dei materiali
+            function updateMaterialsTable() {
+                const tbody = document.querySelector('#material-table tbody');
+                tbody.innerHTML = '';
+                
+                materials.forEach((material, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${material.code}</td>
+                        <td>${material.name}</td>
+                        <td>${material.specificWeight}</td>
+                        <td>
+                            <button class="delete-btn" data-type="material" data-index="${index}">Elimina</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            // Aggiorna la tabella delle bobine
+            function updateStockTable() {
+                const tbody = document.querySelector('#stock-table tbody');
+                tbody.innerHTML = '';
+                
+                stockRolls.forEach((roll, index) => {
+                    const material = materials.find(m => m.code === roll.material);
+                    const alpha = calculateAlpha(roll.specificWeight, roll.width).toFixed(6);
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${roll.code}</td>
+                        <td>${roll.material}</td>
+                        <td>${roll.width}</td>
+                        <td>${roll.length}</td>
+                        <td>${roll.weight}</td>
+                        <td>${roll.batch}</td>
+                        <td>${alpha}</td>
+                        <td>
+                            <button class="delete-btn" data-type="stock" data-index="${index}">Elimina</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            // Aggiorna la tabella delle richieste
+            function updateRequestTable() {
+                const tbody = document.querySelector('#request-table tbody');
+                tbody.innerHTML = '';
+                
+                cutRequests.forEach((request, index) => {
+                    const priorityText = request.priority === 'high' ? 'Alta' : 
+                                        request.priority === 'normal' ? 'Normale' : 'Bassa';
+                    const priorityClass = request.priority === 'high' ? 'text-red-800' : 
+                                        request.priority === 'normal' ? 'text-blue-800' : 'text-gray-800';
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${request.orderNumber}</td>
+                        <td>${request.material}</td>
+                        <td>${request.width}</td>
+                        <td>${request.length}</td>
+                        <td class="${priorityClass}">${priorityText}</td>
+                        <td>
+                            <button class="delete-btn" data-type="request" data-index="${index}">Elimina</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            // Popola i dropdown dei materiali
+            function populateMaterialDropdowns() {
+                const stockDropdown = document.getElementById('stock-material');
+                const requestDropdown = document.getElementById('request-material');
+                
+                // Pulisci i dropdown
+                stockDropdown.innerHTML = '<option value="">Seleziona...</option>';
+                requestDropdown.innerHTML = '<option value="">Seleziona...</option>';
+                
+                // Aggiungi le opzioni
+                materials.forEach(material => {
+                    const stockOption = document.createElement('option');
+                    stockOption.value = material.code;
+                    stockOption.textContent = `${material.name} (${material.code})`;
+                    stockDropdown.appendChild(stockOption);
+                    
+                    const requestOption = document.createElement('option');
+                    requestOption.value = material.code;
+                    requestOption.textContent = `${material.name} (${material.code})`;
+                    requestDropdown.appendChild(requestOption);
+                });
+            }
+
+            // Gestione eventi
+            function setupEventListeners() {
+                // Aggiungi materiale
+                document.getElementById('add-material').addEventListener('click', function() {
+                    const code = document.getElementById('material-code').value.trim();
+                    const name = document.getElementById('material-name').value.trim();
+                    const specificWeight = parseFloat(document.getElementById('material-weight').value);
+                    
+                    if (!code || !name || isNaN(specificWeight)) {
+                        alert('Inserisci tutti i dati del materiale');
+                        return;
+                    }
+                    
+                    if (materials.some(m => m.code === code)) {
+                        alert('Codice materiale già esistente');
+                        return;
+                    }
+                    
+                    materials.push({ code, name, specificWeight });
+                    updateMaterialsTable();
+                    populateMaterialDropdowns();
+                    
+                    // Pulisci i campi
+                    document.getElementById('material-code').value = '';
+                    document.getElementById('material-name').value = '';
+                    document.getElementById('material-weight').value = '';
+                });
+                
+                // Aggiungi bobina
+                document.getElementById('add-stock').addEventListener('click', function() {
+                    const code = document.getElementById('stock-code').value.trim();
+                    const material = document.getElementById('stock-material').value;
+                    const width = parseInt(document.getElementById('stock-width').value);
+                    const length = parseFloat(document.getElementById('stock-length').value);
+                    const batch = document.getElementById('stock-batch').value.trim() || `2024/${Math.floor(Math.random() * 900) + 100}`;
+                    
+                    if (!code || !material || isNaN(width) || isNaN(length)) {
+                        alert('Inserisci tutti i dati della bobina');
+                        return;
+                    }
+                    
+                    if (stockRolls.some(r => r.code === code)) {
+                        alert('Codice bobina già esistente');
+                        return;
+                    }
+                    
+                    const materialInfo = materials.find(m => m.code === material);
+                    if (!materialInfo) {
+                        alert('Materiale non valido');
+                        return;
+                    }
+                    
+                    const specificWeight = materialInfo.specificWeight;
+                    const weight = calculateWeight(specificWeight, width, length);
+                    
+                    stockRolls.push({
+                        id: Date.now(),
+                        code,
+                        material,
+                        width,
+                        length,
+                        weight: weight.toFixed(2),
+                        specificWeight,
+                        batch
+                    });
+                    
+                    updateStockTable();
+                    
+                    // Pulisci i campi
+                    document.getElementById('stock-code').value = '';
+                    document.getElementById('stock-width').value = '';
+                    document.getElementById('stock-length').value = '';
+                    document.getElementById('stock-batch').value = '';
+                });
+                
+                // Aggiungi richiesta
+                document.getElementById('add-request').addEventListener('click', function() {
+                    const orderNumber = document.getElementById('request-order').value.trim();
+                    const material = document.getElementById('request-material').value;
+                    const width = parseInt(document.getElementById('request-width').value);
+                    const length = parseFloat(document.getElementById('request-length').value);
+                    const priority = document.getElementById('request-priority').value;
+                    
+                    if (!orderNumber || !material || isNaN(width) || isNaN(length)) {
+                        alert('Inserisci tutti i dati della richiesta');
+                        return;
+                    }
+                    
+                    if (cutRequests.some(r => r.orderNumber === orderNumber)) {
+                        alert('Numero ODP già esistente');
+                        return;
+                    }
+                    
+                    cutRequests.push({
+                        id: Date.now(),
+                        orderNumber,
+                        material,
+                        width,
+                        length,
+                        priority
+                    });
+                    
+                    updateRequestTable();
+                    
+                    // Pulisci i campi
+                    document.getElementById('request-order').value = '';
+                    document.getElementById('request-width').value = '';
+                    document.getElementById('request-length').value = '';
+                    document.getElementById('request-priority').value = 'normal';
+                });
+                
+                // Gestione eliminazione
+                document.addEventListener('click', function(e) {
+                    if (e.target.classList.contains('delete-btn')) {
+                        const type = e.target.dataset.type;
+                        const index = parseInt(e.target.dataset.index);
+                        
+                        if (type === 'material') {
+                            const material = materials[index];
+                            if (stockRolls.some(r => r.material === material.code) || 
+                                cutRequests.some(r => r.material === material.code)) {
+                                alert('Non puoi eliminare un materiale in uso');
+                                return;
+                            }
+                            materials.splice(index, 1);
+                            updateMaterialsTable();
+                            populateMaterialDropdowns();
+                        } else if (type === 'stock') {
+                            stockRolls.splice(index, 1);
+                            updateStockTable();
+                        } else if (type === 'request') {
+                            cutRequests.splice(index, 1);
+                            updateRequestTable();
+                        }
+                    }
+                });
+                
+                // Ottimizzazione
+                document.getElementById('optimize-button').addEventListener('click', function() {
+                    if (!stockRolls.length || !cutRequests.length) {
+                        alert('Inserisci almeno una bobina e una richiesta');
+                        return;
+                    }
+                    
+                    optimizedPlans = optimizeCutting();
+                    displayOptimizationResults(optimizedPlans);
+                });
+                
+                // Reset
+                document.getElementById('reset-button').addEventListener('click', function() {
+                    if (confirm('Vuoi davvero eliminare tutti i dati?')) {
+                        materials = [];
+                        stockRolls = [];
+                        cutRequests = [];
+                        optimizedPlans = null;
+                        
+                        updateMaterialsTable();
+                        updateStockTable();
+                        updateRequestTable();
+                        populateMaterialDropdowns();
+                        
+                        document.getElementById('results').style.display = 'none';
+                    }
+                });
+                
+                // Salva piano
+                document.getElementById('save-button').addEventListener('click', function() {
+                    if (!optimizedPlans) {
+                        alert('Calcola prima un piano di taglio');
+                        return;
+                    }
+                    
+                    // Crea un oggetto con tutti i dati
+                    const data = {
+                        materials,
+                        stockRolls,
+                        cutRequests,
+                        optimizedPlans,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    // Converti in JSON e crea un blob
+                    const jsonData = JSON.stringify(data, null, 2);
+                    const blob = new Blob([jsonData], { type: 'application/json' });
+                    
+                    // Crea un link per il download
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `OptiCUT-Piano-${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                });
+            }
+
+            // Algoritmo di ottimizzazione
+            function optimizeCutting() {
+                // Raggruppa le richieste per materiale
+                const requestsByMaterial = {};
+                cutRequests.forEach(req => {
+                    if (!requestsByMaterial[req.material]) requestsByMaterial[req.material] = [];
+                    requestsByMaterial[req.material].push(req);
+                });
+                
+                // Per ogni materiale, trova i pattern di taglio ottimali
+                const allPatterns = [];
+                let totalWaste = 0;
+                let totalEfficiency = 0;
+                let patternCount = 0;
+                
+                Object.entries(requestsByMaterial).forEach(([material, requests]) => {
+                    // Filtra le bobine disponibili per questo materiale
+                    const availableRolls = stockRolls.filter(roll => roll.material === material);
+                    
+                    if (!availableRolls.length) return;
+                    
+                    // Ordina le richieste per priorità e poi per larghezza (decrescente)
+                    const sortedRequests = [...requests].sort((a, b) => {
+                        const priorityValues = { high: 3, normal: 2, low: 1 };
+                        if (priorityValues[a.priority] !== priorityValues[b.priority]) {
+                            return priorityValues[b.priority] - priorityValues[a.priority];
+                        }
+                        return b.width - a.width;
+                    });
+                    
+                    // Per ogni bobina disponibile, genera un pattern di taglio
+                    availableRolls.forEach(roll => {
+                        let remainingWidth = roll.width;
+                        const cuts = [];
+                        let wasteMm = remainingWidth;
+                        
+                        // Prova a inserire le richieste nella bobina corrente
+                        sortedRequests.forEach(request => {
+                            while (request.width <= remainingWidth) {
+                                // Calcola il coefficiente alfa
+                                const alpha = calculateAlpha(roll.specificWeight, request.width);
+                                
+                                // Calcola il peso della bobina tagliata
+                                const cutWeight = (request.width / roll.width) * roll.weight;
+                                
+                                cuts.push({
+                                    id: `${roll.code}-${cuts.length + 1}`,
+                                    orderNumber: request.orderNumber,
+                                    material: request.material,
+                                    width: request.width,
+                                    length: request.length,
+                                    weight: cutWeight.toFixed(2),
+                                    alpha: alpha.toFixed(6)
+                                });
+                                
+                                remainingWidth -= request.width;
+                                wasteMm -= request.width;
+                            }
+                        });
+                        
+                        if (cuts.length > 0) {
+                            const efficiency = ((roll.width - wasteMm) / roll.width) * 100;
+                            
+                            allPatterns.push({
+                                stockRoll: roll,
+                                cuts: cuts,
+                                waste: wasteMm,
+                                wastePercentage: (wasteMm / roll.width * 100).toFixed(1),
+                                efficiency: efficiency.toFixed(1)
+                            });
+                            
+                            totalWaste += wasteMm;
+                            totalEfficiency += efficiency;
+                            patternCount++;
+                        }
+                    });
+                });
+                
+                return {
+                    patterns: allPatterns,
+                    totalWaste,
+                    efficiency: patternCount ? (totalEfficiency / patternCount).toFixed(1) : 0,
+                    patternCount
+                };
+            }
+
+            // Visualizza i risultati dell'ottimizzazione
+            function displayOptimizationResults(plans) {
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.style.display = 'block';
+                
+                // Aggiorna il riepilogo
+                document.getElementById('avg-efficiency').textContent = plans.efficiency;
+                document.getElementById('total-waste').textContent = plans.totalWaste;
+                document.getElementById('pattern-count').textContent = plans.patterns.length;
+                
+                // Visualizza i pattern
+                const patternsContainer = document.getElementById('patterns-container');
+                patternsContainer.innerHTML = '';
+                
+                plans.patterns.forEach((pattern, index) => {
+                    const patternDiv = document.createElement('div');
+                    patternDiv.className = 'pattern';
+                    
+                    // Intestazione
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'pattern-header';
+                    headerDiv.innerHTML = `
+                        <div>Bobina Madre: ${pattern.stockRoll.code} (${pattern.stockRoll.width}mm)</div>
+                        <div style="font-size: 0.9em; color: #666;">
+                            Lotto: ${pattern.stockRoll.batch} • 
+                            Materiale: ${pattern.stockRoll.material} • 
+                            Lunghezza: ${pattern.stockRoll.length}m • 
+                            Peso: ${pattern.stockRoll.weight}kg
+                        </div>
+                    `;
+                    patternDiv.appendChild(headerDiv);
+                    
+                    // Schema visuale
+                    const schemaDiv = document.createElement('div');
+                    schemaDiv.innerHTML = `<h4 style="margin-bottom: 8px;">Schema di Taglio</h4>`;
+                    
+                    const visualPattern = document.createElement('div');
+                    visualPattern.className = 'visual-pattern';
+                    
+                    // Aggiungi segmenti per ogni taglio
+                    pattern.cuts.forEach(cut => {
+                        const segment = document.createElement('div');
+                        segment.className = 'cut-segment';
+                        segment.style.width = `${(cut.width / pattern.stockRoll.width) * 100}%`;
+                        segment.innerHTML = `
+                            <div class="segment-text">
+                                ${cut.width}mm<br>
+                                ${cut.orderNumber}
+                            </div>
+                        `;
+                        visualPattern.appendChild(segment);
+                    });
+                    
+                    // Aggiungi segmento per lo sfrido
+                    if (pattern.waste > 0) {
+                        const wasteSegment = document.createElement('div');
+                        wasteSegment.className = 'waste-segment';
+                        wasteSegment.style.width = `${(pattern.waste / pattern.stockRoll.width) * 100}%`;
+                        wasteSegment.innerHTML = `
+                            <div class="segment-text">
+                                ${pattern.waste}mm<br>
+                                Sfrido
+                            </div>
+                        `;
+                        visualPattern.appendChild(wasteSegment);
+                    }
+                    
+                    schemaDiv.appendChild(visualPattern);
+                    
+                    // Leggenda
+                    const legendDiv = document.createElement('div');
+                    legendDiv.style.display = 'flex';
+                    legendDiv.style.justifyContent = 'space-between';
+                    legendDiv.style.fontSize = '12px';
+                    legendDiv.style.color = '#666';
+                    legendDiv.style.marginTop = '4px';
+                    legendDiv.innerHTML = `
+                        <span>0</span>
+                        <span>${pattern.stockRoll.width}mm</span>
+                    `;
+                    schemaDiv.appendChild(legendDiv);
+                    patternDiv.appendChild(schemaDiv);
+                    
+                    // Tabella dettagli tagli
+                    const detailsDiv = document.createElement('div');
+                    detailsDiv.innerHTML = `
+                        <h4 style="margin: 15px 0 8px;">Dettagli Tagli</h4>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>ODP</th>
+                                    <th>Larghezza</th>
+                                    <th>Lunghezza</th>
+                                    <th>Peso</th>
+                                    <th>Coeff. α</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${pattern.cuts.map(cut => `
+                                    <tr>
+                                        <td>${cut.id}</td>
+                                        <td>${cut.orderNumber}</td>
+                                        <td>${cut.width}mm</td>
+                                        <td>${cut.length}m</td>
+                                        <td>${cut.weight}kg</td>
+                                        <td>${cut.alpha}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="5" style="text-align: right; font-weight: 500;">Efficienza:</td>
+                                    <td style="font-weight: 500;">${pattern.efficiency}%</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    `;
+                    patternDiv.appendChild(detailsDiv);
+                    
+                    patternsContainer.appendChild(patternDiv);
+                });
+            }
+
+            // Inizializza
+            initTables();
+            setupEventListeners();
+        });
+    </script>
+</body>
+</html>

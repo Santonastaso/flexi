@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisi Economica di Produzione BOBST</title>
+    <!-- Chart.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif;
+            background-color: #ffffff;
+            color: #202124;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            border: 1px solid #dadce0;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #202124;
+            padding: 32px 24px;
+        }
+        
+        .header h1 {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 400;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            color: #9aa0a6;
+            margin-top: 0;
+            font-size: 16px;
+        }
+        
+        .content {
+            padding: 32px 24px;
+        }
+        
+        .card {
+            background-color: #ffffff;
+            padding: 24px;
+            border-radius: 8px;
+            border: 1px solid #dadce0;
+            margin-bottom: 24px;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: #202124;
+            margin-bottom: 16px;
+        }
+        
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+        
+        .grid-cols-1 {
+            grid-template-columns: 1fr;
+        }
+        
+        @media (min-width: 768px) {
+            .grid-cols-2 {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .grid-cols-3 {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+        
+        .flex {
+            display: flex;
+        }
+        
+        .justify-between {
+            justify-content: space-between;
+        }
+        
+        .items-center {
+            align-items: center;
+        }
+        
+        .items-start {
+            align-items: flex-start;
+        }
+        
+        .space-y-3 > * + * {
+            margin-top: 0.75rem;
+        }
+        
+        .space-y-6 > * + * {
+            margin-top: 1.5rem;
+        }
+        
+        .space-x-2 > * + * {
+            margin-left: 0.5rem;
+        }
+        
+        .space-x-4 > * + * {
+            margin-left: 1rem;
+        }
+        
+        .mb-1 {
+            margin-bottom: 0.25rem;
+        }
+        
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+        
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+        
+        .mb-6 {
+            margin-bottom: 1.5rem;
+        }
+        
+        .mt-1 {
+            margin-top: 0.25rem;
+        }
+        
+        .mt-2 {
+            margin-top: 0.5rem;
+        }
+        
+        .mt-4 {
+            margin-top: 1rem;
+        }
+        
+        .mr-4 {
+            margin-right: 1rem;
+        }
+        
+        .p-2 {
+            padding: 0.5rem;
+        }
+        
+        .p-3 {
+            padding: 0.75rem;
+        }
+        
+        .p-4 {
+            padding: 1rem;
+        }
+        
+        .p-5 {
+            padding: 1.25rem;
+        }
+        
+        .py-2 {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        
+        .py-3 {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+        
+        .px-5 {
+            padding-left: 1.25rem;
+            padding-right: 1.25rem;
+        }
+        
+        .pt-2 {
+            padding-top: 0.5rem;
+        }
+        
+        .text-sm {
+            font-size: 0.875rem;
+        }
+        
+        .text-lg {
+            font-size: 1.125rem;
+        }
+        
+        .text-xl {
+            font-size: 1.25rem;
+        }
+        
+        .text-2xl {
+            font-size: 1.5rem;
+        }
+        
+        .text-4xl {
+            font-size: 2.25rem;
+        }
+        
+        .font-medium {
+            font-weight: 500;
+        }
+        
+        .font-semibold {
+            font-weight: 600;
+        }
+        
+        .font-bold {
+            font-weight: 700;
+        }
+        
+        .text-left {
+            text-align: left;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-blue-50 {
+            color: #eff6ff;
+        }
+        
+        .text-blue-100 {
+            color: #dbeafe;
+        }
+        
+        .text-blue-500 {
+            color: #3b82f6;
+        }
+        
+        .text-blue-600 {
+            color: #2563eb;
+        }
+        
+        .text-blue-700 {
+            color: #1d4ed8;
+        }
+        
+        .text-blue-800 {
+            color: #1e40af;
+        }
+        
+        .text-green-700 {
+            color: #047857;
+        }
+        
+        .text-gray-500 {
+            color: #6b7280;
+        }
+        
+        .text-gray-600 {
+            color: #4b5563;
+        }
+        
+        .text-gray-700 {
+            color: #374151;
+        }
+        
+        .text-gray-800 {
+            color: #1f2937;
+        }
+        
+        .text-white {
+            color: white;
+        }
+        
+        .bg-white {
+            background-color: white;
+        }
+        
+        .bg-blue-50 {
+            background-color: #eff6ff;
+        }
+        
+        .bg-blue-100 {
+            background-color: #dbeafe;
+        }
+        
+        .bg-blue-600 {
+            background-color: #2563eb;
+        }
+        
+        .bg-gray-50 {
+            background-color: #f9fafb;
+        }
+        
+        .bg-orange-500 {
+            background-color: #f97316;
+        }
+        
+        .bg-green-50 {
+            background-color: #f0fdf4;
+        }
+        
+        .border {
+            border-width: 1px;
+            border-style: solid;
+        }
+        
+        .border-t {
+            border-top-width: 1px;
+            border-top-style: solid;
+        }
+        
+        .border-b {
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+        }
+        
+        .border-b-2 {
+            border-bottom-width: 2px;
+            border-bottom-style: solid;
+        }
+        
+        .border-gray-200 {
+            border-color: #e5e7eb;
+        }
+        
+        .border-gray-300 {
+            border-color: #d1d5db;
+        }
+        
+        .border-blue-500 {
+            border-color: #3b82f6;
+        }
+        
+        .border-blue-600 {
+            border-color: #2563eb;
+        }
+        
+        .border-orange-500 {
+            border-color: #f97316;
+        }
+        
+        .border-transparent {
+            border-color: transparent;
+        }
+        
+        .rounded {
+            border-radius: 0.25rem;
+        }
+        
+        .rounded-md {
+            border-radius: 0.375rem;
+        }
+        
+        .rounded-lg {
+            border-radius: 0.5rem;
+        }
+        
+        .rounded-full {
+            border-radius: 9999px;
+        }
+        
+        .w-full {
+            width: 100%;
+        }
+        
+        .w-16 {
+            width: 4rem;
+        }
+        
+        .h-16 {
+            height: 4rem;
+        }
+        
+        .h-64 {
+            height: 16rem;
+        }
+        
+        .h-72 {
+            height: 18rem;
+        }
+        
+        .flex-1 {
+            flex: 1 1 0%;
+        }
+        
+        .block {
+            display: block;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .overflow-hidden {
+            overflow: hidden;
+        }
+        
+        .overflow-x-auto {
+            overflow-x: auto;
+        }
+        
+        .shadow {
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        
+        .shadow-lg {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .focus\:ring-blue-500:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+            outline: none;
+        }
+        
+        .focus\:border-blue-500:focus {
+            border-color: #3b82f6;
+        }
+        
+        .hover\:bg-gray-50:hover {
+            background-color: #f9fafb;
+        }
+        
+        .hover\:text-gray-700:hover {
+            color: #374151;
+        }
+        
+        .hover\:border-gray-300:hover {
+            border-color: #d1d5db;
+        }
+        
+        .hover\:text-blue-800:hover {
+            color: #1e40af;
+        }
+        
+        input[type="number"] {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+        }
+        
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+        
+        button {
+            cursor: pointer;
+            background-color: transparent;
+            border: none;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .tab {
+            padding: 0.75rem 1.25rem;
+            text-align: center;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+        }
+        
+        .tab.active {
+            border-bottom-color: #3b82f6;
+            color: #2563eb;
+        }
+        
+        .tab:not(.active) {
+            color: #6b7280;
+        }
+        
+        .tab:not(.active):hover {
+            color: #374151;
+            border-bottom-color: #d1d5db;
+        }
+        
+        .tab-content {
+            padding: 1.25rem;
+        }
+        
+        .tab-pane {
+            display: none;
+        }
+        
+        .tab-pane.active {
+            display: block;
+        }
+        
+        .home-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .home-button:hover {
+            background: #1557b0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+        @media (max-width: 768px) {
+            .home-button {
+                top: 10px;
+                right: 10px;
+                padding: 10px 16px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="home-button">🏠 Home</a>
+    
+    <div class="container">
+        <div class="header">
+            <h1>Analisi Economica di Produzione BOBST</h1>
+            <p>Comparazione costi tra stampa digitale (DM5) e stampa flessografica (M5)</p>
+        </div>
+        
+        <div class="content">
+            <!-- Parametri di Produzione -->
+            <div class="card mb-6">
+                <h3 class="card-title">Parametri di Produzione</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Numero Pezzi (PZ)
+                        </label>
+                        <input 
+                            type="number" 
+                            id="pieces" 
+                            min="1"
+                            value="10000" 
+                            class="w-full p-2 border border-gray-300 rounded-md"
+                        >
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Passo Busta (mm)
+                        </label>
+                        <input 
+                            type="number" 
+                            id="bagStep" 
+                            min="1"
+                            value="350" 
+                            class="w-full p-2 border border-gray-300 rounded-md"
+                        >
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Numero di Colori
+                        </label>
+                        <div class="flex space-x-2" id="colorsButtons">
+                            <button class="flex-1 py-2 border rounded-md bg-blue-600 text-white border-blue-600" data-value="1">1</button>
+                            <button class="flex-1 py-2 border rounded-md bg-white text-gray-700 border-gray-300 hover:bg-gray-50" data-value="2">2</button>
+                            <button class="flex-1 py-2 border rounded-md bg-white text-gray-700 border-gray-300 hover:bg-gray-50" data-value="3">3</button>
+                            <button class="flex-1 py-2 border rounded-md bg-white text-gray-700 border-gray-300 hover:bg-gray-50" data-value="4">4</button>
+                            <button class="flex-1 py-2 border rounded-md bg-white text-gray-700 border-gray-300 hover:bg-gray-50" data-value="5">5</button>
+                            <button class="flex-1 py-2 border rounded-md bg-white text-gray-700 border-gray-300 hover:bg-gray-50" data-value="6">6</button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Specifiche di Colore
+                        </label>
+                        <div class="flex space-x-4" id="colorTypeButtons">
+                            <button class="flex-1 py-2 border rounded-md bg-blue-600 text-white border-blue-600" data-value="cmyk">CMYK Standard</button>
+                            <button class="flex-1 py-2 border rounded-md bg-white text-gray-700 border-gray-300 hover:bg-gray-50" data-value="pantone">Pantone</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 p-3 bg-blue-50 rounded-md">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center">
+                            <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                                <span id="lengthValue" class="text-xl font-bold text-blue-800">3.500</span>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-blue-800">Lunghezza di Produzione</h3>
+                                <p class="text-sm text-blue-700">metri lineari</p>
+                            </div>
+                        </div>
+                        <button id="toggleAdvanced" class="text-blue-600 hover:text-blue-800 text-sm">
+                            Mostra parametri avanzati
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="advancedParams" class="mt-4 p-3 border border-gray-200 rounded-md bg-gray-50 hidden">
+                    <h4 class="font-medium text-sm text-gray-700 mb-2">Parametri Economici</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <p><span class="font-medium">Costo Orario DM5:</span> €124.92/h</p>
+                            <p><span class="font-medium">Velocità DM5:</span> 4200 m/h</p>
+                            <p><span class="font-medium">Setup CMYK DM5:</span> 0.0833h (€10.41)</p>
+                            <p><span class="font-medium">Setup Pantone DM5:</span> 0.5h (€62.46)</p>
+                        </div>
+                        <div>
+                            <p><span class="font-medium">Costo Orario M5:</span> €96.98/h</p>
+                            <p><span class="font-medium">Velocità M5:</span> 4800 m/h</p>
+                            <p><span class="font-medium">Setup per colore M5:</span> 0.5h (€48.49)</p>
+                            <p id="totalFlexoSetup"><span class="font-medium">Setup totale M5:</span> 0.5h (€48.49)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="card p-0 mb-6">
+                <div class="tabs">
+                    <button class="tab active" data-tab="summary">Riepilogo</button>
+                    <button class="tab" data-tab="costAnalysis">Analisi Costi</button>
+                    <button class="tab" data-tab="breakEven">Break-Even</button>
+                </div>
+                
+                <div class="tab-content">
+                    <!-- Tab Riepilogo -->
+                    <div id="summary" class="tab-pane space-y-6 active">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="bg-white p-5 rounded-lg shadow">
+                                <h3 class="text-lg font-semibold mb-4 text-blue-700">Stampa Digitale (DM5)</h3>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Costo setup:</span>
+                                        <span id="digitalSetupCost" class="font-medium">€10.41</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Costo produzione:</span>
+                                        <span id="digitalProductionCost" class="font-medium">€121.45</span>
+                                    </div>
+                                    <div class="flex justify-between pt-2 border-t border-gray-200">
+                                        <span class="font-medium text-gray-700">Costo totale:</span>
+                                        <span id="digitalTotalCost" class="font-bold text-blue-700">€131.86</span>
+                                    </div>
+                                    <div class="flex justify-between pt-2 border-t border-gray-200">
+                                        <span class="font-medium text-gray-700">Tempo totale:</span>
+                                        <span id="digitalTotalTime" class="font-bold text-blue-700">1h 2m</span>
+                                    </div>
+                                    <div class="flex justify-between pt-2 border-t border-gray-200">
+                                        <span class="font-medium text-gray-700">Costo al metro:</span>
+                                        <span id="digitalCostPerMeter" class="font-bold text-blue-700">€0.0377/m</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white p-5 rounded-lg shadow">
+                                <h3 class="text-lg font-semibold mb-4 text-green-700">Stampa Flessografica (M5)</h3>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Costo setup:</span>
+                                        <span id="flexoSetupCost" class="font-medium">€48.49</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Costo produzione:</span>
+                                        <span id="flexoProductionCost" class="font-medium">€70.97</span>
+                                    </div>
+                                    <div class="flex justify-between pt-2 border-t border-gray-200">
+                                        <span class="font-medium text-gray-700">Costo totale:</span>
+                                        <span id="flexoTotalCost" class="font-bold text-green-700">€119.46</span>
+                                    </div>
+                                    <div class="flex justify-between pt-2 border-t border-gray-200">
+                                        <span class="font-medium text-gray-700">Tempo totale:</span>
+                                        <span id="flexoTotalTime" class="font-bold text-green-700">1h 13m</span>
+                                    </div>
+                                    <div class="flex justify-between pt-2 border-t border-gray-200">
+                                        <span class="font-medium text-gray-700">Costo al metro:</span>
+                                        <span id="flexoCostPerMeter" class="font-bold text-green-700">€0.0341/m</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white p-5 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold mb-4 text-gray-700">Confronto Costi Totali</h3>
+                            <div class="h-64">
+                                <canvas id="costComparisonChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab Analisi Costi -->
+                    <div id="costAnalysis" class="tab-pane space-y-6">
+                        <div class="bg-white p-5 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold mb-4 text-gray-700">Analisi dei Costi per Metro</h3>
+                            <div class="h-64">
+                                <canvas id="costPerMeterChart"></canvas>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-2">
+                                Il grafico mostra come varia il costo unitario (€/m) al variare della lunghezza di produzione.
+                                La linea rossa verticale rappresenta la lunghezza di produzione attuale.
+                            </p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-white p-5 rounded-lg shadow">
+                                <h3 class="text-lg font-semibold mb-4 text-gray-700">Distribuzione dei Costi: Digitale</h3>
+                                <div class="h-64">
+                                    <canvas id="digitalPieChart"></canvas>
+                                </div>
+                                <div class="text-center mt-2">
+                                    <div class="text-sm font-medium text-gray-700">Costo totale: <span id="digitalTotalCostPie">€131.86</span></div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white p-5 rounded-lg shadow">
+                                <h3 class="text-lg font-semibold mb-4 text-gray-700">Distribuzione dei Costi: Flessografica</h3>
+                                <div class="h-64">
+                                    <canvas id="flexoPieChart"></canvas>
+                                </div>
+                                <div class="text-center mt-2">
+                                    <div class="text-sm font-medium text-gray-700">Costo totale: <span id="flexoTotalCostPie">€119.46</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab Break-Even -->
+                    <div id="breakEven" class="tab-pane space-y-6">
+                        <div class="bg-white p-5 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold mb-4 text-gray-700">Punti di Break-Even per Numero di Colori</h3>
+                            <div class="h-72">
+                                <canvas id="breakEvenChart"></canvas>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-2">
+                                Il grafico mostra la lunghezza di produzione alla quale la stampa flessografica diventa più conveniente della stampa digitale.
+                                Per lunghezze inferiori al punto di break-even, la stampa digitale è più economica.
+                                La linea rossa rappresenta la lunghezza di produzione attuale.
+                            </p>
+                        </div>
+                        
+                        <div class="bg-white p-5 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold mb-4 text-gray-700">Analisi di Costo per <span id="lengthAnalysis">3.500</span> metri</h3>
+                            <div class="h-64">
+                                <canvas id="costAnalysisChart"></canvas>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-center">
+                                <div id="breakEvenBox" class="p-3 rounded-lg bg-blue-50">
+                                    <div class="text-sm font-medium text-gray-700">Break-Even per <span id="colorCount">1</span> colori (CMYK)</div>
+                                    <div id="breakEvenPoint" class="text-xl font-bold mt-1" style="color: #3B82F6">
+                                        1.612 metri
+                                    </div>
+                                </div>
+                                <div id="recommendationBox" class="p-3 rounded-lg bg-blue-50">
+                                    <div class="text-sm font-medium text-gray-700">Tecnologia più economica</div>
+                                    <div id="recommendationTech" class="text-xl font-bold mt-1" style="color: #3B82F6">
+                                        Digitale (DM5)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Raccomandazione -->
+            <div class="bg-white p-5 rounded-lg shadow">
+                <h3 class="text-lg font-semibold mb-4 text-gray-700">Raccomandazione</h3>
+                
+                <div id="recommendationCard" class="p-4 rounded-lg flex items-start" style="background-color: #F0FDF4; border-left: 4px solid #10B981">
+                    <div class="text-4xl mr-4">
+                        🔄
+                    </div>
+                    <div class="flex-1">
+                        <h4 id="recommendationTitle" class="text-xl font-bold mb-2" style="color: #10B981">
+                            Tecnologia Consigliata: Flessografica (M5)
+                        </h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                            <div class="bg-white p-3 rounded border border-gray-200">
+                                <h5 class="text-sm font-medium text-gray-600 mb-1">Risparmio Economico</h5>
+                                <div id="costSaving" class="text-xl font-bold" style="color: #10B981">
+                                    €12.40
+                                </div>
+                                <div id="costSavingPercentage" class="text-sm text-gray-500">
+                                    10.4% più economico
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white p-3 rounded border border-gray-200">
+                                <h5 class="text-sm font-medium text-gray-600 mb-1">Risparmio Tempo</h5>
+                                <div id="timeSaving" class="text-xl font-bold" style="color: #10B981">
+                                    0h 11m
+                                </div>
+                                <div id="timeSavingPercentage" class="text-sm text-gray-500">
+                                    17.7% più veloce
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white p-3 rounded border border-gray-200">
+                                <h5 class="text-sm font-medium text-gray-600 mb-1">Break-Even</h5>
+                                <div id="breakEvenText" class="text-lg font-medium text-gray-800">
+                                    1.612 metri
+                                </div>
+                                <div id="colorSpecText" class="text-sm text-gray-500">
+                                    Con CMYK standard
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 text-gray-600 text-sm bg-gray-50 p-3 rounded">
+                            <p>
+                                <strong>Considerazioni aggiuntive:</strong> La scelta ottimale dipende anche da fattori come l'urgenza della consegna, 
+                                la disponibilità degli impianti e specifiche qualitative richieste dal cliente.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const DIGITAL_HOURLY_COST = 124.92; // €/h - AGGIORNATO
+        const FLEXO_HOURLY_COST = 96.98; // €/h
+        const DIGITAL_SPEED = 4200; // m/h - AGGIORNATO (precedentemente 3600)
+        const FLEXO_SPEED = 4800; // m/h
+        const DIGITAL_CMYK_SETUP = 0.0833; // h
+        const DIGITAL_PANTONE_SETUP = 0.5; // h
+        const FLEXO_SETUP_PER_COLOR = 0.5; // h per color
+
+        // Colors for charts
+        const COLORS = {
+            digital: '#3B82F6', // blue
+            flexo: '#10B981',   // green
+            digitalLight: '#93C5FD',
+            flexoLight: '#6EE7B7',
+            setup: '#EF4444',   // red
+            production: '#F59E0B' // amber
+        };
+
+        // State variables
+        let pieces = 10000;
+        let bagStep = 350;
+        let colors = 1;
+        let usePantone = false;
+        let showAdvanced = false;
+        let length = 3500;
+        let digitalCost = { setup: 0, production: 0, total: 0, time: 0 };
+        let flexoCost = { setup: 0, production: 0, total: 0, time: 0 };
+        let recommendation = { technology: '', savingsCost: 0, savingsTime: 0, savingsPercentage: 0 };
+        let breakEvenPoints = [];
+        let costComparisonData = [];
+        let pieData = { digital: [], flexo: [] };
+
+        // Chart objects
+        let costComparisonChart = null;
+        let costPerMeterChart = null;
+        let digitalPieChart = null;
+        let flexoPieChart = null;
+        let breakEvenChart = null;
+        let costAnalysisChart = null;
+
+        // DOM Elements
+        const piecesInput = document.getElementById('pieces');
+        const bagStepInput = document.getElementById('bagStep');
+        const colorsButtons = document.querySelectorAll('#colorsButtons button');
+        const colorTypeButtons = document.querySelectorAll('#colorTypeButtons button');
+        const lengthValue = document.getElementById('lengthValue');
+        const lengthAnalysis = document.getElementById('lengthAnalysis');
+        const toggleAdvancedButton = document.getElementById('toggleAdvanced');
+        const advancedParamsDiv = document.getElementById('advancedParams');
+        const totalFlexoSetup = document.getElementById('totalFlexoSetup');
+        const tabs = document.querySelectorAll('.tab');
+        const tabPanes = document.querySelectorAll('.tab-pane');
+        
+        // Calculate break-even point
+        function calculateBreakEven(colorCount, isPantone) {
+            const digitalSetupTime = isPantone ? DIGITAL_PANTONE_SETUP : DIGITAL_CMYK_SETUP;
+            const digitalSetupCost = digitalSetupTime * DIGITAL_HOURLY_COST;
+            const flexoSetupCost = colorCount * FLEXO_SETUP_PER_COLOR * FLEXO_HOURLY_COST;
+            
+            const digitalProductionCostPerMeter = DIGITAL_HOURLY_COST / DIGITAL_SPEED;
+            const flexoProductionCostPerMeter = FLEXO_HOURLY_COST / FLEXO_SPEED;
+            
+            // If flexo setup is cheaper than digital setup (can happen with Pantone), then flexo is always cheaper
+            if (flexoSetupCost <= digitalSetupCost && flexoProductionCostPerMeter < digitalProductionCostPerMeter) {
+                return 0; // Means flexo is always more economical
+            }
+            
+            // Break-even formula: the length at which total costs are equal
+            // Digital setup + Digital production/m * Length = Flexo setup + Flexo production/m * Length
+            // Rearranging: Length = (Flexo setup - Digital setup) / (Digital production/m - Flexo production/m)
+            const breakEvenLength = Math.round(
+                (flexoSetupCost - digitalSetupCost) / 
+                (digitalProductionCostPerMeter - flexoProductionCostPerMeter)
+            );
+            
+            return breakEvenLength > 0 ? breakEvenLength : 0;
+        }
+
+        // Initialize break-even points
+        function initializeBreakEvenPoints() {
+            const points = [];
+            for (let colorCount = 1; colorCount <= 6; colorCount++) {
+                const cmykBreakEven = calculateBreakEven(colorCount, false);
+                const pantoneBreakEven = calculateBreakEven(colorCount, true);
+                
+                points.push({
+                    colors: colorCount,
+                    cmyk: cmykBreakEven,
+                    pantone: pantoneBreakEven,
+                    label: `${colorCount} ${colorCount === 1 ? 'colore' : 'colori'}`
+                });
+            }
+            breakEvenPoints = points;
+        }
+
+        // Generate cost comparison data for chart
+        function generateCostComparisonData(currentLength) {
+            const data = [];
+            
+            // Generate data points for different lengths around the current length
+            const lengths = [
+                Math.max(100, Math.round(currentLength * 0.1)),
+                Math.max(1000, Math.round(currentLength * 0.25)),
+                Math.max(2000, Math.round(currentLength * 0.5)),
+                Math.round(currentLength * 0.75),
+                Math.round(currentLength),
+                Math.round(currentLength * 1.25),
+                Math.round(currentLength * 1.5),
+                Math.round(currentLength * 2)
+            ];
+            
+            // Clean up duplicates
+            const uniqueLengths = [...new Set(lengths)].sort((a, b) => a - b);
+            
+            uniqueLengths.forEach(len => {
+                // Calculate digital costs
+                const digitalSetupTime = usePantone ? DIGITAL_PANTONE_SETUP : DIGITAL_CMYK_SETUP;
+                const digitalSetupCost = digitalSetupTime * DIGITAL_HOURLY_COST;
+                const digitalProductionCost = (len / DIGITAL_SPEED) * DIGITAL_HOURLY_COST;
+                const digitalTotal = digitalSetupCost + digitalProductionCost;
+                const digitalCostPerMeter = digitalTotal / len;
+                
+                // Calculate flexo costs
+                const flexoSetupCost = colors * FLEXO_SETUP_PER_COLOR * FLEXO_HOURLY_COST;
+                const flexoProductionCost = (len / FLEXO_SPEED) * FLEXO_HOURLY_COST;
+                const flexoTotal = flexoSetupCost + flexoProductionCost;
+                const flexoCostPerMeter = flexoTotal / len;
+                
+                data.push({
+                    length: len,
+                    digitalCostTotal: digitalTotal,
+                    flexoCostTotal: flexoTotal,
+                    digitalCostPerMeter: digitalCostPerMeter,
+                    flexoCostPerMeter: flexoCostPerMeter,
+                    cheapest: digitalTotal <= flexoTotal ? 'Digital' : 'Flexo'
+                });
+            });
+            
+            return data;
+        }
+
+        // Format time in hours and minutes
+        function formatTime(timeInHours) {
+            const hours = Math.floor(timeInHours);
+            const minutes = Math.round((timeInHours - hours) * 60);
+            return `${hours}h ${minutes}m`;
+        }
+
+        // Format number with thousands separator
+        function formatNumber(number) {
+            return number.toLocaleString();
+        }
+
+        // Get break-even point text
+        function getBreakEvenText() {
+            const point = breakEvenPoints.find(p => p.colors === colors);
+            if (!point) return '';
+            
+            const value = usePantone ? point.pantone : point.cmyk;
+            
+            if (value === 0) {
+                return 'Sempre Flessografica';
+            }
+            
+            return `${formatNumber(value)} metri`;
+        }
+
+        // Calculate everything
+        function calculateAll() {
+            // Calculate length in meters
+            length = (pieces * bagStep) / 1000;
+            
+            // Update length display
+            lengthValue.textContent = formatNumber(length);
+            if (lengthAnalysis) {
+                lengthAnalysis.textContent = formatNumber(length);
+            }
+            
+            // Calculate digital costs and time
+            const digitalSetupTime = usePantone ? DIGITAL_PANTONE_SETUP : DIGITAL_CMYK_SETUP;
+            const digitalSetupCost = digitalSetupTime * DIGITAL_HOURLY_COST;
+            const digitalProductionTime = length / DIGITAL_SPEED;
+            const digitalProductionCost = digitalProductionTime * DIGITAL_HOURLY_COST;
+            const digitalTotalCost = digitalSetupCost + digitalProductionCost;
+            const digitalTotalTime = digitalSetupTime + digitalProductionTime;
+            
+            digitalCost = {
+                setup: digitalSetupCost,
+                production: digitalProductionCost,
+                total: digitalTotalCost,
+                time: digitalTotalTime
+            };
+            
+            // Calculate flexo costs and time
+            const flexoSetupTime = colors * FLEXO_SETUP_PER_COLOR;
+            const flexoSetupCost = flexoSetupTime * FLEXO_HOURLY_COST;
+            const flexoProductionTime = length / FLEXO_SPEED;
+            const flexoProductionCost = flexoProductionTime * FLEXO_HOURLY_COST;
+            const flexoTotalCost = flexoSetupCost + flexoProductionCost;
+            const flexoTotalTime = flexoSetupTime + flexoProductionTime;
+            
+            flexoCost = {
+                setup: flexoSetupCost,
+                production: flexoProductionCost,
+                total: flexoTotalCost,
+                time: flexoTotalTime
+            };
+            
+            // Determine recommendation and savings
+            const isCheaperDigital = digitalTotalCost <= flexoTotalCost;
+            const savingsCost = Math.abs(digitalTotalCost - flexoTotalCost);
+            const savingsTime = Math.abs(digitalTotalTime - flexoTotalTime);
+            const savingsPercentage = isCheaperDigital
+                ? ((flexoTotalCost / digitalTotalCost) - 1) * 100
+                : ((digitalTotalCost / flexoTotalCost) - 1) * 100;
+            
+            recommendation = {
+                technology: isCheaperDigital ? 'Digitale (DM5)' : 'Flessografica (M5)',
+                savingsCost,
+                savingsTime,
+                savingsPercentage
+            };
+            
+            // Generate cost comparison data
+            costComparisonData = generateCostComparisonData(length);
+            
+            // Generate pie chart data
+            pieData = {
+                digital: [
+                    { name: "Setup", value: digitalSetupCost },
+                    { name: "Produzione", value: digitalProductionCost }
+                ],
+                flexo: [
+                    { name: "Setup", value: flexoSetupCost },
+                    { name: "Produzione", value: flexoProductionCost }
+                ]
+            };
+            
+            // Update UI
+            updateUI();
+            
+            // Update Charts
+            if (costComparisonChart) updateCharts();
+        }
+
+        // Update UI elements
+        function updateUI() {
+            try {
+                // Update digital cost elements
+                document.getElementById('digitalSetupCost').textContent = `€${digitalCost.setup.toFixed(2)}`;
+                document.getElementById('digitalProductionCost').textContent = `€${digitalCost.production.toFixed(2)}`;
+                document.getElementById('digitalTotalCost').textContent = `€${digitalCost.total.toFixed(2)}`;
+                document.getElementById('digitalTotalTime').textContent = formatTime(digitalCost.time);
+                document.getElementById('digitalCostPerMeter').textContent = `€${(digitalCost.total / length).toFixed(4)}/m`;
+                
+                if (document.getElementById('digitalTotalCostPie')) {
+                    document.getElementById('digitalTotalCostPie').textContent = `€${digitalCost.total.toFixed(2)}`;
+                }
+                
+                // Update flexo cost elements
+                document.getElementById('flexoSetupCost').textContent = `€${flexoCost.setup.toFixed(2)}`;
+                document.getElementById('flexoProductionCost').textContent = `€${flexoCost.production.toFixed(2)}`;
+                document.getElementById('flexoTotalCost').textContent = `€${flexoCost.total.toFixed(2)}`;
+                document.getElementById('flexoTotalTime').textContent = formatTime(flexoCost.time);
+                document.getElementById('flexoCostPerMeter').textContent = `€${(flexoCost.total / length).toFixed(4)}/m`;
+                
+                if (document.getElementById('flexoTotalCostPie')) {
+                    document.getElementById('flexoTotalCostPie').textContent = `€${flexoCost.total.toFixed(2)}`;
+                }
+                
+                // Update color specification elements
+                if (document.getElementById('colorCount')) {
+                    document.getElementById('colorCount').textContent = colors;
+                }
+                
+                if (document.getElementById('breakEvenPoint')) {
+                    document.getElementById('breakEvenPoint').textContent = getBreakEvenText();
+                }
+                
+                if (document.getElementById('breakEvenText')) {
+                    document.getElementById('breakEvenText').textContent = getBreakEvenText();
+                }
+                
+                if (document.getElementById('colorSpecText')) {
+                    document.getElementById('colorSpecText').textContent = usePantone ? 'Con Pantone' : 'Con CMYK standard';
+                }
+                
+                if (document.getElementById('totalFlexoSetup')) {
+                    document.getElementById('totalFlexoSetup').innerHTML = `<span class="font-medium">Setup totale M5:</span> ${colors * FLEXO_SETUP_PER_COLOR}h (€${(colors * FLEXO_SETUP_PER_COLOR * FLEXO_HOURLY_COST).toFixed(2)})`;
+                }
+                
+                // Update recommendation elements
+                const recommendationCard = document.getElementById('recommendationCard');
+                const recommendationTitle = document.getElementById('recommendationTitle');
+                const recommendationTech = document.getElementById('recommendationTech');
+                const costSaving = document.getElementById('costSaving');
+                const costSavingPercentage = document.getElementById('costSavingPercentage');
+                const timeSaving = document.getElementById('timeSaving');
+                const timeSavingPercentage = document.getElementById('timeSavingPercentage');
+                const breakEvenBox = document.getElementById('breakEvenBox');
+                
+                if (recommendationCard && recommendationTitle) {
+                    if (recommendation.technology === 'Digitale (DM5)') {
+                        recommendationCard.style.backgroundColor = '#EBF5FF';
+                        recommendationCard.style.borderLeftColor = '#3B82F6';
+                        recommendationTitle.style.color = '#3B82F6';
+                        
+                        if (recommendationTech) recommendationTech.style.color = '#3B82F6';
+                        if (costSaving) costSaving.style.color = '#3B82F6';
+                        if (timeSaving) timeSaving.style.color = '#3B82F6';
+                        
+                        if (breakEvenBox) {
+                            breakEvenBox.classList.add('bg-blue-50');
+                            breakEvenBox.classList.remove('bg-green-50');
+                        }
+                    } else {
+                        recommendationCard.style.backgroundColor = '#F0FDF4';
+                        recommendationCard.style.borderLeftColor = '#10B981';
+                        recommendationTitle.style.color = '#10B981';
+                        
+                        if (recommendationTech) recommendationTech.style.color = '#10B981';
+                        if (costSaving) costSaving.style.color = '#10B981';
+                        if (timeSaving) timeSaving.style.color = '#10B981';
+                        
+                        if (breakEvenBox) {
+                            breakEvenBox.classList.add('bg-green-50');
+                            breakEvenBox.classList.remove('bg-blue-50');
+                        }
+                    }
+                    
+                    recommendationTitle.textContent = `Tecnologia Consigliata: ${recommendation.technology}`;
+                    
+                    if (recommendationTech) {
+                        recommendationTech.textContent = recommendation.technology;
+                    }
+                    
+                    if (costSaving && costSavingPercentage) {
+                        costSaving.textContent = `€${recommendation.savingsCost.toFixed(2)}`;
+                        costSavingPercentage.textContent = `${recommendation.savingsPercentage.toFixed(1)}% più economico`;
+                    }
+                    
+                    if (timeSaving && timeSavingPercentage) {
+                        timeSaving.textContent = formatTime(recommendation.savingsTime);
+                        
+                        const timeSavingPercent = recommendation.technology === 'Digitale (DM5)' 
+                            ? (recommendation.savingsTime / flexoCost.time) * 100
+                            : (recommendation.savingsTime / digitalCost.time) * 100;
+                        
+                        timeSavingPercentage.textContent = `${timeSavingPercent.toFixed(1)}% più veloce`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating UI:', error);
+            }
+        }
+
+        // Initialize charts
+        function initializeCharts() {
+            try {
+                // Cost Comparison Chart
+                const costComparisonCtx = document.getElementById('costComparisonChart');
+                if (costComparisonCtx) {
+                    costComparisonChart = new Chart(costComparisonCtx.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: ['Digitale', 'Flessografica'],
+                            datasets: [
+                                {
+                                    label: 'Costo Setup',
+                                    data: [digitalCost.setup, flexoCost.setup],
+                                    backgroundColor: COLORS.setup,
+                                    stack: 'Stack 0'
+                                },
+                                {
+                                    label: 'Costo Produzione',
+                                    data: [digitalCost.production, flexoCost.production],
+                                    backgroundColor: COLORS.production,
+                                    stack: 'Stack 0'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: '€'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `${context.dataset.label}: €${context.raw.toFixed(2)}`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Cost Per Meter Chart
+                const costPerMeterCtx = document.getElementById('costPerMeterChart');
+                if (costPerMeterCtx) {
+                    costPerMeterChart = new Chart(costPerMeterCtx.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            datasets: [
+                                {
+                                    label: 'Digitale',
+                                    data: costComparisonData.map(d => ({ x: d.length, y: d.digitalCostPerMeter })),
+                                    borderColor: COLORS.digital,
+                                    backgroundColor: COLORS.digital,
+                                    tension: 0.1
+                                },
+                                {
+                                    label: 'Flessografica',
+                                    data: costComparisonData.map(d => ({ x: d.length, y: d.flexoCostPerMeter })),
+                                    borderColor: COLORS.flexo,
+                                    backgroundColor: COLORS.flexo,
+                                    tension: 0.1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    type: 'logarithmic',
+                                    title: {
+                                        display: true,
+                                        text: 'Lunghezza (m) - scala logaritmica'
+                                    },
+                                    ticks: {
+                                        callback: function(value) {
+                                            return formatNumber(value);
+                                        }
+                                    }
+                                },
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Costo unitario (€/m)'
+                                    },
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value.toFixed(3);
+                                        }
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `${context.dataset.label}: €${context.raw.y.toFixed(4)}/m`;
+                                        },
+                                        title: function(context) {
+                                            return `${formatNumber(context[0].raw.x)} metri`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Digital Pie Chart
+                const digitalPieCtx = document.getElementById('digitalPieChart');
+                if (digitalPieCtx) {
+                    digitalPieChart = new Chart(digitalPieCtx.getContext('2d'), {
+                        type: 'pie',
+                        data: {
+                            labels: ['Setup', 'Produzione'],
+                            datasets: [{
+                                data: pieData.digital.map(d => d.value),
+                                backgroundColor: [COLORS.setup, COLORS.production]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const value = context.raw;
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = ((value / total) * 100).toFixed(0);
+                                            return `${context.label}: €${value.toFixed(2)} (${percentage}%)`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Flexo Pie Chart
+                const flexoPieCtx = document.getElementById('flexoPieChart');
+                if (flexoPieCtx) {
+                    flexoPieChart = new Chart(flexoPieCtx.getContext('2d'), {
+                        type: 'pie',
+                        data: {
+                            labels: ['Setup', 'Produzione'],
+                            datasets: [{
+                                data: pieData.flexo.map(d => d.value),
+                                backgroundColor: [COLORS.setup, COLORS.production]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const value = context.raw;
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = ((value / total) * 100).toFixed(0);
+                                            return `${context.label}: €${value.toFixed(2)} (${percentage}%)`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Break-Even Chart
+                const breakEvenCtx = document.getElementById('breakEvenChart');
+                if (breakEvenCtx) {
+                    breakEvenChart = new Chart(breakEvenCtx.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: breakEvenPoints.map(p => p.label),
+                            datasets: [
+                                {
+                                    label: 'Break-Even CMYK',
+                                    data: breakEvenPoints.map(p => p.cmyk),
+                                    backgroundColor: COLORS.digital
+                                },
+                                {
+                                    label: 'Break-Even Pantone',
+                                    data: breakEvenPoints.map(p => p.pantone),
+                                    backgroundColor: COLORS.digitalLight
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Metri'
+                                    },
+                                    ticks: {
+                                        callback: function(value) {
+                                            return formatNumber(value);
+                                        }
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const value = context.raw;
+                                            return value > 0 
+                                                ? `${context.dataset.label}: ${formatNumber(value)} metri`
+                                                : `${context.dataset.label}: Sempre Flessografica`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Cost Analysis Chart
+                const costAnalysisCtx = document.getElementById('costAnalysisChart');
+                if (costAnalysisCtx) {
+                    costAnalysisChart = new Chart(costAnalysisCtx.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: ['Setup', 'Produzione', 'Totale'],
+                            datasets: [
+                                {
+                                    label: 'Digitale',
+                                    data: [digitalCost.setup, digitalCost.production, digitalCost.total],
+                                    backgroundColor: COLORS.digital
+                                },
+                                {
+                                    label: 'Flessografica',
+                                    data: [flexoCost.setup, flexoCost.production, flexoCost.total],
+                                    backgroundColor: COLORS.flexo
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: '€'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `${context.dataset.label}: €${context.raw.toFixed(2)}`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error initializing charts:', error);
+            }
+        }
+
+        // Update charts with new data
+        function updateCharts() {
+            try {
+                // Update Cost Comparison Chart
+                if (costComparisonChart) {
+                    costComparisonChart.data.datasets[0].data = [digitalCost.setup, flexoCost.setup];
+                    costComparisonChart.data.datasets[1].data = [digitalCost.production, flexoCost.production];
+                    costComparisonChart.update();
+                }
+                
+                // Update Cost Per Meter Chart
+                if (costPerMeterChart) {
+                    costPerMeterChart.data.datasets[0].data = costComparisonData.map(d => ({ x: d.length, y: d.digitalCostPerMeter }));
+                    costPerMeterChart.data.datasets[1].data = costComparisonData.map(d => ({ x: d.length, y: d.flexoCostPerMeter }));
+                    costPerMeterChart.update();
+                }
+                
+                // Update Digital Pie Chart
+                if (digitalPieChart) {
+                    digitalPieChart.data.datasets[0].data = pieData.digital.map(d => d.value);
+                    digitalPieChart.update();
+                }
+                
+                // Update Flexo Pie Chart
+                if (flexoPieChart) {
+                    flexoPieChart.data.datasets[0].data = pieData.flexo.map(d => d.value);
+                    flexoPieChart.update();
+                }
+                
+                // Update Break-Even Chart
+                if (breakEvenChart) {
+                    breakEvenChart.update();
+                }
+                
+                // Update Cost Analysis Chart
+                if (costAnalysisChart) {
+                    costAnalysisChart.data.datasets[0].data = [digitalCost.setup, digitalCost.production, digitalCost.total];
+                    costAnalysisChart.data.datasets[1].data = [flexoCost.setup, flexoCost.production, flexoCost.total];
+                    costAnalysisChart.update();
+                }
+            } catch (error) {
+                console.error('Error updating charts:', error);
+            }
+        }
+
+        // Event listeners
+        function setupEventListeners() {
+            try {
+                // Number inputs
+                piecesInput.addEventListener('input', function() {
+                    pieces = parseInt(this.value) || 0;
+                    calculateAll();
+                });
+                
+                bagStepInput.addEventListener('input', function() {
+                    bagStep = parseInt(this.value) || 0;
+                    calculateAll();
+                });
+                
+                // Colors buttons
+                colorsButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        colorsButtons.forEach(btn => {
+                            btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
+                            btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300', 'hover:bg-gray-50');
+                        });
+                        
+                        this.classList.remove('bg-white', 'text-gray-700', 'border-gray-300', 'hover:bg-gray-50');
+                        this.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
+                        
+                        colors = parseInt(this.dataset.value);
+                        calculateAll();
+                    });
+                });
+                
+                // Color type buttons
+                colorTypeButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        colorTypeButtons.forEach(btn => {
+                            btn.classList.remove('bg-blue-600', 'bg-orange-500', 'text-white', 'border-blue-600', 'border-orange-500');
+                            btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300', 'hover:bg-gray-50');
+                        });
+                        
+                        this.classList.remove('bg-white', 'text-gray-700', 'border-gray-300', 'hover:bg-gray-50');
+                        
+                        if (this.dataset.value === 'cmyk') {
+                            this.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
+                            usePantone = false;
+                        } else {
+                            this.classList.add('bg-orange-500', 'text-white', 'border-orange-500');
+                            usePantone = true;
+                        }
+                        
+                        calculateAll();
+                    });
+                });
+                
+                // Toggle advanced params
+                toggleAdvancedButton.addEventListener('click', function() {
+                    showAdvanced = !showAdvanced;
+                    advancedParamsDiv.classList.toggle('hidden', !showAdvanced);
+                    this.textContent = showAdvanced ? 'Nascondi parametri avanzati' : 'Mostra parametri avanzati';
+                });
+                
+                // Tabs
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        tabs.forEach(t => {
+                            t.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                            t.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                        });
+                        tabPanes.forEach(p => p.classList.remove('active'));
+                        
+                        this.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                        this.classList.add('active', 'border-blue-500', 'text-blue-600');
+                        
+                        const tabId = this.dataset.tab;
+                        document.getElementById(tabId).classList.add('active');
+                    });
+                });
+            } catch (error) {
+                console.error('Error setting up event listeners:', error);
+            }
+        }
+
+        // Initialize the app
+        function init() {
+            try {
+                // Set initial values
+                initializeBreakEvenPoints();
+                calculateAll();
+                
+                // Add a small delay before initializing charts to ensure DOM is ready
+                setTimeout(() => {
+                    initializeCharts();
+                    setupEventListeners();
+                }, 100);
+            } catch (error) {
+                console.error('Initialization error:', error);
+            }
+        }
+
+        // Start the app when the page is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
