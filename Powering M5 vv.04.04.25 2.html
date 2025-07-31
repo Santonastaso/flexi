@@ -619,13 +619,7 @@
                 <div class="mt-4 p-3 bg-blue-50 rounded-md">
                     <div class="flex justify-between items-center">
                         <div class="flex items-center">
-                            <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mr-4">
-                                <span id="lengthValue" class="text-xl font-bold text-blue-800">3.500</span>
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-blue-800">Lunghezza di Produzione</h3>
-                                <p class="text-sm text-blue-700">metri lineari</p>
-                            </div>
+                            <h3 id="lengthValue" class="font-bold text-blue-800">Lunghezza di produzione: <span class="text-xl font-bold text-blue-800">3.500</span> <span class="text-sm text-blue-600">metri lineari</span></h3>
                         </div>
                         <button id="toggleAdvanced" class="text-blue-600 hover:text-blue-800 text-sm">
                             Mostra parametri avanzati
@@ -1031,7 +1025,7 @@
             length = (pieces * bagStep) / 1000;
             
             // Update length display
-            lengthValue.textContent = formatNumber(length);
+            lengthValue.innerHTML = `Lunghezza di produzione: <span class="text-xl font-bold text-blue-800">${formatNumber(length)}</span> <span class="text-sm text-blue-600">metri lineari</span>`;
             if (lengthAnalysis) {
                 lengthAnalysis.textContent = formatNumber(length);
             }
