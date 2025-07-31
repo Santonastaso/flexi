@@ -34,6 +34,10 @@
             border-radius: 8px;
             background-color: #f9fafb;
         }
+        .grid {
+            display: grid;
+            gap: 15px;
+        }
         .form-group {
             margin-bottom: 15px;
         }
@@ -150,10 +154,24 @@
 
         <div class="section">
             <h2>Add New Machine</h2>
-            <div style="display: flex; gap: 15px; align-items: flex-end;">
-                <div class="form-group" style="flex-grow: 1;">
-                    <label for="machineName">Machine Name</label>
+            <div class="grid" style="grid-template-columns: 2fr 1fr 1fr auto; align-items: flex-end;">
+                <div class="form-group">
+                    <label for="machineName">Name</label>
                     <input type="text" id="machineName" placeholder="e.g., BOBST M5">
+                </div>
+                <div class="form-group">
+                    <label for="machineCity">City</label>
+                    <select id="machineCity">
+                        <option value="Milan">Milan</option>
+                        <option value="Tallinn">Tallinn</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="machineLive">Live</label>
+                    <select id="machineLive">
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <button id="addMachine">Add Machine</button>
@@ -166,7 +184,9 @@
             <table id="machinery-table">
                 <thead>
                     <tr>
-                        <th>Machine Name</th>
+                        <th>Name</th>
+                        <th>City</th>
+                        <th>Live</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -180,17 +200,25 @@
         document.addEventListener('DOMContentLoaded', () => {
             const addMachineBtn = document.getElementById('addMachine');
             const machineNameInput = document.getElementById('machineName');
+            const machineCityInput = document.getElementById('machineCity');
+            const machineLiveInput = document.getElementById('machineLive');
             const machineryTableBody = document.querySelector('#machinery-table tbody');
 
-            let machines = JSON.parse(localStorage.getItem('schedulerMachines')) || ['Default Machine 1', 'Default Machine 2', 'Default Machine 3'];
+            let machines = JSON.parse(localStorage.getItem('schedulerMachines')) || [
+                { name: 'BOBST M5', city: 'Tallinn', live: true },
+                { name: 'Gallus 1', city: 'Milan', live: true },
+                { name: 'Mark Andy P7', city: 'Tallinn', live: false }
+            ];
 
             function saveAndRender() {
                 localStorage.setItem('schedulerMachines', JSON.stringify(machines));
                 machineryTableBody.innerHTML = '';
-                machines.forEach((name, index) => {
+                machines.forEach((machine, index) => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${name}</td>
+                        <td>${machine.name}</td>
+                        <td>${machine.city}</td>
+                        <td><span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; color: white; background-color: ${machine.live ? '#34a853' : '#9ca3af'};">${machine.live ? 'Yes' : 'No'}</span></td>
                         <td><button class="delete-btn" data-index="${index}">Delete</button></td>
                     `;
                     machineryTableBody.appendChild(row);
@@ -199,15 +227,18 @@
 
             function addMachine() {
                 const name = machineNameInput.value.trim();
+                const city = machineCityInput.value;
+                const live = machineLiveInput.value === 'true';
+
                 if (!name) {
                     alert('Please enter a machine name.');
                     return;
                 }
-                if (machines.includes(name)) {
-                    alert('This machine name already exists.');
+                if (machines.some(m => m.name.toLowerCase() === name.toLowerCase())) {
+                    alert('A machine with this name already exists.');
                     return;
                 }
-                machines.push(name);
+                machines.push({ name, city, live });
                 machineNameInput.value = '';
                 saveAndRender();
             }
@@ -225,7 +256,7 @@
                 }
             });
 
-            saveAndRender(); // Initial render
+            saveAndRender();
         });
     </script>
 </body>

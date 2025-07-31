@@ -5,188 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Production Scheduler</title>
     <style>
-        /* ====== STYLES COPIED FROM BACKLOG.HTML ====== */
+        /* CSS is identical to the previous version, so it's omitted for brevity */
         @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap');
-        * {
-            font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif;
-            box-sizing: border-box;
-        }
-        body {
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        h1, h2 {
-            color: #2563eb;
-            margin-top: 0;
-        }
-        .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            background-color: #f9fafb;
-        }
-        button {
-            background-color: #2563eb;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-        }
-        button:hover {
-            background-color: #1d4ed8;
-        }
-        .actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .nav-button-group {
-            display: flex;
-            gap: 10px;
-        }
-        .nav-button {
-            background: #1a73e8;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 14px;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        }
-        .nav-button:hover {
-            background-color: #1557b0;
-            box-shadow: 0 2px 8px rgba(26, 115, 232, 0.15);
-            transform: translateY(-1px);
-        }
-        .home-button {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #1a73e8;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 14px;
-            font-family: inherit;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-block;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
-        .home-button:hover {
-            background: #1557b0;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-            transform: translateY(-1px);
-        }
-        /* ====== SCHEDULER-SPECIFIC STYLES ====== */
-        .calendar-container {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #e5e7eb;
-        }
-        .calendar-header {
-            display: flex;
-            background: #fafbfc;
-            border-bottom: 1px solid #e8eaed;
-            height: 60px;
-            position: sticky;
-            top: 0;
-            z-index: 20;
-        }
-        .machine-label-col, .header-label-spacer {
-            flex: 0 0 150px;
-            border-right: 1px solid #e8eaed;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            color: #202124;
-            font-size: 14px;
-            position: sticky;
-            left: 0;
-            background: #fafbfc;
-            z-index: 21;
-        }
+        * { font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif; box-sizing: border-box; }
+        body { margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1, h2 { color: #2563eb; margin-top: 0; }
+        .section { margin-bottom: 30px; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px; background-color: #f9fafb; }
+        button { background-color: #2563eb; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: 500; }
+        button:hover { background-color: #1d4ed8; }
+        .actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .nav-button-group { display: flex; gap: 10px; }
+        .nav-button { background: #1a73e8; color: white; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 14px; text-decoration: none; display: inline-block; text-align: center; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .nav-button:hover { background-color: #1557b0; box-shadow: 0 2px 8px rgba(26, 115, 232, 0.15); transform: translateY(-1px); }
+        .home-button { position: fixed; top: 20px; right: 20px; background: #1a73e8; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 14px; font-family: inherit; transition: all 0.2s ease; text-decoration: none; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 1000; }
+        .home-button:hover { background: #1557b0; box-shadow: 0 4px 8px rgba(0,0,0,0.15); transform: translateY(-1px); }
+        .calendar-container { display: flex; flex-direction: column; width: 100%; background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb; }
+        .calendar-header { display: flex; background: #fafbfc; border-bottom: 1px solid #e8eaed; height: 60px; position: sticky; top: 0; z-index: 20; }
+        .machine-label-col, .header-label-spacer { flex: 0 0 150px; border-right: 1px solid #e8eaed; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #202124; font-size: 14px; position: sticky; left: 0; background: #fafbfc; z-index: 21; }
         .header-label-spacer { border-bottom: 1px solid #e8eaed; }
         .calendar-body { position: relative; }
         .timeline-grid { display: flex; flex-grow: 1; }
-        .header-time-slot {
-            flex: 0 0 80px;
-            border-right: 1px solid #e8eaed;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            color: #5f6368;
-            font-weight: 500;
-        }
+        .header-time-slot { flex: 0 0 80px; border-right: 1px solid #e8eaed; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #5f6368; font-weight: 500; }
         .machine-row { display: flex; height: 80px; border-bottom: 1px solid #e8eaed; position: relative; }
         .machine-row:last-child { border-bottom: none; }
         .machine-schedule-area { flex-grow: 1; display: flex; position: relative; }
         .machine-slot { flex: 0 0 80px; border-right: 1px solid #e8eaed; background: white; height: 100%; }
         .machine-slot:hover { background: #f8f9fa; }
         .machine-slot.drag-over { background: #e8f0fe; border: 2px dashed #1a73e8; }
-        .event {
-            position: absolute; top: 4px; height: calc(100% - 8px); background: #1a73e8;
-            color: white; border-radius: 6px; padding: 8px 12px; font-size: 12px; font-weight: 500;
-            cursor: move; user-select: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3); z-index: 10; display: flex;
-            align-items: center; justify-content: center; text-align: center; word-wrap: break-word;
-        }
+        .event { position: absolute; top: 4px; height: calc(100% - 8px); background: #1a73e8; color: white; border-radius: 6px; padding: 8px 12px; font-size: 12px; font-weight: 500; cursor: move; user-select: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); z-index: 10; display: flex; align-items: center; justify-content: center; text-align: center; word-wrap: break-word; }
         .event:hover { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); transform: translateY(-1px); }
         .event.dragging { opacity: 0.7; z-index: 100; transform: rotate(2deg); }
         .event.resizing { z-index: 100; }
-        .event-handle {
-            position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: ew-resize;
-            background: rgba(255, 255, 255, 0.2); border-radius: 0 6px 6px 0;
-        }
+        .event-handle { position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: ew-resize; background: rgba(255, 255, 255, 0.2); border-radius: 0 6px 6px 0; }
         .event-handle:hover { background: rgba(255, 255, 255, 0.5); }
-        .task-item {
-            display: inline-block; padding: 8px 16px; margin: 4px; border-radius: 20px;
-            color: white; font-weight: 500; font-size: 12px; cursor: move;
-            user-select: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-        }
+        .task-item { display: inline-block; padding: 8px 16px; margin: 4px; border-radius: 20px; color: white; font-weight: 500; font-size: 12px; cursor: move; user-select: none; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); }
         .task-item:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
         .task-item.dragging { opacity: 0.6; transform: rotate(2deg); }
-        .current-time-line {
-            position: absolute; top: 0; bottom: 0; width: 2px; background: #ea4335;
-            z-index: 15; pointer-events: none;
-        }
-        .current-time-line::after {
-            content: ''; position: absolute; top: -4px; left: -3px; width: 8px;
-            height: 8px; background: #ea4335; border-radius: 50%;
-        }
-        /* NEW: Style for when an event is dragged over the task pool */
-        #taskPool.drag-over {
-            border-color: #2563eb;
-            background-color: #eef2ff;
-        }
+        .current-time-line { position: absolute; top: 0; bottom: 0; width: 2px; background: #ea4335; z-index: 15; pointer-events: none; }
+        .current-time-line::after { content: ''; position: absolute; top: -4px; left: -3px; width: 8px; height: 8px; background: #ea4335; border-radius: 50%; }
+        #taskPool.drag-over { border-color: #2563eb; background-color: #eef2ff; }
     </style>
 </head>
 <body>
@@ -227,7 +85,14 @@
                 this.END_HOUR = 20;
                 this.SLOT_WIDTH = 80;
                 this.LABEL_WIDTH = 150;
-                this.MACHINES = JSON.parse(localStorage.getItem('schedulerMachines')) || ['Default Machine 1', 'Default Machine 2', 'Default Machine 3'];
+                
+                // DYNAMICALLY LOAD AND FILTER MACHINES
+                const allMachines = JSON.parse(localStorage.getItem('schedulerMachines')) || [
+                    { name: 'BOBST M5', city: 'Tallinn', live: true },
+                    { name: 'Gallus 1', city: 'Milan', live: true },
+                    { name: 'Mark Andy P7', city: 'Tallinn', live: false }
+                ];
+                this.MACHINES = allMachines.filter(machine => machine.live);
                 
                 this.tasks = JSON.parse(localStorage.getItem('backlogTasks')) || [];
                 this.scheduledEvents = JSON.parse(localStorage.getItem('scheduledEvents')) || [];
@@ -246,7 +111,7 @@
                 this.updateCurrentTimeLine();
                 setInterval(() => this.updateCurrentTimeLine(), 60000);
             }
-
+            
             renderGrid() {
                 const container = document.getElementById('calendarContainer');
                 container.innerHTML = '';
@@ -273,14 +138,15 @@
                 const body = document.createElement('div');
                 body.className = 'calendar-body';
 
-                this.MACHINES.forEach((name, index) => {
+                // Use the machine object's name property for the label
+                this.MACHINES.forEach((machine, index) => {
                     const machineRow = document.createElement('div');
                     machineRow.className = 'machine-row';
                     machineRow.dataset.machine = index;
 
                     const labelCol = document.createElement('div');
                     labelCol.className = 'machine-label-col';
-                    labelCol.textContent = name;
+                    labelCol.textContent = machine.name; // Use machine.name
                     machineRow.appendChild(labelCol);
                     
                     const scheduleArea = document.createElement('div');
@@ -300,6 +166,7 @@
                 this.setupDropZones();
             }
             
+            // ... (The rest of the script is the same as the previous version)
             setupEventListeners() {
                 document.getElementById('todayBtn').addEventListener('click', () => this.goToToday());
                 document.getElementById('prevDay').addEventListener('click', () => this.previousDay());
@@ -316,41 +183,17 @@
             }
             
             setupDropZones() {
-                // For machine slots
                 const machineSlots = document.querySelectorAll('.machine-slot');
                 machineSlots.forEach(slot => {
-                    slot.addEventListener('dragover', (e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = 'move';
-                        slot.classList.add('drag-over');
-                    });
-                    
-                    slot.addEventListener('dragleave', () => {
-                        slot.classList.remove('drag-over');
-                    });
-                    
-                    slot.addEventListener('drop', (e) => {
-                        e.preventDefault();
-                        slot.classList.remove('drag-over');
-                        this.handleDropOnGrid(e, slot);
-                    });
+                    slot.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; slot.classList.add('drag-over'); });
+                    slot.addEventListener('dragleave', () => { slot.classList.remove('drag-over'); });
+                    slot.addEventListener('drop', (e) => { e.preventDefault(); slot.classList.remove('drag-over'); this.handleDropOnGrid(e, slot); });
                 });
 
-                // NEW: For the task pool
                 const taskPool = document.getElementById('taskPool');
-                taskPool.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    taskPool.classList.add('drag-over');
-                });
-                taskPool.addEventListener('dragleave', () => {
-                    taskPool.classList.remove('drag-over');
-                });
-                taskPool.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    taskPool.classList.remove('drag-over');
-                    this.handleDropOnPool(e);
-                });
+                taskPool.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; taskPool.classList.add('drag-over'); });
+                taskPool.addEventListener('dragleave', () => { taskPool.classList.remove('drag-over'); });
+                taskPool.addEventListener('drop', (e) => { e.preventDefault(); taskPool.classList.remove('drag-over'); this.handleDropOnPool(e); });
             }
             
             renderTaskInPool(task) {
@@ -362,12 +205,8 @@
                 taskElement.textContent = `${task.name} (${task.duration}h)`;
                 taskElement.draggable = true;
                 
-                taskElement.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.setData('text/plain', task.id);
-                    taskElement.classList.add('dragging');
-                });
-                
-                taskElement.addEventListener('dragend', () => taskElement.classList.remove('dragging'));
+                taskElement.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', task.id); taskElement.classList.add('dragging'); });
+                taskElement.addEventListener('dragend', () => { taskElement.classList.remove('dragging'); });
                 
                 taskPool.appendChild(taskElement);
             }
@@ -387,18 +226,14 @@
                 }
             }
             
-            // NEW: Handles dropping an event back into the pool
             handleDropOnPool(e) {
                 const taskId = e.dataTransfer.getData('text/plain');
                 const eventIndex = this.scheduledEvents.findIndex(evt => evt.id == taskId);
 
-                // If the dropped item is a scheduled event
                 if (eventIndex > -1) {
                     const [unscheduledEvent] = this.scheduledEvents.splice(eventIndex, 1);
                     localStorage.setItem('scheduledEvents', JSON.stringify(this.scheduledEvents));
-                    
                     document.getElementById(`event-${unscheduledEvent.id}`)?.remove();
-                    
                     const originalTask = this.tasks.find(t => t.id === unscheduledEvent.id);
                     if (originalTask) {
                         this.renderTaskInPool(originalTask);
@@ -417,10 +252,8 @@
                 }
                 
                 const event = { ...task, machine, startHour, endHour: startHour + task.duration };
-                
                 this.scheduledEvents.push(event);
                 localStorage.setItem('scheduledEvents', JSON.stringify(this.scheduledEvents));
-                
                 document.getElementById(`pool-task-${task.id}`)?.remove();
                 this.renderEvent(event);
             }
@@ -438,7 +271,6 @@
                 event.machine = machine;
                 event.startHour = startHour;
                 event.endHour = startHour + event.duration;
-                
                 localStorage.setItem('scheduledEvents', JSON.stringify(this.scheduledEvents));
                 this.repositionEvent(event);
             }
@@ -465,31 +297,17 @@
                 resizeHandle.className = 'event-handle';
                 eventElement.appendChild(resizeHandle);
                 
-                eventElement.addEventListener('dragstart', (e) => {
-                    e.stopPropagation();
-                    e.dataTransfer.setData('text/plain', event.id);
-                    eventElement.classList.add('dragging');
-                });
-                
-                eventElement.addEventListener('dragend', () => eventElement.classList.remove('dragging'));
+                eventElement.addEventListener('dragstart', (e) => { e.stopPropagation(); e.dataTransfer.setData('text/plain', event.id); eventElement.classList.add('dragging'); });
+                eventElement.addEventListener('dragend', () => { eventElement.classList.remove('dragging'); });
                 
                 let isResizing = false, startX = 0, startWidth = 0;
                 
-                resizeHandle.addEventListener('mousedown', (e) => {
-                    e.stopPropagation();
-                    isResizing = true;
-                    startX = e.clientX;
-                    startWidth = eventElement.offsetWidth;
-                    document.body.style.cursor = 'ew-resize';
-                    eventElement.classList.add('resizing');
-                });
-                
+                resizeHandle.addEventListener('mousedown', (e) => { e.stopPropagation(); isResizing = true; startX = e.clientX; startWidth = eventElement.offsetWidth; document.body.style.cursor = 'ew-resize'; eventElement.classList.add('resizing'); });
                 document.addEventListener('mousemove', (e) => {
                     if (!isResizing) return;
                     const deltaX = e.clientX - startX;
                     const newWidth = Math.max(this.SLOT_WIDTH, startWidth + deltaX);
                     const newDuration = Math.max(1, Math.round(newWidth / this.SLOT_WIDTH));
-                    
                     if (event.startHour + newDuration <= this.END_HOUR) {
                         event.duration = newDuration;
                         event.endHour = event.startHour + newDuration;
@@ -499,14 +317,7 @@
                         localStorage.setItem('scheduledEvents', JSON.stringify(this.scheduledEvents));
                     }
                 });
-                
-                document.addEventListener('mouseup', () => {
-                    if (isResizing) {
-                        isResizing = false;
-                        document.body.style.cursor = 'default';
-                        eventElement.classList.remove('resizing');
-                    }
-                });
+                document.addEventListener('mouseup', () => { if (isResizing) { isResizing = false; document.body.style.cursor = 'default'; eventElement.classList.remove('resizing'); } });
                 
                 scheduleArea.appendChild(eventElement);
             }
@@ -524,56 +335,32 @@
                 const now = new Date();
                 const currentHour = now.getHours() + now.getMinutes() / 60;
                 const calendarBody = document.querySelector('.calendar-body');
-                
                 if (!calendarBody || currentHour < this.START_HOUR || currentHour > this.END_HOUR) {
                     document.querySelector('.current-time-line')?.remove();
                     return;
                 }
-                
                 let timeLine = document.querySelector('.current-time-line');
                 if (!timeLine) {
                     timeLine = document.createElement('div');
                     timeLine.className = 'current-time-line';
                     calendarBody.appendChild(timeLine);
                 }
-                
                 const position = (currentHour - this.START_HOUR) * this.SLOT_WIDTH + this.LABEL_WIDTH;
                 timeLine.style.left = `${position}px`;
             }
 
-            goToToday() {
-                this.currentDate = new Date();
-                this.currentDate.setHours(0, 0, 0, 0);
-                this.updateDateDisplay();
-            }
-            
-            previousDay() {
-                this.currentDate.setDate(this.currentDate.getDate() - 1);
-                this.updateDateDisplay();
-            }
-            
-            nextDay() {
-                this.currentDate.setDate(this.currentDate.getDate() + 1);
-                this.updateDateDisplay();
-            }
-            
+            goToToday() { this.currentDate = new Date(); this.currentDate.setHours(0, 0, 0, 0); this.updateDateDisplay(); }
+            previousDay() { this.currentDate.setDate(this.currentDate.getDate() - 1); this.updateDateDisplay(); }
+            nextDay() { this.currentDate.setDate(this.currentDate.getDate() + 1); this.updateDateDisplay(); }
             updateDateDisplay() {
                 const dateElement = document.getElementById('currentDate');
                 const today = new Date(); today.setHours(0,0,0,0);
                 const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
                 const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
-                
-                if (this.currentDate.getTime() === today.getTime()) {
-                    dateElement.textContent = 'Today';
-                } else if (this.currentDate.getTime() === tomorrow.getTime()) {
-                    dateElement.textContent = 'Tomorrow';
-                } else if (this.currentDate.getTime() === yesterday.getTime()) {
-                    dateElement.textContent = 'Yesterday';
-                } else {
-                    dateElement.textContent = this.currentDate.toLocaleDateString('en-US', {
-                        weekday: 'short', month: 'long', day: 'numeric'
-                    });
-                }
+                if (this.currentDate.getTime() === today.getTime()) { dateElement.textContent = 'Today'; }
+                else if (this.currentDate.getTime() === tomorrow.getTime()) { dateElement.textContent = 'Tomorrow'; }
+                else if (this.currentDate.getTime() === yesterday.getTime()) { dateElement.textContent = 'Yesterday'; }
+                else { dateElement.textContent = this.currentDate.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }); }
             }
         }
         
