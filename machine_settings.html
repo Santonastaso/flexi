@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Machine Availability Settings</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap');
+        * { font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif; box-sizing: border-box; }
+        body { margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1, h2 { color: #2563eb; margin-top: 0; }
+        .actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .nav-button-group { display: flex; gap: 10px; }
+        .nav-button { background: #1a73e8; color: white; padding: 10px 15px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; }
+        .home-button { position: fixed; top: 20px; right: 20px; background: #1a73e8; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 14px; text-decoration: none; z-index: 1000; }
+        
+        .calendar-controls { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .calendar-controls input, .calendar-controls select { padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 14px; }
+        
+        .calendar-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .calendar-grid th, .calendar-grid td { border: 1px solid #e5e7eb; padding: 5px; text-align: center; }
+        .calendar-grid th { background-color: #f3f4f6; font-size: 12px; }
+        .calendar-grid .day-label { font-weight: 600; font-size: 14px; }
+        
+        .hour-slot { cursor: pointer; transition: background-color 0.2s; font-size: 12px; color: #ccc; }
+        .hour-slot.unavailable {
+            background-color: #ef4444;
+            color: white;
+            cursor: pointer;
+            background-image: repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(255,255,255,0.1) 4px, rgba(255,255,255,0.1) 8px);
+        }
+        .hour-slot.scheduled {
+            background-color: #9ca3af;
+            color: white;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="home-button">🏠 Home</a>
+    <div class="container">
+        <div class="actions">
+            <h1 id="machine-title">Machine Availability</h1>
+            <div class="nav-button-group">
+                <a href="machinery.html" class="nav-button">Back to Machinery</a>
+                <a href="scheduler_v2.html" class="nav-button">Go to Scheduler</a>
+            </div>
+        </div>
+        
+        <div class="calendar-controls">
+            <label for="month-select">Select Month:</label>
+            <input type="month" id="month-select">
+        </div>
+
+        <table class="calendar-grid" id="availability-calendar"></table>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const machineName = urlParams.get('machine');
+            const machineTitle = document.getElementById('machine-title');
+            const monthSelect = document.getElementById('month-select');
+            const calendarEl = document.getElementById('availability-calendar');
+            
+            if (!machineName) {
+                machineTitle.textContent = "Machine Not Found";
+                return;
+            }
+            machineTitle.textContent = `Availability for ${machineName}`;
+
+            let availabilityData = JSON.parse(localStorage.getItem('machineAvailability')) || {};
+            const scheduledEvents = JSON.parse(localStorage.getItem('scheduledEvents')) || [];
+
+            if (!availabilityData[machineName]) {
+                availabilityData[machineName] = {};
+            }
+
+            const today = new Date("2025-08-01T00:00:00");
+            monthSelect.value = today.toISOString().slice(0, 7);
+
+            function saveAvailability() {
+                localStorage.setItem('machineAvailability', JSON.stringify(availabilityData));
+            }
+
+            function renderCalendar(year, month) {
+                calendarEl.innerHTML = '';
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const startHour = 8;
+                const endHour = 20;
+
+                let headerHtml = '<thead><tr><th>Day</th>';
+                for (let h = startHour; h < endHour; h++) {
+                    headerHtml += `<th>${h}:00</th>`;
+                }
+                headerHtml += '</tr></thead>';
+                calendarEl.innerHTML += headerHtml;
+
+                let bodyHtml = '<tbody>';
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    bodyHtml += `<tr><td class="day-label">${day}</td>`;
+                    const unavailableHours = availabilityData[machineName][dateKey] || [];
+                    
+                    for (let h = startHour; h < endHour; h++) {
+                        const isUnavailable = unavailableHours.includes(h);
+                        const isScheduled = scheduledEvents.some(event => event.machine === machineName && event.date === dateKey && h >= event.startHour && h < event.endHour);
+                        
+                        let slotClass = 'hour-slot';
+                        let slotContent = '-';
+                        if (isScheduled) {
+                            slotClass += ' scheduled';
+                            slotContent = 'BUSY';
+                        } else if (isUnavailable) {
+                            slotClass += ' unavailable';
+                        }
+                        
+                        bodyHtml += `<td class="${slotClass}" data-date="${dateKey}" data-hour="${h}">${slotContent}</td>`;
+                    }
+                    bodyHtml += '</tr>';
+                }
+                bodyHtml += '</tbody>';
+                calendarEl.innerHTML += bodyHtml;
+            }
+
+            function handleSlotClick(e) {
+                const slot = e.target;
+                if (!slot.classList.contains('hour-slot')) return;
+                
+                const date = slot.dataset.date;
+                const hour = parseInt(slot.dataset.hour);
+
+                // **VALIDATION ADDED**: Check if the slot is already busy with a scheduled task
+                if (slot.classList.contains('scheduled')) {
+                    alert('This slot is occupied by a scheduled task. You cannot mark it as unavailable.');
+                    return;
+                }
+
+                if (!availabilityData[machineName][date]) {
+                    availabilityData[machineName][date] = [];
+                }
+
+                const hourIndex = availabilityData[machineName][date].indexOf(hour);
+                if (hourIndex > -1) {
+                    availabilityData[machineName][date].splice(hourIndex, 1);
+                } else {
+                    availabilityData[machineName][date].push(hour);
+                }
+                
+                slot.classList.toggle('unavailable');
+                saveAvailability();
+            }
+
+            monthSelect.addEventListener('change', () => {
+                const [year, month] = monthSelect.value.split('-').map(Number);
+                renderCalendar(year, month - 1);
+            });
+
+            calendarEl.addEventListener('click', handleSlotClick);
+            
+            const [initialYear, initialMonth] = monthSelect.value.split('-').map(Number);
+            renderCalendar(initialYear, initialMonth - 1);
+        });
+    </script>
+</body>
+</html>
