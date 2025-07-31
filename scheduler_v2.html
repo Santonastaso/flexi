@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Calendar Style Scheduler - Horizontal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        /* Main container for the horizontal layout */
+        .calendar-container {
+            display: flex;
+            flex-direction: column; /* Key change: Stack header and rows vertically */
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow-x: auto; /* Allow horizontal scrolling for the timeline */
+        }
+        
+        /* Header row for time labels */
+        .calendar-header {
+            display: flex;
+            background: #fafbfc;
+            border-bottom: 1px solid #e8eaed;
+            height: 60px;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+
+        /* Machine name/label columns */
+        .machine-label-col, .header-label-spacer {
+            flex: 0 0 150px; /* Fixed width for machine labels */
+            border-right: 1px solid #e8eaed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #202124;
+            font-size: 14px;
+            position: sticky;
+            left: 0;
+            background: #fafbfc;
+            z-index: 21;
+        }
+
+        .header-label-spacer {
+             border-bottom: 1px solid #e8eaed;
+        }
+
+        .calendar-body {
+            position: relative;
+        }
+        
+        .timeline-grid {
+            display: flex;
+            flex-grow: 1;
+        }
+        
+        /* Individual time slots in the header */
+        .header-time-slot {
+            flex: 0 0 80px; /* Fixed width for each hour */
+            border-right: 1px solid #e8eaed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #5f6368;
+            font-weight: 500;
+        }
+
+        /* Row for each machine */
+        .machine-row {
+            display: flex;
+            height: 80px; /* Height of each machine's schedule row */
+            border-bottom: 1px solid #e8eaed;
+            position: relative;
+        }
+
+        .machine-row:last-child {
+            border-bottom: none;
+        }
+        
+        .machine-schedule-area {
+            flex-grow: 1;
+            display: flex;
+            position: relative; /* Container for events */
+        }
+
+        /* Background grid cells in each machine's row */
+        .machine-slot {
+            flex: 0 0 80px; /* Width must match header time slot */
+            border-right: 1px solid #e8eaed;
+            background: white;
+            height: 100%;
+        }
+
+        .machine-slot:hover {
+            background: #f8f9fa;
+        }
+        
+        .machine-slot.drag-over {
+            background: #e8f0fe;
+            border: 2px dashed #1a73e8;
+        }
+        
+        /* Event styling for horizontal layout */
+        .event {
+            position: absolute;
+            top: 4px;
+            height: calc(100% - 8px); /* Make event fill the row height with padding */
+            background: #1a73e8;
+            color: white;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: move;
+            user-select: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            word-wrap: break-word;
+        }
+        
+        .event:hover {
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .event.dragging {
+            opacity: 0.7;
+            z-index: 100;
+            transform: rotate(2deg);
+        }
+        
+        .event.resizing {
+            z-index: 100;
+        }
+        
+        /* Resize handle for horizontal resizing */
+        .event-handle {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px; /* Width of the handle area */
+            cursor: ew-resize; /* East-West resize cursor */
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 0 6px 6px 0;
+        }
+        
+        .event-handle:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        .task-pool {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .task-item {
+            display: inline-block;
+            padding: 8px 16px;
+            margin: 4px;
+            border-radius: 20px;
+            color: white;
+            font-weight: 500;
+            font-size: 12px;
+            cursor: move;
+            user-select: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        
+        .task-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .task-item.dragging {
+            opacity: 0.6;
+            transform: rotate(2deg);
+        }
+        
+        .home-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        
+        .home-button:hover {
+            background: #1557b0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        @media (max-width: 768px) {
+            .home-button {
+                top: 10px;
+                right: 10px;
+                padding: 10px 16px;
+                font-size: 12px;
+            }
+        }
+        
+        .current-time-line {
+            position: absolute;
+            top: 0; /* Starts from the top of the body */
+            bottom: 0;
+            width: 2px;
+            background: #ea4335;
+            z-index: 15; /* Above grid, below events */
+            pointer-events: none;
+        }
+        
+        .current-time-line::after {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -3px;
+            width: 8px;
+            height: 8px;
+            background: #ea4335;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <a href="index.html" class="home-button">Home</a>
+    
+    <div class="container mx-auto px-4 py-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Production Scheduler</h1>
+            <p class="text-gray-600">Drag and drop tasks to schedule production</p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Create New Task</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Task Name</label>
+                    <input type="text" id="taskName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter task name">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Duration (hours)</label>
+                    <input type="number" id="taskDuration" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Hours" min="1" max="24" value="2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Color</label>
+                    <select id="taskColor" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="#1a73e8">Blue</option>
+                        <option value="#34a853">Green</option>
+                        <option value="#ea4335">Red</option>
+                        <option value="#fbbc04">Yellow</option>
+                        <option value="#9c27b0">Purple</option>
+                        <option value="#ff9800">Orange</option>
+                        <option value="#00bcd4">Cyan</option>
+                        <option value="#e91e63">Pink</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button id="createTask" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                        Create Task
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="task-pool">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Task Pool</h2>
+            <p class="text-sm text-gray-600 mb-4">Drag tasks from here to the machines below</p>
+            <div id="taskPool" class="min-h-[100px] border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+                </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">Production Schedule</h2>
+                <div class="flex items-center space-x-2">
+                    <button id="todayBtn" class="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-md">Today</button>
+                    <button id="prevDay" class="p-2 text-gray-600 hover:bg-gray-100 rounded-md">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                    </button>
+                    <span id="currentDate" class="text-sm font-medium text-gray-900">Today</span>
+                    <button id="nextDay" class="p-2 text-gray-600 hover:bg-gray-100 rounded-md">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="calendarContainer" class="calendar-container">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        class GoogleCalendarScheduler {
+            constructor() {
+                // Config
+                this.START_HOUR = 8;
+                this.END_HOUR = 20;
+                this.SLOT_WIDTH = 80; // px
+                this.LABEL_WIDTH = 150; // px
+                this.MACHINES = ['Machine 1', 'Machine 2', 'Machine 3'];
+                
+                // State
+                this.tasks = [];
+                this.scheduledEvents = [];
+                this.currentDate = new Date();
+                this.currentDate.setHours(0, 0, 0, 0);
+                
+                this.init();
+            }
+            
+            init() {
+                this.renderGrid();
+                this.setupEventListeners();
+                this.updateDateDisplay();
+                this.updateCurrentTimeLine();
+                setInterval(() => this.updateCurrentTimeLine(), 60000); // Update every minute
+            }
+
+            renderGrid() {
+                const container = document.getElementById('calendarContainer');
+                container.innerHTML = ''; // Clear previous grid
+
+                // Create Header
+                const header = document.createElement('div');
+                header.className = 'calendar-header';
+
+                const labelSpacer = document.createElement('div');
+                labelSpacer.className = 'header-label-spacer';
+                header.appendChild(labelSpacer);
+
+                const timelineGrid = document.createElement('div');
+                timelineGrid.className = 'timeline-grid';
+
+                for (let hour = this.START_HOUR; hour < this.END_HOUR; hour++) {
+                    const timeSlot = document.createElement('div');
+                    timeSlot.className = 'header-time-slot';
+                    timeSlot.textContent = `${hour}:00`;
+                    timelineGrid.appendChild(timeSlot);
+                }
+                header.appendChild(timelineGrid);
+                container.appendChild(header);
+
+                // Create Calendar Body
+                const body = document.createElement('div');
+                body.className = 'calendar-body';
+
+                this.MACHINES.forEach((name, index) => {
+                    const machineRow = document.createElement('div');
+                    machineRow.className = 'machine-row';
+                    machineRow.dataset.machine = index;
+
+                    const labelCol = document.createElement('div');
+                    labelCol.className = 'machine-label-col';
+                    labelCol.textContent = name;
+                    machineRow.appendChild(labelCol);
+                    
+                    const scheduleArea = document.createElement('div');
+                    scheduleArea.className = 'machine-schedule-area';
+
+                    for (let hour = this.START_HOUR; hour < this.END_HOUR; hour++) {
+                        const slot = document.createElement('div');
+                        slot.className = 'machine-slot';
+                        slot.dataset.hour = hour;
+                        scheduleArea.appendChild(slot);
+                    }
+                    machineRow.appendChild(scheduleArea);
+                    body.appendChild(machineRow);
+                });
+                container.appendChild(body);
+                
+                // Re-attach drop zone listeners after rendering
+                this.setupDropZones();
+            }
+            
+            setupEventListeners() {
+                document.getElementById('createTask').addEventListener('click', () => this.createTask());
+                document.getElementById('todayBtn').addEventListener('click', () => this.goToToday());
+                document.getElementById('prevDay').addEventListener('click', () => this.previousDay());
+                document.getElementById('nextDay').addEventListener('click', () => this.nextDay());
+            }
+            
+            setupDropZones() {
+                const machineSlots = document.querySelectorAll('.machine-slot');
+                machineSlots.forEach(slot => {
+                    slot.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        slot.classList.add('drag-over');
+                    });
+                    
+                    slot.addEventListener('dragleave', () => {
+                        slot.classList.remove('drag-over');
+                    });
+                    
+                    slot.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        slot.classList.remove('drag-over');
+                        this.handleDrop(e, slot);
+                    });
+                });
+            }
+            
+            createTask() {
+                const name = document.getElementById('taskName').value.trim();
+                const duration = parseInt(document.getElementById('taskDuration').value);
+                const color = document.getElementById('taskColor').value;
+                
+                if (!name || !duration || duration < 1) {
+                    alert('Please enter a valid task name and duration.');
+                    return;
+                }
+                
+                const task = { id: Date.now() + Math.random(), name, duration, color };
+                this.tasks.push(task);
+                this.renderTaskInPool(task);
+                
+                document.getElementById('taskName').value = '';
+                document.getElementById('taskDuration').value = '2';
+            }
+            
+            renderTaskInPool(task) {
+                const taskPool = document.getElementById('taskPool');
+                const taskElement = document.createElement('div');
+                taskElement.className = 'task-item';
+                taskElement.id = `pool-task-${task.id}`;
+                taskElement.style.backgroundColor = task.color;
+                taskElement.textContent = `${task.name} (${task.duration}h)`;
+                taskElement.draggable = true;
+                
+                taskElement.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', task.id);
+                    taskElement.classList.add('dragging');
+                });
+                
+                taskElement.addEventListener('dragend', () => taskElement.classList.remove('dragging'));
+                
+                taskPool.appendChild(taskElement);
+            }
+            
+            handleDrop(e, dropZone) {
+                const taskId = e.dataTransfer.getData('text/plain');
+                const poolTask = this.tasks.find(t => t.id == taskId);
+                if (poolTask) {
+                    this.scheduleTask(poolTask, dropZone);
+                    return;
+                }
+                
+                const scheduledEvent = this.scheduledEvents.find(e => e.id == taskId);
+                if (scheduledEvent) {
+                    this.moveEvent(scheduledEvent, dropZone);
+                }
+            }
+            
+            scheduleTask(task, dropZone) {
+                const machineRow = dropZone.closest('.machine-row');
+                const machine = parseInt(machineRow.dataset.machine);
+                const startHour = parseInt(dropZone.dataset.hour);
+                
+                if (startHour + task.duration > this.END_HOUR) {
+                    alert('Task does not fit in the schedule.');
+                    return;
+                }
+                
+                const event = { ...task, machine, startHour, endHour: startHour + task.duration };
+                
+                this.tasks = this.tasks.filter(t => t.id !== task.id);
+                this.scheduledEvents.push(event);
+                
+                document.getElementById(`pool-task-${task.id}`)?.remove();
+                this.renderEvent(event);
+            }
+            
+            moveEvent(event, dropZone) {
+                const machineRow = dropZone.closest('.machine-row');
+                const machine = parseInt(machineRow.dataset.machine);
+                const startHour = parseInt(dropZone.dataset.hour);
+                
+                if (startHour + event.duration > this.END_HOUR) {
+                    alert('Event does not fit in the schedule.');
+                    return;
+                }
+                
+                event.machine = machine;
+                event.startHour = startHour;
+                event.endHour = startHour + event.duration;
+                
+                this.repositionEvent(event);
+            }
+            
+            renderEvent(event) {
+                const machineRow = document.querySelector(`.machine-row[data-machine="${event.machine}"]`);
+                const scheduleArea = machineRow?.querySelector('.machine-schedule-area');
+                if (!scheduleArea) return;
+                
+                const eventElement = document.createElement('div');
+                eventElement.className = 'event';
+                eventElement.id = `event-${event.id}`;
+                eventElement.style.backgroundColor = event.color;
+                eventElement.style.left = `${(event.startHour - this.START_HOUR) * this.SLOT_WIDTH}px`;
+                eventElement.style.width = `${event.duration * this.SLOT_WIDTH}px`;
+                eventElement.textContent = `${event.name} (${event.duration}h)`;
+                eventElement.draggable = true;
+                
+                const resizeHandle = document.createElement('div');
+                resizeHandle.className = 'event-handle';
+                eventElement.appendChild(resizeHandle);
+                
+                eventElement.addEventListener('dragstart', (e) => {
+                    e.stopPropagation(); // Prevent parent drag interference
+                    e.dataTransfer.setData('text/plain', event.id);
+                    eventElement.classList.add('dragging');
+                });
+                
+                eventElement.addEventListener('dragend', () => eventElement.classList.remove('dragging'));
+                
+                // Resizing logic for horizontal layout
+                let isResizing = false, startX = 0, startWidth = 0;
+                
+                resizeHandle.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    isResizing = true;
+                    startX = e.clientX;
+                    startWidth = eventElement.offsetWidth;
+                    document.body.style.cursor = 'ew-resize';
+                    eventElement.classList.add('resizing');
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (!isResizing) return;
+                    const deltaX = e.clientX - startX;
+                    const newWidth = Math.max(this.SLOT_WIDTH, startWidth + deltaX);
+                    const newDuration = Math.max(1, Math.round(newWidth / this.SLOT_WIDTH));
+                    
+                    if (event.startHour + newDuration <= this.END_HOUR) {
+                        event.duration = newDuration;
+                        event.endHour = event.startHour + newDuration;
+                        eventElement.style.width = `${newDuration * this.SLOT_WIDTH}px`;
+                        eventElement.textContent = `${event.name} (${event.duration}h)`;
+                        eventElement.appendChild(resizeHandle);
+                    }
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    if (isResizing) {
+                        isResizing = false;
+                        document.body.style.cursor = 'default';
+                        eventElement.classList.remove('resizing');
+                    }
+                });
+                
+                scheduleArea.appendChild(eventElement);
+            }
+            
+            repositionEvent(event) {
+                const eventElement = document.getElementById(`event-${event.id}`);
+                const newParent = document.querySelector(`.machine-row[data-machine="${event.machine}"] .machine-schedule-area`);
+                if (eventElement && newParent) {
+                    eventElement.style.left = `${(event.startHour - this.START_HOUR) * this.SLOT_WIDTH}px`;
+                    newParent.appendChild(eventElement);
+                }
+            }
+            
+            updateCurrentTimeLine() {
+                const now = new Date();
+                const currentHour = now.getHours() + now.getMinutes() / 60;
+                const calendarBody = document.querySelector('.calendar-body');
+                
+                if (!calendarBody || currentHour < this.START_HOUR || currentHour > this.END_HOUR) {
+                    document.querySelector('.current-time-line')?.remove();
+                    return;
+                }
+                
+                let timeLine = calendarBody.querySelector('.current-time-line');
+                if (!timeLine) {
+                    timeLine = document.createElement('div');
+                    timeLine.className = 'current-time-line';
+                    calendarBody.appendChild(timeLine);
+                }
+                
+                const position = (currentHour - this.START_HOUR) * this.SLOT_WIDTH;
+                timeLine.style.left = `${this.LABEL_WIDTH + position}px`;
+            }
+
+            // Date navigation methods (unchanged)
+            goToToday() {
+                this.currentDate = new Date();
+                this.currentDate.setHours(0, 0, 0, 0);
+                this.updateDateDisplay();
+                // In a real app, you'd reload data for this day
+            }
+            
+            previousDay() {
+                this.currentDate.setDate(this.currentDate.getDate() - 1);
+                this.updateDateDisplay();
+            }
+            
+            nextDay() {
+                this.currentDate.setDate(this.currentDate.getDate() + 1);
+                this.updateDateDisplay();
+            }
+            
+            updateDateDisplay() {
+                const dateElement = document.getElementById('currentDate');
+                const today = new Date(); today.setHours(0,0,0,0);
+                const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+                const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+                
+                if (this.currentDate.getTime() === today.getTime()) {
+                    dateElement.textContent = 'Today';
+                } else if (this.currentDate.getTime() === tomorrow.getTime()) {
+                    dateElement.textContent = 'Tomorrow';
+                } else if (this.currentDate.getTime() === yesterday.getTime()) {
+                    dateElement.textContent = 'Yesterday';
+                } else {
+                    dateElement.textContent = this.currentDate.toLocaleDateString('en-US', {
+                        weekday: 'short', month: 'long', day: 'numeric'
+                    });
+                }
+            }
+        }
+        
+        const scheduler = new GoogleCalendarScheduler();
+    </script>
+</body>
+</html>
+```
