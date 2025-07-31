@@ -5,14 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ship - Dashboard Principale</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap');
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         body {
-            font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif;
             background-color: #ffffff;
             color: #202124;
             line-height: 1.6;
@@ -118,31 +120,6 @@
             line-height: 1.4;
         }
         
-        .home-button {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #1a73e8;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 14px;
-            font-family: inherit;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-block;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .home-button:hover {
-            background: #1557b0;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-            transform: translateY(-1px);
-        }
-        
         @media (max-width: 768px) {
             .container {
                 padding: 20px 16px;
@@ -160,18 +137,10 @@
             .nav-button {
                 padding: 20px 24px;
             }
-            
-            .home-button {
-                top: 10px;
-                right: 10px;
-                padding: 10px 16px;
-                font-size: 12px;
-            }
         }
     </style>
 </head>
 <body>
-    <a href="index.html" class="home-button">🏠 Home</a>
     
     <div class="container">
         <div class="header-section">
@@ -181,9 +150,17 @@
         </div>
         
         <div class="nav-grid">
+            <a href="machinery.html" class="nav-button">
+                <div class="title">Manage Machinery</div>
+                <div class="description">Add or remove machines from the production schedule.</div>
+            </a>
+            <a href="backlog.html" class="nav-button">
+                <div class="title">Manage Backlog</div>
+                <div class="description">Create and manage the list of production tasks.</div>
+            </a>
             <a href="scheduler_v2.html" class="nav-button">
-                <div class="title">Scheduler v2</div>
-                <div class="description">Sistema di Pianificazione e Scheduling</div>
+                <div class="title">Production Scheduler</div>
+                <div class="description">Visualize and organize tasks on the production timeline.</div>
             </a>
         </div>
     </div>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Machinery</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap');
+        * {
+            font-family: 'Google Sans', 'Segoe UI', Arial, sans-serif;
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #2563eb;
+            margin-top: 0;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background-color: #f9fafb;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f3f4f6;
+        }
+        .delete-btn {
+            background-color: #ef4444;
+            padding: 2px 8px;
+            font-size: 12px;
+        }
+        .delete-btn:hover {
+            background-color: #dc2626;
+        }
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .nav-button-group {
+            display: flex;
+            gap: 10px;
+        }
+        .nav-button {
+            background: #1a73e8;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .nav-button:hover {
+            background-color: #1557b0;
+            box-shadow: 0 2px 8px rgba(26, 115, 232, 0.15);
+            transform: translateY(-1px);
+        }
+        .home-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .home-button:hover {
+            background: #1557b0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="home-button">🏠 Home</a>
+    <div class="container">
+        <div class="actions">
+            <h1>Manage Machinery</h1>
+            <div class="nav-button-group">
+                <a href="backlog.html" class="nav-button">Manage Backlog</a>
+                <a href="scheduler_v2.html" class="nav-button">Go to Scheduler</a>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Add New Machine</h2>
+            <div style="display: flex; gap: 15px; align-items: flex-end;">
+                <div class="form-group" style="flex-grow: 1;">
+                    <label for="machineName">Machine Name</label>
+                    <input type="text" id="machineName" placeholder="e.g., BOBST M5">
+                </div>
+                <div class="form-group">
+                    <button id="addMachine">Add Machine</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Available Machines</h2>
+            <table id="machinery-table">
+                <thead>
+                    <tr>
+                        <th>Machine Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const addMachineBtn = document.getElementById('addMachine');
+            const machineNameInput = document.getElementById('machineName');
+            const machineryTableBody = document.querySelector('#machinery-table tbody');
+
+            let machines = JSON.parse(localStorage.getItem('schedulerMachines')) || ['Default Machine 1', 'Default Machine 2', 'Default Machine 3'];
+
+            function saveAndRender() {
+                localStorage.setItem('schedulerMachines', JSON.stringify(machines));
+                machineryTableBody.innerHTML = '';
+                machines.forEach((name, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${name}</td>
+                        <td><button class="delete-btn" data-index="${index}">Delete</button></td>
+                    `;
+                    machineryTableBody.appendChild(row);
+                });
+            }
+
+            function addMachine() {
+                const name = machineNameInput.value.trim();
+                if (!name) {
+                    alert('Please enter a machine name.');
+                    return;
+                }
+                if (machines.includes(name)) {
+                    alert('This machine name already exists.');
+                    return;
+                }
+                machines.push(name);
+                machineNameInput.value = '';
+                saveAndRender();
+            }
+
+            function deleteMachine(index) {
+                machines.splice(index, 1);
+                saveAndRender();
+            }
+
+            addMachineBtn.addEventListener('click', addMachine);
+            machineryTableBody.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-btn')) {
+                    const index = parseInt(e.target.dataset.index);
+                    deleteMachine(index);
+                }
+            });
+
+            saveAndRender(); // Initial render
+        });
+    </script>
+</body>
+</html>
