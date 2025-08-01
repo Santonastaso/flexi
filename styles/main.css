@@ -1,0 +1,359 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&display=swap');
+
+/* ===== CSS CUSTOM PROPERTIES ===== */
+:root {
+    --bg-color: #f7f7f7;
+    --text-dark: #1A1A1A;
+    --text-light: #5f6368;
+    --primary-green: #278762;
+    --primary-green-hover: #217353;
+    --primary-blue: #2563eb;
+    --primary-blue-hover: #1d4ed8;
+    --secondary-gray: #e9e9e9;
+    --secondary-gray-hover: #dcdcdc;
+    --border-color: #e5e7eb;
+    --danger-red: #ef4444;
+    --gray-medium: #9ca3af;
+}
+
+/* ===== RESET & BASE STYLES ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-dark);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== LAYOUT ===== */
+.page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+main {
+    padding-bottom: 40px;
+}
+
+.content-section {
+    background-color: white;
+    padding: 32px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    margin-bottom: 40px;
+}
+
+/* ===== NAVIGATION ===== */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 0;
+    margin-bottom: 40px;
+}
+
+.logo {
+    font-size: 28px;
+    font-weight: 800;
+    text-decoration: none;
+    color: var(--text-dark);
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+nav a {
+    text-decoration: none;
+    color: var(--text-light);
+    font-weight: 700;
+    font-size: 14px;
+    transition: color 0.2s ease;
+}
+
+nav a:hover {
+    color: var(--text-dark);
+}
+
+.register-btn {
+    background-color: var(--text-dark);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+}
+
+/* ===== TYPOGRAPHY ===== */
+h1 {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 24px;
+    color: var(--text-dark);
+}
+
+h2 {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 24px;
+    color: var(--text-dark);
+}
+
+p {
+    margin-bottom: 24px;
+    color: var(--text-light);
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    padding: 14px 28px;
+    border-radius: 28px;
+    font-size: 16px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    height: 48px;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+.btn-primary {
+    background-color: var(--primary-green);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-green-hover);
+}
+
+.btn-secondary {
+    background-color: var(--secondary-gray);
+    color: var(--text-dark);
+}
+
+.btn-secondary:hover {
+    background-color: var(--secondary-gray-hover);
+}
+
+.btn-small {
+    font-size: 14px;
+    padding: 12px 28px;
+}
+
+/* ===== FORMS ===== */
+.form-grid {
+    display: grid;
+    gap: 16px;
+    align-items: flex-end;
+}
+
+.form-grid--4-cols {
+    grid-template-columns: 2fr 1fr 1fr auto;
+}
+
+.form-grid--5-cols {
+    grid-template-columns: 2fr 1fr 1fr 1fr auto;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: #fff;
+    height: 48px;
+    font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* ===== TABLES ===== */
+.modern-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.modern-table th,
+.modern-table td {
+    padding: 16px;
+    text-align: left;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modern-table th {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background-color: var(--bg-color);
+}
+
+/* ===== ACTION BUTTONS ===== */
+.action-btn {
+    background-color: transparent;
+    border: none;
+    color: var(--gray-medium);
+    padding: 5px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn svg {
+    vertical-align: middle;
+}
+
+.action-btn:hover {
+    color: var(--primary-blue);
+}
+
+.action-btn.delete:hover {
+    color: var(--danger-red);
+}
+
+.action-btn:disabled {
+    color: #d1d5db;
+    cursor: not-allowed;
+}
+
+/* ===== STATUS BADGES ===== */
+.status-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
+    text-align: center;
+}
+
+.status-badge.live {
+    background-color: var(--primary-green);
+}
+
+.status-badge.not-live {
+    background-color: var(--gray-medium);
+}
+
+/* ===== UTILITY CLASSES ===== */
+.text-center {
+    text-align: center;
+}
+
+.hidden {
+    display: none;
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gap-16 {
+    gap: 16px;
+}
+
+.mb-24 {
+    margin-bottom: 24px;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 992px) {
+    .form-grid--5-cols {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .form-grid--5-cols .form-group:first-child {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-container {
+        padding: 0 16px;
+    }
+    
+    header {
+        padding: 16px 0;
+        margin-bottom: 24px;
+    }
+    
+    .content-section {
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+    
+    .form-grid--4-cols,
+    .form-grid--5-cols {
+        grid-template-columns: 1fr;
+    }
+    
+    nav {
+        display: none; /* Simplified nav on mobile */
+    }
+    
+    .btn {
+        font-size: 14px;
+        padding: 12px 24px;
+    }
+}
+
+@media (max-width: 576px) {
+    .logo {
+        font-size: 24px;
+    }
+    
+    h1 {
+        font-size: 24px;
+    }
+    
+    h2 {
+        font-size: 20px;
+    }
+}

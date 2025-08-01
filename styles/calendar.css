@@ -1,0 +1,131 @@
+/* ===== CALENDAR SPECIFIC STYLES ===== */
+
+/* Calendar Controls */
+.calendar-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 24px;
+}
+
+.calendar-controls label {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+.calendar-controls input {
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+/* Calendar Grid */
+.calendar-grid {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.calendar-grid th,
+.calendar-grid td {
+    border: 1px solid var(--border-color);
+    padding: 5px;
+    text-align: center;
+    height: 40px;
+}
+
+.calendar-grid th {
+    background-color: var(--bg-color);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-light);
+}
+
+.calendar-grid .day-label {
+    font-weight: 800;
+    font-size: 14px;
+    background-color: var(--bg-color);
+}
+
+/* Hour Slots */
+.hour-slot {
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 12px;
+    color: #d1d5db;
+}
+
+.hour-slot.unavailable {
+    background-color: var(--danger-red);
+    color: white;
+    font-weight: 700;
+    background-image: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 4px,
+        rgba(255,255,255,0.1) 4px,
+        rgba(255,255,255,0.1) 8px
+    );
+}
+
+.hour-slot.scheduled {
+    background-color: var(--gray-medium);
+    color: white;
+    cursor: not-allowed;
+    font-weight: 700;
+}
+
+.hour-slot:not(.unavailable):not(.scheduled):hover {
+    background-color: #f3f4f6;
+}
+
+/* Edit Inputs for Inline Editing */
+.edit-input,
+.edit-select {
+    padding: 8px;
+    font-size: 14px;
+    width: 100%;
+    border: 1px solid var(--primary-blue);
+    border-radius: 6px;
+}
+
+/* Responsive Design for Calendar */
+@media (max-width: 768px) {
+    .calendar-controls {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+    
+    .calendar-grid th,
+    .calendar-grid td {
+        padding: 3px;
+        font-size: 10px;
+        height: 32px;
+    }
+    
+    .calendar-grid .day-label {
+        font-size: 12px;
+    }
+    
+    .hour-slot {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 576px) {
+    .calendar-grid {
+        font-size: 8px;
+    }
+    
+    .calendar-grid th,
+    .calendar-grid td {
+        padding: 2px;
+        height: 28px;
+    }
+}

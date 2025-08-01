@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ship - Production Backlog</title>
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="../styles/main.css">
+</head>
+<body>
+    <div class="page-container">
+        <!-- Navigation will be injected here by components/navigation.js -->
+
+        <main>
+            <div class="content-section">
+                <h2>Create New Task</h2>
+                <div class="form-grid form-grid--5-cols">
+                    <div class="form-group">
+                        <label for="taskName">Task Name</label>
+                        <input type="text" id="taskName" placeholder="Enter task name">
+                    </div>
+                    <div class="form-group">
+                        <label for="taskSetup">Set Up (h)</label>
+                        <input type="number" id="taskSetup" placeholder="Hours" min="0" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="taskProduction">Production (h)</label>
+                        <input type="number" id="taskProduction" placeholder="Hours" min="1" value="4">
+                    </div>
+                    <div class="form-group">
+                        <label for="taskColor">Color</label>
+                        <select id="taskColor">
+                            <option value="#1a73e8">Blue</option>
+                            <option value="#34a853">Green</option>
+                            <option value="#ea4335">Red</option>
+                            <option value="#fbbc04">Yellow</option>
+                            <option value="#9c27b0">Purple</option>
+                            <option value="#ff9800">Orange</option>
+                            <option value="#00bcd4">Cyan</option>
+                            <option value="#e91e63">Pink</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button id="createTask" class="btn btn-primary btn-small">Add Task</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h2>Backlog Tasks</h2>
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>Task Name</th>
+                            <th>Set Up (h)</th>
+                            <th>Production (h)</th>
+                            <th>Total (h)</th>
+                            <th>Color</th>
+                            <th class="text-center" style="width: 80px;">Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody id="backlog-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="../scripts/storageService.js"></script>
+    <script src="../scripts/backlogManager.js"></script>
+    <script src="../components/navigation.js"></script>
+</body>
+</html>
