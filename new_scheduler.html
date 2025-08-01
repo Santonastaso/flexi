@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ship - New Production Scheduler</title>
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/scheduler.css">
+    
+    <style>
+        /* Additional styles for the new scheduler */
+        .scheduler-container {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            height: 100%;
+        }
+        
+        .task-pool-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+        }
+        
+        .task-pool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+            min-height: 120px;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            background-color: rgba(0,0,0,0.02);
+            transition: all 0.3s ease;
+        }
+        
+        .task-pool-grid.drag-over {
+            border-color: var(--primary-blue);
+            background-color: rgba(37, 99, 235, 0.05);
+            transform: scale(1.01);
+        }
+        
+        .task-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: grab;
+            user-select: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: none;
+        }
+        
+        .task-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        
+        .task-item:active {
+            cursor: grabbing;
+        }
+        
+        .task-item.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg) scale(1.05);
+        }
+        
+        .task-duration {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .calendar-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        
+        .calendar-navigation {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .nav-btn {
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-dark);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+        
+        .nav-btn:hover {
+            background: rgba(0,0,0,0.04);
+            transform: translateY(-1px);
+        }
+        
+        .nav-btn.today {
+            background: var(--primary-blue);
+            color: white;
+            border-color: var(--primary-blue);
+        }
+        
+        .nav-btn.today:hover {
+            background: var(--primary-blue-hover);
+        }
+        
+        .current-date {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-dark);
+            min-width: 150px;
+            text-align: center;
+        }
+        
+        .calendar-grid {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+        }
+        
+        .calendar-header-row {
+            display: flex;
+            background: var(--bg-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .machine-label-header {
+            width: 200px;
+            padding: 16px;
+            font-weight: 800;
+            color: var(--text-dark);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .time-header {
+            flex: 1;
+            display: flex;
+        }
+        
+        .time-slot-header {
+            flex: 1;
+            min-width: 80px;
+            padding: 16px 8px;
+            text-align: center;
+            font-weight: 700;
+            color: var(--text-light);
+            font-size: 12px;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .time-slot-header:last-child {
+            border-right: none;
+        }
+        
+        .machine-row {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            min-height: 80px;
+        }
+        
+        .machine-row:last-child {
+            border-bottom: none;
+        }
+        
+        .machine-label {
+            width: 200px;
+            padding: 16px;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: white;
+        }
+        
+        .machine-name {
+            font-weight: 800;
+            color: var(--text-dark);
+            font-size: 14px;
+        }
+        
+        .machine-city {
+            color: var(--text-light);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        
+        .machine-slots {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: visible;
+        }
+        
+        .time-slot {
+            flex: 1;
+            min-width: 80px;
+            border-right: 1px solid var(--border-color);
+            position: relative;
+            background: white;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            overflow: visible;
+        }
+        
+        .time-slot:last-child {
+            border-right: none;
+        }
+        
+        .time-slot:hover {
+            background: rgba(37, 99, 235, 0.05);
+        }
+        
+        .time-slot.drag-over {
+            background: rgba(37, 99, 235, 0.2);
+            border: 2px solid var(--primary-blue);
+            transform: scale(1.02);
+        }
+        
+        .time-slot.unavailable {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 3px solid var(--danger-red);
+        }
+        
+        .time-slot.unavailable::before {
+            content: '×';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--danger-red);
+            font-weight: 800;
+            font-size: 16px;
+        }
+        
+        .scheduled-event {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            bottom: 4px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: grab;
+            user-select: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            z-index: 10;
+        }
+        
+        .scheduled-event:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .scheduled-event:active {
+            cursor: grabbing;
+        }
+        
+        .scheduled-event.dragging {
+            opacity: 0.7;
+            transform: rotate(3deg) scale(1.05);
+        }
+        
+        .message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            margin: 16px 0;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .message.success {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--primary-green);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+        
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-red);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: var(--text-light);
+            font-style: italic;
+            padding: 40px;
+        }
+        
+        @media (max-width: 768px) {
+            .machine-label-header,
+            .machine-label {
+                width: 120px;
+                padding: 12px;
+            }
+            
+            .time-slot-header,
+            .time-slot {
+                min-width: 60px;
+            }
+            
+            .task-pool-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Navigation will be injected here -->
+        
+        <main>
+            <div class="scheduler-container">
+                <!-- Task Pool Section -->
+                <div class="task-pool-section">
+                    <h2>Task Pool</h2>
+                    <p>Drag tasks from here to schedule them, or drag scheduled tasks back to unschedule them.</p>
+                    
+                    <div id="messageContainer"></div>
+                    
+                    <div id="taskPool" class="task-pool-grid">
+                        <!-- Tasks will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Calendar Section -->
+                <div class="calendar-section">
+                    <div class="calendar-header">
+                        <h2>Production Schedule</h2>
+                        <div class="calendar-navigation">
+                            <button id="todayBtn" class="nav-btn today">Today</button>
+                            <button id="prevBtn" class="nav-btn">&lt;</button>
+                            <span id="currentDate" class="current-date">Today</span>
+                            <button id="nextBtn" class="nav-btn">&gt;</button>
+                        </div>
+                    </div>
+                    
+                    <div id="calendarGrid" class="calendar-grid">
+                        <!-- Calendar will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="scripts/storageService.js"></script>
+    <script src="components/navigation.js"></script>
+    
+    <script>
+        /**
+         * New Production Scheduler - Bulletproof Drag & Drop Implementation
+         */
+        class NewScheduler {
+            constructor() {
+                this.storageService = window.storageService;
+                this.currentDate = new Date();
+                this.currentDate.setHours(0, 0, 0, 0);
+                
+                this.elements = {};
+                this.dragState = {
+                    isDragging: false,
+                    draggedElement: null,
+                    dragType: null // 'task' or 'event'
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                this.bindElements();
+                this.attachEventListeners();
+                this.loadTasks();
+                this.renderCalendar();
+                this.updateDateDisplay();
+            }
+            
+            bindElements() {
+                this.elements = {
+                    taskPool: document.getElementById('taskPool'),
+                    calendarGrid: document.getElementById('calendarGrid'),
+                    currentDate: document.getElementById('currentDate'),
+                    todayBtn: document.getElementById('todayBtn'),
+                    prevBtn: document.getElementById('prevBtn'),
+                    nextBtn: document.getElementById('nextBtn'),
+                    messageContainer: document.getElementById('messageContainer')
+                };
+            }
+            
+            attachEventListeners() {
+                this.elements.todayBtn.addEventListener('click', () => this.goToToday());
+                this.elements.prevBtn.addEventListener('click', () => this.previousDay());
+                this.elements.nextBtn.addEventListener('click', () => this.nextDay());
+                
+                // Setup task pool drop zone
+                this.setupTaskPoolDropZone();
+            }
+            
+            setupTaskPoolDropZone() {
+                const taskPool = this.elements.taskPool;
+                
+                taskPool.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    taskPool.classList.add('drag-over');
+                });
+                
+                taskPool.addEventListener('dragleave', (e) => {
+                    if (!taskPool.contains(e.relatedTarget)) {
+                        taskPool.classList.remove('drag-over');
+                    }
+                });
+                
+                taskPool.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    taskPool.classList.remove('drag-over');
+                    
+                    const eventId = e.dataTransfer.getData('text/plain');
+                    if (eventId && this.dragState.dragType === 'event') {
+                        this.unscheduleEvent(eventId);
+                    }
+                });
+            }
+            
+            loadTasks() {
+                const taskPool = this.elements.taskPool;
+                taskPool.innerHTML = '';
+                
+                const tasks = this.storageService.getBacklogTasks();
+                const scheduledEvents = this.storageService.getScheduledEvents();
+                
+                // Filter out already scheduled tasks
+                const availableTasks = tasks.filter(task => 
+                    !scheduledEvents.some(event => event.taskId === task.id)
+                );
+                
+                if (availableTasks.length === 0) {
+                    // Add some sample tasks for testing
+                    this.addSampleTasks();
+                    return;
+                }
+                
+                availableTasks.forEach(task => {
+                    this.createTaskElement(task);
+                });
+            }
+            
+            createTaskElement(task) {
+                const taskElement = document.createElement('div');
+                taskElement.className = 'task-item';
+                taskElement.draggable = true;
+                taskElement.dataset.taskId = task.id;
+                taskElement.style.background = task.color || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                
+                taskElement.innerHTML = `
+                    <span>${task.name}</span>
+                    <span class="task-duration">${task.duration}h</span>
+                `;
+                
+                // Drag events
+                taskElement.addEventListener('dragstart', (e) => {
+                    this.dragState.isDragging = true;
+                    this.dragState.draggedElement = taskElement;
+                    this.dragState.dragType = 'task';
+                    
+                    taskElement.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', task.id);
+                    e.dataTransfer.setData('application/json', JSON.stringify(task));
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                
+                taskElement.addEventListener('dragend', (e) => {
+                    this.dragState.isDragging = false;
+                    this.dragState.draggedElement = null;
+                    this.dragState.dragType = null;
+                    taskElement.classList.remove('dragging');
+                    
+                    // Clear drag-over states
+                    document.querySelectorAll('.drag-over').forEach(el => {
+                        el.classList.remove('drag-over');
+                    });
+                });
+                
+                this.elements.taskPool.appendChild(taskElement);
+            }
+            
+            renderCalendar() {
+                let machines = this.storageService.getMachines();
+                
+                // Add sample machines if none exist
+                if (!machines || machines.length === 0) {
+                    this.addSampleMachines();
+                    machines = this.storageService.getMachines();
+                }
+                
+                const dateKey = this.formatDate(this.currentDate);
+                
+                let html = `
+                    <div class="calendar-header-row">
+                        <div class="machine-label-header">Machines</div>
+                        <div class="time-header">
+                `;
+                
+                // Time headers
+                for (let hour = 8; hour < 20; hour++) {
+                    html += `<div class="time-slot-header">${hour}:00</div>`;
+                }
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+                
+                // Machine rows
+                machines.forEach(machine => {
+                    html += this.renderMachineRow(machine, dateKey);
+                });
+                
+                this.elements.calendarGrid.innerHTML = html;
+                
+                // Setup drop zones
+                this.setupDropZones();
+                
+                // Render scheduled events
+                this.renderScheduledEvents();
+            }
+            
+            renderMachineRow(machine, dateKey) {
+                const unavailableHours = this.storageService.getMachineAvailabilityForDate(machine.name, dateKey);
+                
+                let html = `
+                    <div class="machine-row" data-machine="${machine.name}">
+                        <div class="machine-label">
+                            <div class="machine-name">${machine.name}</div>
+                            <div class="machine-city">${machine.city}</div>
+                        </div>
+                        <div class="machine-slots">
+                `;
+                
+                for (let hour = 8; hour < 20; hour++) {
+                    const isUnavailable = unavailableHours.includes(hour);
+                    const slotClass = isUnavailable ? 'time-slot unavailable' : 'time-slot';
+                    
+                    html += `
+                        <div class="${slotClass}" 
+                             data-machine="${machine.name}" 
+                             data-hour="${hour}" 
+                             data-date="${dateKey}">
+                        </div>
+                    `;
+                }
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+                
+                return html;
+            }
+            
+            setupDropZones() {
+                const slots = this.elements.calendarGrid.querySelectorAll('.time-slot:not(.unavailable)');
+                
+                slots.forEach(slot => {
+                    slot.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        slot.classList.add('drag-over');
+                    });
+                    
+                    slot.addEventListener('dragleave', (e) => {
+                        if (!slot.contains(e.relatedTarget)) {
+                            slot.classList.remove('drag-over');
+                        }
+                    });
+                    
+                    slot.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        slot.classList.remove('drag-over');
+                        
+                        const taskId = e.dataTransfer.getData('text/plain');
+                        
+                        // Check if we have a valid task ID
+                        if (taskId) {
+                            if (this.dragState.dragType === 'task') {
+                                this.scheduleTask(taskId, slot);
+                            } else if (this.dragState.dragType === 'event') {
+                                this.moveEvent(taskId, slot);
+                            }
+                        }
+                    });
+                });
+            }
+            
+            scheduleTask(taskId, slot) {
+                const task = this.storageService.getTaskById(taskId);
+                
+                if (!task) {
+                    this.showMessage('Task not found', 'error');
+                    return;
+                }
+                
+                const machine = slot.dataset.machine;
+                const startHour = parseInt(slot.dataset.hour);
+                const endHour = startHour + task.duration;
+                
+                // Validate time range
+                if (endHour > 20) {
+                    this.showMessage('Task does not fit in the remaining time', 'error');
+                    return;
+                }
+                
+                // Check for conflicts
+                if (this.hasTimeConflict(machine, startHour, endHour)) {
+                    this.showMessage('Time slot is occupied or unavailable', 'error');
+                    return;
+                }
+                
+                // Create scheduled event
+                const eventData = {
+                    id: `${taskId}-${Date.now()}`,
+                    taskId: taskId,
+                    taskTitle: task.name,
+                    machine: machine,
+                    date: slot.dataset.date,
+                    startHour: startHour,
+                    endHour: endHour,
+                    color: task.color,
+                    duration: task.duration
+                };
+                
+                try {
+                    this.storageService.addScheduledEvent(eventData);
+                    this.showMessage(`Task "${task.name}" scheduled successfully`, 'success');
+                    
+                    // Remove task from pool immediately
+                    const taskElement = this.elements.taskPool.querySelector(`[data-task-id="${taskId}"]`);
+                    if (taskElement) {
+                        taskElement.remove();
+                    }
+                    
+                    // Refresh the view
+                    this.renderScheduledEvents();
+                } catch (error) {
+                    this.showMessage(`Failed to schedule task: ${error.message}`, 'error');
+                }
+            }
+            
+            hasTimeConflict(machine, startHour, endHour, excludeEventId = null) {
+                const dateKey = this.formatDate(this.currentDate);
+                const events = this.storageService.getEventsByDate(dateKey);
+                const unavailableHours = this.storageService.getMachineAvailabilityForDate(machine, dateKey);
+                
+                // Check for overlapping events
+                for (const event of events) {
+                    if (event.machine === machine && event.id !== excludeEventId) {
+                        if (startHour < event.endHour && endHour > event.startHour) {
+                            return true;
+                        }
+                    }
+                }
+                
+                // Check for unavailable hours
+                for (let hour = startHour; hour < endHour; hour++) {
+                    if (unavailableHours.includes(hour)) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+            
+            renderScheduledEvents() {
+                // Clear existing events
+                this.elements.calendarGrid.querySelectorAll('.scheduled-event').forEach(el => el.remove());
+                
+                const dateKey = this.formatDate(this.currentDate);
+                const events = this.storageService.getEventsByDate(dateKey);
+                
+                events.forEach(event => {
+                    this.renderEvent(event);
+                });
+            }
+            
+            renderEvent(event) {
+                const machineRow = this.elements.calendarGrid.querySelector(`[data-machine="${event.machine}"]`);
+                if (!machineRow) return;
+                
+                const slots = machineRow.querySelector('.machine-slots');
+                const startSlot = slots.querySelector(`[data-hour="${event.startHour}"]`);
+                
+                if (!startSlot) return;
+                
+                const eventElement = document.createElement('div');
+                eventElement.className = 'scheduled-event';
+                eventElement.dataset.eventId = event.id;
+                eventElement.dataset.taskId = event.taskId; // Store taskId for moving
+                eventElement.style.background = event.color || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                eventElement.style.width = `${(event.endHour - event.startHour) * 100}%`;
+                eventElement.style.zIndex = '10';
+                eventElement.textContent = event.taskTitle;
+                eventElement.draggable = true;
+                
+                // Drag events
+                eventElement.addEventListener('dragstart', (e) => {
+                    this.dragState.isDragging = true;
+                    this.dragState.draggedElement = eventElement;
+                    this.dragState.dragType = 'event';
+                    
+                    eventElement.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', event.id);
+                    e.dataTransfer.setData('application/json', JSON.stringify(event));
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                
+                eventElement.addEventListener('dragend', (e) => {
+                    this.dragState.isDragging = false;
+                    this.dragState.draggedElement = null;
+                    this.dragState.dragType = null;
+                    eventElement.classList.remove('dragging');
+                    
+                    // Clear drag-over states
+                    document.querySelectorAll('.drag-over').forEach(el => {
+                        el.classList.remove('drag-over');
+                    });
+                });
+                
+                startSlot.appendChild(eventElement);
+            }
+            
+            unscheduleEvent(eventId) {
+                try {
+                    const events = this.storageService.getScheduledEvents();
+                    const event = events.find(e => e.id === eventId);
+                    
+                    if (!event) {
+                        this.showMessage('Event not found', 'error');
+                        return;
+                    }
+                    
+                    this.storageService.removeScheduledEvent(eventId);
+                    this.showMessage('Task unscheduled successfully', 'success');
+                    
+                    // Add task back to pool
+                    const task = this.storageService.getTaskById(event.taskId);
+                    if (task) {
+                        this.createTaskElement(task);
+                    }
+                    
+                    // Refresh the view
+                    this.renderScheduledEvents();
+                } catch (error) {
+                    this.showMessage(`Failed to unschedule task: ${error.message}`, 'error');
+                }
+            }
+            
+            moveEvent(eventId, slot) {
+                const events = this.storageService.getScheduledEvents();
+                const event = events.find(e => e.id === eventId);
+                
+                if (!event) {
+                    this.showMessage('Event not found', 'error');
+                    return;
+                }
+                
+                const newMachine = slot.dataset.machine;
+                const newStartHour = parseInt(slot.dataset.hour);
+                const newEndHour = newStartHour + event.duration;
+                
+                // Validate time range
+                if (newEndHour > 20) {
+                    this.showMessage('Event does not fit in the remaining time', 'error');
+                    return;
+                }
+                
+                // Check for conflicts
+                if (this.hasTimeConflict(newMachine, newStartHour, newEndHour, eventId)) {
+                    this.showMessage('Time slot is occupied or unavailable', 'error');
+                    return;
+                }
+                
+                // Update event
+                event.machine = newMachine;
+                event.startHour = newStartHour;
+                event.endHour = newEndHour;
+                
+                try {
+                    this.storageService.saveScheduledEvents(events);
+                    this.showMessage(`Event moved successfully`, 'success');
+                    
+                    // Refresh the view
+                    this.renderScheduledEvents();
+                } catch (error) {
+                    this.showMessage(`Failed to move event: ${error.message}`, 'error');
+                }
+            }
+            
+            showMessage(message, type = 'info') {
+                const messageElement = document.createElement('div');
+                messageElement.className = `message ${type}`;
+                messageElement.textContent = message;
+                
+                this.elements.messageContainer.appendChild(messageElement);
+                messageElement.style.display = 'block';
+                
+                // Auto-remove after 3 seconds
+                setTimeout(() => {
+                    messageElement.remove();
+                }, 3000);
+            }
+            
+            goToToday() {
+                this.currentDate = new Date();
+                this.currentDate.setHours(0, 0, 0, 0);
+                this.updateDateDisplay();
+                this.renderCalendar();
+            }
+            
+            previousDay() {
+                this.currentDate.setDate(this.currentDate.getDate() - 1);
+                this.updateDateDisplay();
+                this.renderCalendar();
+            }
+            
+            nextDay() {
+                this.currentDate.setDate(this.currentDate.getDate() + 1);
+                this.updateDateDisplay();
+                this.renderCalendar();
+            }
+            
+            updateDateDisplay() {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                if (this.currentDate.getTime() === today.getTime()) {
+                    this.elements.currentDate.textContent = 'Today';
+                } else {
+                    this.elements.currentDate.textContent = this.currentDate.toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                }
+            }
+            
+            formatDate(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+            
+            addSampleTasks() {
+                const sampleTasks = [
+                    {
+                        id: 'task-1',
+                        name: 'Assembly Line Setup',
+                        duration: 2,
+                        color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                    },
+                    {
+                        id: 'task-2',
+                        name: 'Quality Control Check',
+                        duration: 1,
+                        color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+                    },
+                    {
+                        id: 'task-3',
+                        name: 'Machine Maintenance',
+                        duration: 3,
+                        color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+                    },
+                    {
+                        id: 'task-4',
+                        name: 'Product Testing',
+                        duration: 2,
+                        color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
+                    }
+                ];
+                
+                // Add tasks to storage
+                sampleTasks.forEach(task => {
+                    this.storageService.addBacklogTask(task);
+                });
+                
+                // Reload tasks
+                this.loadTasks();
+            }
+            
+            addSampleMachines() {
+                const sampleMachines = [
+                    {
+                        name: 'Machine A',
+                        city: 'Factory 1',
+                        status: 'active'
+                    },
+                    {
+                        name: 'Machine B',
+                        city: 'Factory 1',
+                        status: 'active'
+                    },
+                    {
+                        name: 'Machine C',
+                        city: 'Factory 2',
+                        status: 'active'
+                    }
+                ];
+                
+                // Add machines to storage
+                const existingMachines = this.storageService.getMachines();
+                const allMachines = [...existingMachines, ...sampleMachines];
+                this.storageService.saveMachines(allMachines);
+            }
+        }
+        
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.newScheduler = new NewScheduler();
+        });
+    </script>
+</body>
+</html> 
