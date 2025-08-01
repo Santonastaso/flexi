@@ -1,0 +1,507 @@
+/* ===== SHARED CALENDAR STYLES ===== */
+/* Unified styling for both scheduler and machinery settings calendars */
+
+/* Main calendar container */
+.shared-calendar-container {
+    width: 100%;
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* Calendar grid layout */
+.calendar-grid {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.calendar-grid.simple {
+    /* Specific styles for simple grid layout */
+}
+
+/* Calendar header */
+.calendar-header {
+    display: flex;
+    background-color: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.header-label-spacer {
+    flex: 0 0 150px;
+    padding: 16px 12px;
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    color: var(--text-dark);
+    font-size: 14px;
+    background-color: var(--bg-color);
+}
+
+.time-header-slot {
+    flex: 1;
+    min-width: 80px;
+    padding: 16px 8px;
+    border-right: 1px solid var(--border-color);
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-color);
+}
+
+.time-header-slot:last-child {
+    border-right: none;
+}
+
+/* Calendar body */
+.calendar-body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Machine rows (for scheduler) */
+.machine-row {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    min-height: 60px;
+}
+
+.machine-row:last-child {
+    border-bottom: none;
+}
+
+.machine-label {
+    flex: 0 0 150px;
+    padding: 12px;
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: white;
+    position: sticky;
+    left: 0;
+    z-index: 10;
+}
+
+.machine-name {
+    font-weight: 800;
+    color: var(--text-dark);
+    font-size: 14px;
+    line-height: 1.2;
+}
+
+.machine-city {
+    color: var(--text-light);
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+.machine-slots {
+    flex: 1;
+    display: flex;
+}
+
+/* Time rows (for simple grid) */
+.time-row {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    min-height: 48px;
+}
+
+.time-row:last-child {
+    border-bottom: none;
+}
+
+.time-label {
+    flex: 0 0 150px;
+    padding: 12px;
+    border-right: 1px solid var(--border-color);
+    text-align: right;
+    font-size: 12px;
+    color: var(--text-light);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    background-color: white;
+}
+
+/* Time slots */
+.time-slot {
+    flex: 1;
+    min-width: 80px;
+    min-height: 48px;
+    border-right: 1px solid var(--border-color);
+    position: relative;
+    background-color: white;
+    transition: all 0.2s ease;
+}
+
+.time-slot:last-child {
+    border-right: none;
+}
+
+/* Interactive slots */
+.time-slot.interactive {
+    cursor: pointer;
+}
+
+.time-slot.interactive:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* Slot states */
+.time-slot.occupied {
+    background-color: rgba(37, 99, 235, 0.1);
+    border-left: 3px solid var(--primary-blue);
+}
+
+.time-slot.unavailable {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-left: 3px solid var(--danger-red);
+    position: relative;
+}
+
+.time-slot.unavailable::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 4px,
+        rgba(239, 68, 68, 0.1) 4px,
+        rgba(239, 68, 68, 0.1) 8px
+    );
+    pointer-events: none;
+}
+
+.time-slot.highlighted {
+    background-color: rgba(34, 197, 94, 0.2);
+    border: 2px solid var(--primary-green);
+}
+
+.time-slot.drag-over {
+    background-color: rgba(37, 99, 235, 0.2);
+    border: 2px solid var(--primary-blue);
+    transform: scale(1.02);
+}
+
+/* Event blocks */
+.event-block {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    bottom: 2px;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: move;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+}
+
+.event-block:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.event-block.dragging {
+    opacity: 0.8;
+    transform: rotate(3deg);
+}
+
+/* Message styling */
+.scheduler-message {
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    display: none;
+    transition: all 0.3s ease;
+}
+
+.scheduler-message.success {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: var(--primary-green);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.scheduler-message.error {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--danger-red);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.scheduler-message.info {
+    background-color: rgba(37, 99, 235, 0.1);
+    color: var(--primary-blue);
+    border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+/* Task pool styling (for scheduler) */
+.task-pool-container {
+    min-height: 120px;
+    border: 2px dashed var(--border-color);
+    border-radius: 16px;
+    padding: 20px;
+    background-color: white;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+    align-content: flex-start;
+}
+
+.task-pool-container.drag-over {
+    border-color: var(--primary-blue);
+    background-color: rgba(37, 99, 235, 0.05);
+    transform: scale(1.01);
+}
+
+.task-pool-container:empty::before {
+    content: 'Drag tasks here to unschedule them';
+    color: var(--text-light);
+    font-style: italic;
+    font-size: 14px;
+    width: 100%;
+    text-align: center;
+    padding: 20px;
+}
+
+.task-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: 20px;
+    color: white;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: move;
+    user-select: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.task-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.task-item.dragging {
+    opacity: 0.8;
+    transform: rotate(3deg) scale(1.05);
+}
+
+/* Navigation controls styling */
+.calendar-navigation-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.nav-btn {
+    background-color: white;
+    border: 1px solid var(--border-color);
+    color: var(--text-dark);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+}
+
+.nav-btn:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+    transform: translateY(-1px);
+}
+
+.nav-btn.today-btn {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+    color: white;
+}
+
+.nav-btn.today-btn:hover {
+    background-color: var(--primary-blue-hover);
+    border-color: var(--primary-blue-hover);
+    transform: translateY(-2px);
+}
+
+.nav-btn.arrow-btn {
+    padding: 8px;
+    min-width: 40px;
+}
+
+.current-date-display {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin: 0 8px;
+    user-select: none;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+    .header-label-spacer,
+    .machine-label,
+    .time-label {
+        flex: 0 0 120px;
+    }
+    
+    .time-header-slot,
+    .time-slot {
+        min-width: 60px;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-label-spacer,
+    .machine-label,
+    .time-label {
+        flex: 0 0 100px;
+        padding: 8px;
+    }
+    
+    .time-header-slot,
+    .time-slot {
+        min-width: 50px;
+        min-height: 40px;
+    }
+    
+    .time-header-slot {
+        padding: 12px 4px;
+        font-size: 10px;
+    }
+    
+    .machine-name {
+        font-size: 12px;
+    }
+    
+    .machine-city {
+        font-size: 10px;
+    }
+    
+    .event-block {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+    
+    .task-item {
+        font-size: 11px;
+        padding: 6px 12px;
+    }
+    
+    .calendar-navigation-controls {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .nav-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+        min-height: 36px;
+    }
+    
+    .current-date-display {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 576px) {
+    .shared-calendar-container {
+        border-radius: 12px;
+    }
+    
+    .header-label-spacer,
+    .machine-label,
+    .time-label {
+        flex: 0 0 80px;
+        padding: 6px;
+    }
+    
+    .time-header-slot,
+    .time-slot {
+        min-width: 40px;
+        min-height: 36px;
+    }
+    
+    .machine-name {
+        font-size: 11px;
+    }
+    
+    .machine-city {
+        display: none; /* Hide city on very small screens */
+    }
+    
+    .event-block {
+        font-size: 9px;
+        padding: 2px 4px;
+    }
+    
+    .task-pool-container {
+        padding: 12px;
+        min-height: 100px;
+    }
+    
+    .task-item {
+        font-size: 10px;
+        padding: 4px 10px;
+    }
+}
+
+/* Dark mode support (if needed) */
+@media (prefers-color-scheme: dark) {
+    .shared-calendar-container {
+        /* Dark mode styles would go here if needed */
+    }
+}
+
+/* Print styles */
+@media print {
+    .shared-calendar-container {
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+    
+    .nav-btn,
+    .task-pool-container {
+        display: none;
+    }
+    
+    .time-slot.interactive:hover {
+        background-color: transparent;
+    }
+}

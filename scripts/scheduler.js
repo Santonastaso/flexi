@@ -1,5 +1,6 @@
 /**
  * Production Scheduler - Main scheduling system with drag-and-drop functionality
+ * Now uses shared calendar components for consistency with machinery settings
  */
 class ProductionScheduler {
     constructor() {
@@ -18,6 +19,10 @@ class ProductionScheduler {
         this.currentDate = new Date("2025-08-01T00:00:00");
         this.currentDate.setHours(0, 0, 0, 0);
         
+        // Shared components
+        this.calendarRenderer = null;
+        this.slotHandler = null;
+        
         this.init();
     }
     
@@ -27,9 +32,9 @@ class ProductionScheduler {
     init() {
         this.bindElements();
         this.attachEventListeners();
-        this.renderGrid();
+        this.initializeSharedComponents();
         this.loadTasksIntoPool();
-        this.renderAllScheduledEvents();
+        this.renderScheduler();
         this.updateDateDisplay();
     }
     
@@ -68,6 +73,147 @@ class ProductionScheduler {
         this.elements.todayBtn.addEventListener('click', () => this.goToToday());
         this.elements.prevDay.addEventListener('click', () => this.previousDay());
         this.elements.nextDay.addEventListener('click', () => this.nextDay());
+    }
+    
+    /**
+     * Initialize shared calendar components
+     */
+    initializeSharedComponents() {
+        // Get all machines for the calendar
+        const machines = this.storageService.getMachines();
+        
+        // Initialize shared calendar renderer
+        this.calendarRenderer = new SharedCalendarRenderer(this.elements.calendarContainer, {
+            startHour: this.config.START_HOUR,
+            endHour: this.config.END_HOUR,
+            showMachines: true,
+            interactive: true,
+            currentDate: this.currentDate,
+            machines: machines
+        });
+        
+        // Initialize slot handler with custom callbacks
+        this.slotHandler = new SlotHandler({
+            enableDragDrop: true,
+            enableClick: false, // Disable click for scheduler (only drag/drop)
+            enableHover: true,
+            onSlotDrop: (slotData, taskId, event, slot) => this.handleSlotDrop(slotData, taskId, event, slot),
+            onValidationError: (message) => this.showMessage(message, 'error'),
+            onSuccess: (type, data, element) => this.handleSuccess(type, data, element)
+        });
+    }
+    
+    /**
+     * Render the entire scheduler
+     */
+    renderScheduler() {
+        if (!this.calendarRenderer) return;
+        
+        // Update calendar date and machines
+        this.calendarRenderer.updateDate(this.currentDate);
+        this.calendarRenderer.updateMachines(this.storageService.getMachines());
+        
+        // Render the calendar
+        this.calendarRenderer.render();
+        
+        // Initialize slot interactions
+        this.slotHandler.initializeSlots(this.elements.calendarContainer);
+        
+        // Render events
+        this.renderAllScheduledEvents();
+    }
+    
+    /**
+     * Handle slot drop events
+     */
+    handleSlotDrop(slotData, taskId, event, slot) {
+        const task = this.storageService.getBacklogTaskById(taskId);
+        if (!task) {
+            this.showMessage('Task not found', 'error');
+            return;
+        }
+        
+        // Check if slot can accommodate the task
+        if (!this.canScheduleTask(slotData, task)) {
+            return; // Error already shown by validation
+        }
+        
+        // Create the scheduled event
+        const eventData = {
+            id: `${taskId}-${Date.now()}`,
+            taskId: taskId,
+            taskTitle: task.name,
+            machine: slotData.machine,
+            date: slotData.date,
+            startHour: slotData.hour,
+            endHour: slotData.hour + task.duration,
+            color: task.color,
+            duration: task.duration
+        };
+        
+        try {
+            this.storageService.addScheduledEvent(eventData);
+            this.showMessage(`Task "${task.name}" scheduled successfully`, 'success');
+            
+            // Refresh the entire scheduler
+            this.refreshScheduler();
+        } catch (error) {
+            this.showMessage(`Failed to schedule task: ${error.message}`, 'error');
+        }
+    }
+    
+    /**
+     * Handle success callbacks from slot handler
+     */
+    handleSuccess(type, data, element) {
+        switch (type) {
+            case 'schedule':
+                this.refreshScheduler();
+                break;
+            case 'unschedule':
+                this.refreshScheduler();
+                break;
+            case 'message':
+                this.showMessage(data.message, 'success');
+                break;
+        }
+    }
+    
+    /**
+     * Check if a task can be scheduled at a specific slot
+     */
+    canScheduleTask(slotData, task) {
+        return this.slotHandler.validateSlotForDrop(slotData, task.id);
+    }
+    
+    /**
+     * Show user feedback messages
+     */
+    showMessage(message, type = 'info') {
+        // Create or update message element
+        let messageEl = document.getElementById('scheduler-message');
+        if (!messageEl) {
+            messageEl = document.createElement('div');
+            messageEl.id = 'scheduler-message';
+            messageEl.className = 'scheduler-message';
+            
+            // Insert after the task pool
+            const taskPool = this.elements.taskPool;
+            if (taskPool && taskPool.parentNode) {
+                taskPool.parentNode.insertBefore(messageEl, taskPool.nextSibling);
+            }
+        }
+        
+        messageEl.className = `scheduler-message ${type}`;
+        messageEl.textContent = message;
+        messageEl.style.display = 'block';
+        
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            if (messageEl) {
+                messageEl.style.display = 'none';
+            }
+        }, 3000);
     }
     
     /**
@@ -387,6 +533,9 @@ class ProductionScheduler {
     loadTasksIntoPool() {
         if (!this.elements.taskPool) return;
         
+        // Clear existing tasks to prevent duplication
+        this.elements.taskPool.innerHTML = '';
+        
         const tasks = this.storageService.getBacklogTasks();
         const scheduledEvents = this.storageService.getScheduledEvents();
         
@@ -407,12 +556,22 @@ class ProductionScheduler {
         const taskElement = document.createElement('div');
         taskElement.className = 'task-item';
         taskElement.id = `pool-task-${task.id}`;
+        taskElement.dataset.taskId = task.id;
         taskElement.style.backgroundColor = task.color;
         taskElement.textContent = `${task.name} (${task.duration}h)`;
         taskElement.draggable = true;
         
         taskElement.addEventListener('dragstart', (e) => {
             e.dataTransfer.setData('text/plain', task.id);
+            e.dataTransfer.setData('application/json', JSON.stringify({
+                id: task.id,
+                source: 'pool'
+            }));
+            taskElement.classList.add('dragging');
+        });
+        
+        taskElement.addEventListener('dragend', (e) => {
+            taskElement.classList.remove('dragging');
         });
         
         this.elements.taskPool.appendChild(taskElement);
@@ -469,10 +628,13 @@ class ProductionScheduler {
      * Render all scheduled events for the current date
      */
     renderAllScheduledEvents() {
+        if (!this.calendarRenderer) return;
+        
         const dateKey = this.currentDate.toISOString().split('T')[0];
         const events = this.storageService.getEventsByDate(dateKey);
         
-        events.forEach(event => this.renderEvent(event));
+        // Use the shared calendar renderer to render events
+        this.calendarRenderer.renderEvents(events);
     }
     
     /**
@@ -531,9 +693,8 @@ class ProductionScheduler {
      * Refresh the entire scheduler
      */
     refreshScheduler() {
-        this.renderGrid();
+        this.renderScheduler();
         this.loadTasksIntoPool();
-        this.renderAllScheduledEvents();
         this.updateDateDisplay();
     }
     
