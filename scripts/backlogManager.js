@@ -74,20 +74,17 @@ class BacklogManager {
         try {
             const taskData = this.collectTaskData();
             const validationResult = this.validateTaskData(taskData);
-            
             if (!validationResult.isValid) {
-                alert(validationResult.message);
+                showBanner(validationResult.message, 'error');
                 return;
             }
-            
             const newTask = this.storageService.addBacklogTask(taskData);
             this.renderBacklog();
             this.clearForm();
-            
-            console.log('Task added successfully:', newTask);
+            showBanner('Task added successfully!', 'success');
         } catch (error) {
             console.error('Error adding task:', error);
-            alert('Error adding task. Please try again.');
+            showBanner('Error adding task. Please try again.', 'error');
         }
     }
     

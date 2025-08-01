@@ -561,7 +561,8 @@ class ProductionScheduler {
         taskElement.id = `pool-task-${task.id}`;
         taskElement.dataset.taskId = task.id;
         taskElement.style.backgroundColor = task.color;
-        taskElement.textContent = `${task.name} (${task.duration}h)`;
+        // Show correct name and total time in pool
+        taskElement.textContent = `${task.name} (${task.totalTime || task.duration || ''}h)`;
         taskElement.draggable = true;
         
         taskElement.addEventListener('dragstart', (e) => {
@@ -591,8 +592,10 @@ class ProductionScheduler {
         const poolTask = this.storageService.getTaskById(taskId);
         if (poolTask && !this.storageService.isTaskScheduled(taskId)) {
             this.scheduleTask(poolTask, dropZone);
-            this.loadTasksIntoPool(); // Refresh pool after scheduling
-            this.refreshScheduler();
+            setTimeout(() => {
+                this.loadTasksIntoPool(); // Refresh pool after scheduling
+                this.refreshScheduler();
+            }, 50);
             return;
         }
         // Check if it's an existing scheduled event
