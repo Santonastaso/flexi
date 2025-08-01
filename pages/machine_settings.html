@@ -7,28 +7,31 @@
     
     <!-- External CSS -->
     <link rel="stylesheet" href="../styles/main.css">
-    <link rel="stylesheet" href="../styles/calendar.css">
+    <link rel="stylesheet" href="../styles/google-calendar.css">
 </head>
-<body>
+<body class="calendar-page">
     <div class="page-container">
         <!-- Navigation will be injected here by components/navigation.js -->
         
         <main>
             <div class="content-section">
                 <h1 id="machine-title">Machine Availability</h1>
-                <div class="calendar-controls">
-                    <label for="month-select">Select Month:</label>
-                    <input type="month" id="month-select">
-                </div>
-
-                <table class="calendar-grid" id="availability-calendar"></table>
+                
+                <!-- Calendar Controls Container -->
+                <div id="calendar-controls-container"></div>
+                
+                <!-- Calendar Container -->
+                <div id="calendar-container"></div>
             </div>
         </main>
     </div>
 
     <!-- External JavaScript -->
     <script src="../scripts/storageService.js"></script>
-    <script src="../scripts/machineAvailabilityManager.js"></script>
+    <script src="../scripts/eventStorage.js"></script>
+    <script src="../scripts/calendarRenderer.js"></script>
+    <script src="../scripts/viewManager.js"></script>
+    <script src="../scripts/machineCalendarManager.js"></script>
     <script src="../components/navigation.js"></script>
 </body>
 </html>
