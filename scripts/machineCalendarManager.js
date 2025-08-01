@@ -125,7 +125,7 @@ class MachineCalendarManager {
      * Set up body class for styling
      */
     setupBodyClass() {
-        document.body.classList.add('calendar-page');
+        // No special body class needed - using standard content-section styling
     }
     
     /**
