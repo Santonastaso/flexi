@@ -493,17 +493,20 @@ class ProductionScheduler {
         machineSlots.forEach(slot => {
             slot.addEventListener('dragover', (e) => {
                 e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
                 slot.classList.add('drag-over');
             });
-            
             slot.addEventListener('dragleave', () => {
                 slot.classList.remove('drag-over');
             });
-            
             slot.addEventListener('drop', (e) => {
                 e.preventDefault();
                 slot.classList.remove('drag-over');
-                this.handleDropOnGrid(e, slot);
+                // Ensure only valid drops are processed
+                const taskId = e.dataTransfer.getData('text/plain');
+                if (taskId) {
+                    this.handleDropOnGrid(e, slot);
+                }
             });
         });
         
@@ -562,6 +565,7 @@ class ProductionScheduler {
         taskElement.draggable = true;
         
         taskElement.addEventListener('dragstart', (e) => {
+            e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', task.id);
             e.dataTransfer.setData('application/json', JSON.stringify({
                 id: task.id,
@@ -582,19 +586,21 @@ class ProductionScheduler {
      */
     handleDropOnGrid(e, dropZone) {
         const taskId = e.dataTransfer.getData('text/plain');
-        
+        if (!taskId) return;
         // Check if it's a task from the pool
         const poolTask = this.storageService.getTaskById(taskId);
         if (poolTask && !this.storageService.isTaskScheduled(taskId)) {
             this.scheduleTask(poolTask, dropZone);
+            this.loadTasksIntoPool(); // Refresh pool after scheduling
+            this.refreshScheduler();
             return;
         }
-        
         // Check if it's an existing scheduled event
         const scheduledEvents = this.storageService.getScheduledEvents();
         const scheduledEvent = scheduledEvents.find(e => e.id == taskId);
         if (scheduledEvent) {
             this.moveEvent(scheduledEvent, dropZone);
+            this.refreshScheduler();
         }
     }
     
@@ -603,24 +609,24 @@ class ProductionScheduler {
      */
     handleDropOnPool(e) {
         const taskId = e.dataTransfer.getData('text/plain');
+        if (!taskId) return;
         const scheduledEvents = this.storageService.getScheduledEvents();
         const eventIndex = scheduledEvents.findIndex(evt => evt.id == taskId);
-        
         if (eventIndex > -1) {
             const [unscheduledEvent] = scheduledEvents.splice(eventIndex, 1);
             this.storageService.saveScheduledEvents(scheduledEvents);
-            
             // Remove event element
             const eventElement = document.getElementById(`event-${unscheduledEvent.id}`);
             if (eventElement) {
                 eventElement.remove();
             }
-            
             // Add back to task pool
             const originalTask = this.storageService.getTaskById(unscheduledEvent.id);
             if (originalTask) {
                 this.renderTaskInPool(originalTask);
             }
+            this.loadTasksIntoPool();
+            this.refreshScheduler();
         }
     }
     

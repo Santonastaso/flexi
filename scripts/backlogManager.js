@@ -95,18 +95,29 @@ class BacklogManager {
      * Collect task data from form inputs
      */
     collectTaskData() {
+        // New: Task Name (free string) and Product Type (dropdown)
         const name = this.elements.taskNameInput.value.trim();
-        const setupHours = parseFloat(this.elements.taskSetupInput.value) || 0;
-        const productionHours = parseFloat(this.elements.taskProductionInput.value) || 0;
+        const description = document.getElementById('taskDescription').value.trim();
+        const products = JSON.parse(localStorage.getItem('productsCatalog') || '[]');
+        const productIdx = document.getElementById('taskProduct').value;
+        let product = products[productIdx];
+        if (!product) product = {};
+        const meters = parseFloat(document.getElementById('taskMeters').value) || 0;
         const color = this.elements.taskColorInput.value;
-        const duration = setupHours + productionHours;
-        
+        const workTime = product.speed ? (meters / product.speed) : 0;
+        const setupTime = product.setupTime || 0;
+        const totalTime = setupTime + workTime;
+        const totalCost = totalTime * (product.employeesPerHour || 0) * (product.employeeCostPerHour || 0);
         return {
             name,
-            setupHours,
-            productionHours,
-            duration,
-            color
+            description,
+            productType: product.name || '',
+            meters,
+            color,
+            workTime: workTime.toFixed(2),
+            setupTime: setupTime.toFixed(2),
+            totalTime: totalTime.toFixed(2),
+            totalCost: totalCost.toFixed(2)
         };
     }
     
@@ -159,23 +170,19 @@ class BacklogManager {
         try {
             const tasks = this.storageService.getBacklogTasks();
             const taskToDelete = tasks[index];
-            
             if (!taskToDelete) {
-                console.error('Task not found at index:', index);
+                showBanner('Task not found.', 'error');
                 return;
             }
-            
-            // Validate task can be deleted
-            this.storageService.validateTaskCanBeDeleted(taskToDelete.id);
-            
-            // Remove task
-            this.storageService.removeBacklogTask(taskToDelete.id);
-            this.renderBacklog();
-            
-            console.log('Task deleted successfully:', taskToDelete.name);
+            showConfirmBanner('Delete this task?', () => {
+                this.storageService.validateTaskCanBeDeleted(taskToDelete.id);
+                this.storageService.removeBacklogTask(taskToDelete.id);
+                this.renderBacklog();
+                showBanner('Task deleted.', 'success');
+            });
         } catch (error) {
             console.error('Error deleting task:', error);
-            alert(error.message);
+            showBanner(error.message, 'error');
         }
     }
     
@@ -201,12 +208,10 @@ class BacklogManager {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${this.escapeHtml(task.name)}</td>
-            <td>${task.setupHours}</td>
-            <td>${task.productionHours}</td>
-            <td><strong>${task.duration}</strong></td>
-            <td>
-                <div style="width: 24px; height: 24px; background-color: ${task.color}; border-radius: 6px;"></div>
-            </td>
+            <td>${task.setupTime}</td>
+            <td>${task.workTime}</td>
+            <td>${task.totalTime}</td>
+            <td><div style="width: 24px; height: 24px; background-color: ${task.color}; border-radius: 6px;"></div></td>
             <td style="text-align: center;">
                 <button class="action-btn" data-index="${index}" title="Delete Task">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18">

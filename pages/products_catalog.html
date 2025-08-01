@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ship - Products Catalog</title>
+    <link rel="stylesheet" href="../styles/main.css">
+</head>
+<body>
+    <div class="page-container">
+        <!-- Navigation will be injected here by components/navigation.js -->
+        <main>
+            <div class="content-section">
+                <h2>Create New Product</h2>
+                <div class="form-grid form-grid--6-cols" id="productForm">
+                    <div class="form-group">
+                        <label for="productName">Name</label>
+                        <input type="text" id="productName" placeholder="Product name">
+                    </div>
+                    <div class="form-group">
+                        <label for="productDescription">Description</label>
+                        <input type="text" id="productDescription" placeholder="Description">
+                    </div>
+                    <div class="form-group">
+                        <label for="productSpeed">Speed (m/h)</label>
+                        <input type="number" id="productSpeed" placeholder="Meters/hour" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="productSetupTime">Setup Time (h)</label>
+                        <input type="number" id="productSetupTime" placeholder="Hours" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="productEmployees">Employees/Hour</label>
+                        <input type="number" id="productEmployees" placeholder="Number" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="productEmployeeCost">Employee Cost/Hour</label>
+                        <input type="number" id="productEmployeeCost" placeholder="Cost" min="0">
+                    </div>
+                </div>
+                <button id="addProductBtn" class="btn btn-primary btn-small">Add Product</button>
+            </div>
+            <div class="content-section">
+                <h2>Products List</h2>
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Speed (m/h)</th>
+                            <th>Setup (h)</th>
+                            <th>Employees/h</th>
+                            <th>Cost/h</th>
+                            <th class="text-center" style="width: 80px;">Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsList"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    <script src="../scripts/productCatalog.js"></script>
+    <script src="../components/navigation.js"></script>
+</body>
+</html>

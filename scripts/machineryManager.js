@@ -206,25 +206,20 @@ class MachineryManager {
         try {
             const machines = this.storageService.getMachines();
             const machineToDelete = machines[index];
-            
             if (!machineToDelete) {
-                console.error('Machine not found at index:', index);
+                showBanner('Machine not found.', 'error');
                 return;
             }
-            
-            // Validate machine can be deleted
-            this.storageService.validateMachineCanBeDeleted(machineToDelete.name);
-            
-            // Remove machine
-            machines.splice(index, 1);
-            this.storageService.saveMachines(machines);
-            
-            this.renderMachinery();
-            
-            console.log('Machine deleted successfully:', machineToDelete.name);
+            showConfirmBanner('Delete this machine?', () => {
+                this.storageService.validateMachineCanBeDeleted(machineToDelete.name);
+                machines.splice(index, 1);
+                this.storageService.saveMachines(machines);
+                this.renderMachinery();
+                showBanner('Machine deleted.', 'success');
+            });
         } catch (error) {
             console.error('Error deleting machine:', error);
-            alert(error.message);
+            showBanner(error.message, 'error');
         }
     }
     

@@ -13,37 +13,63 @@
         <!-- Navigation will be injected here by components/navigation.js -->
 
         <main>
-            <div class="content-section">
-                <h2>Create New Task</h2>
-                <div class="form-grid form-grid--5-cols">
-                    <div class="form-group">
-                        <label for="taskName">Task Name</label>
-                        <input type="text" id="taskName" placeholder="Enter task name">
+            <div class="content-section" style="display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>
+                    <h2>Create New Task</h2>
+                    <div class="form-grid form-grid--5-cols">
+                        <div class="form-group">
+                            <label for="taskName">Task Name</label>
+                            <input type="text" id="taskName" placeholder="Enter task name">
+                        </div>
+                        <div class="form-group">
+                            <label for="taskDescription">Description</label>
+                            <input type="text" id="taskDescription" placeholder="Enter description">
+                        </div>
+                        <div class="form-group">
+                            <label for="taskProduct">Product Type</label>
+                            <select id="taskProduct"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="taskMeters">Meters</label>
+                            <input type="number" id="taskMeters" placeholder="Meters" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="taskColor">Color</label>
+                            <select id="taskColor">
+                                <option value="#1a73e8">Blue</option>
+                                <option value="#34a853">Green</option>
+                                <option value="#ea4335">Red</option>
+                                <option value="#fbbc04">Yellow</option>
+                                <option value="#9c27b0">Purple</option>
+                                <option value="#ff9800">Orange</option>
+                                <option value="#00bcd4">Cyan</option>
+                                <option value="#e91e63">Pink</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="taskWorkTime">Work Time (h)</label>
+                            <input type="text" id="taskWorkTime" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="taskSetupTime">Setup Time (h)</label>
+                            <input type="text" id="taskSetupTime" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="taskTotalTime">Total Time (h)</label>
+                            <input type="text" id="taskTotalTime" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="taskTotalCost">Total Cost ($)</label>
+                            <input type="text" id="taskTotalCost" readonly>
+                        </div>
+                        <div class="form-group">
+                            <button id="createTask" class="btn btn-primary btn-small">Add Task</button>
+                        </div>
+                        <div class="form-group">
+                            <a href="products_catalog.html" class="btn btn-primary btn-small" style="margin-top: 8px;">View Product Catalog</a>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="taskSetup">Set Up (h)</label>
-                        <input type="number" id="taskSetup" placeholder="Hours" min="0" value="1">
-                    </div>
-                    <div class="form-group">
-                        <label for="taskProduction">Production (h)</label>
-                        <input type="number" id="taskProduction" placeholder="Hours" min="1" value="4">
-                    </div>
-                    <div class="form-group">
-                        <label for="taskColor">Color</label>
-                        <select id="taskColor">
-                            <option value="#1a73e8">Blue</option>
-                            <option value="#34a853">Green</option>
-                            <option value="#ea4335">Red</option>
-                            <option value="#fbbc04">Yellow</option>
-                            <option value="#9c27b0">Purple</option>
-                            <option value="#ff9800">Orange</option>
-                            <option value="#00bcd4">Cyan</option>
-                            <option value="#e91e63">Pink</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <button id="createTask" class="btn btn-primary btn-small">Add Task</button>
-                    </div>
+                </div>
                 </div>
             </div>
 
@@ -69,6 +95,8 @@
 
     <!-- External JavaScript -->
     <script src="../scripts/storageService.js"></script>
+    <script src="../scripts/backlogProductIntegration.js"></script>
+    <script src="../scripts/banner.js"></script>
     <script src="../scripts/backlogManager.js"></script>
     <script src="../components/navigation.js"></script>
 </body>
