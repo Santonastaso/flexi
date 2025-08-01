@@ -7,7 +7,7 @@
     
     <!-- External CSS -->
     <link rel="stylesheet" href="../styles/main.css">
-    <link rel="stylesheet" href="../styles/scheduler.css">
+    <link rel="stylesheet" href="../styles/sharedCalendar.css">
 </head>
 <body>
     <div class="page-container">
@@ -17,7 +17,7 @@
             <div class="content-section">
                 <h2>Task Pool</h2>
                 <p>Drag tasks from here to the schedule below, or drag scheduled tasks back to unschedule them.</p>
-                <div id="taskPool"></div>
+                <div id="taskPool" class="task-pool-container"></div>
             </div>
             
             <div class="content-section">
@@ -25,20 +25,22 @@
                     <div>
                         <h2>Production Schedule</h2>
                     </div>
-                    <div class="date-controls">
-                        <button id="todayBtn">Today</button>
-                        <button id="prevDay">&lt;</button>
-                        <span id="currentDate"></span>
-                        <button id="nextDay">&gt;</button>
+                    <div class="calendar-navigation-controls">
+                        <button id="todayBtn" class="nav-btn today-btn">Today</button>
+                        <button id="prevDay" class="nav-btn arrow-btn">&lt;</button>
+                        <span id="currentDate" class="current-date-display"></span>
+                        <button id="nextDay" class="nav-btn arrow-btn">&gt;</button>
                     </div>
                 </div>
-                <div id="calendarContainer" class="calendar-container"></div>
+                <div id="calendarContainer"></div>
             </div>
         </main>
     </div>
 
     <!-- External JavaScript -->
     <script src="../scripts/storageService.js"></script>
+    <script src="../scripts/sharedCalendarRenderer.js"></script>
+    <script src="../scripts/slotHandler.js"></script>
     <script src="../scripts/scheduler.js"></script>
     <script src="../components/navigation.js"></script>
 </body>
