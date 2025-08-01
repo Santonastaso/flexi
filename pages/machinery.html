@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ship - Manage Machinery</title>
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="../styles/main.css">
+</head>
+<body>
+    <div class="page-container">
+        <!-- Navigation will be injected here by components/navigation.js -->
+
+        <main>
+            <div class="content-section">
+                <h2>Add New Machine</h2>
+                <div class="form-grid form-grid--4-cols">
+                    <div class="form-group">
+                        <label for="machineName">Name</label>
+                        <input type="text" id="machineName" placeholder="e.g., BOBST M5">
+                    </div>
+                    <div class="form-group">
+                        <label for="machineCity">City</label>
+                        <select id="machineCity">
+                            <option value="Milan">Milan</option>
+                            <option value="Tallinn">Tallinn</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="machineLive">Live</label>
+                        <select id="machineLive">
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button id="addMachine" class="btn btn-primary btn-small">Add Machine</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h2>Available Machines</h2>
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>City</th>
+                            <th>Live</th>
+                            <th class="text-center" style="width: 80px;">Calendar</th>
+                            <th class="text-center" style="width: 80px;">Edit</th>
+                            <th class="text-center" style="width: 80px;">Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody id="machinery-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="../scripts/storageService.js"></script>
+    <script src="../scripts/machineryManager.js"></script>
+    <script src="../components/navigation.js"></script>
+</body>
+</html>
