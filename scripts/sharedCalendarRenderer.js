@@ -325,13 +325,63 @@ class SharedCalendarRenderer {
         eventElement.style.fontWeight = '700';
         eventElement.style.display = 'flex';
         eventElement.style.alignItems = 'center';
+        eventElement.style.justifyContent = 'space-between';
         eventElement.style.overflow = 'hidden';
         eventElement.style.textOverflow = 'ellipsis';
         eventElement.style.whiteSpace = 'nowrap';
         eventElement.style.cursor = 'move';
         eventElement.style.zIndex = '10';
         
-        eventElement.textContent = event.taskTitle || event.name || 'Scheduled Task';
+        // Create title element
+        const titleElement = document.createElement('span');
+        titleElement.textContent = event.taskTitle || event.name || 'Scheduled Task';
+        titleElement.style.flex = '1';
+        titleElement.style.overflow = 'hidden';
+        titleElement.style.textOverflow = 'ellipsis';
+        titleElement.style.whiteSpace = 'nowrap';
+        
+        // Create delete button
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'event-delete-btn';
+        deleteButton.innerHTML = '×';
+        deleteButton.style.cssText = `
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 8px;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        `;
+        
+        deleteButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            this.handleEventDelete(event);
+        });
+        
+        deleteButton.addEventListener('mouseenter', () => {
+            deleteButton.style.opacity = '1';
+            deleteButton.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+        });
+        
+        deleteButton.addEventListener('mouseleave', () => {
+            deleteButton.style.opacity = '0.7';
+            deleteButton.style.backgroundColor = 'transparent';
+        });
+        
+        // Assemble event element
+        eventElement.appendChild(titleElement);
+        eventElement.appendChild(deleteButton);
         eventElement.draggable = true;
         eventElement.dataset.eventId = event.id;
         
@@ -344,6 +394,48 @@ class SharedCalendarRenderer {
         // Position relative to parent slot
         startSlot.style.position = 'relative';
         startSlot.appendChild(eventElement);
+    }
+    
+    /**
+     * Handle event deletion with confirmation
+     */
+    handleEventDelete(event) {
+        if (typeof showConfirmBanner === 'function') {
+            showConfirmBanner(`Delete "${event.taskTitle || event.name}" from the schedule?`, () => {
+                // Remove from storage
+                if (window.storageService) {
+                    window.storageService.removeScheduledEvent(event.id);
+                }
+                
+                // Remove from DOM
+                const eventElement = this.container.querySelector(`[data-event-id="${event.id}"]`);
+                if (eventElement) {
+                    eventElement.remove();
+                }
+                
+                // Show success message
+                if (typeof showBanner === 'function') {
+                    showBanner('Task removed from schedule', 'success');
+                }
+                
+                // Trigger refresh if callback exists
+                if (this.options.onEventDelete) {
+                    this.options.onEventDelete(event);
+                }
+            });
+        } else {
+            // Fallback if banner system not available
+            if (confirm(`Delete "${event.taskTitle || event.name}" from the schedule?`)) {
+                if (window.storageService) {
+                    window.storageService.removeScheduledEvent(event.id);
+                }
+                
+                const eventElement = this.container.querySelector(`[data-event-id="${event.id}"]`);
+                if (eventElement) {
+                    eventElement.remove();
+                }
+            }
+        }
     }
     
     /**
