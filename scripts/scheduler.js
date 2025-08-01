@@ -82,14 +82,16 @@ class ProductionScheduler {
         // Get all machines for the calendar
         const machines = this.storageService.getMachines();
         
-        // Initialize shared calendar renderer
+        // Initialize shared calendar renderer with interactive disabled
+        // We'll handle interactions through the slot handler
         this.calendarRenderer = new SharedCalendarRenderer(this.elements.calendarContainer, {
             startHour: this.config.START_HOUR,
             endHour: this.config.END_HOUR,
             showMachines: true,
-            interactive: true,
+            interactive: false, // Disable built-in interactions
             currentDate: this.currentDate,
-            machines: machines
+            machines: machines,
+            onEventDelete: (event) => this.handleEventDelete(event)
         });
         
         // Initialize slot handler with custom callbacks
@@ -359,175 +361,21 @@ class ProductionScheduler {
     }
     
     /**
-     * Schedule a task from the pool to a time slot
+     * Render a task in the task pool
      */
-    scheduleTask(task, dropZone) {
-        const machineRow = dropZone.closest('.machine-row');
-        const machineName = machineRow.dataset.machineName;
-        const startHour = parseInt(dropZone.dataset.hour);
-        const endHour = startHour + task.duration;
+    renderTaskInPool(task) {
+        if (!this.elements.taskPool) return;
         
-        // Validate task fits in the day
-        if (endHour > this.config.END_HOUR) {
-            alert('Task does not fit in the remaining time slots.');
-            return false;
-        }
+        const taskElement = document.createElement('div');
+        taskElement.className = 'task-item';
+        taskElement.id = `pool-task-${task.id}`;
+        taskElement.dataset.taskId = task.id;
+        taskElement.style.backgroundColor = task.color;
+        // Show correct name and total time in pool
+        taskElement.textContent = `${task.name} (${task.totalTime || task.duration || ''}h)`;
+        taskElement.draggable = true;
         
-        const dateKey = this.currentDate.toISOString().split('T')[0];
-        const eventToCheck = {
-            id: task.id,
-            machine: machineName,
-            startHour,
-            endHour
-        };
-        
-        // Check if time slot is available
-        if (this.isTimeSlotOccupied(eventToCheck)) {
-            alert('This time slot is occupied or unavailable.');
-            return false;
-        }
-        
-        // Create scheduled event
-        const event = {
-            ...task,
-            date: dateKey,
-            machine: machineName,
-            startHour,
-            endHour
-        };
-        
-        // Save to storage
-        this.storageService.addScheduledEvent(event);
-        
-        // Remove from task pool
-        const poolTaskElement = document.getElementById(`pool-task-${task.id}`);
-        if (poolTaskElement) {
-            poolTaskElement.remove();
-        }
-        
-        // Render the event
-        this.renderEvent(event);
-        
-        return true;
-    }
-    
-    /**
-     * Move an existing event to a new time slot
-     */
-    moveEvent(event, dropZone) {
-        const machineRow = dropZone.closest('.machine-row');
-        const newMachineName = machineRow.dataset.machineName;
-        const startHour = parseInt(dropZone.dataset.hour);
-        const endHour = startHour + event.duration;
-        
-        // Validate task fits
-        if (endHour > this.config.END_HOUR) {
-            alert('Task does not fit in the remaining time slots.');
-            return false;
-        }
-        
-        const eventToCheck = {
-            id: event.id,
-            machine: newMachineName,
-            startHour,
-            endHour
-        };
-        
-        // Check if new time slot is available
-        if (this.isTimeSlotOccupied(eventToCheck)) {
-            alert('This time slot is occupied or unavailable.');
-            return false;
-        }
-        
-        // Update event
-        event.machine = newMachineName;
-        event.startHour = startHour;
-        event.endHour = endHour;
-        
-        // Save to storage
-        this.storageService.saveScheduledEvents(this.storageService.getScheduledEvents());
-        
-        // Reposition the event element
-        this.repositionEvent(event);
-        
-        return true;
-    }
-    
-    /**
-     * Render an event on the calendar
-     */
-    renderEvent(event) {
-        const safeMachineName = CSS.escape(event.machine);
-        const machineRow = document.querySelector(`.machine-row[data-machine-name="${safeMachineName}"]`);
-        const scheduleArea = machineRow?.querySelector('.machine-schedule-area');
-        
-        if (!scheduleArea) {
-            console.error('Could not find schedule area for machine:', event.machine);
-            return;
-        }
-        
-        const eventElement = document.createElement('div');
-        eventElement.className = 'event';
-        eventElement.id = `event-${event.id}`;
-        eventElement.style.backgroundColor = event.color;
-        eventElement.style.left = `${(event.startHour - this.config.START_HOUR) * this.config.SLOT_WIDTH}px`;
-        eventElement.style.width = `${event.duration * this.config.SLOT_WIDTH}px`;
-        eventElement.textContent = `${event.name} (${event.duration}h)`;
-        eventElement.draggable = true;
-        
-        // Add drag event listener
-        eventElement.addEventListener('dragstart', (e) => {
-            e.stopPropagation();
-            e.dataTransfer.setData('text/plain', event.id);
-        });
-        
-        scheduleArea.appendChild(eventElement);
-    }
-    
-    /**
-     * Setup drag and drop zones
-     */
-    setupDropZones() {
-        // Machine slots
-        const machineSlots = document.querySelectorAll('.machine-slot:not(.unavailable)');
-        machineSlots.forEach(slot => {
-            slot.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                slot.classList.add('drag-over');
-            });
-            slot.addEventListener('dragleave', () => {
-                slot.classList.remove('drag-over');
-            });
-            slot.addEventListener('drop', (e) => {
-                e.preventDefault();
-                slot.classList.remove('drag-over');
-                // Ensure only valid drops are processed
-                const taskId = e.dataTransfer.getData('text/plain');
-                if (taskId) {
-                    this.handleDropOnGrid(e, slot);
-                }
-            });
-        });
-        
-        // Task pool
-        const taskPool = this.elements.taskPool;
-        if (taskPool) {
-            taskPool.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                taskPool.classList.add('drag-over');
-            });
-            
-            taskPool.addEventListener('dragleave', () => {
-                taskPool.classList.remove('drag-over');
-            });
-            
-            taskPool.addEventListener('drop', (e) => {
-                e.preventDefault();
-                taskPool.classList.remove('drag-over');
-                this.handleDropOnPool(e);
-            });
-        }
+        this.elements.taskPool.appendChild(taskElement);
     }
     
     /**
@@ -544,93 +392,10 @@ class ProductionScheduler {
         
         tasks.forEach(task => {
             // Only show tasks that aren't currently scheduled
-            if (!scheduledEvents.some(event => event.id === task.id)) {
+            if (!scheduledEvents.some(event => event.taskId === task.id)) {
                 this.renderTaskInPool(task);
             }
         });
-    }
-    
-    /**
-     * Render a task in the task pool
-     */
-    renderTaskInPool(task) {
-        if (!this.elements.taskPool) return;
-        
-        const taskElement = document.createElement('div');
-        taskElement.className = 'task-item';
-        taskElement.id = `pool-task-${task.id}`;
-        taskElement.dataset.taskId = task.id;
-        taskElement.style.backgroundColor = task.color;
-        // Show correct name and total time in pool
-        taskElement.textContent = `${task.name} (${task.totalTime || task.duration || ''}h)`;
-        taskElement.draggable = true;
-        
-        taskElement.addEventListener('dragstart', (e) => {
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', task.id);
-            e.dataTransfer.setData('application/json', JSON.stringify({
-                id: task.id,
-                source: 'pool'
-            }));
-            taskElement.classList.add('dragging');
-        });
-        
-        taskElement.addEventListener('dragend', (e) => {
-            taskElement.classList.remove('dragging');
-        });
-        
-        this.elements.taskPool.appendChild(taskElement);
-    }
-    
-    /**
-     * Handle dropping on the grid
-     */
-    handleDropOnGrid(e, dropZone) {
-        const taskId = e.dataTransfer.getData('text/plain');
-        if (!taskId) return;
-        // Check if it's a task from the pool
-        const poolTask = this.storageService.getTaskById(taskId);
-        if (poolTask && !this.storageService.isTaskScheduled(taskId)) {
-            this.scheduleTask(poolTask, dropZone);
-            setTimeout(() => {
-                this.loadTasksIntoPool(); // Refresh pool after scheduling
-                this.refreshScheduler();
-            }, 50);
-            return;
-        }
-        // Check if it's an existing scheduled event
-        const scheduledEvents = this.storageService.getScheduledEvents();
-        const scheduledEvent = scheduledEvents.find(e => e.id == taskId);
-        if (scheduledEvent) {
-            this.moveEvent(scheduledEvent, dropZone);
-            this.refreshScheduler();
-        }
-    }
-    
-    /**
-     * Handle dropping on the task pool (unscheduling)
-     */
-    handleDropOnPool(e) {
-        const taskId = e.dataTransfer.getData('text/plain');
-        if (!taskId) return;
-        const scheduledEvents = this.storageService.getScheduledEvents();
-        const eventIndex = scheduledEvents.findIndex(evt => evt.id == taskId);
-        if (eventIndex > -1) {
-            const [unscheduledEvent] = scheduledEvents.splice(eventIndex, 1);
-            this.storageService.saveScheduledEvents(scheduledEvents);
-            // Remove event element
-            const eventElement = document.getElementById(`event-${unscheduledEvent.id}`);
-            if (eventElement) {
-                eventElement.remove();
-            }
-            // Add back to task pool
-            const originalTask = this.storageService.getTaskById(unscheduledEvent.id);
-            if (originalTask) {
-                this.renderTaskInPool(originalTask);
-            }
-            this.loadTasksIntoPool();
-            this.refreshScheduler();
-        }
     }
     
     /**
@@ -647,28 +412,18 @@ class ProductionScheduler {
     }
     
     /**
-     * Reposition an event element
+     * Go to today's date
      */
-    repositionEvent(event) {
-        const eventElement = document.getElementById(`event-${event.id}`);
-        const safeMachineName = CSS.escape(event.machine);
-        const newParent = document.querySelector(`.machine-row[data-machine-name="${safeMachineName}"] .machine-schedule-area`);
-        
-        if (eventElement && newParent) {
-            eventElement.style.left = `${(event.startHour - this.config.START_HOUR) * this.config.SLOT_WIDTH}px`;
-            newParent.appendChild(eventElement);
-        }
+    goToToday() {
+        this.currentDate = new Date();
+        this.currentDate.setHours(0, 0, 0, 0);
+        this.refreshScheduler();
+        this.updateDateDisplay();
     }
     
     /**
      * Navigation methods
      */
-    goToToday() {
-        this.currentDate = new Date("2025-08-01T00:00:00");
-        this.currentDate.setHours(0, 0, 0, 0);
-        this.refreshScheduler();
-    }
-    
     previousDay() {
         this.currentDate.setDate(this.currentDate.getDate() - 1);
         this.refreshScheduler();
@@ -711,6 +466,14 @@ class ProductionScheduler {
      * Public method to refresh from external sources
      */
     refresh() {
+        this.refreshScheduler();
+    }
+
+    /**
+     * Handle event deletion from the calendar renderer
+     */
+    handleEventDelete(event) {
+        this.storageService.removeScheduledEvent(event.id);
         this.refreshScheduler();
     }
 }

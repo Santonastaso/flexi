@@ -214,6 +214,9 @@ class SlotHandler {
      * Handle slot drop events
      */
     handleSlotDrop(slot, event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
         const slotData = this.extractSlotData(slot);
         const taskId = event.dataTransfer.getData('text/plain');
         
@@ -304,6 +307,8 @@ class SlotHandler {
      * Check if slot is occupied
      */
     isSlotOccupied(slotData) {
+        if (!slotData.machine || !slotData.date) return false;
+        
         const events = this.storageService.getEventsByDate(slotData.date);
         
         return events.some(event => 
@@ -317,7 +322,7 @@ class SlotHandler {
      * Check if slot is unavailable
      */
     isSlotUnavailable(slotData) {
-        if (!slotData.machine) return false;
+        if (!slotData.machine || !slotData.date) return false;
         
         const unavailableHours = this.storageService.getMachineAvailabilityForDate(
             slotData.machine, 
@@ -331,7 +336,8 @@ class SlotHandler {
      * Validate task duration against available time
      */
     validateTaskDuration(slotData, task) {
-        if (!slotData.machine) return true; // Simple slots don't need duration validation
+        if (!slotData.machine || !slotData.date) return false;
+        if (!task || !task.duration || task.duration <= 0) return false;
         
         const events = this.storageService.getEventsByDate(slotData.date);
         const unavailableHours = this.storageService.getMachineAvailabilityForDate(
@@ -339,29 +345,24 @@ class SlotHandler {
             slotData.date
         );
         
-        let consecutiveHours = 0;
-        for (let h = slotData.hour; h < 24; h++) {
-            // Check if hour is occupied or unavailable
+        // Check each hour in the task duration
+        for (let h = slotData.hour; h < slotData.hour + task.duration; h++) {
+            // Check if hour is occupied
             const isOccupied = events.some(event => 
                 event.machine === slotData.machine &&
                 h >= event.startHour && 
                 h < event.endHour
             );
             
+            // Check if hour is unavailable
             const isUnavailable = unavailableHours.includes(h);
             
             if (isOccupied || isUnavailable) {
-                break;
-            }
-            
-            consecutiveHours++;
-            
-            if (consecutiveHours >= task.duration) {
-                return true;
+                return false;
             }
         }
         
-        return false;
+        return true;
     }
     
     /**
