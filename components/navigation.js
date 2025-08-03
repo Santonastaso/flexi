@@ -15,8 +15,7 @@ class Navigation {
                 machinery: { href: 'machinery.html', label: 'Machinery', icon: '⚙️' },
                 machineCatalog: { href: 'products_catalog.html', label: 'Catalog', icon: '📋' },
                 backlog: { href: 'backlog.html', label: 'Backlog', icon: '📝' },
-                scheduler: { href: 'scheduler.html', label: 'Scheduler', icon: '📅' },
-                dataIntegrity: { href: 'data_integrity.html', label: 'Data Integrity', icon: '🔍' }
+                scheduler: { href: 'scheduler.html', label: 'Scheduler', icon: '📅' }
             }
         };
     }
@@ -89,15 +88,13 @@ class Navigation {
                 return [
                     this.navigationData.pages.machinery,
                     this.navigationData.pages.machineCatalog,
-                    this.navigationData.pages.backlog,
-                    this.navigationData.pages.dataIntegrity
+                    this.navigationData.pages.backlog
                 ];
             
             case 'machine_settings':
                 return [
                     { href: this.navigationData.pages.machinery.href, label: 'Back to Machinery' },
-                    this.navigationData.pages.scheduler,
-                    this.navigationData.pages.dataIntegrity
+                    this.navigationData.pages.scheduler
                 ];
             
             default:

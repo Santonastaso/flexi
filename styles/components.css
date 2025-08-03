@@ -382,13 +382,13 @@
 /* ===== BANNER COMPONENTS ===== */
 .banner {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 20px;
+    right: 20px;
     background: white;
     padding: 8px 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    border-bottom: 2px solid var(--primary-green);
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    border: 1px solid var(--border-color);
     z-index: 1001;
     display: flex;
     align-items: center;
@@ -396,15 +396,17 @@
     animation: bannerSlideIn 0.3s ease;
     font-size: 14px;
     font-weight: 500;
+    max-width: 300px;
+    min-width: 200px;
 }
 
 @keyframes bannerSlideIn {
     from {
-        transform: translateY(-100%);
+        transform: translateX(100%);
         opacity: 0;
     }
     to {
-        transform: translateY(0);
+        transform: translateX(0);
         opacity: 1;
     }
 }
