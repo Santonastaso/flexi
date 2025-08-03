@@ -28,6 +28,18 @@ class NewMachineryManager {
             this.editManager.initTableEdit('.modern-table');
             // Override saveEdit method
             this.editManager.saveEdit = (row) => this.saveEdit(row);
+            
+            // Handle delete events
+            const tables = document.querySelectorAll('.modern-table');
+            tables.forEach(table => {
+                table.addEventListener('deleteRow', (e) => {
+                    const row = e.detail.row;
+                    const machineId = row.dataset.machineId;
+                    if (machineId) {
+                        this.deleteMachine(machineId);
+                    }
+                });
+            });
         }
     }
 
