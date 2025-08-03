@@ -225,13 +225,23 @@ class NewMachineryManager {
     }
 
     loadMachinery() {
-        const machines = this.storageService.getMachines();
-        
-        const printingMachines = machines.filter(m => m.type === 'printing');
-        const packagingMachines = machines.filter(m => m.type === 'packaging');
+        // Get only valid machines for display (strict filtering)
+        const allMachines = this.storageService.getValidMachinesForDisplay();
+        const printingMachines = allMachines.filter(m => m.type === 'printing');
+        const packagingMachines = allMachines.filter(m => m.type === 'packaging');
         
         this.renderPrintingMachines(printingMachines);
         this.renderPackagingMachines(packagingMachines);
+        
+        // Check for orphaned machines
+        const allStoredMachines = this.storageService.getMachines();
+        const orphanedMachines = allStoredMachines.filter(machine => !allMachines.find(vm => 
+            (vm.name || vm.nominazione) === (machine.name || machine.nominazione)
+        ));
+        
+        if (orphanedMachines.length > 0) {
+            console.warn('Orphaned machines detected in machinery list:', orphanedMachines);
+        }
     }
 
     renderPrintingMachines(machines) {

@@ -79,8 +79,15 @@ class ProductionScheduler {
      * Initialize shared calendar components
      */
     initializeSharedComponents() {
-        // Get all machines for the calendar
-        const machines = this.storageService.getMachines();
+        // Get only valid machines for the calendar (strict filtering)
+        const machines = this.storageService.getValidMachinesForDisplay();
+        
+        // Run data integrity check before initializing
+        const integrityCheck = this.storageService.validateDataIntegrity();
+        if (!integrityCheck.isValid) {
+            console.warn('Data integrity issues detected during scheduler initialization:', integrityCheck);
+            this.showMessage('Data integrity issues detected. Some items may not display correctly.', 'warning');
+        }
         
         // Initialize shared calendar renderer with interactive disabled
         // We'll handle interactions through the slot handler
@@ -387,7 +394,8 @@ class ProductionScheduler {
         // Clear existing tasks to prevent duplication
         this.elements.taskPool.innerHTML = '';
         
-        const tasks = this.storageService.getBacklogTasks();
+        // Get only valid tasks that are not scheduled (strict filtering)
+        const tasks = this.storageService.getValidTasksForDisplay();
         const scheduledEvents = this.storageService.getScheduledEvents();
         
         tasks.forEach(task => {
@@ -396,6 +404,15 @@ class ProductionScheduler {
                 this.renderTaskInPool(task);
             }
         });
+        
+        console.log(`Loaded ${tasks.length} valid tasks into pool`);
+        
+        // Check for orphaned tasks
+        const allTasks = this.storageService.getBacklogTasks();
+        const orphanedTasks = allTasks.filter(task => !tasks.find(vt => vt.id === task.id));
+        if (orphanedTasks.length > 0) {
+            console.warn('Orphaned tasks detected in task pool:', orphanedTasks);
+        }
     }
     
     /**
