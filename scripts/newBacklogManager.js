@@ -32,9 +32,11 @@ class NewBacklogManager extends BaseManager {
                 const table = document.querySelector('.modern-table');
                 if (table) {
                     table.addEventListener('deleteRow', (e) => {
+                        console.log('DeleteRow event received:', e);
                         const row = e.detail.row;
                         const taskId = row.dataset.taskId;
                         if (taskId) {
+                            console.log('Deleting task with ID:', taskId);
                             this.deleteTask(taskId);
                         }
                     });
@@ -460,6 +462,7 @@ class NewBacklogManager extends BaseManager {
     }
 
     deleteTask(taskId) {
+        console.log('deleteTask called with taskId:', taskId);
         const task = this.storageService.getTaskById(taskId);
         
         try {
