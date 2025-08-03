@@ -80,9 +80,9 @@ class StorageService {
             recommendations: []
         };
         
-        // Get current data
-        const machines = this.getMachines();
-        const tasks = this.getBacklogTasks();
+        // Get current data (use validated sources for SSOT)
+        const machines = this.getValidMachinesForDisplay();
+        const tasks = this.getValidTasksForDisplay();
         const events = this.getScheduledEvents();
         
         // Create sets of valid IDs
@@ -308,7 +308,8 @@ class StorageService {
             syncData: () => this.syncGanttChartData(),
             cleanupMachines: () => this.cleanupInvalidMachines(),
             getValidMachines: () => this.getValidMachinesForDisplay(),
-            getValidTasks: () => this.getValidTasksForDisplay()
+            getValidTasks: () => this.getValidTasksForDisplay(),
+            removeVvvvvv: () => this.removeSpecificMachine('vvvvvv')
         };
         
         console.log(`
@@ -321,6 +322,7 @@ class StorageService {
 - storageDebug.cleanupMachines()  // Clean up invalid machines only
 - storageDebug.getValidMachines() // Get only valid machines
 - storageDebug.getValidTasks()    // Get only valid tasks
+- storageDebug.removeVvvvvv()     // Remove the "vvvvvv" machine specifically
         `);
     }
     
@@ -371,23 +373,25 @@ class StorageService {
     }
     
     getMachinesByType(type) {
-        return this.getMachines().filter(machine => machine.type === type);
+        return this.getValidMachinesForDisplay().filter(machine => machine.type === type);
     }
     
     getPrintingMachines() {
-        return this.getMachinesByType('printing');
+        return this.getValidMachinesForDisplay().filter(machine => machine.type === 'printing');
     }
     
     getPackagingMachines() {
-        return this.getMachinesByType('packaging');
+        return this.getValidMachinesForDisplay().filter(machine => machine.type === 'packaging');
     }
     
     getLiveMachines() {
-        return this.getMachines().filter(machine => machine.live);
+        return this.getValidMachinesForDisplay().filter(machine => machine.live);
     }
     
     getMachineByName(name) {
-        return this.getMachines().find(machine => machine.name === name);
+        return this.getValidMachinesForDisplay().find(machine => 
+            machine.name === name || machine.nominazione === name
+        );
     }
     
     /**
@@ -602,9 +606,9 @@ class StorageService {
             results.details.push(`Cleaned up ${invalidMachinesRemoved} invalid machines`);
         }
         
-        // Get current data
-        const machines = this.getMachines();
-        const tasks = this.getBacklogTasks();
+        // Get current data (use validated sources for SSOT)
+        const machines = this.getValidMachinesForDisplay();
+        const tasks = this.getValidTasksForDisplay();
         const events = this.getScheduledEvents();
         
         // Create sets of valid IDs with detailed logging
@@ -677,10 +681,12 @@ class StorageService {
     
     /**
      * Get valid machines for Gantt display (live machines that exist)
+     * Now uses the same source as machinery tables for SSOT
      */
     getValidGanttMachines() {
-        const machines = this.getMachines();
-        return machines.filter(machine => machine.live === true);
+        // Use the same strictly validated machines as the machinery tables
+        const validMachines = this.getValidMachinesForDisplay();
+        return validMachines.filter(machine => machine.live === true);
     }
     
     /**
@@ -698,7 +704,7 @@ class StorageService {
      * Strict validation: Ensure all machinery in events exists in machinery list
      */
     validateMachineryIntegrity() {
-        const machines = this.getMachines();
+        const machines = this.getValidMachinesForDisplay();
         const events = this.getScheduledEvents();
         
         const validMachineNames = new Set(machines.map(m => m.name || m.nominazione));
@@ -722,7 +728,7 @@ class StorageService {
      * Strict validation: Ensure all tasks in events exist in backlog
      */
     validateTaskIntegrity() {
-        const tasks = this.getBacklogTasks();
+        const tasks = this.getValidTasksForDisplay();
         const events = this.getScheduledEvents();
         
         const validTaskIds = new Set(tasks.map(t => t.id));
@@ -804,12 +810,56 @@ class StorageService {
         const validMachines = this.getValidMachinesForDisplay();
         
         if (validMachines.length !== machines.length) {
-            console.log(`Cleaning up ${machines.length - validMachines.length} invalid machines`);
-            this.saveMachines(validMachines);
-            return machines.length - validMachines.length;
+            const invalidMachines = machines.filter(machine => {
+                // Check if machine is in valid machines list
+                const isValid = validMachines.some(validMachine => 
+                    (validMachine.name || validMachine.nominazione) === (machine.name || machine.nominazione)
+                );
+                
+                if (!isValid) {
+                    console.log(`Removing invalid machine: ${machine.name || machine.nominazione}`, machine);
+                }
+                
+                return isValid;
+            });
+            
+            console.log(`Cleaning up ${machines.length - invalidMachines.length} invalid machines`);
+            this.saveMachines(invalidMachines);
+            return machines.length - invalidMachines.length;
         }
         
         return 0;
+    }
+    
+    /**
+     * Remove a specific machine by name
+     */
+    removeSpecificMachine(machineName) {
+        console.log(`🗑️ Removing machine: ${machineName}`);
+        
+        const machines = this.getMachines();
+        const filteredMachines = machines.filter(machine => 
+            (machine.name || machine.nominazione) !== machineName
+        );
+        
+        if (filteredMachines.length !== machines.length) {
+            this.saveMachines(filteredMachines);
+            console.log(`✅ Removed machine: ${machineName}`);
+            
+            // Also clean up any events referencing this machine
+            const events = this.getScheduledEvents();
+            const filteredEvents = events.filter(event => event.machine !== machineName);
+            
+            if (filteredEvents.length !== events.length) {
+                this.saveScheduledEvents(filteredEvents);
+                console.log(`✅ Also removed ${events.length - filteredEvents.length} events referencing ${machineName}`);
+            }
+            
+            return true;
+        } else {
+            console.log(`❌ Machine not found: ${machineName}`);
+            return false;
+        }
     }
     
     /**
