@@ -397,24 +397,73 @@ class NewBacklogManager {
 
     createTaskRow(task) {
         return `
-            <tr>
-                <td><strong>${task.name}</strong></td>
-                <td>
-                    <span class="badge ${task.type === 'printing' ? 'badge-blue' : 'badge-green'}">
-                        ${task.type}
-                    </span>
+            <tr data-task-id="${task.id}">
+                <td class="editable-cell" data-field="name">
+                    <span class="static-value"><strong>${task.name}</strong></span>
+                    <input type="text" class="edit-input" value="${task.name}" style="display: none;">
                 </td>
-                <td>${task.numeroBuste || '-'}</td>
-                <td>${task.totalTime}h</td>
-                <td>€${task.totalCost}</td>
-                <td>
-                    <div class="color-indicator" style="background-color: ${task.color}; width: 20px; height: 20px; border-radius: 50%; display: inline-block;"></div>
+                <td class="editable-cell" data-field="type">
+                    <span class="static-value">
+                        <span class="badge ${task.type === 'printing' ? 'badge-blue' : 'badge-green'}">
+                            ${task.type}
+                        </span>
+                    </span>
+                    <select class="edit-select" style="display: none;">
+                        <option value="printing" ${task.type === 'printing' ? 'selected' : ''}>Printing</option>
+                        <option value="packaging" ${task.type === 'packaging' ? 'selected' : ''}>Packaging</option>
+                    </select>
+                </td>
+                <td class="editable-cell" data-field="numeroBuste">
+                    <span class="static-value">${task.numeroBuste || '-'}</span>
+                    <input type="number" class="edit-input" value="${task.numeroBuste || ''}" min="1" style="display: none;">
+                </td>
+                <td class="editable-cell" data-field="totalTime">
+                    <span class="static-value">${task.totalTime}h</span>
+                    <input type="number" class="edit-input" value="${task.totalTime}" min="0.1" step="0.1" style="display: none;">
+                </td>
+                <td class="editable-cell" data-field="totalCost">
+                    <span class="static-value">€${task.totalCost}</span>
+                    <input type="number" class="edit-input" value="${task.totalCost}" min="0" step="0.01" style="display: none;">
+                </td>
+                <td class="editable-cell" data-field="color">
+                    <span class="static-value">
+                        <div class="color-indicator" style="background-color: ${task.color}; width: 20px; height: 20px; border-radius: 50%; display: inline-block;"></div>
+                    </span>
+                    <div class="edit-color-container" style="display: none;">
+                        <select class="edit-select" onchange="this.nextElementSibling.style.backgroundColor = this.value;">
+                            <option value="#1a73e8" ${task.color === '#1a73e8' ? 'selected' : ''}>Blue</option>
+                            <option value="#34a853" ${task.color === '#34a853' ? 'selected' : ''}>Green</option>
+                            <option value="#ea4335" ${task.color === '#ea4335' ? 'selected' : ''}>Red</option>
+                            <option value="#fbbc04" ${task.color === '#fbbc04' ? 'selected' : ''}>Yellow</option>
+                            <option value="#9c27b0" ${task.color === '#9c27b0' ? 'selected' : ''}>Purple</option>
+                            <option value="#ff9800" ${task.color === '#ff9800' ? 'selected' : ''}>Orange</option>
+                            <option value="#00bcd4" ${task.color === '#00bcd4' ? 'selected' : ''}>Cyan</option>
+                            <option value="#e91e63" ${task.color === '#e91e63' ? 'selected' : ''}>Pink</option>
+                        </select>
+                        <div class="color-preview-edit" style="background-color: ${task.color}; width: 20px; height: 20px; border-radius: 50%; display: inline-block; margin-left: 8px;"></div>
+                    </div>
                 </td>
                 <td class="text-center">
-                    <button class="btn-delete" onclick="newBacklogManager.deleteTask('${task.id}')" 
-                            title="Delete task">
-                        🗑️
-                    </button>
+                    <div class="action-buttons">
+                        <button class="btn-edit" onclick="newBacklogManager.toggleEdit('${task.id}')" 
+                                title="Edit task">
+                            ✏️
+                        </button>
+                        <button class="btn-delete" onclick="newBacklogManager.deleteTask('${task.id}')" 
+                                title="Delete task">
+                            🗑️
+                        </button>
+                    </div>
+                    <div class="save-cancel-buttons" style="display: none;">
+                        <button class="btn-save" onclick="newBacklogManager.saveEdit('${task.id}')" 
+                                title="Save changes">
+                            ✅
+                        </button>
+                        <button class="btn-cancel" onclick="newBacklogManager.cancelEdit('${task.id}')" 
+                                title="Cancel edit">
+                            ❌
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -443,6 +492,136 @@ class NewBacklogManager {
         } catch (error) {
             // Task is scheduled - show specific error
             this.showMessage(error.message + ' Move the task back to the pool first.', 'error');
+        }
+    }
+
+    toggleEdit(taskId) {
+        const row = document.querySelector(`tr[data-task-id="${taskId}"]`);
+        if (!row) return;
+
+        const isEditing = row.classList.contains('editing');
+        
+        if (isEditing) {
+            this.cancelEdit(taskId);
+        } else {
+            this.startEdit(taskId);
+        }
+    }
+
+    startEdit(taskId) {
+        const row = document.querySelector(`tr[data-task-id="${taskId}"]`);
+        if (!row) return;
+
+        // Store original values for cancel
+        const originalData = {};
+        row.querySelectorAll('.editable-cell').forEach(cell => {
+            const field = cell.dataset.field;
+            const staticValue = cell.querySelector('.static-value');
+            originalData[field] = staticValue.textContent.trim();
+        });
+        row.dataset.originalData = JSON.stringify(originalData);
+
+        // Show edit mode
+        row.classList.add('editing');
+        row.querySelectorAll('.static-value').forEach(el => el.style.display = 'none');
+        row.querySelectorAll('.edit-input, .edit-select').forEach(el => el.style.display = 'block');
+        row.querySelectorAll('.edit-color-container').forEach(el => el.style.display = 'block');
+        row.querySelector('.action-buttons').style.display = 'none';
+        row.querySelector('.save-cancel-buttons').style.display = 'block';
+
+        // Focus first input
+        const firstInput = row.querySelector('.edit-input, .edit-select');
+        if (firstInput) firstInput.focus();
+
+        // Add keyboard event listeners
+        row.querySelectorAll('.edit-input, .edit-select').forEach(input => {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.saveEdit(taskId);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    this.cancelEdit(taskId);
+                }
+            });
+        });
+    }
+
+    cancelEdit(taskId) {
+        const row = document.querySelector(`tr[data-task-id="${taskId}"]`);
+        if (!row) return;
+
+        // Restore original values
+        const originalData = JSON.parse(row.dataset.originalData || '{}');
+        row.querySelectorAll('.editable-cell').forEach(cell => {
+            const field = cell.dataset.field;
+            const staticValue = cell.querySelector('.static-value');
+            if (originalData[field]) {
+                staticValue.textContent = originalData[field];
+            }
+        });
+
+        // Hide edit mode
+        row.classList.remove('editing');
+        row.querySelectorAll('.static-value').forEach(el => el.style.display = 'block');
+        row.querySelectorAll('.edit-input, .edit-select').forEach(el => el.style.display = 'none');
+        row.querySelectorAll('.edit-color-container').forEach(el => el.style.display = 'none');
+        row.querySelector('.action-buttons').style.display = 'block';
+        row.querySelector('.save-cancel-buttons').style.display = 'none';
+    }
+
+    saveEdit(taskId) {
+        const row = document.querySelector(`tr[data-task-id="${taskId}"]`);
+        if (!row) return;
+
+        // Collect edited values
+        const updatedData = {};
+        row.querySelectorAll('.editable-cell').forEach(cell => {
+            const field = cell.dataset.field;
+            const input = cell.querySelector('.edit-input, .edit-select');
+            if (input) {
+                updatedData[field] = input.value;
+            }
+        });
+
+        // Validate data
+        if (!updatedData.name || updatedData.name.trim() === '') {
+            this.showMessage('Task name cannot be empty', 'error');
+            return;
+        }
+
+        try {
+            // Get current task
+            const task = this.storageService.getTaskById(taskId);
+            if (!task) {
+                this.showMessage('Task not found', 'error');
+                return;
+            }
+
+            // Update task with new values
+            const updatedTask = {
+                ...task,
+                name: updatedData.name.trim(),
+                type: updatedData.type,
+                numeroBuste: parseInt(updatedData.numeroBuste) || task.numeroBuste,
+                totalTime: parseFloat(updatedData.totalTime) || task.totalTime,
+                totalCost: parseFloat(updatedData.totalCost) || task.totalCost,
+                color: updatedData.color
+            };
+
+            // Save updated task
+            this.storageService.saveBacklogTasksWithSync(
+                this.storageService.getBacklogTasks().map(t => 
+                    t.id === taskId ? updatedTask : t
+                )
+            );
+
+            // Update display
+            this.loadBacklog();
+            this.showMessage('Task updated successfully', 'success');
+
+        } catch (error) {
+            this.showMessage('Error updating task: ' + error.message, 'error');
         }
     }
 

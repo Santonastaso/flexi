@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Gantt Fix</title>
+</head>
+<body>
+    <h1>Testing Gantt Chart Data Integrity Fix</h1>
+    <div id="results"></div>
+
+    <script src="scripts/storageService.js"></script>
+    <script>
+        // Test the fix
+        function testGanttFix() {
+            const results = document.getElementById('results');
+            
+            // Create a test event with correct properties
+            const testEvent = {
+                id: 'test-event-1',
+                taskId: 'test-task-1',
+                taskTitle: 'Test Task',
+                machine: 'Test Machine',
+                date: '2025-01-01',
+                startHour: 8,
+                endHour: 10,
+                color: '#1a73e8',
+                duration: 2
+            };
+
+            // Add test data
+            const tasks = [{
+                id: 'test-task-1',
+                name: 'Test Task',
+                type: 'packaging'
+            }];
+
+            const machines = [{
+                name: 'Test Machine',
+                type: 'packaging',
+                live: true
+            }];
+
+            // Store test data
+            localStorage.setItem('backlogTasks', JSON.stringify(tasks));
+            localStorage.setItem('schedulerMachines', JSON.stringify(machines));
+            localStorage.setItem('scheduledEvents', JSON.stringify([testEvent]));
+
+            // Initialize storage service
+            window.storageService = new StorageService();
+
+            // Test the sync function
+            const syncResults = window.storageService.syncGanttChartData();
+            
+            results.innerHTML = `
+                <h2>Test Results:</h2>
+                <p><strong>Events removed:</strong> ${syncResults.orphanedEventsRemoved}</p>
+                <p><strong>Ghost tasks removed:</strong> ${syncResults.ghostTasksRemoved}</p>
+                <p><strong>Ghost machines removed:</strong> ${syncResults.ghostMachinesRemoved}</p>
+                <p><strong>Details:</strong></p>
+                <ul>
+                    ${syncResults.details.map(detail => `<li>${detail}</li>`).join('')}
+                </ul>
+                
+                <h3>Expected Result:</h3>
+                <p>Events removed should be 0, meaning the fix worked correctly.</p>
+            `;
+
+            // Clean up test data
+            localStorage.removeItem('backlogTasks');
+            localStorage.removeItem('schedulerMachines');
+            localStorage.removeItem('scheduledEvents');
+        }
+
+        // Run test when page loads
+        document.addEventListener('DOMContentLoaded', testGanttFix);
+    </script>
+</body>
+</html>
