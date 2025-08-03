@@ -15,6 +15,7 @@ class Navigation {
                 machinery: { href: 'machinery.html', label: 'Machinery', icon: '⚙️' },
                 machineCatalog: { href: 'products_catalog.html', label: 'Catalog', icon: '📋' },
                 backlog: { href: 'backlog.html', label: 'Backlog', icon: '📝' },
+                backlogList: { href: 'backlog_list.html', label: 'Backlog List', icon: '📋' },
                 scheduler: { href: 'scheduler.html', label: 'Scheduler', icon: '📅' }
             }
         };
@@ -81,6 +82,15 @@ class Navigation {
                 return [
                     this.navigationData.pages.machinery,
                     this.navigationData.pages.machineCatalog,
+                    this.navigationData.pages.backlogList,
+                    this.navigationData.pages.scheduler
+                ];
+            
+            case 'backlogList':
+                return [
+                    this.navigationData.pages.machinery,
+                    this.navigationData.pages.machineCatalog,
+                    this.navigationData.pages.backlog,
                     this.navigationData.pages.scheduler
                 ];
             
@@ -88,7 +98,8 @@ class Navigation {
                 return [
                     this.navigationData.pages.machinery,
                     this.navigationData.pages.machineCatalog,
-                    this.navigationData.pages.backlog
+                    this.navigationData.pages.backlog,
+                    this.navigationData.pages.backlogList
                 ];
             
             case 'machine_settings':
@@ -101,6 +112,7 @@ class Navigation {
                 return [
                     this.navigationData.pages.machinery,
                     this.navigationData.pages.backlog,
+                    this.navigationData.pages.backlogList,
                     this.navigationData.pages.scheduler
                 ];
         }
@@ -159,6 +171,8 @@ function initializeNavigation() {
         currentPage = 'machinery';
     } else if (path.includes('products_catalog.html')) {
         currentPage = 'machineCatalog';
+    } else if (path.includes('backlog_list.html')) {
+        currentPage = 'backlogList';
     } else if (path.includes('backlog.html')) {
         currentPage = 'backlog';
     } else if (path.includes('scheduler')) {
@@ -170,7 +184,12 @@ function initializeNavigation() {
     // Alternative detection based on page elements
     if (!currentPage) {
         if (document.getElementById('backlog-table-body')) {
-            currentPage = 'backlog';
+            // Check if it's the backlog list page or the main backlog page
+            if (document.querySelector('h2') && document.querySelector('h2').textContent.includes('Production Backlog')) {
+                currentPage = 'backlogList';
+            } else {
+                currentPage = 'backlog';
+            }
         } else if (document.getElementById('machinery-table-body')) {
             currentPage = 'machinery';
         } else if (document.getElementById('machineryCatalogList')) {
