@@ -407,6 +407,8 @@
     font-weight: 500;
     max-width: 300px;
     min-width: 200px;
+    height: 40px;
+    line-height: 1;
 }
 
 @keyframes bannerSlideIn {
