@@ -10,7 +10,7 @@ class EditManager {
      * Initialize edit functionality for a table
      */
     initTableEdit(tableSelector) {
-        const table = document.querySelector(tableSelector);
+        const table = typeof tableSelector === 'string' ? document.querySelector(tableSelector) : tableSelector;
         if (!table) return;
 
         // Add event delegation for edit buttons
