@@ -431,13 +431,13 @@ class StorageService {
     
     removeBacklogTask(taskId) {
         const tasks = this.getBacklogTasks();
-        const filteredTasks = tasks.filter(task => task.id !== taskId);
+        const filteredTasks = tasks.filter(task => String(task.id) !== String(taskId));
         this.saveBacklogTasks(filteredTasks);
         return filteredTasks;
     }
     
     getTaskById(taskId) {
-        return this.getBacklogTasks().find(task => task.id == taskId);
+        return this.getBacklogTasks().find(task => String(task.id) === String(taskId));
     }
     
     /**
@@ -466,7 +466,7 @@ class StorageService {
     }
     
     isTaskScheduled(taskId) {
-        return this.getScheduledEvents().some(event => event.id == taskId);
+        return this.getScheduledEvents().some(event => String(event.taskId) === String(taskId));
     }
     
     getEventsByMachine(machineName) {
