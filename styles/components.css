@@ -212,13 +212,15 @@
 .table-container {
     background: white;
     border-radius: 12px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     border: 1px solid var(--border-color);
 }
 
 .modern-table {
     width: 100%;
+    min-width: 800px;
     border-collapse: collapse;
 }
 
@@ -244,6 +246,25 @@
 
 .modern-table tr:last-child td {
     border-bottom: none;
+}
+
+/* Custom scrollbar for table containers */
+.table-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }
 
 /* Editable Table Cells */
