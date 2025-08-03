@@ -43,10 +43,16 @@ class StorageService {
      */
     runInitialDataIntegrityCheck() {
         try {
+            // Clean up duplicate tasks first
+            const duplicateResults = this.cleanupDuplicateTasks();
+            
+            // Then sync Gantt chart data
             const syncResults = this.syncGanttChartData();
-            if (syncResults.ghostMachinesRemoved > 0 || syncResults.ghostTasksRemoved > 0 || syncResults.orphanedEventsRemoved > 0) {
-                console.log('Initial data integrity check completed:', syncResults);
-                this.showIntegrityNotification(syncResults);
+            
+            if (duplicateResults.duplicateTasksRemoved > 0 || duplicateResults.orphanedEventsRemoved > 0 || 
+                syncResults.ghostMachinesRemoved > 0 || syncResults.ghostTasksRemoved > 0 || syncResults.orphanedEventsRemoved > 0) {
+                console.log('Initial data integrity check completed:', { ...duplicateResults, ...syncResults });
+                this.showIntegrityNotification({ ...duplicateResults, ...syncResults });
             }
         } catch (error) {
             console.error('Error during initial data integrity check:', error);
@@ -223,6 +229,9 @@ class StorageService {
     forceFullCleanup() {
         console.log('🔄 Starting force full cleanup...');
         
+        // Clean up duplicate tasks first
+        const duplicateResults = this.cleanupDuplicateTasks();
+        
         // Clean up invalid machines
         const invalidMachinesRemoved = this.cleanupInvalidMachines();
         
@@ -233,10 +242,11 @@ class StorageService {
         const orphanedEventsRemoved = this.cleanupOrphanedEvents();
         
         const totalResults = {
+            ...duplicateResults,
             invalidMachinesRemoved,
             orphanedEventsRemoved,
             syncResults,
-            totalCleaned: invalidMachinesRemoved + orphanedEventsRemoved + syncResults.orphanedEventsRemoved
+            totalCleaned: duplicateResults.duplicateTasksRemoved + duplicateResults.orphanedEventsRemoved + invalidMachinesRemoved + orphanedEventsRemoved + syncResults.orphanedEventsRemoved
         };
         
         console.log('✅ Force full cleanup completed:', totalResults);
@@ -309,7 +319,9 @@ class StorageService {
             cleanupMachines: () => this.cleanupInvalidMachines(),
             getValidMachines: () => this.getValidMachinesForDisplay(),
             getValidTasks: () => this.getValidTasksForDisplay(),
-            removeVvvvvv: () => this.removeSpecificMachine('vvvvvv')
+            removeVvvvvv: () => this.removeSpecificMachine('vvvvvv'),
+            cleanupDuplicates: () => this.cleanupDuplicateTasks(),
+            removeMachineById: (id) => this.removeMachineById(id)
         };
         
         console.log(`
@@ -320,9 +332,10 @@ class StorageService {
 - storageDebug.detectOrphans()    // Detect orphan data without cleanup
 - storageDebug.syncData()         // Sync and cleanup Gantt chart data
 - storageDebug.cleanupMachines()  // Clean up invalid machines only
-- storageDebug.getValidMachines() // Get only valid machines
 - storageDebug.getValidTasks()    // Get only valid tasks
 - storageDebug.removeVvvvvv()     // Remove the "vvvvvv" machine specifically
+- storageDebug.cleanupDuplicates() // Clean up duplicate tasks and orphaned data
+- storageDebug.removeMachineById(id) // Remove machine by ID
         `);
     }
     
@@ -408,7 +421,7 @@ class StorageService {
     addBacklogTask(task) {
         const tasks = this.getBacklogTasks();
         const newTask = {
-            id: Date.now(),
+            id: Date.now() + Math.random().toString(36).substr(2, 9),
             ...task
         };
         tasks.push(newTask);
@@ -785,6 +798,11 @@ class StorageService {
                 return false;
             }
             
+            // For legacy machines (BOBST M5, Gallus 1), just check they have a name
+            if (machine.name === 'BOBST M5' || machine.name === 'Gallus 1') {
+                return true;
+            }
+            
             // Must have required properties based on type
             if (machine.type === 'printing') {
                 if (!machine.numeroMacchina || !machine.nominazione) {
@@ -863,6 +881,38 @@ class StorageService {
     }
     
     /**
+     * Remove a specific machine by ID
+     */
+    removeMachineById(machineId) {
+        console.log(`🗑️ Removing machine by ID: ${machineId}`);
+        
+        const machines = this.getMachines();
+        const filteredMachines = machines.filter(machine => machine.id !== machineId);
+        
+        if (filteredMachines.length !== machines.length) {
+            this.saveMachines(filteredMachines);
+            console.log(`✅ Removed machine with ID: ${machineId}`);
+            
+            // Also clean up any events referencing this machine
+            const machineToRemove = machines.find(m => m.id === machineId);
+            if (machineToRemove) {
+                const events = this.getScheduledEvents();
+                const filteredEvents = events.filter(event => event.machine !== (machineToRemove.name || machineToRemove.nominazione));
+                
+                if (filteredEvents.length !== events.length) {
+                    this.saveScheduledEvents(filteredEvents);
+                    console.log(`✅ Also removed ${events.length - filteredEvents.length} events referencing machine ${machineToRemove.name || machineToRemove.nominazione}`);
+                }
+            }
+            
+            return true;
+        } else {
+            console.log(`❌ Machine with ID not found: ${machineId}`);
+            return false;
+        }
+    }
+    
+    /**
      * Get only valid tasks for display (strict filtering)
      */
     getValidTasksForDisplay() {
@@ -876,6 +926,57 @@ class StorageService {
             
             return true;
         });
+    }
+    
+    /**
+     * Clean up duplicate tasks and orphaned data
+     */
+    cleanupDuplicateTasks() {
+        const tasks = this.getBacklogTasks();
+        const events = this.getScheduledEvents();
+        
+        // Find duplicate task IDs
+        const taskIds = new Set();
+        const duplicateTaskIds = new Set();
+        
+        tasks.forEach(task => {
+            if (taskIds.has(task.id)) {
+                duplicateTaskIds.add(task.id);
+            } else {
+                taskIds.add(task.id);
+            }
+        });
+        
+        if (duplicateTaskIds.size > 0) {
+            console.warn('Found duplicate task IDs:', Array.from(duplicateTaskIds));
+            
+            // Remove duplicate tasks (keep the first one)
+            const seenIds = new Set();
+            const uniqueTasks = tasks.filter(task => {
+                if (seenIds.has(task.id)) {
+                    console.log(`Removing duplicate task: ${task.name} (ID: ${task.id})`);
+                    return false;
+                }
+                seenIds.add(task.id);
+                return true;
+            });
+            
+            // Also remove any events referencing duplicate tasks
+            const validTaskIds = new Set(uniqueTasks.map(t => t.id));
+            const validEvents = events.filter(event => validTaskIds.has(event.taskId));
+            
+            this.saveBacklogTasks(uniqueTasks);
+            this.saveScheduledEvents(validEvents);
+            
+            console.log(`Cleaned up ${tasks.length - uniqueTasks.length} duplicate tasks and ${events.length - validEvents.length} orphaned events`);
+            
+            return {
+                duplicateTasksRemoved: tasks.length - uniqueTasks.length,
+                orphanedEventsRemoved: events.length - validEvents.length
+            };
+        }
+        
+        return { duplicateTasksRemoved: 0, orphanedEventsRemoved: 0 };
     }
     
     /**
