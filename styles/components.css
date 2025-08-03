@@ -93,10 +93,14 @@
 .btn-delete,
 .btn-save,
 .btn-cancel {
-    padding: 6px 12px;
-    font-size: 12px;
-    min-height: 32px;
-    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 14px;
+    min-height: 36px;
+    border-radius: 28px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .btn-edit {
@@ -106,6 +110,7 @@
 
 .btn-edit:hover {
     background: var(--primary-blue-hover);
+    transform: translateY(-2px);
 }
 
 .btn-delete {
@@ -115,6 +120,7 @@
 
 .btn-delete:hover {
     background: #dc2626;
+    transform: translateY(-2px);
 }
 
 .btn-save {
@@ -124,6 +130,7 @@
 
 .btn-save:hover {
     background: var(--primary-green-hover);
+    transform: translateY(-2px);
 }
 
 .btn-cancel {
@@ -133,6 +140,7 @@
 
 .btn-cancel:hover {
     background: #6b7280;
+    transform: translateY(-2px);
 }
 
 /* ===== FORM COMPONENTS ===== */
@@ -494,22 +502,25 @@
 .status-badge {
     display: inline-flex;
     align-items: center;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: 28px;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    color: white;
+    border: none;
+    cursor: default;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    min-height: 36px;
 }
 
 .status-badge.live {
-    background: #dcfce7;
-    color: #166534;
+    background-color: var(--primary-green);
 }
 
 .status-badge.not-live {
-    background: #fef2f2;
-    color: #991b1b;
+    background-color: var(--gray-medium);
 }
 
 /* ===== UTILITY CLASSES ===== */

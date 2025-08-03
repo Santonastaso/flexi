@@ -672,15 +672,21 @@ input[type="checkbox"] {
     accent-color: var(--primary-blue);
 }
 
-/* Badge styles for consistent status indicators */
+/* Badge styles for consistent status indicators - matching button styling */
 .badge {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: 28px;
+    font-size: 14px;
+    font-weight: 700;
     text-align: center;
     color: white;
+    border: none;
+    cursor: default;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    min-height: 36px;
 }
 
 .badge-blue {
