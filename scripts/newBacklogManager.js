@@ -159,12 +159,12 @@ class NewBacklogManager {
         
         // Load printing machines
         const printingMachines = catalog.filter(m => m.type === 'printing');
-        this.elements.printingMachine.innerHTML = '<option value="">Select printing machine</option>' +
+        this.elements.printingMachine.innerHTML = '<option value="">Select printing type</option>' +
             printingMachines.map(m => `<option value="${m.id}">${m.name} (${m.speed} m/min)</option>`).join('');
         
         // Load packaging machines
         const packagingMachines = catalog.filter(m => m.type === 'packaging');
-        this.elements.packagingMachine.innerHTML = '<option value="">Select packaging machine</option>' +
+        this.elements.packagingMachine.innerHTML = '<option value="">Select packaging type</option>' +
             packagingMachines.map(m => `<option value="${m.id}">${m.name} (${m.speed} pkg/h)</option>`).join('');
     }
 

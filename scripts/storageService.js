@@ -1,6 +1,7 @@
 /**
  * Storage Service - Centralized localStorage management
  * Handles all data persistence for the Ship Production Suite
+ * Enhanced with strict data integrity and orphan prevention
  */
 class StorageService {
     constructor() {
@@ -17,6 +18,24 @@ class StorageService {
         
         // Run initial data integrity check
         this.runInitialDataIntegrityCheck();
+        
+        // Set up periodic integrity checks
+        this.setupPeriodicIntegrityChecks();
+    }
+    
+    /**
+     * Set up periodic data integrity checks
+     */
+    setupPeriodicIntegrityChecks() {
+        // Run integrity check every 5 minutes
+        setInterval(() => {
+            this.runDataIntegrityCheck();
+        }, 5 * 60 * 1000);
+        
+        // Run integrity check when window gains focus
+        window.addEventListener('focus', () => {
+            this.runDataIntegrityCheck();
+        });
     }
     
     /**
@@ -27,10 +46,208 @@ class StorageService {
             const syncResults = this.syncGanttChartData();
             if (syncResults.ghostMachinesRemoved > 0 || syncResults.ghostTasksRemoved > 0 || syncResults.orphanedEventsRemoved > 0) {
                 console.log('Initial data integrity check completed:', syncResults);
+                this.showIntegrityNotification(syncResults);
             }
         } catch (error) {
             console.error('Error during initial data integrity check:', error);
         }
+    }
+    
+    /**
+     * Run periodic data integrity check
+     */
+    runDataIntegrityCheck() {
+        try {
+            const results = this.detectAndReportOrphans();
+            if (results.hasOrphans) {
+                console.warn('Data integrity issues detected:', results);
+                this.showIntegrityNotification(results);
+            }
+        } catch (error) {
+            console.error('Error during data integrity check:', error);
+        }
+    }
+    
+    /**
+     * Detect and report orphan data without automatic removal
+     */
+    detectAndReportOrphans() {
+        const results = {
+            hasOrphans: false,
+            orphanMachines: [],
+            orphanTasks: [],
+            orphanEvents: [],
+            recommendations: []
+        };
+        
+        // Get current data
+        const machines = this.getMachines();
+        const tasks = this.getBacklogTasks();
+        const events = this.getScheduledEvents();
+        
+        // Create sets of valid IDs
+        const validMachineNames = new Set(machines.map(m => m.name || m.nominazione));
+        const validTaskIds = new Set(tasks.map(t => t.id));
+        
+        // Check for orphan events
+        events.forEach(event => {
+            if (!validTaskIds.has(event.taskId)) {
+                results.orphanEvents.push({
+                    type: 'task',
+                    event: event,
+                    reason: `Task "${event.taskTitle}" (ID: ${event.taskId}) not found in backlog`
+                });
+                results.hasOrphans = true;
+            }
+            
+            if (!validMachineNames.has(event.machine)) {
+                results.orphanEvents.push({
+                    type: 'machine',
+                    event: event,
+                    reason: `Machine "${event.machine}" not found in machinery list`
+                });
+                results.hasOrphans = true;
+            }
+        });
+        
+        // Check for orphan machines in events
+        const machinesInEvents = new Set(events.map(e => e.machine));
+        machinesInEvents.forEach(machineName => {
+            if (!validMachineNames.has(machineName)) {
+                results.orphanMachines.push({
+                    name: machineName,
+                    reason: `Machine "${machineName}" appears in scheduled events but not in machinery list`
+                });
+                results.hasOrphans = true;
+            }
+        });
+        
+        // Generate recommendations
+        if (results.orphanEvents.length > 0) {
+            results.recommendations.push('Remove orphaned scheduled events');
+        }
+        if (results.orphanMachines.length > 0) {
+            results.recommendations.push('Add missing machines to machinery list or remove from events');
+        }
+        
+        return results;
+    }
+    
+    /**
+     * Show integrity notification to user
+     */
+    showIntegrityNotification(results) {
+        const message = this.formatIntegrityMessage(results);
+        
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = 'integrity-notification';
+        notification.innerHTML = `
+            <div class="integrity-alert">
+                <h4>⚠️ Data Integrity Alert</h4>
+                <p>${message}</p>
+                <div class="integrity-actions">
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" class="btn btn-secondary">Dismiss</button>
+                    <button onclick="window.storageService.autoCleanupOrphans()" class="btn btn-primary">Auto-Cleanup</button>
+                </div>
+            </div>
+        `;
+        
+        // Add styles
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            background: white;
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-width: 400px;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 30 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 30000);
+    }
+    
+    /**
+     * Format integrity message for display
+     */
+    formatIntegrityMessage(results) {
+        let message = 'Data integrity issues detected:<br><br>';
+        
+        if (results.orphanEvents && results.orphanEvents.length > 0) {
+            message += `<strong>Orphaned Events:</strong> ${results.orphanEvents.length}<br>`;
+        }
+        
+        if (results.orphanMachines && results.orphanMachines.length > 0) {
+            message += `<strong>Orphaned Machines:</strong> ${results.orphanMachines.length}<br>`;
+        }
+        
+        if (results.recommendations && results.recommendations.length > 0) {
+            message += '<br><strong>Recommendations:</strong><br>';
+            results.recommendations.forEach(rec => {
+                message += `• ${rec}<br>`;
+            });
+        }
+        
+        return message;
+    }
+    
+    /**
+     * Auto-cleanup orphaned data
+     */
+    autoCleanupOrphans() {
+        const results = this.syncGanttChartData();
+        console.log('Auto-cleanup completed:', results);
+        
+        // Show success message
+        this.showMessage('Orphaned data has been automatically cleaned up', 'success');
+        
+        // Refresh any open pages
+        this.notifyDataChange('integrity', 'cleanup', results);
+    }
+    
+    /**
+     * Show message to user
+     */
+    showMessage(message, type = 'info') {
+        // Create message element
+        const messageEl = document.createElement('div');
+        messageEl.className = `message message-${type}`;
+        messageEl.textContent = message;
+        
+        // Add styles
+        const bgColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
+        messageEl.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            background: ${bgColor};
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-weight: 500;
+        `;
+        
+        document.body.appendChild(messageEl);
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            if (messageEl.parentElement) {
+                messageEl.remove();
+            }
+        }, 3000);
     }
     
     /**
@@ -309,12 +526,14 @@ class StorageService {
     
     /**
      * Comprehensive data synchronization and ghost cleanup
+     * Enhanced with strict validation and detailed logging
      */
     syncGanttChartData() {
         const results = {
             ghostMachinesRemoved: 0,
             ghostTasksRemoved: 0,
-            orphanedEventsRemoved: 0
+            orphanedEventsRemoved: 0,
+            details: []
         };
         
         // Get current data
@@ -322,34 +541,69 @@ class StorageService {
         const tasks = this.getBacklogTasks();
         const events = this.getScheduledEvents();
         
-        // Create sets of valid IDs
-        const validMachineNames = new Set(machines.map(m => m.name || m.nominazione));
-        const validTaskIds = new Set(tasks.map(t => t.id));
+        // Create sets of valid IDs with detailed logging
+        const validMachineNames = new Set();
+        const validTaskIds = new Set();
         
-        // Clean up scheduled events
+        machines.forEach(machine => {
+            const machineName = machine.name || machine.nominazione;
+            if (machineName) {
+                validMachineNames.add(machineName);
+            } else {
+                console.warn('Machine without name found:', machine);
+            }
+        });
+        
+        tasks.forEach(task => {
+            if (task.id) {
+                validTaskIds.add(task.id);
+            } else {
+                console.warn('Task without ID found:', task);
+            }
+        });
+        
+        // Clean up scheduled events with detailed validation
         const validEvents = events.filter(event => {
-            const hasValidTask = validTaskIds.has(event.taskId);
-            const hasValidMachine = validMachineNames.has(event.machine);
+            let isValid = true;
+            let reason = '';
             
-            if (!hasValidTask) {
-                console.log(`Removing ghost task event: ${event.taskTitle} (task not in backlog)`);
+            // Validate task
+            if (!validTaskIds.has(event.taskId)) {
+                reason = `Task "${event.taskTitle}" (ID: ${event.taskId}) not found in backlog`;
                 results.ghostTasksRemoved++;
-                return false;
+                results.details.push(reason);
+                console.log(`Removing orphan task event: ${reason}`);
+                isValid = false;
             }
             
-            if (!hasValidMachine) {
-                console.log(`Removing ghost machine event: ${event.machine} (machine not in list)`);
+            // Validate machine
+            if (!validMachineNames.has(event.machine)) {
+                reason = `Machine "${event.machine}" not found in machinery list`;
                 results.ghostMachinesRemoved++;
-                return false;
+                results.details.push(reason);
+                console.log(`Removing orphan machine event: ${reason}`);
+                isValid = false;
             }
             
-            return true;
+            // Additional validation: check if event has required properties
+            if (!event.startTime || !event.endTime) {
+                reason = `Event missing required time properties: ${event.taskTitle}`;
+                results.ghostTasksRemoved++;
+                results.details.push(reason);
+                console.log(`Removing invalid event: ${reason}`);
+                isValid = false;
+            }
+            
+            return isValid;
         });
         
         // Save cleaned events if changes were made
         if (validEvents.length !== events.length) {
             this.saveScheduledEvents(validEvents);
             results.orphanedEventsRemoved = events.length - validEvents.length;
+            
+            console.log(`Data integrity cleanup completed: ${results.orphanedEventsRemoved} events removed`);
+            console.log('Cleanup details:', results.details);
         }
         
         return results;
@@ -372,6 +626,124 @@ class StorageService {
         const scheduledTaskIds = new Set(scheduledEvents.map(event => event.taskId));
         
         return tasks.filter(task => !scheduledTaskIds.has(task.id));
+    }
+    
+    /**
+     * Strict validation: Ensure all machinery in events exists in machinery list
+     */
+    validateMachineryIntegrity() {
+        const machines = this.getMachines();
+        const events = this.getScheduledEvents();
+        
+        const validMachineNames = new Set(machines.map(m => m.name || m.nominazione));
+        const machinesInEvents = new Set(events.map(e => e.machine));
+        
+        const orphanMachines = Array.from(machinesInEvents).filter(name => !validMachineNames.has(name));
+        
+        if (orphanMachines.length > 0) {
+            console.warn('Orphan machines detected in events:', orphanMachines);
+            return {
+                isValid: false,
+                orphanMachines: orphanMachines,
+                message: `Found ${orphanMachines.length} machines in events that don't exist in machinery list`
+            };
+        }
+        
+        return { isValid: true };
+    }
+    
+    /**
+     * Strict validation: Ensure all tasks in events exist in backlog
+     */
+    validateTaskIntegrity() {
+        const tasks = this.getBacklogTasks();
+        const events = this.getScheduledEvents();
+        
+        const validTaskIds = new Set(tasks.map(t => t.id));
+        const taskIdsInEvents = new Set(events.map(e => e.taskId));
+        
+        const orphanTasks = Array.from(taskIdsInEvents).filter(id => !validTaskIds.has(id));
+        
+        if (orphanTasks.length > 0) {
+            console.warn('Orphan tasks detected in events:', orphanTasks);
+            return {
+                isValid: false,
+                orphanTasks: orphanTasks,
+                message: `Found ${orphanTasks.length} tasks in events that don't exist in backlog`
+            };
+        }
+        
+        return { isValid: true };
+    }
+    
+    /**
+     * Comprehensive data integrity validation
+     */
+    validateDataIntegrity() {
+        const machineryValidation = this.validateMachineryIntegrity();
+        const taskValidation = this.validateTaskIntegrity();
+        
+        const results = {
+            isValid: machineryValidation.isValid && taskValidation.isValid,
+            machineryValidation,
+            taskValidation,
+            issues: []
+        };
+        
+        if (!machineryValidation.isValid) {
+            results.issues.push(machineryValidation.message);
+        }
+        
+        if (!taskValidation.isValid) {
+            results.issues.push(taskValidation.message);
+        }
+        
+        return results;
+    }
+    
+    /**
+     * Get only valid machines for display (strict filtering)
+     */
+    getValidMachinesForDisplay() {
+        const machines = this.getMachines();
+        return machines.filter(machine => {
+            // Must have a name
+            if (!machine.name && !machine.nominazione) {
+                console.warn('Machine without name found:', machine);
+                return false;
+            }
+            
+            // Must have required properties based on type
+            if (machine.type === 'printing') {
+                if (!machine.numeroMacchina || !machine.nominazione) {
+                    console.warn('Printing machine missing required properties:', machine);
+                    return false;
+                }
+            } else if (machine.type === 'packaging') {
+                if (!machine.numeroMacchina || !machine.nominazione) {
+                    console.warn('Packaging machine missing required properties:', machine);
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+    }
+    
+    /**
+     * Get only valid tasks for display (strict filtering)
+     */
+    getValidTasksForDisplay() {
+        const tasks = this.getBacklogTasks();
+        return tasks.filter(task => {
+            // Must have required properties
+            if (!task.id || !task.name) {
+                console.warn('Task missing required properties:', task);
+                return false;
+            }
+            
+            return true;
+        });
     }
     
     /**
