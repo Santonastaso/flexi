@@ -697,9 +697,16 @@ class StorageService {
      * Now uses the same source as machinery tables for SSOT
      */
     getValidGanttMachines() {
-        // Use the same strictly validated machines as the machinery tables
+        // Get machines that are present in the machinery tables (printing + packaging)
         const validMachines = this.getValidMachinesForDisplay();
-        return validMachines.filter(machine => machine.live === true);
+        
+        // Legacy machines without type are treated as printing machines
+        const printingMachines = validMachines.filter(m => m.type === 'printing' || (!m.type && (m.name === 'BOBST M5' || m.name === 'Gallus 1')));
+        const packagingMachines = validMachines.filter(m => m.type === 'packaging');
+        
+        // Combine and filter for live machines only
+        const allMachineryTableMachines = [...printingMachines, ...packagingMachines];
+        return allMachineryTableMachines.filter(machine => machine.live === true);
     }
     
     /**
