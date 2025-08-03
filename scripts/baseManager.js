@@ -62,8 +62,8 @@ class BaseManager {
      * Show banner message
      */
     showMessage(message, type = 'info') {
-        if (window.showBanner) {
-            window.showBanner(message, type);
+        if (typeof showBanner === 'function') {
+            showBanner(message, type);
         } else {
             console.log(`${type.toUpperCase()}: ${message}`);
         }

@@ -17,7 +17,7 @@ class NewBacklogManager extends BaseManager {
             return;
         }
         
-        if (this.init(this.getElementMap())) {
+        if (super.init(this.getElementMap())) {
             this.loadMachines();
             this.loadBacklog();
             this.setupFormValidation();
@@ -39,6 +39,8 @@ class NewBacklogManager extends BaseManager {
                         }
                     });
                 }
+            } else {
+                console.error('EditManager not available');
             }
         }
     }
