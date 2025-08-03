@@ -6,8 +6,8 @@
     <title>Ship - New Production Scheduler</title>
     
     <!-- External CSS -->
-    <link rel="stylesheet" href="styles/main.css">
-    <link rel="stylesheet" href="styles/scheduler.css">
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/scheduler.css">
     
     <style>
         /* Additional styles for the new scheduler */
@@ -226,10 +226,12 @@
             display: flex;
             position: relative;
             overflow: visible;
+            width: 100%;
+            min-height: 60px;
         }
         
         .time-slot {
-            flex: 1;
+            flex: 1 1 0%;
             min-width: 80px;
             border-right: 1px solid var(--border-color);
             position: relative;
@@ -292,6 +294,8 @@
             text-overflow: ellipsis;
             white-space: nowrap;
             z-index: 10;
+            min-width: 60px;
+            box-sizing: border-box;
         }
         
         .scheduled-event:hover {
@@ -404,8 +408,8 @@
     </div>
 
     <!-- External JavaScript -->
-    <script src="scripts/storageService.js"></script>
-    <script src="components/navigation.js"></script>
+    <script src="../scripts/storageService.js"></script>
+    <script src="../components/navigation.js"></script>
     
     <script>
         /**
@@ -430,9 +434,22 @@
             init() {
                 this.bindElements();
                 this.attachEventListeners();
+                this.runDataSync();
                 this.loadTasks();
                 this.renderCalendar();
                 this.updateDateDisplay();
+                
+                // Ensure task pool is properly initialized
+                this.ensureTaskPoolClean();
+            }
+            
+            runDataSync() {
+                // Clean up any ghost data before loading
+                const syncResults = this.storageService.syncGanttChartData();
+                if (syncResults.ghostMachinesRemoved > 0 || syncResults.ghostTasksRemoved > 0) {
+                    console.log('Data sync results:', syncResults);
+                    this.showMessage(`Cleaned up ${syncResults.ghostMachinesRemoved} ghost machines and ${syncResults.ghostTasksRemoved} ghost tasks`, 'info');
+                }
             }
             
             bindElements() {
@@ -484,19 +501,16 @@
             
             loadTasks() {
                 const taskPool = this.elements.taskPool;
+                
+                // Clear the task pool completely
                 taskPool.innerHTML = '';
                 
-                const tasks = this.storageService.getBacklogTasks();
-                const scheduledEvents = this.storageService.getScheduledEvents();
-                
-                // Filter out already scheduled tasks
-                const availableTasks = tasks.filter(task => 
-                    !scheduledEvents.some(event => event.taskId === task.id)
-                );
+                // Use the new synchronized method to get valid tasks
+                const availableTasks = this.storageService.getValidTaskPoolTasks();
+                console.log('Valid task pool tasks:', availableTasks);
                 
                 if (availableTasks.length === 0) {
-                    // Add some sample tasks for testing
-                    this.addSampleTasks();
+                    taskPool.innerHTML = '<div class="empty-state">No tasks available for scheduling</div>';
                     return;
                 }
                 
@@ -512,9 +526,12 @@
                 taskElement.dataset.taskId = task.id;
                 taskElement.style.background = task.color || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
                 
+                // Get duration using helper function
+                const duration = this.getTaskDuration(task);
+                
                 taskElement.innerHTML = `
                     <span>${task.name}</span>
-                    <span class="task-duration">${task.duration}h</span>
+                    <span class="task-duration">${duration}h</span>
                 `;
                 
                 // Drag events
@@ -545,12 +562,14 @@
             }
             
             renderCalendar() {
-                let machines = this.storageService.getMachines();
+                // Use the new synchronized method to get valid machines
+                let machines = this.storageService.getValidGanttMachines();
+                console.log('Valid Gantt machines:', machines);
                 
-                // Add sample machines if none exist
+                // Check if live machines exist
                 if (!machines || machines.length === 0) {
-                    this.addSampleMachines();
-                    machines = this.storageService.getMachines();
+                    this.elements.calendarGrid.innerHTML = '<div class="empty-state">No live machines available. Please set machines to live status first.</div>';
+                    return;
                 }
                 
                 const dateKey = this.formatDate(this.currentDate);
@@ -660,13 +679,23 @@
                     return;
                 }
                 
+                // Check if task is already scheduled
+                if (this.isTaskAlreadyScheduled(taskId)) {
+                    this.showMessage('Task is already scheduled', 'error');
+                    return;
+                }
+                
                 const machine = slot.dataset.machine;
                 const startHour = parseInt(slot.dataset.hour);
-                const endHour = startHour + task.duration;
+                
+                // Get duration using helper function
+                const duration = this.getTaskDuration(task);
+                
+                const endHour = startHour + duration;
                 
                 // Validate time range
                 if (endHour > 20) {
-                    this.showMessage('Task does not fit in the remaining time', 'error');
+                    this.showMessage(`Task does not fit in the remaining time (needs ${duration}h, ends at ${endHour}:00)`, 'error');
                     return;
                 }
                 
@@ -678,7 +707,7 @@
                 
                 // Create scheduled event
                 const eventData = {
-                    id: `${taskId}-${Date.now()}`,
+                    id: `event-${taskId}-${Date.now()}`,
                     taskId: taskId,
                     taskTitle: task.name,
                     machine: machine,
@@ -686,20 +715,20 @@
                     startHour: startHour,
                     endHour: endHour,
                     color: task.color,
-                    duration: task.duration
+                    duration: duration
                 };
                 
                 try {
                     this.storageService.addScheduledEvent(eventData);
                     this.showMessage(`Task "${task.name}" scheduled successfully`, 'success');
                     
-                    // Remove task from pool immediately
+                    // Immediately remove task from pool
                     const taskElement = this.elements.taskPool.querySelector(`[data-task-id="${taskId}"]`);
                     if (taskElement) {
                         taskElement.remove();
                     }
                     
-                    // Refresh the view
+                    // Refresh calendar to show the new event
                     this.renderScheduledEvents();
                 } catch (error) {
                     this.showMessage(`Failed to schedule task: ${error.message}`, 'error');
@@ -730,6 +759,36 @@
                 return false;
             }
             
+            // Ensure task can only be scheduled once
+            isTaskAlreadyScheduled(taskId) {
+                const events = this.storageService.getScheduledEvents();
+                return events.some(event => event.taskId === taskId);
+            }
+            
+            // Helper function to calculate task duration
+            getTaskDuration(task) {
+                let duration = 1; // Default to 1 hour
+                
+                if (task.totalTime) {
+                    duration = parseFloat(task.totalTime);
+                } else if (task.duration) {
+                    duration = parseFloat(task.duration);
+                } else if (task.workTime && task.setupTime) {
+                    duration = parseFloat(task.workTime) + parseFloat(task.setupTime);
+                } else if (task.hours) {
+                    duration = parseFloat(task.hours);
+                }
+                
+                // Ensure we have a valid number and round to reasonable precision
+                if (isNaN(duration) || duration <= 0) {
+                    duration = 1;
+                } else {
+                    duration = Math.round(duration * 10) / 10; // Round to 1 decimal place
+                }
+                
+                return duration;
+            }
+            
             renderScheduledEvents() {
                 // Clear existing events
                 this.elements.calendarGrid.querySelectorAll('.scheduled-event').forEach(el => el.remove());
@@ -747,6 +806,7 @@
                 if (!machineRow) return;
                 
                 const slots = machineRow.querySelector('.machine-slots');
+                const allSlots = slots.querySelectorAll('.time-slot');
                 const startSlot = slots.querySelector(`[data-hour="${event.startHour}"]`);
                 
                 if (!startSlot) return;
@@ -756,8 +816,24 @@
                 eventElement.dataset.eventId = event.id;
                 eventElement.dataset.taskId = event.taskId; // Store taskId for moving
                 eventElement.style.background = event.color || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-                eventElement.style.width = `${(event.endHour - event.startHour) * 100}%`;
+                
+                // Calculate position and width based on duration
+                const duration = event.endHour - event.startHour;
+                const startIndex = event.startHour - 8; // 8am is index 0
+                
+                // Calculate position and width as percentages of the container
+                const slotPercentage = 100 / 12; // 12 slots total (8am-8pm)
+                const leftPosition = startIndex * slotPercentage;
+                const width = duration * slotPercentage;
+                
+                eventElement.style.position = 'absolute';
+                eventElement.style.left = `${leftPosition}%`;
+                eventElement.style.width = `${width}%`;
+                eventElement.style.top = '4px';
+                eventElement.style.bottom = '4px';
                 eventElement.style.zIndex = '10';
+                eventElement.style.margin = '0 4px';
+                
                 eventElement.textContent = event.taskTitle;
                 eventElement.draggable = true;
                 
@@ -785,7 +861,7 @@
                     });
                 });
                 
-                startSlot.appendChild(eventElement);
+                slots.appendChild(eventElement);
             }
             
             unscheduleEvent(eventId) {
@@ -801,13 +877,13 @@
                     this.storageService.removeScheduledEvent(eventId);
                     this.showMessage('Task unscheduled successfully', 'success');
                     
-                    // Add task back to pool
+                    // Add task back to pool immediately
                     const task = this.storageService.getTaskById(event.taskId);
                     if (task) {
                         this.createTaskElement(task);
                     }
                     
-                    // Refresh the view
+                    // Refresh calendar to remove the event
                     this.renderScheduledEvents();
                 } catch (error) {
                     this.showMessage(`Failed to unschedule task: ${error.message}`, 'error');
@@ -848,7 +924,7 @@
                     this.storageService.saveScheduledEvents(events);
                     this.showMessage(`Event moved successfully`, 'success');
                     
-                    // Refresh the view
+                    // Refresh calendar to show the moved event
                     this.renderScheduledEvents();
                 } catch (error) {
                     this.showMessage(`Failed to move event: ${error.message}`, 'error');
@@ -909,72 +985,57 @@
                 return `${year}-${month}-${day}`;
             }
             
-            addSampleTasks() {
-                const sampleTasks = [
-                    {
-                        id: 'task-1',
-                        name: 'Assembly Line Setup',
-                        duration: 2,
-                        color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                    },
-                    {
-                        id: 'task-2',
-                        name: 'Quality Control Check',
-                        duration: 1,
-                        color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-                    },
-                    {
-                        id: 'task-3',
-                        name: 'Machine Maintenance',
-                        duration: 3,
-                        color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-                    },
-                    {
-                        id: 'task-4',
-                        name: 'Product Testing',
-                        duration: 2,
-                        color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
-                    }
-                ];
-                
-                // Add tasks to storage
-                sampleTasks.forEach(task => {
-                    this.storageService.addBacklogTask(task);
-                });
-                
-                // Reload tasks
+            // Refresh entire scheduler
+            refreshScheduler() {
                 this.loadTasks();
+                this.renderCalendar();
+                this.updateDateDisplay();
             }
             
-            addSampleMachines() {
-                const sampleMachines = [
-                    {
-                        name: 'Machine A',
-                        city: 'Factory 1',
-                        status: 'active'
-                    },
-                    {
-                        name: 'Machine B',
-                        city: 'Factory 1',
-                        status: 'active'
-                    },
-                    {
-                        name: 'Machine C',
-                        city: 'Factory 2',
-                        status: 'active'
-                    }
-                ];
+            // Ensure task pool is clean and properly filtered
+            ensureTaskPoolClean() {
+                const taskPool = this.elements.taskPool;
+                const tasks = this.storageService.getBacklogTasks();
+                const scheduledEvents = this.storageService.getScheduledEvents();
                 
-                // Add machines to storage
-                const existingMachines = this.storageService.getMachines();
-                const allMachines = [...existingMachines, ...sampleMachines];
-                this.storageService.saveMachines(allMachines);
+                // Remove any tasks that are already scheduled
+                const taskElements = taskPool.querySelectorAll('.task-item');
+                taskElements.forEach(element => {
+                    const taskId = element.dataset.taskId;
+                    const isScheduled = scheduledEvents.some(event => 
+                        event.taskId === taskId || event.id === taskId
+                    );
+                    if (isScheduled) {
+                        element.remove();
+                    }
+                });
             }
+            
+
         }
         
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
             window.newScheduler = new NewScheduler();
+            
+            // Listen for storage changes to refresh scheduler
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'backlogTasks' || e.key === 'scheduledEvents' || e.key === 'schedulerMachines') {
+                    window.newScheduler.refreshScheduler();
+                }
+            });
+            
+            // Listen for data change events for real-time updates
+            window.addEventListener('dataChange', (e) => {
+                const { dataType, action } = e.detail;
+                console.log(`Data change detected: ${dataType} ${action}`);
+                
+                if (dataType === 'machines' || dataType === 'tasks') {
+                    // Run sync and refresh
+                    window.storageService.syncGanttChartData();
+                    window.newScheduler.refreshScheduler();
+                }
+            });
         });
     </script>
 </body>

@@ -425,7 +425,7 @@ class SharedCalendarRenderer {
             });
         } else {
             // Fallback if banner system not available
-            if (confirm(`Delete "${event.taskTitle || event.name}" from the schedule?`)) {
+            showDeleteConfirmation(`Delete "${event.taskTitle || event.name}" from the schedule?`, () => {
                 if (window.storageService) {
                     window.storageService.removeScheduledEvent(event.id);
                 }
@@ -434,7 +434,7 @@ class SharedCalendarRenderer {
                 if (eventElement) {
                     eventElement.remove();
                 }
-            }
+            });
         }
     }
     

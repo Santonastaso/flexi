@@ -1,112 +1,252 @@
-// Product Catalog Logic
-const productsKey = 'productsCatalog';
-
-function getProducts() {
-    return JSON.parse(localStorage.getItem(productsKey) || '[]');
-}
-
-function saveProducts(products) {
-    localStorage.setItem(productsKey, JSON.stringify(products));
-}
-
-function renderProducts() {
-    const products = getProducts();
-    const list = document.getElementById('productsList');
-    list.innerHTML = '';
-    if (products.length === 0) {
-        const row = document.createElement('tr');
-        row.innerHTML = '<td colspan="7" style="text-align:center; color: var(--text-light);">No products added yet.</td>';
-        list.appendChild(row);
-        return;
+/**
+ * Product Catalog Manager - Handles printing and packaging product types
+ */
+class ProductCatalogManager {
+    constructor() {
+        this.storageService = window.storageService;
+        this.elements = {};
+        this.init();
     }
-    products.forEach((product, idx) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${product.name}</td>
-            <td>${product.description}</td>
-            <td>${product.speed}</td>
-            <td>${product.setupTime}</td>
-            <td>${product.employeesPerHour}</td>
-            <td>$${product.employeeCostPerHour}</td>
-            <td style="text-align: center;">
-                <button class="action-btn delete-btn" data-idx="${idx}" title="Delete Product">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.134H8.09a2.09 2.09 0 00-2.09 2.134v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                    </svg>
-                </button>
-            </td>
+
+    init() {
+        // Ensure storage service is available
+        if (!this.storageService) {
+            console.error('StorageService not available');
+            return;
+        }
+        
+        this.bindElements();
+        this.attachEventListeners();
+        this.loadProductCatalog();
+        this.setupDynamicLabels();
+    }
+
+    bindElements() {
+        this.elements = {
+            form: document.getElementById('productForm'),
+            nameInput: document.getElementById('productName'),
+            descriptionInput: document.getElementById('productDescription'),
+            typeSelect: document.getElementById('productType'),
+            speedInput: document.getElementById('productSpeed'),
+            speedLabel: document.getElementById('speedLabel'),
+            setupTimeInput: document.getElementById('productSetupTime'),
+            employeesInput: document.getElementById('productEmployees'),
+            employeeCostInput: document.getElementById('productEmployeeCost'),
+            addBtn: document.getElementById('addProductBtn'),
+            catalogList: document.getElementById('productCatalogList')
+        };
+    }
+
+    attachEventListeners() {
+        this.elements.addBtn.addEventListener('click', () => this.addProduct());
+        this.elements.typeSelect.addEventListener('change', () => this.updateSpeedLabel());
+        
+        // Add enter key support
+        this.elements.form.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.addProduct();
+            }
+        });
+    }
+
+    setupDynamicLabels() {
+        this.updateSpeedLabel();
+    }
+
+    updateSpeedLabel() {
+        const type = this.elements.typeSelect.value;
+        const speedLabel = this.elements.speedLabel;
+        
+        if (type === 'printing') {
+            speedLabel.textContent = 'Speed (meters/minute)';
+            this.elements.speedInput.placeholder = 'e.g., 70';
+        } else if (type === 'packaging') {
+            speedLabel.textContent = 'Speed (packages/hour)';
+            this.elements.speedInput.placeholder = 'e.g., 5000';
+        } else {
+            speedLabel.textContent = 'Speed';
+            this.elements.speedInput.placeholder = 'Speed';
+        }
+    }
+
+    addProduct() {
+        const productData = this.collectFormData();
+        
+        if (!this.validateProductData(productData)) {
+            return;
+        }
+
+        try {
+            this.storageService.addMachineryCatalogItem(productData);
+            this.clearForm();
+            this.loadProductCatalog();
+            this.showMessage('Product added successfully!', 'success');
+        } catch (error) {
+            this.showMessage('Error adding product: ' + error.message, 'error');
+        }
+    }
+
+    collectFormData() {
+        return {
+            name: this.elements.nameInput.value.trim(),
+            description: this.elements.descriptionInput.value.trim(),
+            type: this.elements.typeSelect.value,
+            speed: parseFloat(this.elements.speedInput.value),
+            setupTime: parseFloat(this.elements.setupTimeInput.value),
+            employees: parseInt(this.elements.employeesInput.value),
+            employeeCost: parseFloat(this.elements.employeeCostInput.value)
+        };
+    }
+
+    validateProductData(data) {
+        if (!data.name) {
+            this.showMessage('Please enter a product name', 'error');
+            return false;
+        }
+
+        if (!data.type) {
+            this.showMessage('Please select a product type', 'error');
+            return false;
+        }
+
+        if (!data.speed || data.speed <= 0) {
+            this.showMessage('Please enter a valid speed', 'error');
+            return false;
+        }
+
+        if (data.setupTime < 0) {
+            this.showMessage('Setup time cannot be negative', 'error');
+            return false;
+        }
+
+        if (!data.employees || data.employees < 1) {
+            this.showMessage('Number of people must be at least 1', 'error');
+            return false;
+        }
+
+        if (!data.employeeCost || data.employeeCost < 0) {
+            this.showMessage('Employee cost cannot be negative', 'error');
+            return false;
+        }
+
+        return true;
+    }
+
+    clearForm() {
+        this.elements.nameInput.value = '';
+        this.elements.descriptionInput.value = '';
+        this.elements.typeSelect.value = '';
+        this.elements.speedInput.value = '';
+        this.elements.setupTimeInput.value = '';
+        this.elements.employeesInput.value = '';
+        this.elements.employeeCostInput.value = '';
+        this.updateSpeedLabel();
+    }
+
+    loadProductCatalog() {
+        const products = this.storageService.getMachineryCatalog();
+        this.renderProductCatalog(products);
+    }
+
+    renderProductCatalog(products) {
+        if (!products || products.length === 0) {
+            this.elements.catalogList.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center" style="padding: 2rem; color: #6b7280;">
+                        No products in catalog. Add products to get started.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        this.elements.catalogList.innerHTML = products.map(product => 
+            this.createProductRow(product)
+        ).join('');
+    }
+
+    createProductRow(product) {
+        const speedUnit = product.type === 'printing' ? 'm/min' : 'pkg/h';
+        
+        return `
+            <tr>
+                <td><strong>${product.name}</strong></td>
+                <td>${product.description || '-'}</td>
+                <td>
+                    <span class="badge ${product.type === 'printing' ? 'badge-blue' : 'badge-green'}">
+                        ${product.type}
+                    </span>
+                </td>
+                <td>${product.speed} ${speedUnit}</td>
+                <td>${product.setupTime}h</td>
+                <td>${product.employees}</td>
+                <td>$${product.employeeCost}/hr</td>
+                <td class="text-center">
+                    <button class="btn-delete" onclick="productCatalogManager.deleteProduct('${product.id}')" 
+                            title="Delete product">
+                        🗑️
+                    </button>
+                </td>
+            </tr>
         `;
-        list.appendChild(row);
-    });
-}
-
-function addProduct() {
-    const name = document.getElementById('productName').value.trim();
-    const description = document.getElementById('productDescription').value.trim();
-    const speed = parseFloat(document.getElementById('productSpeed').value);
-    const setupTime = parseFloat(document.getElementById('productSetupTime').value);
-    const employeesPerHour = parseInt(document.getElementById('productEmployees').value);
-    const employeeCostPerHour = parseFloat(document.getElementById('productEmployeeCost').value);
-    if (!name || !description || isNaN(speed) || isNaN(setupTime) || isNaN(employeesPerHour) || isNaN(employeeCostPerHour)) {
-        showBanner('Please fill all fields correctly.', 'error');
-        return;
     }
-    const products = getProducts();
-    products.push({ name, description, speed, setupTime, employeesPerHour, employeeCostPerHour });
-    saveProducts(products);
-    renderProducts();
-    document.getElementById('productForm').querySelectorAll('input').forEach(i => i.value = '');
-    showBanner('Product added!', 'success');
-}
 
-function showBanner(message, type) {
-    let banner = document.getElementById('banner');
-    if (!banner) {
-        banner = document.createElement('div');
-        banner.id = 'banner';
-        banner.className = 'banner';
-        document.body.appendChild(banner);
+    deleteProduct(productId) {
+        const product = this.storageService.getMachineryById(productId);
+        const message = product ? 
+            `Are you sure you want to delete "${product.name}"? This action cannot be undone.` :
+            'Are you sure you want to delete this product? This action cannot be undone.';
+            
+        showDeleteConfirmation(message, () => {
+            try {
+                this.storageService.removeMachineryCatalogItem(productId);
+                this.loadProductCatalog();
+                this.showMessage('Product deleted successfully', 'success');
+            } catch (error) {
+                this.showMessage('Error deleting product: ' + error.message, 'error');
+            }
+        });
     }
-    banner.textContent = message;
-    banner.className = 'banner ' + type;
-    banner.style.display = 'block';
-    setTimeout(() => { banner.style.display = 'none'; }, 2000);
-}
 
-function confirmDelete(idx) {
-    showConfirmBanner('Delete this product?', () => {
-        const products = getProducts();
-        products.splice(idx, 1);
-        saveProducts(products);
-        renderProducts();
-        showBanner('Product deleted.', 'success');
-    });
-}
+    showMessage(message, type = 'info') {
+        // Create or get message container
+        let messageContainer = document.querySelector('.message-container');
+        if (!messageContainer) {
+            messageContainer = document.createElement('div');
+            messageContainer.className = 'message-container';
+            document.querySelector('main').insertBefore(messageContainer, document.querySelector('main').firstChild);
+        }
 
-function showConfirmBanner(message, onConfirm) {
-    let confirmBanner = document.getElementById('confirmBanner');
-    if (!confirmBanner) {
-        confirmBanner = document.createElement('div');
-        confirmBanner.id = 'confirmBanner';
-        confirmBanner.className = 'confirm-banner';
-        document.body.appendChild(confirmBanner);
+        // Create message element
+        const messageEl = document.createElement('div');
+        messageEl.className = `message message-${type}`;
+        messageEl.textContent = message;
+
+        // Add to container
+        messageContainer.appendChild(messageEl);
+
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            messageEl.remove();
+            if (messageContainer.children.length === 0) {
+                messageContainer.remove();
+            }
+        }, 3000);
     }
-    confirmBanner.innerHTML = `<span>${message}</span><button id="confirmYes">Yes</button><button id="confirmNo">No</button>`;
-    confirmBanner.style.display = 'block';
-    document.getElementById('confirmYes').onclick = () => {
-        confirmBanner.style.display = 'none';
-        onConfirm();
+}
+
+// Initialize when DOM is loaded and storage service is available
+document.addEventListener('DOMContentLoaded', () => {
+    // Wait for storage service to be available
+    const initializeManager = () => {
+        if (window.storageService) {
+            window.productCatalogManager = new ProductCatalogManager();
+        } else {
+            // If storage service not ready, wait a bit and try again
+            setTimeout(initializeManager, 50);
+        }
     };
-    document.getElementById('confirmNo').onclick = () => {
-        confirmBanner.style.display = 'none';
-    };
-}
-
-document.getElementById('addProductBtn').onclick = addProduct;
-document.getElementById('productsList').onclick = function(e) {
-    if (e.target.classList.contains('delete-btn')) {
-        confirmDelete(parseInt(e.target.dataset.idx));
-    }
-};
-
-renderProducts();
+    
+    initializeManager();
+});

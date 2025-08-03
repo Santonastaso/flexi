@@ -1,0 +1,489 @@
+/**
+ * New Backlog Manager - Handles printing and packaging production lots
+ * Implements Italian calculation formulas for Stampa and Confezionamento
+ */
+class NewBacklogManager {
+    constructor() {
+        this.storageService = window.storageService;
+        this.elements = {};
+        this.currentCalculation = null;
+        this.init();
+    }
+
+    init() {
+        // Ensure storage service is available
+        if (!this.storageService) {
+            console.error('StorageService not available');
+            return;
+        }
+        
+        this.bindElements();
+        this.attachEventListeners();
+        this.loadMachines();
+        this.loadBacklog();
+        this.setupFormValidation();
+    }
+
+    bindElements() {
+        this.elements = {
+            // Form inputs
+            taskName: document.getElementById('taskName'),
+            numeroBuste: document.getElementById('numeroBuste'),
+            passoBusta: document.getElementById('passoBusta'),
+            altezzaBusta: document.getElementById('altezzaBusta'),
+            fasciaBusta: document.getElementById('fasciaBusta'),
+            pezziScatola: document.getElementById('pezziScatola'),
+            includePrinting: document.getElementById('includePrinting'),
+            includePackaging: document.getElementById('includePackaging'),
+            taskColor: document.getElementById('taskColor'),
+            printingMachine: document.getElementById('printingMachine'),
+            packagingMachine: document.getElementById('packagingMachine'),
+            
+            // Buttons
+            calculateBtn: document.getElementById('calculateBtn'),
+            createTaskBtn: document.getElementById('createTask'),
+            
+            // Results
+            calculationResults: document.getElementById('calculationResults'),
+            linearMeters: document.getElementById('linearMeters'),
+            printingTime: document.getElementById('printingTime'),
+            printingCost: document.getElementById('printingCost'),
+            packagingTime: document.getElementById('packagingTime'),
+            packagingCost: document.getElementById('packagingCost'),
+            totalTime: document.getElementById('totalTime'),
+            totalCost: document.getElementById('totalCost'),
+            
+            // Table
+            backlogTableBody: document.getElementById('backlog-table-body'),
+            
+            // Preview elements
+            previewFascia: document.getElementById('previewFascia'),
+            previewAltezza: document.getElementById('previewAltezza'),
+            previewPasso: document.getElementById('previewPasso'),
+            previewNumeroBuste: document.getElementById('previewNumeroBuste'),
+            previewPezziScatola: document.getElementById('previewPezziScatola'),
+            previewTotalBoxes: document.getElementById('previewTotalBoxes'),
+            colorPreview: document.getElementById('colorPreview')
+        };
+    }
+
+    attachEventListeners() {
+        this.elements.calculateBtn.addEventListener('click', () => this.calculateProduction());
+        this.elements.createTaskBtn.addEventListener('click', () => this.addToBacklog());
+        
+        // Auto-enable/disable machine selects based on checkboxes
+        this.elements.includePrinting.addEventListener('change', () => this.updateMachineSelects());
+        this.elements.includePackaging.addEventListener('change', () => this.updateMachineSelects());
+        
+        // Form validation and preview updates
+        const inputs = [this.elements.numeroBuste, this.elements.passoBusta, this.elements.altezzaBusta, 
+                       this.elements.fasciaBusta, this.elements.pezziScatola];
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                this.validateForm();
+                this.updatePreview();
+            });
+        });
+        
+        // Color preview update
+        this.elements.taskColor.addEventListener('change', () => this.updateColorPreview());
+    }
+
+    setupFormValidation() {
+        this.validateForm();
+        this.updateMachineSelects();
+        this.updatePreview(); // Initial preview update
+        this.updateColorPreview(); // Initial color preview
+    }
+
+    updateColorPreview() {
+        const selectedColor = this.elements.taskColor.value;
+        if (this.elements.colorPreview) {
+            this.elements.colorPreview.style.backgroundColor = selectedColor;
+        }
+    }
+
+    updatePreview() {
+        // Get current form values
+        const numeroBuste = this.elements.numeroBuste.value || '';
+        const passoBusta = this.elements.passoBusta.value || '';
+        const altezzaBusta = this.elements.altezzaBusta.value || '';
+        const fasciaBusta = this.elements.fasciaBusta.value || '';
+        const pezziScatola = this.elements.pezziScatola.value || '';
+        
+        // Update SVG labels
+        this.elements.previewFascia.textContent = fasciaBusta ? `${fasciaBusta}mm` : '-';
+        this.elements.previewAltezza.textContent = altezzaBusta ? `${altezzaBusta}mm` : '-';
+        this.elements.previewPasso.textContent = passoBusta ? `${passoBusta}mm` : '-';
+        
+        // Update detail values
+        this.elements.previewNumeroBuste.textContent = numeroBuste || '-';
+        this.elements.previewPezziScatola.textContent = pezziScatola || '-';
+        
+        // Calculate and show total boxes
+        if (numeroBuste && pezziScatola) {
+            const totalBoxes = Math.ceil(parseInt(numeroBuste) / parseInt(pezziScatola));
+            this.elements.previewTotalBoxes.textContent = totalBoxes.toLocaleString();
+        } else {
+            this.elements.previewTotalBoxes.textContent = '-';
+        }
+    }
+
+    validateForm() {
+        const hasRequiredFields = this.elements.taskName.value.trim() &&
+                                this.elements.numeroBuste.value &&
+                                this.elements.passoBusta.value &&
+                                this.elements.altezzaBusta.value &&
+                                this.elements.fasciaBusta.value &&
+                                this.elements.pezziScatola.value;
+        
+        const hasAtLeastOneProcess = this.elements.includePrinting.checked || this.elements.includePackaging.checked;
+        
+        this.elements.calculateBtn.disabled = !hasRequiredFields || !hasAtLeastOneProcess;
+    }
+
+    updateMachineSelects() {
+        this.elements.printingMachine.disabled = !this.elements.includePrinting.checked;
+        this.elements.packagingMachine.disabled = !this.elements.includePackaging.checked;
+        
+        if (!this.elements.includePrinting.checked) {
+            this.elements.printingMachine.value = '';
+        }
+        if (!this.elements.includePackaging.checked) {
+            this.elements.packagingMachine.value = '';
+        }
+    }
+
+    loadMachines() {
+        const catalog = this.storageService.getMachineryCatalog();
+        
+        // Load printing machines
+        const printingMachines = catalog.filter(m => m.type === 'printing');
+        this.elements.printingMachine.innerHTML = '<option value="">Select printing machine</option>' +
+            printingMachines.map(m => `<option value="${m.id}">${m.name} (${m.speed} m/min)</option>`).join('');
+        
+        // Load packaging machines
+        const packagingMachines = catalog.filter(m => m.type === 'packaging');
+        this.elements.packagingMachine.innerHTML = '<option value="">Select packaging machine</option>' +
+            packagingMachines.map(m => `<option value="${m.id}">${m.name} (${m.speed} pkg/h)</option>`).join('');
+    }
+
+    calculateProduction() {
+        const data = this.collectFormData();
+        
+        if (!this.validateCalculationData(data)) {
+            return;
+        }
+
+        try {
+            const calculation = this.performCalculations(data);
+            this.displayResults(calculation);
+            this.currentCalculation = calculation;
+            this.elements.createTaskBtn.disabled = false;
+        } catch (error) {
+            this.showMessage('Calculation error: ' + error.message, 'error');
+        }
+    }
+
+    collectFormData() {
+        return {
+            name: this.elements.taskName.value.trim(),
+            numeroBuste: parseInt(this.elements.numeroBuste.value),
+            passoBusta: parseInt(this.elements.passoBusta.value),
+            altezzaBusta: parseInt(this.elements.altezzaBusta.value),
+            fasciaBusta: parseInt(this.elements.fasciaBusta.value),
+            pezziScatola: parseInt(this.elements.pezziScatola.value),
+            includePrinting: this.elements.includePrinting.checked,
+            includePackaging: this.elements.includePackaging.checked,
+            printingMachineId: this.elements.printingMachine.value,
+            packagingMachineId: this.elements.packagingMachine.value,
+            color: this.elements.taskColor.value
+        };
+    }
+
+    validateCalculationData(data) {
+        if (data.includePrinting && !data.printingMachineId) {
+            this.showMessage('Please select a printing machine', 'error');
+            return false;
+        }
+        
+        if (data.includePackaging && !data.packagingMachineId) {
+            this.showMessage('Please select a packaging machine', 'error');
+            return false;
+        }
+        
+        return true;
+    }
+
+    performCalculations(data) {
+        const catalog = this.storageService.getMachineryCatalog();
+        const result = {
+            linearMeters: 0,
+            printing: { time: 0, cost: 0 },
+            packaging: { time: 0, cost: 0 },
+            total: { time: 0, cost: 0 }
+        };
+
+        // Calculate linear meters needed
+        // Formula: mt Lineari Necessari = Numero Buste * Passo / 1000
+        result.linearMeters = (data.numeroBuste * data.passoBusta) / 1000;
+
+        // PRINTING CALCULATIONS (Stampa)
+        if (data.includePrinting) {
+            const printingMachine = catalog.find(m => m.id === data.printingMachineId);
+            if (printingMachine) {
+                // Tempo Stampa = mt Lineari Necessari / Velocità (converted to minutes)
+                const printingTimeMinutes = result.linearMeters / printingMachine.speed;
+                result.printing.time = printingTimeMinutes / 60; // Convert to hours
+                
+                // Setup time is already in hours
+                const totalPrintingTime = result.printing.time + printingMachine.setupTime;
+                
+                // Costo Stampa = (Tempo Stampa + Tempo Attrezzaggio) * (Costo Orario Fase / 60) * employees
+                const hourlyCost = printingMachine.employees * printingMachine.employeeCost;
+                result.printing.cost = totalPrintingTime * hourlyCost;
+                result.printing.totalTime = totalPrintingTime;
+            }
+        }
+
+        // PACKAGING CALCULATIONS (Confezionamento)
+        if (data.includePackaging) {
+            const packagingMachine = catalog.find(m => m.id === data.packagingMachineId);
+            if (packagingMachine) {
+                // Ore di Lavorazione = Numero Buste / Velocità Oraria Fase
+                result.packaging.time = data.numeroBuste / packagingMachine.speed;
+                
+                // Total time including setup
+                const totalPackagingTime = result.packaging.time + packagingMachine.setupTime;
+                
+                // Costo Confezionamento = (Ore di Lavorazione + Tempo Attrezzaggio) * Costo Orario Fase
+                const hourlyCost = packagingMachine.employees * packagingMachine.employeeCost;
+                result.packaging.cost = totalPackagingTime * hourlyCost;
+                result.packaging.totalTime = totalPackagingTime;
+            }
+        }
+
+        // Calculate totals
+        result.total.time = (result.printing.totalTime || 0) + (result.packaging.totalTime || 0);
+        result.total.cost = result.printing.cost + result.packaging.cost;
+
+        return result;
+    }
+
+    displayResults(calculation) {
+        this.elements.linearMeters.textContent = `${calculation.linearMeters.toFixed(2)} m`;
+        
+        if (this.elements.includePrinting.checked) {
+            this.elements.printingTime.textContent = `${calculation.printing.totalTime.toFixed(2)} h`;
+            this.elements.printingCost.textContent = `€${calculation.printing.cost.toFixed(2)}`;
+        } else {
+            this.elements.printingTime.textContent = '-';
+            this.elements.printingCost.textContent = '-';
+        }
+        
+        if (this.elements.includePackaging.checked) {
+            this.elements.packagingTime.textContent = `${calculation.packaging.totalTime.toFixed(2)} h`;
+            this.elements.packagingCost.textContent = `€${calculation.packaging.cost.toFixed(2)}`;
+        } else {
+            this.elements.packagingTime.textContent = '-';
+            this.elements.packagingCost.textContent = '-';
+        }
+        
+        this.elements.totalTime.textContent = `${calculation.total.time.toFixed(2)} h`;
+        this.elements.totalCost.textContent = `€${calculation.total.cost.toFixed(2)}`;
+        
+        this.elements.calculationResults.style.display = 'block';
+    }
+
+    addToBacklog() {
+        if (!this.currentCalculation) {
+            this.showMessage('Please calculate first', 'error');
+            return;
+        }
+
+        const data = this.collectFormData();
+        
+        // Create tasks based on selected processes
+        const tasks = [];
+        
+        if (data.includePrinting) {
+            const printingMachine = this.storageService.getMachineryById(data.printingMachineId);
+            tasks.push({
+                name: `${data.name} - Printing`,
+                type: 'printing',
+                numeroBuste: data.numeroBuste,
+                passoBusta: data.passoBusta,
+                altezzaBusta: data.altezzaBusta,
+                fasciaBusta: data.fasciaBusta,
+                pezziScatola: data.pezziScatola,
+                machineId: data.printingMachineId,
+                machineName: printingMachine.name,
+                totalTime: this.currentCalculation.printing.totalTime.toFixed(2),
+                totalCost: this.currentCalculation.printing.cost.toFixed(2),
+                color: data.color,
+                linearMeters: this.currentCalculation.linearMeters.toFixed(2)
+            });
+        }
+        
+        if (data.includePackaging) {
+            const packagingMachine = this.storageService.getMachineryById(data.packagingMachineId);
+            tasks.push({
+                name: `${data.name} - Packaging`,
+                type: 'packaging',
+                numeroBuste: data.numeroBuste,
+                passoBusta: data.passoBusta,
+                altezzaBusta: data.altezzaBusta,
+                fasciaBusta: data.fasciaBusta,
+                pezziScatola: data.pezziScatola,
+                machineId: data.packagingMachineId,
+                machineName: packagingMachine.name,
+                totalTime: this.currentCalculation.packaging.totalTime.toFixed(2),
+                totalCost: this.currentCalculation.packaging.cost.toFixed(2),
+                color: data.color
+            });
+        }
+
+        try {
+            tasks.forEach(task => {
+                this.storageService.addBacklogTaskWithSync(task);
+            });
+            
+            this.showMessage(`Added ${tasks.length} task(s) to backlog`, 'success');
+            this.clearForm();
+            this.loadBacklog();
+        } catch (error) {
+            this.showMessage('Error adding to backlog: ' + error.message, 'error');
+        }
+    }
+
+    clearForm() {
+        this.elements.taskName.value = '';
+        this.elements.numeroBuste.value = '';
+        this.elements.passoBusta.value = '';
+        this.elements.altezzaBusta.value = '';
+        this.elements.fasciaBusta.value = '';
+        this.elements.pezziScatola.value = '';
+        this.elements.printingMachine.value = '';
+        this.elements.packagingMachine.value = '';
+        this.elements.calculationResults.style.display = 'none';
+        this.elements.createTaskBtn.disabled = true;
+        this.currentCalculation = null;
+        this.validateForm();
+        this.updatePreview(); // Reset preview
+        this.updateColorPreview(); // Reset color preview
+    }
+
+    loadBacklog() {
+        const tasks = this.storageService.getBacklogTasks();
+        this.renderBacklog(tasks);
+    }
+
+    renderBacklog(tasks) {
+        if (!tasks || tasks.length === 0) {
+            this.elements.backlogTableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center" style="padding: 2rem; color: #6b7280;">
+                        No tasks in backlog. Create production lots to get started.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        this.elements.backlogTableBody.innerHTML = tasks.map(task => 
+            this.createTaskRow(task)
+        ).join('');
+    }
+
+    createTaskRow(task) {
+        return `
+            <tr>
+                <td><strong>${task.name}</strong></td>
+                <td>
+                    <span class="badge ${task.type === 'printing' ? 'badge-blue' : 'badge-green'}">
+                        ${task.type}
+                    </span>
+                </td>
+                <td>${task.numeroBuste || '-'}</td>
+                <td>${task.totalTime}h</td>
+                <td>€${task.totalCost}</td>
+                <td>
+                    <div class="color-indicator" style="background-color: ${task.color}; width: 20px; height: 20px; border-radius: 50%; display: inline-block;"></div>
+                </td>
+                <td class="text-center">
+                    <button class="btn-delete" onclick="newBacklogManager.deleteTask('${task.id}')" 
+                            title="Delete task">
+                        🗑️
+                    </button>
+                </td>
+            </tr>
+        `;
+    }
+
+    deleteTask(taskId) {
+        const task = this.storageService.getTaskById(taskId);
+        
+        try {
+            // Check if task can be deleted (not scheduled on Gantt)
+            this.storageService.validateTaskCanBeDeleted(taskId);
+            
+            const message = task ? 
+                `Are you sure you want to delete "${task.name}"? This action cannot be undone.` :
+                'Are you sure you want to delete this task? This action cannot be undone.';
+                
+            showDeleteConfirmation(message, () => {
+                try {
+                    this.storageService.removeBacklogTaskWithSync(taskId);
+                    this.loadBacklog();
+                    this.showMessage('Task deleted successfully', 'success');
+                } catch (error) {
+                    this.showMessage('Error deleting task: ' + error.message, 'error');
+                }
+            });
+        } catch (error) {
+            // Task is scheduled - show specific error
+            this.showMessage(error.message + ' Move the task back to the pool first.', 'error');
+        }
+    }
+
+    showMessage(message, type = 'info') {
+        // Create or get message container
+        let messageContainer = document.querySelector('.message-container');
+        if (!messageContainer) {
+            messageContainer = document.createElement('div');
+            messageContainer.className = 'message-container';
+            document.querySelector('main').insertBefore(messageContainer, document.querySelector('main').firstChild);
+        }
+
+        // Create message element
+        const messageEl = document.createElement('div');
+        messageEl.className = `message message-${type}`;
+        messageEl.textContent = message;
+
+        // Add to container
+        messageContainer.appendChild(messageEl);
+
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            messageEl.remove();
+            if (messageContainer.children.length === 0) {
+                messageContainer.remove();
+            }
+        }, 3000);
+    }
+}
+
+// Initialize when DOM is loaded and storage service is available
+document.addEventListener('DOMContentLoaded', () => {
+    // Wait for storage service to be available
+    const initializeManager = () => {
+        if (window.storageService) {
+            window.newBacklogManager = new NewBacklogManager();
+        } else {
+            // If storage service not ready, wait a bit and try again
+            setTimeout(initializeManager, 50);
+        }
+    };
+    
+    initializeManager();
+});

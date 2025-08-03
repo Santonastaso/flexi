@@ -13,6 +13,11 @@ function showBanner(message, type) {
     setTimeout(() => { banner.style.display = 'none'; }, 2000);
 }
 
+// Standardized delete confirmation - this is the approved standard
+function showDeleteConfirmation(message, onConfirm) {
+    return showConfirmBanner(message, onConfirm);
+}
+
 function showConfirmBanner(message, onConfirm) {
     // Create modal overlay
     const modalOverlay = document.createElement('div');

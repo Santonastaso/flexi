@@ -3,59 +3,208 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ship - Manage Machinery</title>
+    <title>Ship - Machinery</title>
     
     <!-- External CSS -->
     <link rel="stylesheet" href="../styles/main.css">
+    
+    <style>
+        .machine-form {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        
+        .machine-form h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: var(--text-dark);
+            font-size: 18px;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .badge-green {
+            background-color: var(--primary-green);
+        }
+        
+        .badge-gray {
+            background-color: var(--gray-medium);
+        }
+        
+        /* Responsive adjustments for new grid layouts */
+        @media (max-width: 1200px) {
+            .form-grid--6-cols {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .form-grid--6-cols,
+            .form-grid--4-cols,
+            .form-grid--3-cols {
+                grid-template-columns: 1fr;
+            }
+            
+            .machine-form {
+                padding: 15px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="page-container">
         <!-- Navigation will be injected here by components/navigation.js -->
 
         <main>
+            <!-- Machine Type Selection -->
             <div class="content-section">
-                <h2>Add New Machine</h2>
-                <div class="form-grid form-grid--4-cols">
+                <h2>Add Machine</h2>
+                <div class="form-grid form-grid--3-cols">
                     <div class="form-group">
-                        <label for="machineName">Name</label>
-                        <input type="text" id="machineName" placeholder="e.g., BOBST M5">
+                        <label for="machineType">Machine Type</label>
+                        <select id="machineType" required>
+                            <option value="">Select machine type</option>
+                            <option value="printing">Printing</option>
+                            <option value="packaging">Packaging</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="machineCity">City</label>
-                        <select id="machineCity">
+                        <select id="machineCity" required>
+                            <option value="">Select city</option>
                             <option value="Milan">Milan</option>
                             <option value="Tallinn">Tallinn</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="machineLive">Live</label>
-                        <select id="machineLive">
+                        <label for="machineLive">Live Status</label>
+                        <select id="machineLive" required>
                             <option value="true">Yes</option>
                             <option value="false">No</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <button id="addMachine" class="btn btn-primary btn-small">Add Machine</button>
+                </div>
+
+                <!-- Printing Machine Form -->
+                <div id="printingMachineForm" class="machine-form" style="display: none;">
+                    <h3>Printing Machine Details</h3>
+                    <div class="form-grid form-grid--4-cols">
+                        <div class="form-group">
+                            <label for="printingNumeroMacchina">Numero Macchina</label>
+                            <input type="text" id="printingNumeroMacchina" placeholder="e.g., PM001" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="printingNominazione">Nominazione</label>
+                            <input type="text" id="printingNominazione" placeholder="Machine name/model" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="printingNumeroColori">Numero Colori</label>
+                            <input type="number" id="printingNumeroColori" placeholder="e.g., 4" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="printingFasciaMassima">Fascia Massima (mm)</label>
+                            <input type="number" id="printingFasciaMassima" placeholder="e.g., 320" min="1" required>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Packaging Machine Form -->
+                <div id="packagingMachineForm" class="machine-form" style="display: none;">
+                    <h3>Packaging Machine Details</h3>
+                    <div class="form-grid form-grid--6-cols">
+                        <div class="form-group">
+                            <label for="packagingNumeroMacchina">Numero Macchina</label>
+                            <input type="text" id="packagingNumeroMacchina" placeholder="e.g., PK001" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="packagingNominazione">Nominazione</label>
+                            <input type="text" id="packagingNominazione" placeholder="Machine name/model" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="packagingTipologiaMateriale">Tipologia Materiale Trattato</label>
+                            <input type="text" id="packagingTipologiaMateriale" placeholder="e.g., Paper, Plastic" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="packagingErogazione">Erogazione</label>
+                            <input type="text" id="packagingErogazione" placeholder="Output rate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="packagingPasso">Passo (mm)</label>
+                            <input type="number" id="packagingPasso" placeholder="e.g., 60" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="packagingFascia">Fascia (mm)</label>
+                            <input type="number" id="packagingFascia" placeholder="e.g., 160" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="packagingProduzioneGemellare"> Possibilità Produzione Gemellare
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions" style="margin-top: 20px;">
+                    <button id="addMachine" class="btn btn-primary" disabled>Add Machine</button>
                 </div>
             </div>
 
+            <!-- Printing Machines Table -->
             <div class="content-section">
-                <h2>Available Machines</h2>
-                <table class="modern-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>City</th>
-                            <th>Live</th>
-                            <th class="text-center" style="width: 80px;">Calendar</th>
-                            <th class="text-center" style="width: 80px;">Edit</th>
-                            <th class="text-center" style="width: 80px;">Delete</th>
-                        </tr>
-                    </thead>
-                    <tbody id="machinery-table-body">
-                    </tbody>
-                </table>
+                <h2>Printing Machines</h2>
+                <div class="table-container">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Numero Macchina</th>
+                                <th>Nominazione</th>
+                                <th>City</th>
+                                <th>Numero Colori</th>
+                                <th>Fascia Massima (mm)</th>
+                                <th>Live</th>
+                                <th class="text-center" style="width: 80px;">Calendar</th>
+                                <th class="text-center" style="width: 80px;">Edit</th>
+                                <th class="text-center" style="width: 80px;">Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody id="printing-machinery-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Packaging Machines Table -->
+            <div class="content-section">
+                <h2>Packaging Machines</h2>
+                <div class="table-container">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Numero Macchina</th>
+                                <th>Nominazione</th>
+                                <th>City</th>
+                                <th>Tipologia Materiale</th>
+                                <th>Erogazione</th>
+                                <th>Passo (mm)</th>
+                                <th>Fascia (mm)</th>
+                                <th>Produzione Gemellare</th>
+                                <th>Live</th>
+                                <th class="text-center" style="width: 80px;">Calendar</th>
+                                <th class="text-center" style="width: 80px;">Edit</th>
+                                <th class="text-center" style="width: 80px;">Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody id="packaging-machinery-table-body">
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </main>
     </div>
@@ -63,7 +212,7 @@
     <!-- External JavaScript -->
     <script src="../scripts/storageService.js"></script>
     <script src="../scripts/banner.js"></script>
-    <script src="../scripts/machineryManager.js"></script>
+    <script src="../scripts/newMachineryManager.js"></script>
     <script src="../components/navigation.js"></script>
 </body>
 </html>

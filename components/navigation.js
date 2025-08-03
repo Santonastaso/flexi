@@ -11,27 +11,45 @@ class Navigation {
                 href: 'index.html'
             },
             pages: {
-                home: { href: 'index.html', label: 'Home' },
-                machinery: { href: 'machinery.html', label: 'Manage Machinery' },
-                backlog: { href: 'backlog.html', label: 'Manage Backlog' },
-                scheduler: { href: 'scheduler_v2.html', label: 'Scheduler' }
+                home: { href: 'index.html', label: 'Home', icon: '🏠' },
+                machinery: { href: 'machinery.html', label: 'Machinery', icon: '⚙️' },
+                machineCatalog: { href: 'products_catalog.html', label: 'Catalog', icon: '📋' },
+                backlog: { href: 'backlog.html', label: 'Backlog', icon: '📝' },
+                scheduler: { href: 'new_scheduler.html', label: 'Scheduler', icon: '📅' }
             }
         };
     }
     
     /**
-     * Generate navigation HTML based on current page
+     * Generate sidebar navigation HTML
      */
     generateNavHTML() {
-        const navLinks = this.getNavigationLinks();
-        
         return `
-            <header>
-                <a href="${this.navigationData.logo.href}" class="logo">${this.navigationData.logo.text}</a>
-                <nav>
-                    ${navLinks.map(link => `<a href="${link.href}">${link.label}</a>`).join('')}
-                </nav>
-            </header>
+            <div class="sidebar">
+                <div class="sidebar-logo">
+                    <a href="${this.navigationData.logo.href}">${this.navigationData.logo.text}</a>
+                </div>
+                
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Navigation</div>
+                    <nav class="sidebar-nav">
+                        <ul>
+                            ${Object.entries(this.navigationData.pages).map(([key, page]) => `
+                                <li>
+                                    <a href="${page.href}" class="${key === this.currentPage ? 'active' : ''}">
+                                        <span class="nav-icon">${page.icon}</span>
+                                        <span>${page.label}</span>
+                                    </a>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+            
+            <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+                <span style="font-size: 20px;">☰</span>
+            </button>
         `;
     }
     
@@ -47,6 +65,14 @@ class Navigation {
             
             case 'machinery':
                 return [
+                    this.navigationData.pages.machineCatalog,
+                    this.navigationData.pages.backlog,
+                    this.navigationData.pages.scheduler
+                ];
+            
+            case 'machineCatalog':
+                return [
+                    this.navigationData.pages.machinery,
                     this.navigationData.pages.backlog,
                     this.navigationData.pages.scheduler
                 ];
@@ -54,12 +80,14 @@ class Navigation {
             case 'backlog':
                 return [
                     this.navigationData.pages.machinery,
+                    this.navigationData.pages.machineCatalog,
                     this.navigationData.pages.scheduler
                 ];
             
             case 'scheduler':
                 return [
                     this.navigationData.pages.machinery,
+                    this.navigationData.pages.machineCatalog,
                     this.navigationData.pages.backlog
                 ];
             
@@ -129,6 +157,8 @@ function initializeNavigation() {
         currentPage = 'home';
     } else if (path.includes('machinery.html')) {
         currentPage = 'machinery';
+    } else if (path.includes('products_catalog.html')) {
+        currentPage = 'machineCatalog';
     } else if (path.includes('backlog.html')) {
         currentPage = 'backlog';
     } else if (path.includes('scheduler')) {
@@ -143,6 +173,8 @@ function initializeNavigation() {
             currentPage = 'backlog';
         } else if (document.getElementById('machinery-table-body')) {
             currentPage = 'machinery';
+        } else if (document.getElementById('machineryCatalogList')) {
+            currentPage = 'machineCatalog';
         } else if (document.getElementById('calendarContainer')) {
             currentPage = 'scheduler';
         } else if (document.getElementById('availability-calendar')) {
@@ -154,12 +186,28 @@ function initializeNavigation() {
     
     const navigation = new Navigation(currentPage);
     
-    // Try to replace existing header first
-    if (document.querySelector('header')) {
-        navigation.replaceHeader();
-    } else {
-        // If no header exists, prepend to page container
-        navigation.prependToPageContainer();
+    // Inject sidebar navigation
+    document.body.insertAdjacentHTML('afterbegin', navigation.generateNavHTML());
+    
+    // Wrap existing content in main-content div if not already wrapped
+    const pageContainer = document.querySelector('.page-container');
+    if (pageContainer && !pageContainer.closest('.main-content')) {
+        const mainContent = document.createElement('div');
+        mainContent.className = 'main-content';
+        
+        // Move page container into main-content
+        pageContainer.parentNode.insertBefore(mainContent, pageContainer);
+        mainContent.appendChild(pageContainer);
+    }
+}
+
+/**
+ * Toggle sidebar for mobile devices
+ */
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('open');
     }
 }
 
@@ -167,6 +215,7 @@ function initializeNavigation() {
 if (typeof window !== 'undefined') {
     window.Navigation = Navigation;
     window.initializeNavigation = initializeNavigation;
+    window.toggleSidebar = toggleSidebar;
 }
 
 // Auto-initialize when DOM is loaded
