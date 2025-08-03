@@ -376,6 +376,59 @@ class DataIntegrityTest {
             return false;
         }
     }
+    
+    /**
+     * Test SSOT (Single Source of Truth) for machines
+     */
+    testSSOTForMachines() {
+        console.log('🧪 Testing SSOT for machines...');
+        
+        try {
+            // Get machines from different sources
+            const allMachines = this.storageService.getMachines();
+            const validMachines = this.storageService.getValidMachinesForDisplay();
+            const ganttMachines = this.storageService.getValidGanttMachines();
+            const printingMachines = this.storageService.getPrintingMachines();
+            const packagingMachines = this.storageService.getPackagingMachines();
+            const liveMachines = this.storageService.getLiveMachines();
+            
+            // Check if all sources return the same valid machines
+            const allSourcesUseValidMachines = 
+                ganttMachines.length === validMachines.filter(m => m.live).length &&
+                printingMachines.length === validMachines.filter(m => m.type === 'printing').length &&
+                packagingMachines.length === validMachines.filter(m => m.type === 'packaging').length &&
+                liveMachines.length === validMachines.filter(m => m.live).length;
+            
+            // Check if "vvvvvv" machine is excluded from all sources
+            const vvvvvvInValidMachines = validMachines.some(m => m.name === 'vvvvvv' || m.nominazione === 'vvvvvv');
+            const vvvvvvInGanttMachines = ganttMachines.some(m => m.name === 'vvvvvv' || m.nominazione === 'vvvvvv');
+            const vvvvvvInPrintingMachines = printingMachines.some(m => m.name === 'vvvvvv' || m.nominazione === 'vvvvvv');
+            const vvvvvvInPackagingMachines = packagingMachines.some(m => m.name === 'vvvvvv' || m.nominazione === 'vvvvvv');
+            
+            const vvvvvvExcludedFromAll = !vvvvvvInValidMachines && !vvvvvvInGanttMachines && 
+                                         !vvvvvvInPrintingMachines && !vvvvvvInPackagingMachines;
+            
+            const testPassed = allSourcesUseValidMachines && vvvvvvExcludedFromAll;
+            
+            console.log(`Test ${testPassed ? 'PASSED' : 'FAILED'}: SSOT for machines`);
+            console.log('Results:', {
+                allMachinesCount: allMachines.length,
+                validMachinesCount: validMachines.length,
+                ganttMachinesCount: ganttMachines.length,
+                printingMachinesCount: printingMachines.length,
+                packagingMachinesCount: packagingMachines.length,
+                liveMachinesCount: liveMachines.length,
+                vvvvvvExcludedFromAll,
+                allSourcesUseValidMachines
+            });
+            
+            return testPassed;
+            
+        } catch (error) {
+            console.error('Test FAILED:', error);
+            return false;
+        }
+    }
 }
 
 // Global test instance
@@ -389,5 +442,6 @@ console.log(`
 - dataIntegrityTest.createTestOrphanData()  // Create test orphan data
 - dataIntegrityTest.cleanupTestData()       // Clean up test data
 - dataIntegrityTest.testOrphanMachineFix()  // Test orphan machine fix
+- dataIntegrityTest.testSSOTForMachines()   // Test SSOT for machines
 - dataIntegrityTest.printTestResults()      // Print last test results
 `);
