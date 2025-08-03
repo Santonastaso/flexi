@@ -5,6 +5,7 @@
 class NewBacklogManager {
     constructor() {
         this.storageService = window.storageService;
+        this.editManager = window.editManager;
         this.elements = {};
         this.currentCalculation = null;
         this.init();
@@ -22,6 +23,13 @@ class NewBacklogManager {
         this.loadMachines();
         this.loadBacklog();
         this.setupFormValidation();
+        
+        // Initialize edit functionality
+        if (this.editManager) {
+            this.editManager.initTableEdit('.modern-table');
+            // Override saveEdit method
+            this.editManager.saveEdit = (row) => this.saveEdit(row);
+        }
     }
 
     bindElements() {
@@ -400,7 +408,7 @@ class NewBacklogManager {
             <tr data-task-id="${task.id}">
                 <td class="editable-cell" data-field="name">
                     <span class="static-value"><strong>${task.name}</strong></span>
-                    <input type="text" class="edit-input" value="${task.name}" style="display: none;">
+                    ${this.editManager.createEditInput('text', task.name)}
                 </td>
                 <td class="editable-cell" data-field="type">
                     <span class="static-value">
@@ -408,62 +416,33 @@ class NewBacklogManager {
                             ${task.type}
                         </span>
                     </span>
-                    <select class="edit-select" style="display: none;">
-                        <option value="printing" ${task.type === 'printing' ? 'selected' : ''}>Printing</option>
-                        <option value="packaging" ${task.type === 'packaging' ? 'selected' : ''}>Packaging</option>
-                    </select>
+                    ${this.editManager.createEditInput('select', task.type, {
+                        options: [
+                            { value: 'printing', label: 'Printing' },
+                            { value: 'packaging', label: 'Packaging' }
+                        ]
+                    })}
                 </td>
                 <td class="editable-cell" data-field="numeroBuste">
                     <span class="static-value">${task.numeroBuste || '-'}</span>
-                    <input type="number" class="edit-input" value="${task.numeroBuste || ''}" min="1" style="display: none;">
+                    ${this.editManager.createEditInput('number', task.numeroBuste, { min: 1 })}
                 </td>
                 <td class="editable-cell" data-field="totalTime">
                     <span class="static-value">${task.totalTime}h</span>
-                    <input type="number" class="edit-input" value="${task.totalTime}" min="0.1" step="0.1" style="display: none;">
+                    ${this.editManager.createEditInput('number', task.totalTime, { min: 0.1, step: 0.1 })}
                 </td>
                 <td class="editable-cell" data-field="totalCost">
                     <span class="static-value">€${task.totalCost}</span>
-                    <input type="number" class="edit-input" value="${task.totalCost}" min="0" step="0.01" style="display: none;">
+                    ${this.editManager.createEditInput('number', task.totalCost, { min: 0, step: 0.01 })}
                 </td>
                 <td class="editable-cell" data-field="color">
                     <span class="static-value">
                         <div class="color-indicator" style="background-color: ${task.color}; width: 20px; height: 20px; border-radius: 50%; display: inline-block;"></div>
                     </span>
-                    <div class="edit-color-container" style="display: none;">
-                        <select class="edit-select" onchange="this.nextElementSibling.style.backgroundColor = this.value;">
-                            <option value="#1a73e8" ${task.color === '#1a73e8' ? 'selected' : ''}>Blue</option>
-                            <option value="#34a853" ${task.color === '#34a853' ? 'selected' : ''}>Green</option>
-                            <option value="#ea4335" ${task.color === '#ea4335' ? 'selected' : ''}>Red</option>
-                            <option value="#fbbc04" ${task.color === '#fbbc04' ? 'selected' : ''}>Yellow</option>
-                            <option value="#9c27b0" ${task.color === '#9c27b0' ? 'selected' : ''}>Purple</option>
-                            <option value="#ff9800" ${task.color === '#ff9800' ? 'selected' : ''}>Orange</option>
-                            <option value="#00bcd4" ${task.color === '#00bcd4' ? 'selected' : ''}>Cyan</option>
-                            <option value="#e91e63" ${task.color === '#e91e63' ? 'selected' : ''}>Pink</option>
-                        </select>
-                        <div class="color-preview-edit" style="background-color: ${task.color}; width: 20px; height: 20px; border-radius: 50%; display: inline-block; margin-left: 8px;"></div>
-                    </div>
+                    ${this.editManager.createEditInput('color', task.color)}
                 </td>
                 <td class="text-center">
-                    <div class="action-buttons">
-                        <button class="btn-edit" onclick="newBacklogManager.toggleEdit('${task.id}')" 
-                                title="Edit task">
-                            ✏️
-                        </button>
-                        <button class="btn-delete" onclick="newBacklogManager.deleteTask('${task.id}')" 
-                                title="Delete task">
-                            🗑️
-                        </button>
-                    </div>
-                    <div class="save-cancel-buttons" style="display: none;">
-                        <button class="btn-save" onclick="newBacklogManager.saveEdit('${task.id}')" 
-                                title="Save changes">
-                            ✅
-                        </button>
-                        <button class="btn-cancel" onclick="newBacklogManager.cancelEdit('${task.id}')" 
-                                title="Cancel edit">
-                            ❌
-                        </button>
-                    </div>
+                    ${this.editManager.createActionButtons()}
                 </td>
             </tr>
         `;
@@ -570,25 +549,17 @@ class NewBacklogManager {
         row.querySelector('.save-cancel-buttons').style.display = 'none';
     }
 
-    saveEdit(taskId) {
-        const row = document.querySelector(`tr[data-task-id="${taskId}"]`);
-        if (!row) return;
+    saveEdit(row) {
+        const taskId = row.dataset.taskId;
+        if (!taskId) {
+            console.error('No task ID found in row');
+            return;
+        }
 
-        // Collect edited values
-        const updatedData = {};
-        row.querySelectorAll('.editable-cell').forEach(cell => {
-            const field = cell.dataset.field;
-            const input = cell.querySelector('.edit-input, .edit-select');
-            if (input) {
-                if (field === 'color') {
-                    // For color, get the value from the select element
-                    const colorSelect = cell.querySelector('.edit-select');
-                    updatedData[field] = colorSelect ? colorSelect.value : input.value;
-                } else {
-                    updatedData[field] = input.value;
-                }
-            }
-        });
+        // Collect edited values using the edit manager
+        const updatedData = this.editManager.collectEditedValues(row);
+
+        console.log('Collected updated data:', updatedData);
 
         // Validate data
         if (!updatedData.name || updatedData.name.trim() === '') {
@@ -615,12 +586,18 @@ class NewBacklogManager {
                 color: updatedData.color
             };
 
+            console.log('Original task:', task);
+            console.log('Updated task:', updatedTask);
+
             // Save updated task
             this.storageService.saveBacklogTasksWithSync(
                 this.storageService.getBacklogTasks().map(t => 
                     String(t.id) === String(taskId) ? updatedTask : t
                 )
             );
+
+            // Exit edit mode
+            this.editManager.cancelEdit(row);
 
             // Update display
             this.loadBacklog();
