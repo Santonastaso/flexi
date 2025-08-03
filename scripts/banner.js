@@ -19,10 +19,17 @@ function showDeleteConfirmation(message, onConfirm) {
 }
 
 function showConfirmBanner(message, onConfirm) {
+    // Remove any existing modal first
+    const existingModal = document.getElementById('confirmModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
     // Create modal overlay
     const modalOverlay = document.createElement('div');
     modalOverlay.className = 'modal-overlay';
     modalOverlay.id = 'confirmModal';
+    modalOverlay.style.zIndex = '10000'; // Ensure it's on top
     
     // Create modal content
     const modalContent = document.createElement('div');
@@ -60,20 +67,45 @@ function showConfirmBanner(message, onConfirm) {
     // Add to DOM
     document.body.appendChild(modalOverlay);
     
+    // Force modal to be visible
+    setTimeout(() => {
+        modalOverlay.style.opacity = '1';
+        modalContent.style.transform = 'translateY(0)';
+    }, 10);
+    
     // Add event listeners
     const confirmYes = document.getElementById('confirmYes');
     const confirmNo = document.getElementById('confirmNo');
     
+    let isClosing = false;
+    
     const closeModal = () => {
-        document.body.removeChild(modalOverlay);
+        if (isClosing) return; // Prevent multiple calls
+        isClosing = true;
+        
+        // Fade out animation
+        modalOverlay.style.opacity = '0';
+        modalContent.style.transform = 'translateY(-20px)';
+        
+        setTimeout(() => {
+            if (modalOverlay.parentNode) {
+                modalOverlay.remove();
+            }
+        }, 300);
     };
     
-    confirmYes.addEventListener('click', () => {
+    confirmYes.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         closeModal();
-        onConfirm();
+        setTimeout(() => onConfirm(), 300);
     });
     
-    confirmNo.addEventListener('click', closeModal);
+    confirmNo.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeModal();
+    });
     
     // Close on overlay click
     modalOverlay.addEventListener('click', (e) => {
@@ -85,6 +117,7 @@ function showConfirmBanner(message, onConfirm) {
     // Close on Escape key
     const handleEscape = (e) => {
         if (e.key === 'Escape') {
+            e.preventDefault();
             closeModal();
             document.removeEventListener('keydown', handleEscape);
         }
@@ -92,5 +125,22 @@ function showConfirmBanner(message, onConfirm) {
     document.addEventListener('keydown', handleEscape);
     
     // Focus the cancel button for accessibility
-    confirmNo.focus();
+    setTimeout(() => {
+        if (confirmNo) confirmNo.focus();
+    }, 100);
+    
+    // Prevent any other code from removing this modal
+    const originalRemoveChild = document.body.removeChild;
+    document.body.removeChild = function(child) {
+        if (child === modalOverlay && !isClosing) {
+            console.warn('Attempted to remove confirmation modal - prevented');
+            return;
+        }
+        return originalRemoveChild.call(this, child);
+    };
+    
+    // Restore original removeChild after modal is closed
+    setTimeout(() => {
+        document.body.removeChild = originalRemoveChild;
+    }, 5000); // Safety timeout
 }
