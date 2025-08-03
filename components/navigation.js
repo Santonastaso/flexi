@@ -7,7 +7,7 @@ class Navigation {
         this.currentPage = currentPage;
         this.navigationData = {
             logo: {
-                text: '🚢 Flexi',
+                text: 'Flexi',
                 href: 'index.html'
             },
             pages: {
