@@ -25,20 +25,31 @@ class NewMachineryManager {
         
         // Initialize edit functionality
         if (this.editManager) {
-            this.editManager.initTableEdit('.modern-table');
+            // Initialize for both tables specifically
+            const printingTable = document.querySelector('#printing-machinery-table-body').closest('.modern-table');
+            const packagingTable = document.querySelector('#packaging-machinery-table-body').closest('.modern-table');
+            
+            if (printingTable) {
+                this.editManager.initTableEdit(printingTable);
+            }
+            if (packagingTable) {
+                this.editManager.initTableEdit(packagingTable);
+            }
+            
             // Override saveEdit method
             this.editManager.saveEdit = (row) => this.saveEdit(row);
             
-            // Handle delete events
-            const tables = document.querySelectorAll('.modern-table');
-            tables.forEach(table => {
-                table.addEventListener('deleteRow', (e) => {
-                    const row = e.detail.row;
-                    const machineId = row.dataset.machineId;
-                    if (machineId) {
-                        this.deleteMachine(machineId);
-                    }
-                });
+            // Handle delete events for both tables
+            [printingTable, packagingTable].forEach(table => {
+                if (table) {
+                    table.addEventListener('deleteRow', (e) => {
+                        const row = e.detail.row;
+                        const machineId = row.dataset.machineId;
+                        if (machineId) {
+                            this.deleteMachine(machineId);
+                        }
+                    });
+                }
             });
         }
     }
@@ -506,6 +517,7 @@ class NewMachineryManager {
             const updatedMachine = {
                 ...machine,
                 nominazione: updatedData.nominazione.trim(),
+                name: updatedData.nominazione.trim(), // Also update name field for consistency
                 numeroMacchina: updatedData.numeroMacchina,
                 city: updatedData.city,
                 live: updatedData.live === 'true'
