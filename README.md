@@ -41,7 +41,7 @@ A modular, scalable production management application refactored from a monolith
 - `backlog.html` - Task creation and management
 - `machinery.html` - Machine management interface
 - `machine_settings.html` - Machine availability calendar
-- `scheduler_v2.html` - Production scheduling interface
+- `scheduler.html` - Production scheduling interface
 
 ### `/styles/` - CSS Modules
 - `main.css` - Global styles, typography, components

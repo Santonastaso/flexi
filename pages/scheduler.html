@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ship - New Production Scheduler</title>
+    <title>Ship - Production Scheduler</title>
     
     <!-- External CSS -->
     <link rel="stylesheet" href="../styles/main.css">
@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="../styles/scheduler.css">
     
     <style>
-        /* Additional styles for the new scheduler */
+        /* Additional styles for the scheduler */
         .scheduler-container {
             display: flex;
             flex-direction: column;
@@ -417,9 +417,9 @@
     
     <script>
         /**
-         * New Production Scheduler - Bulletproof Drag & Drop Implementation
+         * Production Scheduler - Bulletproof Drag & Drop Implementation
          */
-        class NewScheduler {
+        class Scheduler {
             constructor() {
                 this.storageService = window.storageService;
                 this.currentDate = new Date();
@@ -1020,12 +1020,12 @@
         
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
-            window.newScheduler = new NewScheduler();
+            window.scheduler = new Scheduler();
             
             // Listen for storage changes to refresh scheduler
             window.addEventListener('storage', (e) => {
                 if (e.key === 'backlogTasks' || e.key === 'scheduledEvents' || e.key === 'schedulerMachines') {
-                    window.newScheduler.refreshScheduler();
+                    window.scheduler.refreshScheduler();
                 }
             });
             
@@ -1037,7 +1037,7 @@
                 if (dataType === 'machines' || dataType === 'tasks') {
                     // Run sync and refresh
                     window.storageService.syncGanttChartData();
-                    window.newScheduler.refreshScheduler();
+                    window.scheduler.refreshScheduler();
                 }
             });
         });

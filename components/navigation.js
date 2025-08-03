@@ -15,7 +15,7 @@ class Navigation {
                 machinery: { href: 'machinery.html', label: 'Machinery', icon: '⚙️' },
                 machineCatalog: { href: 'products_catalog.html', label: 'Catalog', icon: '📋' },
                 backlog: { href: 'backlog.html', label: 'Backlog', icon: '📝' },
-                scheduler: { href: 'new_scheduler.html', label: 'Scheduler', icon: '📅' },
+                scheduler: { href: 'scheduler.html', label: 'Scheduler', icon: '📅' },
                 dataIntegrity: { href: 'data_integrity.html', label: 'Data Integrity', icon: '🔍' }
             }
         };
