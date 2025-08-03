@@ -33,7 +33,6 @@ class EditManager {
             } else if (e.target.classList.contains('btn-delete')) {
                 const row = e.target.closest('tr');
                 if (row) {
-                    console.log('Delete button clicked for row:', row);
                     // Trigger custom delete event
                     const deleteEvent = new CustomEvent('deleteRow', {
                         detail: { row: row }
