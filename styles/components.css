@@ -302,10 +302,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10000;
-    opacity: 1;
+    z-index: 1000;
+    opacity: 0;
     transition: opacity 0.3s ease;
-    pointer-events: auto;
 }
 
 .modal-overlay.modal-fade-in {
@@ -320,9 +319,8 @@
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-    transform: translateY(0);
+    transform: translateY(-20px);
     transition: transform 0.3s ease;
-    pointer-events: auto;
 }
 
 .modal-fade-in .modal-content {
@@ -379,13 +377,6 @@
     display: flex;
     gap: 12px;
     justify-content: flex-end;
-}
-
-/* Ensure modal buttons are always clickable */
-.modal-footer .btn {
-    pointer-events: auto;
-    z-index: 10001;
-    position: relative;
 }
 
 /* ===== BANNER COMPONENTS ===== */
