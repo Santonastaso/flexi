@@ -99,6 +99,12 @@ header {
     gap: 8px;
 }
 
+.sidebar-logo img {
+    height: 32px;
+    width: auto;
+    display: block;
+}
+
 .sidebar-nav {
     padding: 0 16px;
 }
@@ -211,6 +217,10 @@ header {
     .modern-table th,
     .modern-table td {
         padding: 12px 8px;
+    }
+    
+    .sidebar-logo img {
+        height: 28px;
     }
 }
 

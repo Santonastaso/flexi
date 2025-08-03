@@ -7,7 +7,6 @@ class Navigation {
         this.currentPage = currentPage;
         this.navigationData = {
             logo: {
-                text: 'Flexi',
                 href: 'index.html'
             },
             pages: {
@@ -27,7 +26,9 @@ class Navigation {
         return `
             <div class="sidebar">
                 <div class="sidebar-logo">
-                    <a href="${this.navigationData.logo.href}">${this.navigationData.logo.text}</a>
+                    <a href="${this.navigationData.logo.href}">
+                        <img src="../assets/logo.svg" alt="Flexi" style="height: 32px; width: auto;">
+                    </a>
                 </div>
                 
                 <div class="sidebar-section">
