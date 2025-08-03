@@ -1,46 +1,24 @@
 /**
  * Machinery Manager - Handles machine creation, editing, and management
  */
-class MachineryManager {
+class MachineryManager extends BaseManager {
     constructor() {
-        this.storageService = window.storageService;
-        this.elements = {};
+        super(window.storageService);
         this.currentlyEditingIndex = null;
-        this.init();
+        this.init(this.getElementMap());
     }
     
     /**
-     * Initialize the machinery manager
+     * Get element map for binding
      */
-    init() {
-        this.bindElements();
-        this.attachEventListeners();
-        this.renderMachinery();
-    }
-    
-    /**
-     * Bind DOM elements
-     */
-    bindElements() {
-        this.elements = {
+    getElementMap() {
+        return {
             addMachineBtn: document.getElementById('addMachine'),
             machineNameInput: document.getElementById('machineName'),
             machineCityInput: document.getElementById('machineCity'),
             machineLiveInput: document.getElementById('machineLive'),
             machineryTableBody: document.getElementById('machinery-table-body')
         };
-        
-        // Validate required elements
-        const missingElements = Object.entries(this.elements)
-            .filter(([key, element]) => !element)
-            .map(([key]) => key);
-            
-        if (missingElements.length > 0) {
-            console.error('Missing required elements:', missingElements);
-            return false;
-        }
-        
-        return true;
     }
     
     /**
@@ -63,7 +41,7 @@ class MachineryManager {
         
         // Table click events (delegation)
         this.elements.machineryTableBody.addEventListener('click', (e) => {
-            this.handleTableClick(e);
+            this.handleTableClick(e, this.elements.machineryTableBody);
         });
     }
     
@@ -76,7 +54,7 @@ class MachineryManager {
             const validationResult = this.validateMachineData(machineData);
             
             if (!validationResult.isValid) {
-                alert(validationResult.message);
+                this.showMessage(validationResult.message, 'error');
                 return;
             }
             
@@ -87,10 +65,10 @@ class MachineryManager {
             this.clearForm();
             this.renderMachinery();
             
-            console.log('Machine added successfully:', machineData);
+            this.showMessage('Machine added successfully!', 'success');
         } catch (error) {
             console.error('Error adding machine:', error);
-            alert('Error adding machine. Please try again.');
+            this.showMessage('Error adding machine. Please try again.', 'error');
         }
     }
     
@@ -137,7 +115,7 @@ class MachineryManager {
      * Clear the form inputs
      */
     clearForm() {
-        this.elements.machineNameInput.value = '';
+        this.clearFormFields(['machineNameInput']);
         this.elements.machineCityInput.selectedIndex = 0;
         this.elements.machineLiveInput.selectedIndex = 0;
     }
@@ -181,7 +159,7 @@ class MachineryManager {
             const validationResult = this.validateMachineData(newMachineData, index);
             
             if (!validationResult.isValid) {
-                alert(validationResult.message);
+                this.showMessage(validationResult.message, 'error');
                 return;
             }
             
@@ -192,10 +170,10 @@ class MachineryManager {
             this.currentlyEditingIndex = null;
             this.renderMachinery();
             
-            console.log('Machine updated successfully:', newMachineData);
+            this.showMessage('Machine updated successfully!', 'success');
         } catch (error) {
             console.error('Error saving machine:', error);
-            alert('Error saving machine. Please try again.');
+            this.showMessage('Error saving machine. Please try again.', 'error');
         }
     }
     
@@ -207,20 +185,27 @@ class MachineryManager {
             const machines = this.storageService.getMachines();
             const machineToDelete = machines[index];
             if (!machineToDelete) {
-                showBanner('Machine not found.', 'error');
+                this.showMessage('Machine not found.', 'error');
                 return;
             }
-            showConfirmBanner('Delete this machine?', () => {
+            UIComponents.confirm('Delete this machine?', () => {
                 this.storageService.validateMachineCanBeDeleted(machineToDelete.name);
                 machines.splice(index, 1);
                 this.storageService.saveMachines(machines);
                 this.renderMachinery();
-                showBanner('Machine deleted.', 'success');
+                this.showMessage('Machine deleted.', 'success');
             });
         } catch (error) {
             console.error('Error deleting machine:', error);
-            showBanner(error.message, 'error');
+            this.showMessage(error.message, 'error');
         }
+    }
+    
+    /**
+     * Render the machinery table
+     */
+    renderData() {
+        this.renderMachinery();
     }
     
     /**
@@ -340,14 +325,7 @@ class MachineryManager {
         `;
     }
     
-    /**
-     * Escape HTML to prevent XSS
-     */
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
+
     
     /**
      * Public method to refresh the machinery display
