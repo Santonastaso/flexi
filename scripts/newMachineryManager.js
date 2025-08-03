@@ -242,7 +242,8 @@ class NewMachineryManager {
         
         // Get only valid machines for display (strict filtering)
         const allMachines = this.storageService.getValidMachinesForDisplay();
-        const printingMachines = allMachines.filter(m => m.type === 'printing');
+        // Legacy machines without type are treated as printing machines
+        const printingMachines = allMachines.filter(m => m.type === 'printing' || (!m.type && (m.name === 'BOBST M5' || m.name === 'Gallus 1')));
         const packagingMachines = allMachines.filter(m => m.type === 'packaging');
         
         this.renderPrintingMachines(printingMachines);

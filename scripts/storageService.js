@@ -589,9 +589,10 @@ class StorageService {
     cleanupOrphanedEvents() {
         const tasks = this.getBacklogTasks();
         const events = this.getScheduledEvents();
-        const validTaskIds = new Set(tasks.map(task => task.id));
+        // Convert all IDs to strings for consistent comparison
+        const validTaskIds = new Set(tasks.map(task => String(task.id)));
         
-        const validEvents = events.filter(event => validTaskIds.has(event.taskId));
+        const validEvents = events.filter(event => validTaskIds.has(String(event.taskId)));
         
         if (validEvents.length !== events.length) {
             this.saveScheduledEvents(validEvents);
@@ -639,7 +640,7 @@ class StorageService {
         
         tasks.forEach(task => {
             if (task.id) {
-                validTaskIds.add(task.id);
+                validTaskIds.add(String(task.id));
             } else {
                 console.warn('Task without ID found:', task);
             }
@@ -651,7 +652,7 @@ class StorageService {
             let reason = '';
             
             // Validate task
-            if (!validTaskIds.has(event.taskId)) {
+            if (!validTaskIds.has(String(event.taskId))) {
                 reason = `Task "${event.taskTitle}" (ID: ${event.taskId}) not found in backlog`;
                 results.ghostTasksRemoved++;
                 results.details.push(reason);
@@ -697,9 +698,16 @@ class StorageService {
      * Now uses the same source as machinery tables for SSOT
      */
     getValidGanttMachines() {
-        // Use the same strictly validated machines as the machinery tables
+        // Get machines that are present in the machinery tables (printing + packaging)
         const validMachines = this.getValidMachinesForDisplay();
-        return validMachines.filter(machine => machine.live === true);
+        
+        // Legacy machines without type are treated as printing machines
+        const printingMachines = validMachines.filter(m => m.type === 'printing' || (!m.type && (m.name === 'BOBST M5' || m.name === 'Gallus 1')));
+        const packagingMachines = validMachines.filter(m => m.type === 'packaging');
+        
+        // Combine and filter for live machines only
+        const allMachineryTableMachines = [...printingMachines, ...packagingMachines];
+        return allMachineryTableMachines.filter(machine => machine.live === true);
     }
     
     /**
@@ -744,13 +752,16 @@ class StorageService {
         const tasks = this.getValidTasksForDisplay();
         const events = this.getScheduledEvents();
         
-        const validTaskIds = new Set(tasks.map(t => t.id));
-        const taskIdsInEvents = new Set(events.map(e => e.taskId));
+        // Convert all IDs to strings for consistent comparison
+        const validTaskIds = new Set(tasks.map(t => String(t.id)));
+        const taskIdsInEvents = new Set(events.map(e => String(e.taskId)));
         
         const orphanTasks = Array.from(taskIdsInEvents).filter(id => !validTaskIds.has(id));
         
         if (orphanTasks.length > 0) {
             console.warn('Orphan tasks detected in events:', orphanTasks);
+            console.warn('Valid task IDs:', Array.from(validTaskIds));
+            console.warn('Task IDs in events:', Array.from(taskIdsInEvents));
             return {
                 isValid: false,
                 orphanTasks: orphanTasks,
