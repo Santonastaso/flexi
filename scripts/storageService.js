@@ -213,6 +213,36 @@ class StorageService {
         
         // Refresh any open pages
         this.notifyDataChange('integrity', 'cleanup', results);
+        
+        return results;
+    }
+    
+    /**
+     * Force full cleanup of all orphan data
+     */
+    forceFullCleanup() {
+        console.log('🔄 Starting force full cleanup...');
+        
+        // Clean up invalid machines
+        const invalidMachinesRemoved = this.cleanupInvalidMachines();
+        
+        // Clean up orphan events
+        const syncResults = this.syncGanttChartData();
+        
+        // Clean up orphaned events
+        const orphanedEventsRemoved = this.cleanupOrphanedEvents();
+        
+        const totalResults = {
+            invalidMachinesRemoved,
+            orphanedEventsRemoved,
+            syncResults,
+            totalCleaned: invalidMachinesRemoved + orphanedEventsRemoved + syncResults.orphanedEventsRemoved
+        };
+        
+        console.log('✅ Force full cleanup completed:', totalResults);
+        this.showMessage(`Force cleanup completed: ${totalResults.totalCleaned} items removed`, 'success');
+        
+        return totalResults;
     }
     
     /**
@@ -262,6 +292,36 @@ class StorageService {
             ];
             this.saveMachines(defaultMachines);
         }
+        
+        // Add console commands for debugging
+        this.addConsoleCommands();
+    }
+    
+    /**
+     * Add console commands for debugging
+     */
+    addConsoleCommands() {
+        window.storageDebug = {
+            forceCleanup: () => this.forceFullCleanup(),
+            checkIntegrity: () => this.validateDataIntegrity(),
+            detectOrphans: () => this.detectAndReportOrphans(),
+            syncData: () => this.syncGanttChartData(),
+            cleanupMachines: () => this.cleanupInvalidMachines(),
+            getValidMachines: () => this.getValidMachinesForDisplay(),
+            getValidTasks: () => this.getValidTasksForDisplay()
+        };
+        
+        console.log(`
+🔧 Storage Service Debug Commands:
+==================================
+- storageDebug.forceCleanup()     // Force full cleanup of all orphan data
+- storageDebug.checkIntegrity()   // Check data integrity status
+- storageDebug.detectOrphans()    // Detect orphan data without cleanup
+- storageDebug.syncData()         // Sync and cleanup Gantt chart data
+- storageDebug.cleanupMachines()  // Clean up invalid machines only
+- storageDebug.getValidMachines() // Get only valid machines
+- storageDebug.getValidTasks()    // Get only valid tasks
+        `);
     }
     
     /**
@@ -536,6 +596,12 @@ class StorageService {
             details: []
         };
         
+        // Clean up invalid machines first
+        const invalidMachinesRemoved = this.cleanupInvalidMachines();
+        if (invalidMachinesRemoved > 0) {
+            results.details.push(`Cleaned up ${invalidMachinesRemoved} invalid machines`);
+        }
+        
         // Get current data
         const machines = this.getMachines();
         const tasks = this.getBacklogTasks();
@@ -728,6 +794,22 @@ class StorageService {
             
             return true;
         });
+    }
+    
+    /**
+     * Clean up invalid machines from storage
+     */
+    cleanupInvalidMachines() {
+        const machines = this.getMachines();
+        const validMachines = this.getValidMachinesForDisplay();
+        
+        if (validMachines.length !== machines.length) {
+            console.log(`Cleaning up ${machines.length - validMachines.length} invalid machines`);
+            this.saveMachines(validMachines);
+            return machines.length - validMachines.length;
+        }
+        
+        return 0;
     }
     
     /**

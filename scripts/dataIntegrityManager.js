@@ -17,8 +17,32 @@ class DataIntegrityManager {
     init() {
         this.bindElements();
         this.attachEventListeners();
-        this.runInitialCheck();
-        this.setupPeriodicChecks();
+        
+        // Wait for storage service to be available before running checks
+        this.waitForStorageService().then(() => {
+            this.runInitialCheck();
+            this.setupPeriodicChecks();
+        });
+    }
+    
+    /**
+     * Wait for storage service to be available
+     */
+    async waitForStorageService() {
+        let attempts = 0;
+        const maxAttempts = 50; // 5 seconds max wait
+        
+        while (!this.storageService || !this.storageService.detectAndReportOrphans) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+            
+            if (attempts >= maxAttempts) {
+                console.error('StorageService not available after 5 seconds');
+                return;
+            }
+        }
+        
+        console.log('StorageService available, proceeding with integrity checks');
     }
     
     bindElements() {

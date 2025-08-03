@@ -336,6 +336,46 @@ class DataIntegrityTest {
         
         console.log('✅ Test data cleaned up.');
     }
+    
+    /**
+     * Test the fix for orphan machines
+     */
+    testOrphanMachineFix() {
+        console.log('🧪 Testing orphan machine fix...');
+        
+        try {
+            // Create an orphan machine event (like "vvvvvv")
+            const events = this.storageService.getScheduledEvents();
+            const orphanEvent = {
+                id: 'test-orphan-machine-fix',
+                taskId: 'test-task',
+                machine: 'vvvvvv', // The orphan machine mentioned in the issue
+                taskTitle: 'Test Task for Orphan Machine',
+                startTime: '2025-01-01T08:00:00',
+                endTime: '2025-01-01T10:00:00'
+            };
+            
+            this.storageService.saveScheduledEvents([...events, orphanEvent]);
+            
+            // Run the cleanup
+            const results = this.storageService.forceFullCleanup();
+            
+            // Check if the orphan event was removed
+            const remainingEvents = this.storageService.getScheduledEvents();
+            const orphanStillExists = remainingEvents.some(event => event.machine === 'vvvvvv');
+            
+            const testPassed = !orphanStillExists && results.totalCleaned > 0;
+            
+            console.log(`Test ${testPassed ? 'PASSED' : 'FAILED'}: Orphan machine cleanup`);
+            console.log('Results:', results);
+            
+            return testPassed;
+            
+        } catch (error) {
+            console.error('Test FAILED:', error);
+            return false;
+        }
+    }
 }
 
 // Global test instance
@@ -348,5 +388,6 @@ console.log(`
 - dataIntegrityTest.runAllTests()           // Run all tests
 - dataIntegrityTest.createTestOrphanData()  // Create test orphan data
 - dataIntegrityTest.cleanupTestData()       // Clean up test data
+- dataIntegrityTest.testOrphanMachineFix()  // Test orphan machine fix
 - dataIntegrityTest.printTestResults()      // Print last test results
 `);
