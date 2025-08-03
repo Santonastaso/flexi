@@ -160,6 +160,7 @@ class NewBacklogManager {
         const hasAtLeastOneProcess = this.elements.includePrinting.checked || this.elements.includePackaging.checked;
         
         this.elements.calculateBtn.disabled = !hasRequiredFields || !hasAtLeastOneProcess;
+        this.elements.createTaskBtn.disabled = !hasRequiredFields || !hasAtLeastOneProcess || !this.currentCalculation;
     }
 
     updateMachineSelects() {
@@ -620,31 +621,7 @@ class NewBacklogManager {
         }
     }
 
-    showMessage(message, type = 'info') {
-        // Create or get message container
-        let messageContainer = document.querySelector('.message-container');
-        if (!messageContainer) {
-            messageContainer = document.createElement('div');
-            messageContainer.className = 'message-container';
-            document.querySelector('main').insertBefore(messageContainer, document.querySelector('main').firstChild);
-        }
 
-        // Create message element
-        const messageEl = document.createElement('div');
-        messageEl.className = `message message-${type}`;
-        messageEl.textContent = message;
-
-        // Add to container
-        messageContainer.appendChild(messageEl);
-
-        // Auto-remove after 3 seconds
-        setTimeout(() => {
-            messageEl.remove();
-            if (messageContainer.children.length === 0) {
-                messageContainer.remove();
-            }
-        }, 3000);
-    }
 }
 
 // Initialize when DOM is loaded and storage service is available

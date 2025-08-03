@@ -9,8 +9,8 @@ function showBanner(message, type) {
     }
     banner.textContent = message;
     banner.className = 'banner ' + type;
-    banner.style.display = 'block';
-    setTimeout(() => { banner.style.display = 'none'; }, 2000);
+    banner.style.display = 'flex';
+    setTimeout(() => { banner.style.display = 'none'; }, 3000);
 }
 
 // Standardized delete confirmation - this is the approved standard

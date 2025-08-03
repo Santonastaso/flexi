@@ -169,9 +169,9 @@
     box-shadow: 0 0 0 3px rgba(39, 135, 98, 0.1);
 }
 
-.form-group input:invalid,
-.form-group select:invalid,
-.form-group textarea:invalid {
+.form-group input.error,
+.form-group select.error,
+.form-group textarea.error {
     border-color: var(--danger-red);
 }
 
@@ -382,29 +382,29 @@
 /* ===== BANNER COMPONENTS ===== */
 .banner {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: 0;
+    left: 0;
+    right: 0;
     background: white;
-    border-radius: 8px;
-    padding: 16px 20px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    border-left: 4px solid var(--primary-green);
+    padding: 8px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-bottom: 2px solid var(--primary-green);
     z-index: 1001;
-    max-width: 400px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    justify-content: center;
     animation: bannerSlideIn 0.3s ease;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 @keyframes bannerSlideIn {
     from {
-        transform: translateX(100%);
+        transform: translateY(-100%);
         opacity: 0;
     }
     to {
-        transform: translateX(0);
+        transform: translateY(0);
         opacity: 1;
     }
 }

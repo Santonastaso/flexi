@@ -58,7 +58,24 @@ class ProductCatalogManager extends BaseManager {
 
     attachEventListeners() {
         this.elements.addBtn.addEventListener('click', () => this.addProduct());
-        this.elements.typeSelect.addEventListener('change', () => this.updateSpeedLabel());
+        this.elements.typeSelect.addEventListener('change', () => {
+            this.updateSpeedLabel();
+            this.validateForm();
+        });
+        
+        // Add form validation on input
+        const inputs = [
+            this.elements.nameInput,
+            this.elements.speedInput,
+            this.elements.setupTimeInput,
+            this.elements.employeesInput,
+            this.elements.employeeCostInput
+        ];
+        
+        inputs.forEach(input => {
+            input.addEventListener('input', () => this.validateForm());
+            input.addEventListener('change', () => this.validateForm());
+        });
         
         // Add enter key support
         this.elements.form.addEventListener('keypress', (e) => {
@@ -67,6 +84,9 @@ class ProductCatalogManager extends BaseManager {
                 this.addProduct();
             }
         });
+        
+        // Initial validation
+        this.validateForm();
     }
 
     setupDynamicLabels() {
@@ -116,6 +136,24 @@ class ProductCatalogManager extends BaseManager {
             employees: parseInt(this.elements.employeesInput.value),
             employeeCost: parseFloat(this.elements.employeeCostInput.value)
         };
+    }
+
+    validateForm() {
+        const name = this.elements.nameInput.value.trim();
+        const type = this.elements.typeSelect.value;
+        const speed = parseFloat(this.elements.speedInput.value);
+        const setupTime = parseFloat(this.elements.setupTimeInput.value);
+        const employees = parseInt(this.elements.employeesInput.value);
+        const employeeCost = parseFloat(this.elements.employeeCostInput.value);
+        
+        const isValid = name && 
+                      type && 
+                      speed && speed > 0 && 
+                      setupTime >= 0 && 
+                      employees && employees >= 1 && 
+                      employeeCost && employeeCost >= 0;
+        
+        this.elements.addBtn.disabled = !isValid;
     }
 
     validateProductData(data) {
