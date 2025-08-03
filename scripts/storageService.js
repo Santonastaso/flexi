@@ -93,11 +93,11 @@ class StorageService {
         
         // Create sets of valid IDs
         const validMachineNames = new Set(machines.map(m => m.name || m.nominazione));
-        const validTaskIds = new Set(tasks.map(t => t.id));
+        const validTaskIds = new Set(tasks.map(t => String(t.id)));
         
         // Check for orphan events
         events.forEach(event => {
-            if (!validTaskIds.has(event.taskId)) {
+            if (!validTaskIds.has(String(event.taskId))) {
                 results.orphanEvents.push({
                     type: 'task',
                     event: event,
@@ -701,8 +701,7 @@ class StorageService {
         // Get machines that are present in the machinery tables (printing + packaging)
         const validMachines = this.getValidMachinesForDisplay();
         
-        // Legacy machines without type are treated as printing machines
-        const printingMachines = validMachines.filter(m => m.type === 'printing' || (!m.type && (m.name === 'BOBST M5' || m.name === 'Gallus 1')));
+        const printingMachines = validMachines.filter(m => m.type === 'printing');
         const packagingMachines = validMachines.filter(m => m.type === 'packaging');
         
         // Combine and filter for live machines only
@@ -762,6 +761,14 @@ class StorageService {
             console.warn('Orphan tasks detected in events:', orphanTasks);
             console.warn('Valid task IDs:', Array.from(validTaskIds));
             console.warn('Task IDs in events:', Array.from(taskIdsInEvents));
+            
+            // Additional debugging for the specific case
+            orphanTasks.forEach(orphanId => {
+                const orphanEvent = events.find(e => String(e.taskId) === orphanId);
+                const matchingTask = tasks.find(t => String(t.id) === orphanId);
+                console.warn(`Orphan ID: ${orphanId}, Event:`, orphanEvent, 'Matching task:', matchingTask);
+            });
+            
             return {
                 isValid: false,
                 orphanTasks: orphanTasks,
@@ -809,11 +816,6 @@ class StorageService {
                 return false;
             }
             
-            // For legacy machines (BOBST M5, Gallus 1), just check they have a name
-            if (machine.name === 'BOBST M5' || machine.name === 'Gallus 1') {
-                return true;
-            }
-            
             // Must have required properties based on type
             if (machine.type === 'printing') {
                 if (!machine.numeroMacchina || !machine.nominazione) {
@@ -825,6 +827,10 @@ class StorageService {
                     console.warn('Packaging machine missing required properties:', machine);
                     return false;
                 }
+            } else {
+                // No type specified - invalid machine
+                console.warn('Machine without type found:', machine);
+                return false;
             }
             
             return true;
