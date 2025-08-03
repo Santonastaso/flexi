@@ -141,7 +141,7 @@ class MachineCalendarManager {
                 <div style="padding: 40px; text-align: center; color: var(--gc-text-secondary);">
                     <h3>Unable to Load Calendar</h3>
                     <p>${message}</p>
-                    <p><a href="../machinery.html" style="color: var(--gc-blue);">← Back to Machinery List</a></p>
+                    <p><a href="machinery.html" style="color: var(--gc-blue);">← Back to Machinery List</a></p>
                 </div>
             `;
         }
