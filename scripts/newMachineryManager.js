@@ -330,28 +330,28 @@ class NewMachineryManager extends BaseManager {
             <tr data-machine-id="${machine.id}">
                 <td class="editable-cell" data-field="numeroMacchina">
                     <span class="static-value"><strong>${machine.numeroMacchina}</strong></span>
-                    ${this.editManager.createEditInput('text', machine.numeroMacchina)}
+                    ${this.editManager ? this.editManager.createEditInput('text', machine.numeroMacchina) : ''}
                 </td>
                 <td class="editable-cell" data-field="nominazione">
                     <span class="static-value">${machine.nominazione}</span>
-                    ${this.editManager.createEditInput('text', machine.nominazione)}
+                    ${this.editManager ? this.editManager.createEditInput('text', machine.nominazione) : ''}
                 </td>
                 <td class="editable-cell" data-field="city">
                     <span class="static-value">${machine.city}</span>
-                    ${this.editManager.createEditInput('select', machine.city, {
+                    ${this.editManager ? this.editManager.createEditInput('select', machine.city, {
                         options: [
                             { value: 'Milan', label: 'Milan' },
                             { value: 'Tallinn', label: 'Tallinn' }
                         ]
-                    })}
+                    }) : ''}
                 </td>
                 <td class="editable-cell" data-field="numeroColori">
                     <span class="static-value">${machine.numeroColori}</span>
-                    ${this.editManager.createEditInput('number', machine.numeroColori, { min: 1, max: 12 })}
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.numeroColori, { min: 1, max: 12 }) : ''}
                 </td>
                 <td class="editable-cell" data-field="fasciaMassima">
                     <span class="static-value">${machine.fasciaMassima}mm</span>
-                    ${this.editManager.createEditInput('number', machine.fasciaMassima, { min: 1 })}
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.fasciaMassima, { min: 1 }) : ''}
                 </td>
                 <td class="editable-cell" data-field="live">
                     <span class="static-value">
@@ -359,12 +359,12 @@ class NewMachineryManager extends BaseManager {
                             ${machine.live ? 'Yes' : 'No'}
                         </span>
                     </span>
-                    ${this.editManager.createEditInput('select', machine.live.toString(), {
+                    ${this.editManager ? this.editManager.createEditInput('select', machine.live.toString(), {
                         options: [
                             { value: 'true', label: 'Yes' },
                             { value: 'false', label: 'No' }
                         ]
-                    })}
+                    }) : ''}
                 </td>
                 <td class="text-center">
                     <a href="machine_settings.html?machine=${encodedName}" 
@@ -372,7 +372,7 @@ class NewMachineryManager extends BaseManager {
                        title="Edit Availability">⚙️</a>
                 </td>
                 <td class="text-center">
-                    ${this.editManager.createActionButtons()}
+                    ${this.editManager ? this.editManager.createActionButtons() : ''}
                 </td>
             </tr>
         `;
@@ -385,36 +385,36 @@ class NewMachineryManager extends BaseManager {
             <tr data-machine-id="${machine.id}">
                 <td class="editable-cell" data-field="numeroMacchina">
                     <span class="static-value"><strong>${machine.numeroMacchina}</strong></span>
-                    ${this.editManager.createEditInput('text', machine.numeroMacchina)}
+                    ${this.editManager ? this.editManager.createEditInput('text', machine.numeroMacchina) : ''}
                 </td>
                 <td class="editable-cell" data-field="nominazione">
                     <span class="static-value">${machine.nominazione}</span>
-                    ${this.editManager.createEditInput('text', machine.nominazione)}
+                    ${this.editManager ? this.editManager.createEditInput('text', machine.nominazione) : ''}
                 </td>
                 <td class="editable-cell" data-field="city">
                     <span class="static-value">${machine.city}</span>
-                    ${this.editManager.createEditInput('select', machine.city, {
+                    ${this.editManager ? this.editManager.createEditInput('select', machine.city, {
                         options: [
                             { value: 'Milan', label: 'Milan' },
                             { value: 'Tallinn', label: 'Tallinn' }
                         ]
-                    })}
+                    }) : ''}
                 </td>
                 <td class="editable-cell" data-field="tipologiaMateriale">
                     <span class="static-value">${machine.tipologiaMateriale}</span>
-                    ${this.editManager.createEditInput('text', machine.tipologiaMateriale)}
+                    ${this.editManager ? this.editManager.createEditInput('text', machine.tipologiaMateriale) : ''}
                 </td>
                 <td class="editable-cell" data-field="erogazione">
                     <span class="static-value">${machine.erogazione}</span>
-                    ${this.editManager.createEditInput('text', machine.erogazione)}
+                    ${this.editManager ? this.editManager.createEditInput('text', machine.erogazione) : ''}
                 </td>
                 <td class="editable-cell" data-field="passo">
                     <span class="static-value">${machine.passo}mm</span>
-                    ${this.editManager.createEditInput('number', machine.passo, { min: 1 })}
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.passo, { min: 1 }) : ''}
                 </td>
                 <td class="editable-cell" data-field="fascia">
                     <span class="static-value">${machine.fascia}mm</span>
-                    ${this.editManager.createEditInput('number', machine.fascia, { min: 1 })}
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.fascia, { min: 1 }) : ''}
                 </td>
                 <td class="editable-cell" data-field="produzioneGemellare">
                     <span class="static-value">
@@ -422,12 +422,12 @@ class NewMachineryManager extends BaseManager {
                             ${machine.produzioneGemellare ? 'Yes' : 'No'}
                         </span>
                     </span>
-                    ${this.editManager.createEditInput('select', machine.produzioneGemellare.toString(), {
+                    ${this.editManager ? this.editManager.createEditInput('select', machine.produzioneGemellare.toString(), {
                         options: [
                             { value: 'true', label: 'Yes' },
                             { value: 'false', label: 'No' }
                         ]
-                    })}
+                    }) : ''}
                 </td>
                 <td class="editable-cell" data-field="live">
                     <span class="static-value">
@@ -435,12 +435,12 @@ class NewMachineryManager extends BaseManager {
                             ${machine.live ? 'Yes' : 'No'}
                         </span>
                     </span>
-                    ${this.editManager.createEditInput('select', machine.live.toString(), {
+                    ${this.editManager ? this.editManager.createEditInput('select', machine.live.toString(), {
                         options: [
                             { value: 'true', label: 'Yes' },
                             { value: 'false', label: 'No' }
                         ]
-                    })}
+                    }) : ''}
                 </td>
                 <td class="text-center">
                     <a href="machine_settings.html?machine=${encodedName}" 
@@ -448,7 +448,7 @@ class NewMachineryManager extends BaseManager {
                        title="Edit Availability">⚙️</a>
                 </td>
                 <td class="text-center">
-                    ${this.editManager.createActionButtons()}
+                    ${this.editManager ? this.editManager.createActionButtons() : ''}
                 </td>
             </tr>
         `;

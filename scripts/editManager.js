@@ -191,11 +191,11 @@ class EditManager {
     createActionButtons() {
         return `
             <div class="action-buttons">
-                <button class="btn-edit" title="Edit">
-                    ✏️
+                <button class="btn-edit" title="Edit" style="background: var(--primary-blue); color: white; padding: 8px 16px; border-radius: 28px; border: none; cursor: pointer; font-weight: 700; min-height: 36px;">
+                    ✏️ Edit
                 </button>
-                <button class="btn-delete" title="Delete">
-                    🗑️
+                <button class="btn-delete" title="Delete" style="background: var(--danger-red); color: white; padding: 8px 16px; border-radius: 28px; border: none; cursor: pointer; font-weight: 700; min-height: 36px;">
+                    🗑️ Delete
                 </button>
             </div>
             <div class="save-cancel-buttons" style="display: none;">
