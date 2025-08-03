@@ -4,6 +4,7 @@
 class NewMachineryManager {
     constructor() {
         this.storageService = window.storageService;
+        this.editManager = window.editManager;
         this.elements = {};
         this.currentEditingType = null;
         this.currentEditingId = null;
@@ -21,6 +22,13 @@ class NewMachineryManager {
         this.attachEventListeners();
         this.loadMachinery();
         this.setupFormValidation();
+        
+        // Initialize edit functionality
+        if (this.editManager) {
+            this.editManager.initTableEdit('.modern-table');
+            // Override saveEdit method
+            this.editManager.saveEdit = (row) => this.saveEdit(row);
+        }
     }
 
     bindElements() {
@@ -297,16 +305,44 @@ class NewMachineryManager {
         const encodedName = encodeURIComponent(machine.name || machine.nominazione);
         
         return `
-            <tr>
-                <td><strong>${machine.numeroMacchina}</strong></td>
-                <td>${machine.nominazione}</td>
-                <td>${machine.city}</td>
-                <td>${machine.numeroColori}</td>
-                <td>${machine.fasciaMassima}mm</td>
-                <td>
-                    <span class="badge ${machine.live ? 'badge-green' : 'badge-gray'}">
-                        ${machine.live ? 'Yes' : 'No'}
+            <tr data-machine-id="${machine.id}">
+                <td class="editable-cell" data-field="numeroMacchina">
+                    <span class="static-value"><strong>${machine.numeroMacchina}</strong></span>
+                    ${this.editManager.createEditInput('text', machine.numeroMacchina)}
+                </td>
+                <td class="editable-cell" data-field="nominazione">
+                    <span class="static-value">${machine.nominazione}</span>
+                    ${this.editManager.createEditInput('text', machine.nominazione)}
+                </td>
+                <td class="editable-cell" data-field="city">
+                    <span class="static-value">${machine.city}</span>
+                    ${this.editManager.createEditInput('select', machine.city, {
+                        options: [
+                            { value: 'Milan', label: 'Milan' },
+                            { value: 'Tallinn', label: 'Tallinn' }
+                        ]
+                    })}
+                </td>
+                <td class="editable-cell" data-field="numeroColori">
+                    <span class="static-value">${machine.numeroColori}</span>
+                    ${this.editManager.createEditInput('number', machine.numeroColori, { min: 1, max: 12 })}
+                </td>
+                <td class="editable-cell" data-field="fasciaMassima">
+                    <span class="static-value">${machine.fasciaMassima}mm</span>
+                    ${this.editManager.createEditInput('number', machine.fasciaMassima, { min: 1 })}
+                </td>
+                <td class="editable-cell" data-field="live">
+                    <span class="static-value">
+                        <span class="badge ${machine.live ? 'badge-green' : 'badge-gray'}">
+                            ${machine.live ? 'Yes' : 'No'}
+                        </span>
                     </span>
+                    ${this.editManager.createEditInput('select', machine.live.toString(), {
+                        options: [
+                            { value: 'true', label: 'Yes' },
+                            { value: 'false', label: 'No' }
+                        ]
+                    })}
                 </td>
                 <td class="text-center">
                     <a href="machine_settings.html?machine=${encodedName}" 
@@ -314,14 +350,7 @@ class NewMachineryManager {
                        title="Edit Availability">⚙️</a>
                 </td>
                 <td class="text-center">
-                    <button class="action-btn edit-btn" 
-                            onclick="newMachineryManager.editMachine('${machine.id}')" 
-                            title="Edit Machine">✏️</button>
-                </td>
-                <td class="text-center">
-                    <button class="btn-delete" 
-                            onclick="newMachineryManager.deleteMachine('${machine.id}')" 
-                            title="Delete Machine">🗑️</button>
+                    ${this.editManager.createActionButtons()}
                 </td>
             </tr>
         `;
@@ -331,23 +360,65 @@ class NewMachineryManager {
         const encodedName = encodeURIComponent(machine.name || machine.nominazione);
         
         return `
-            <tr>
-                <td><strong>${machine.numeroMacchina}</strong></td>
-                <td>${machine.nominazione}</td>
-                <td>${machine.city}</td>
-                <td>${machine.tipologiaMateriale}</td>
-                <td>${machine.erogazione}</td>
-                <td>${machine.passo}mm</td>
-                <td>${machine.fascia}mm</td>
-                <td>
-                    <span class="badge ${machine.produzioneGemellare ? 'badge-green' : 'badge-gray'}">
-                        ${machine.produzioneGemellare ? 'Yes' : 'No'}
-                    </span>
+            <tr data-machine-id="${machine.id}">
+                <td class="editable-cell" data-field="numeroMacchina">
+                    <span class="static-value"><strong>${machine.numeroMacchina}</strong></span>
+                    ${this.editManager.createEditInput('text', machine.numeroMacchina)}
                 </td>
-                <td>
-                    <span class="badge ${machine.live ? 'badge-green' : 'badge-gray'}">
-                        ${machine.live ? 'Yes' : 'No'}
+                <td class="editable-cell" data-field="nominazione">
+                    <span class="static-value">${machine.nominazione}</span>
+                    ${this.editManager.createEditInput('text', machine.nominazione)}
+                </td>
+                <td class="editable-cell" data-field="city">
+                    <span class="static-value">${machine.city}</span>
+                    ${this.editManager.createEditInput('select', machine.city, {
+                        options: [
+                            { value: 'Milan', label: 'Milan' },
+                            { value: 'Tallinn', label: 'Tallinn' }
+                        ]
+                    })}
+                </td>
+                <td class="editable-cell" data-field="tipologiaMateriale">
+                    <span class="static-value">${machine.tipologiaMateriale}</span>
+                    ${this.editManager.createEditInput('text', machine.tipologiaMateriale)}
+                </td>
+                <td class="editable-cell" data-field="erogazione">
+                    <span class="static-value">${machine.erogazione}</span>
+                    ${this.editManager.createEditInput('text', machine.erogazione)}
+                </td>
+                <td class="editable-cell" data-field="passo">
+                    <span class="static-value">${machine.passo}mm</span>
+                    ${this.editManager.createEditInput('number', machine.passo, { min: 1 })}
+                </td>
+                <td class="editable-cell" data-field="fascia">
+                    <span class="static-value">${machine.fascia}mm</span>
+                    ${this.editManager.createEditInput('number', machine.fascia, { min: 1 })}
+                </td>
+                <td class="editable-cell" data-field="produzioneGemellare">
+                    <span class="static-value">
+                        <span class="badge ${machine.produzioneGemellare ? 'badge-green' : 'badge-gray'}">
+                            ${machine.produzioneGemellare ? 'Yes' : 'No'}
+                        </span>
                     </span>
+                    ${this.editManager.createEditInput('select', machine.produzioneGemellare.toString(), {
+                        options: [
+                            { value: 'true', label: 'Yes' },
+                            { value: 'false', label: 'No' }
+                        ]
+                    })}
+                </td>
+                <td class="editable-cell" data-field="live">
+                    <span class="static-value">
+                        <span class="badge ${machine.live ? 'badge-green' : 'badge-gray'}">
+                            ${machine.live ? 'Yes' : 'No'}
+                        </span>
+                    </span>
+                    ${this.editManager.createEditInput('select', machine.live.toString(), {
+                        options: [
+                            { value: 'true', label: 'Yes' },
+                            { value: 'false', label: 'No' }
+                        ]
+                    })}
                 </td>
                 <td class="text-center">
                     <a href="machine_settings.html?machine=${encodedName}" 
@@ -355,14 +426,7 @@ class NewMachineryManager {
                        title="Edit Availability">⚙️</a>
                 </td>
                 <td class="text-center">
-                    <button class="action-btn edit-btn" 
-                            onclick="newMachineryManager.editMachine('${machine.id}')" 
-                            title="Edit Machine">✏️</button>
-                </td>
-                <td class="text-center">
-                    <button class="btn-delete" 
-                            onclick="newMachineryManager.deleteMachine('${machine.id}')" 
-                            title="Delete Machine">🗑️</button>
+                    ${this.editManager.createActionButtons()}
                 </td>
             </tr>
         `;
@@ -396,6 +460,75 @@ class NewMachineryManager {
             });
         } catch (error) {
             this.showMessage(error.message, 'error');
+        }
+    }
+
+    saveEdit(row) {
+        const machineId = row.dataset.machineId;
+        if (!machineId) {
+            console.error('No machine ID found in row');
+            return;
+        }
+
+        // Collect edited values using the edit manager
+        const updatedData = this.editManager.collectEditedValues(row);
+
+        console.log('Collected updated machine data:', updatedData);
+
+        // Validate data
+        if (!updatedData.nominazione || updatedData.nominazione.trim() === '') {
+            this.showMessage('Machine name cannot be empty', 'error');
+            return;
+        }
+
+        try {
+            // Get current machine
+            const machines = this.storageService.getMachines();
+            const machine = machines.find(m => String(m.id) === String(machineId));
+            if (!machine) {
+                this.showMessage('Machine not found', 'error');
+                return;
+            }
+
+            // Update machine with new values
+            const updatedMachine = {
+                ...machine,
+                nominazione: updatedData.nominazione.trim(),
+                numeroMacchina: updatedData.numeroMacchina,
+                city: updatedData.city,
+                live: updatedData.live === 'true'
+            };
+
+            // Add type-specific fields
+            if (machine.type === 'printing') {
+                updatedMachine.numeroColori = parseInt(updatedData.numeroColori) || machine.numeroColori;
+                updatedMachine.fasciaMassima = parseInt(updatedData.fasciaMassima) || machine.fasciaMassima;
+            } else if (machine.type === 'packaging') {
+                updatedMachine.tipologiaMateriale = updatedData.tipologiaMateriale;
+                updatedMachine.erogazione = updatedData.erogazione;
+                updatedMachine.passo = parseInt(updatedData.passo) || machine.passo;
+                updatedMachine.fascia = parseInt(updatedData.fascia) || machine.fascia;
+                updatedMachine.produzioneGemellare = updatedData.produzioneGemellare === 'true';
+            }
+
+            console.log('Original machine:', machine);
+            console.log('Updated machine:', updatedMachine);
+
+            // Save updated machine
+            const updatedMachines = machines.map(m => 
+                String(m.id) === String(machineId) ? updatedMachine : m
+            );
+            this.storageService.saveMachinesWithSync(updatedMachines);
+
+            // Exit edit mode
+            this.editManager.cancelEdit(row);
+
+            // Update display
+            this.loadMachinery();
+            this.showMessage('Machine updated successfully', 'success');
+
+        } catch (error) {
+            this.showMessage('Error updating machine: ' + error.message, 'error');
         }
     }
 
