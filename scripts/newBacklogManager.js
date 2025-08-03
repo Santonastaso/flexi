@@ -29,6 +29,18 @@ class NewBacklogManager {
             this.editManager.initTableEdit('.modern-table');
             // Override saveEdit method
             this.editManager.saveEdit = (row) => this.saveEdit(row);
+            
+            // Handle delete events
+            const table = document.querySelector('.modern-table');
+            if (table) {
+                table.addEventListener('deleteRow', (e) => {
+                    const row = e.detail.row;
+                    const taskId = row.dataset.taskId;
+                    if (taskId) {
+                        this.deleteTask(taskId);
+                    }
+                });
+            }
         }
     }
 

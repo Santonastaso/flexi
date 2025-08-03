@@ -30,6 +30,15 @@ class EditManager {
                 if (row) {
                     this.cancelEdit(row);
                 }
+            } else if (e.target.classList.contains('btn-delete')) {
+                const row = e.target.closest('tr');
+                if (row) {
+                    // Trigger custom delete event
+                    const deleteEvent = new CustomEvent('deleteRow', {
+                        detail: { row: row }
+                    });
+                    table.dispatchEvent(deleteEvent);
+                }
             }
         });
     }

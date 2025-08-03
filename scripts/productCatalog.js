@@ -4,6 +4,7 @@
 class ProductCatalogManager {
     constructor() {
         this.storageService = window.storageService;
+        this.editManager = window.editManager;
         this.elements = {};
         this.init();
     }
@@ -19,6 +20,25 @@ class ProductCatalogManager {
         this.attachEventListeners();
         this.loadProductCatalog();
         this.setupDynamicLabels();
+        
+        // Initialize edit functionality
+        if (this.editManager) {
+            this.editManager.initTableEdit('.modern-table');
+            // Override saveEdit method
+            this.editManager.saveEdit = (row) => this.saveEdit(row);
+            
+            // Handle delete events
+            const table = document.querySelector('.modern-table');
+            if (table) {
+                table.addEventListener('deleteRow', (e) => {
+                    const row = e.detail.row;
+                    const productId = row.dataset.productId;
+                    if (productId) {
+                        this.deleteProduct(productId);
+                    }
+                });
+            }
+        }
     }
 
     bindElements() {
@@ -170,23 +190,46 @@ class ProductCatalogManager {
         const speedUnit = product.type === 'printing' ? 'm/min' : 'pkg/h';
         
         return `
-            <tr>
-                <td><strong>${product.name}</strong></td>
-                <td>${product.description || '-'}</td>
-                <td>
-                    <span class="badge ${product.type === 'printing' ? 'badge-blue' : 'badge-green'}">
-                        ${product.type}
-                    </span>
+            <tr data-product-id="${product.id}">
+                <td class="editable-cell" data-field="name">
+                    <span class="static-value"><strong>${product.name}</strong></span>
+                    ${this.editManager.createEditInput('text', product.name)}
                 </td>
-                <td>${product.speed} ${speedUnit}</td>
-                <td>${product.setupTime}h</td>
-                <td>${product.employees}</td>
-                <td>$${product.employeeCost}/hr</td>
+                <td class="editable-cell" data-field="description">
+                    <span class="static-value">${product.description || '-'}</span>
+                    ${this.editManager.createEditInput('text', product.description)}
+                </td>
+                <td class="editable-cell" data-field="type">
+                    <span class="static-value">
+                        <span class="badge ${product.type === 'printing' ? 'badge-blue' : 'badge-green'}">
+                            ${product.type}
+                        </span>
+                    </span>
+                    ${this.editManager.createEditInput('select', product.type, {
+                        options: [
+                            { value: 'printing', label: 'Printing' },
+                            { value: 'packaging', label: 'Packaging' }
+                        ]
+                    })}
+                </td>
+                <td class="editable-cell" data-field="speed">
+                    <span class="static-value">${product.speed} ${speedUnit}</span>
+                    ${this.editManager.createEditInput('number', product.speed, { min: 0.1, step: 0.1 })}
+                </td>
+                <td class="editable-cell" data-field="setupTime">
+                    <span class="static-value">${product.setupTime}h</span>
+                    ${this.editManager.createEditInput('number', product.setupTime, { min: 0, step: 0.1 })}
+                </td>
+                <td class="editable-cell" data-field="employees">
+                    <span class="static-value">${product.employees}</span>
+                    ${this.editManager.createEditInput('number', product.employees, { min: 1 })}
+                </td>
+                <td class="editable-cell" data-field="employeeCost">
+                    <span class="static-value">$${product.employeeCost}/hr</span>
+                    ${this.editManager.createEditInput('number', product.employeeCost, { min: 0, step: 0.01 })}
+                </td>
                 <td class="text-center">
-                    <button class="btn-delete" onclick="productCatalogManager.deleteProduct('${product.id}')" 
-                            title="Delete product">
-                        🗑️
-                    </button>
+                    ${this.editManager.createActionButtons()}
                 </td>
             </tr>
         `;
@@ -207,6 +250,66 @@ class ProductCatalogManager {
                 this.showMessage('Error deleting product: ' + error.message, 'error');
             }
         });
+    }
+
+    saveEdit(row) {
+        const productId = row.dataset.productId;
+        if (!productId) {
+            console.error('No product ID found in row');
+            return;
+        }
+
+        // Collect edited values using the edit manager
+        const updatedData = this.editManager.collectEditedValues(row);
+
+        console.log('Collected updated product data:', updatedData);
+
+        // Validate data
+        if (!updatedData.name || updatedData.name.trim() === '') {
+            this.showMessage('Product name cannot be empty', 'error');
+            return;
+        }
+
+        try {
+            // Get current product
+            const catalog = this.storageService.getMachineryCatalog();
+            const product = catalog.find(p => String(p.id) === String(productId));
+            if (!product) {
+                this.showMessage('Product not found', 'error');
+                return;
+            }
+
+            // Update product with new values
+            const updatedProduct = {
+                ...product,
+                name: updatedData.name.trim(),
+                description: updatedData.description.trim(),
+                type: updatedData.type,
+                speed: parseFloat(updatedData.speed) || product.speed,
+                setupTime: parseFloat(updatedData.setupTime) || product.setupTime,
+                employees: parseInt(updatedData.employees) || product.employees,
+                employeeCost: parseFloat(updatedData.employeeCost) || product.employeeCost
+            };
+
+            console.log('Original product:', product);
+            console.log('Updated product:', updatedProduct);
+
+            // Save updated product
+            const updatedCatalog = catalog.map(p => 
+                String(p.id) === String(productId) ? updatedProduct : p
+            );
+            this.storageService.saveMachineryCatalog(updatedCatalog);
+
+            // Exit edit mode
+            this.editManager.cancelEdit(row);
+
+            // Update display
+            this.loadProductCatalog();
+            this.showMessage('Product updated successfully', 'success');
+
+        } catch (error) {
+            this.showMessage('Error updating product: ' + error.message, 'error');
+        }
     }
 
     showMessage(message, type = 'info') {
