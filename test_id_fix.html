@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ID Comparison Fix Test</title>
+</head>
+<body>
+    <h1>ID Comparison Fix Test</h1>
+    <div id="results"></div>
+
+    <script src="scripts/storageService.js"></script>
+    <script>
+        // Test the ID comparison fix
+        function testIdComparison() {
+            const results = document.getElementById('results');
+            let output = '<h2>Test Results:</h2>';
+            
+            // Create test data with mixed types
+            const testTasks = [
+                { id: 1754233288441, name: "Task 1" },
+                { id: "1754233288442", name: "Task 2" },
+                { id: 1754233288443, name: "Task 3" }
+            ];
+            
+            const testEvents = [
+                { taskId: "1754233288441", taskTitle: "Task 1 Event" },
+                { taskId: 1754233288442, taskTitle: "Task 2 Event" },
+                { taskId: "1754233288443", taskTitle: "Task 3 Event" }
+            ];
+            
+            // Test the fixed comparison logic
+            const validTaskIds = new Set(testTasks.map(task => String(task.id)));
+            
+            output += '<h3>Valid Task IDs (as strings):</h3>';
+            output += '<ul>';
+            validTaskIds.forEach(id => {
+                output += `<li>${id} (type: ${typeof id})</li>`;
+            });
+            output += '</ul>';
+            
+            output += '<h3>Event Task ID Comparisons:</h3>';
+            output += '<ul>';
+            testEvents.forEach(event => {
+                const isValid = validTaskIds.has(String(event.taskId));
+                output += `<li>Event "${event.taskTitle}" (ID: ${event.taskId}, type: ${typeof event.taskId}) - Valid: ${isValid}</li>`;
+            });
+            output += '</ul>';
+            
+            // Test the storage service methods
+            if (window.storageService) {
+                output += '<h3>Storage Service Test:</h3>';
+                
+                // Mock the storage service data
+                const originalGetBacklogTasks = window.storageService.getBacklogTasks;
+                const originalGetScheduledEvents = window.storageService.getScheduledEvents;
+                
+                window.storageService.getBacklogTasks = () => testTasks;
+                window.storageService.getScheduledEvents = () => testEvents;
+                
+                try {
+                    const validTasks = window.storageService.getValidTaskPoolTasks();
+                    output += `<p>getValidTaskPoolTasks() returned ${validTasks.length} tasks</p>`;
+                    
+                    const isScheduled = window.storageService.isTaskScheduled(1754233288441);
+                    output += `<p>isTaskScheduled(1754233288441) returned: ${isScheduled}</p>`;
+                    
+                    const isScheduledString = window.storageService.isTaskScheduled("1754233288441");
+                    output += `<p>isTaskScheduled("1754233288441") returned: ${isScheduledString}</p>`;
+                    
+                } catch (error) {
+                    output += `<p style="color: red;">Error: ${error.message}</p>`;
+                }
+                
+                // Restore original methods
+                window.storageService.getBacklogTasks = originalGetBacklogTasks;
+                window.storageService.getScheduledEvents = originalGetScheduledEvents;
+            } else {
+                output += '<p style="color: red;">Storage service not available</p>';
+            }
+            
+            results.innerHTML = output;
+        }
+        
+        // Run test when page loads
+        document.addEventListener('DOMContentLoaded', testIdComparison);
+    </script>
+</body>
+</html>

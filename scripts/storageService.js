@@ -424,7 +424,7 @@ class StorageService {
     }
     
     getTaskById(taskId) {
-        return this.getBacklogTasks().find(task => task.id == taskId);
+        return this.getBacklogTasks().find(task => String(task.id) === String(taskId));
     }
     
     /**
@@ -447,13 +447,13 @@ class StorageService {
     
     removeScheduledEvent(eventId) {
         const events = this.getScheduledEvents();
-        const filteredEvents = events.filter(event => event.id != eventId);
+        const filteredEvents = events.filter(event => String(event.id) !== String(eventId));
         this.saveScheduledEvents(filteredEvents);
         return filteredEvents;
     }
     
     isTaskScheduled(taskId) {
-        return this.getScheduledEvents().some(event => event.id == taskId);
+        return this.getScheduledEvents().some(event => String(event.taskId) === String(taskId));
     }
     
     getEventsByMachine(machineName) {
@@ -576,9 +576,9 @@ class StorageService {
     cleanupOrphanedEvents() {
         const tasks = this.getBacklogTasks();
         const events = this.getScheduledEvents();
-        const validTaskIds = new Set(tasks.map(task => task.id));
+        const validTaskIds = new Set(tasks.map(task => String(task.id)));
         
-        const validEvents = events.filter(event => validTaskIds.has(event.taskId));
+        const validEvents = events.filter(event => validTaskIds.has(String(event.taskId)));
         
         if (validEvents.length !== events.length) {
             this.saveScheduledEvents(validEvents);
@@ -626,7 +626,8 @@ class StorageService {
         
         tasks.forEach(task => {
             if (task.id) {
-                validTaskIds.add(task.id);
+                // Convert to string for consistent comparison
+                validTaskIds.add(String(task.id));
             } else {
                 console.warn('Task without ID found:', task);
             }
@@ -638,11 +639,15 @@ class StorageService {
             let reason = '';
             
             // Validate task
-            if (!validTaskIds.has(event.taskId)) {
+            if (!validTaskIds.has(String(event.taskId))) {
                 reason = `Task "${event.taskTitle}" (ID: ${event.taskId}) not found in backlog`;
                 results.ghostTasksRemoved++;
                 results.details.push(reason);
                 console.log(`Removing orphan task event: ${reason}`);
+                console.log(`Debug: event.taskId = ${event.taskId} (type: ${typeof event.taskId})`);
+                console.log(`Debug: validTaskIds contains:`, Array.from(validTaskIds));
+                console.log(`Debug: String(event.taskId) = "${String(event.taskId)}"`);
+                console.log(`Debug: validTaskIds.has(String(event.taskId)) = ${validTaskIds.has(String(event.taskId))}`);
                 isValid = false;
             }
             
@@ -695,9 +700,9 @@ class StorageService {
     getValidTaskPoolTasks() {
         const tasks = this.getBacklogTasks();
         const scheduledEvents = this.getScheduledEvents();
-        const scheduledTaskIds = new Set(scheduledEvents.map(event => event.taskId));
+        const scheduledTaskIds = new Set(scheduledEvents.map(event => String(event.taskId)));
         
-        return tasks.filter(task => !scheduledTaskIds.has(task.id));
+        return tasks.filter(task => !scheduledTaskIds.has(String(task.id)));
     }
     
     /**
@@ -731,8 +736,8 @@ class StorageService {
         const tasks = this.getValidTasksForDisplay();
         const events = this.getScheduledEvents();
         
-        const validTaskIds = new Set(tasks.map(t => t.id));
-        const taskIdsInEvents = new Set(events.map(e => e.taskId));
+        const validTaskIds = new Set(tasks.map(t => String(t.id)));
+        const taskIdsInEvents = new Set(events.map(e => String(e.taskId)));
         
         const orphanTasks = Array.from(taskIdsInEvents).filter(id => !validTaskIds.has(id));
         

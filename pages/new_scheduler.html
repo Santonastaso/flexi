@@ -763,7 +763,7 @@
             // Ensure task can only be scheduled once
             isTaskAlreadyScheduled(taskId) {
                 const events = this.storageService.getScheduledEvents();
-                return events.some(event => event.taskId === taskId);
+                return events.some(event => String(event.taskId) === String(taskId));
             }
             
             // Helper function to calculate task duration
@@ -1004,7 +1004,7 @@
                 taskElements.forEach(element => {
                     const taskId = element.dataset.taskId;
                     const isScheduled = scheduledEvents.some(event => 
-                        event.taskId === taskId || event.id === taskId
+                        String(event.taskId) === String(taskId) || String(event.id) === String(taskId)
                     );
                     if (isScheduled) {
                         element.remove();

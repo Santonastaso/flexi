@@ -400,7 +400,7 @@ class ProductionScheduler {
         
         tasks.forEach(task => {
             // Only show tasks that aren't currently scheduled
-            if (!scheduledEvents.some(event => event.taskId === task.id)) {
+            if (!scheduledEvents.some(event => String(event.taskId) === String(task.id))) {
                 this.renderTaskInPool(task);
             }
         });
@@ -409,7 +409,7 @@ class ProductionScheduler {
         
         // Check for orphaned tasks
         const allTasks = this.storageService.getBacklogTasks();
-        const orphanedTasks = allTasks.filter(task => !tasks.find(vt => vt.id === task.id));
+        const orphanedTasks = allTasks.filter(task => !tasks.find(vt => String(vt.id) === String(task.id)));
         if (orphanedTasks.length > 0) {
             console.warn('Orphaned tasks detected in task pool:', orphanedTasks);
         }
