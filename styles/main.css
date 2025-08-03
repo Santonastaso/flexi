@@ -100,7 +100,7 @@ header {
 }
 
 .sidebar-logo img {
-    height: 32px;
+    height: 64px;
     width: auto;
     display: block;
 }
@@ -220,7 +220,7 @@ header {
     }
     
     .sidebar-logo img {
-        height: 28px;
+        height: 56px;
     }
 }
 
