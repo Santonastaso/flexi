@@ -17,39 +17,39 @@ class NewMachineryManager extends BaseManager {
             return;
         }
         
-        this.bindElements(elementMap);
-        this.attachEventListeners();
-        this.loadMachinery();
-        this.setupFormValidation();
-        
-        // Initialize edit functionality
-        if (this.editManager) {
-            // Initialize for both tables specifically
-            const printingTable = document.querySelector('#printing-machinery-table-body').closest('.modern-table');
-            const packagingTable = document.querySelector('#packaging-machinery-table-body').closest('.modern-table');
+        if (super.init(elementMap)) {
+            this.loadMachinery();
+            this.setupFormValidation();
             
-            if (printingTable) {
-                this.editManager.initTableEdit(printingTable);
-            }
-            if (packagingTable) {
-                this.editManager.initTableEdit(packagingTable);
-            }
-            
-            // Override saveEdit method
-            this.editManager.saveEdit = (row) => this.saveEdit(row);
-            
-            // Handle delete events for both tables
-            [printingTable, packagingTable].forEach(table => {
-                if (table) {
-                    table.addEventListener('deleteRow', (e) => {
-                        const row = e.detail.row;
-                        const machineId = row.dataset.machineId;
-                        if (machineId) {
-                            this.deleteMachine(machineId);
-                        }
-                    });
+            // Initialize edit functionality
+            if (this.editManager) {
+                // Initialize for both tables specifically
+                const printingTable = document.querySelector('#printing-machinery-table-body').closest('.modern-table');
+                const packagingTable = document.querySelector('#packaging-machinery-table-body').closest('.modern-table');
+                
+                if (printingTable) {
+                    this.editManager.initTableEdit(printingTable);
                 }
-            });
+                if (packagingTable) {
+                    this.editManager.initTableEdit(packagingTable);
+                }
+                
+                // Override saveEdit method
+                this.editManager.saveEdit = (row) => this.saveEdit(row);
+                
+                // Handle delete events for both tables
+                [printingTable, packagingTable].forEach(table => {
+                    if (table) {
+                        table.addEventListener('deleteRow', (e) => {
+                            const row = e.detail.row;
+                            const machineId = row.dataset.machineId;
+                            if (machineId) {
+                                this.deleteMachine(machineId);
+                            }
+                        });
+                    }
+                });
+            }
         }
     }
 
