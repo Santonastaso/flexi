@@ -656,7 +656,7 @@ class StorageService {
             }
             
             // Additional validation: check if event has required properties
-            if (!event.startTime || !event.endTime) {
+            if (!event.startHour || !event.endHour) {
                 reason = `Event missing required time properties: ${event.taskTitle}`;
                 results.ghostTasksRemoved++;
                 results.details.push(reason);

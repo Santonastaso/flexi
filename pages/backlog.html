@@ -232,7 +232,7 @@
                                 <th>Total Time (h)</th>
                                 <th>Total Cost (€)</th>
                                 <th>Color</th>
-                                <th class="text-center" style="width: 80px;">Delete</th>
+                                <th class="text-center" style="width: 120px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="backlog-table-body">
@@ -593,6 +593,76 @@
                 width: 60px;
                 height: 30px;
             }
+        }
+
+        /* Inline editing styles */
+        .editable-cell {
+            position: relative;
+        }
+
+        .edit-input, .edit-select {
+            width: 100%;
+            padding: 4px 8px;
+            border: 1px solid var(--primary-blue);
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .edit-input:focus, .edit-select:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+
+        .action-buttons, .save-cancel-buttons {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+        }
+
+        .btn-edit, .btn-save, .btn-cancel, .btn-delete {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-edit:hover {
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        .btn-save:hover {
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .btn-cancel:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .btn-delete:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        tr.editing {
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        tr.editing td {
+            border-color: var(--primary-blue);
+        }
+
+        .edit-color-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .color-preview-edit {
+            border: 2px solid var(--border-color);
         }
     </style>
 </body>
