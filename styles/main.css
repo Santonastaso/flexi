@@ -423,66 +423,6 @@ p {
     background: var(--text-light);
 }
 
-/* Enhanced table scrolling for Packaging Machines */
-.table-container {
-    overflow-x: auto;
-    max-width: 100%;
-    scrollbar-width: thin;
-    scrollbar-color: var(--gray-medium) var(--bg-color);
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    background: white;
-    border: 1px solid var(--border-color);
-}
-
-/* Ensure tables with many columns are properly scrollable */
-.modern-table {
-    min-width: 1200px; /* Increased minimum width for tables with many columns */
-}
-
-/* Section arrows */
-.section-arrow {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 20px 0;
-    padding: 10px;
-}
-
-.arrow-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-}
-
-.arrow-label {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-light);
-    text-align: center;
-}
-
-/* Enhanced bag preview styles */
-.bag-preview svg {
-    border: 2px solid #e0e0e0;
-    border-radius: 12px;
-    background: white;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    margin: 0 auto;
-    display: block;
-}
-
-.visual-preview {
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
-    border-radius: 12px;
-    padding: 30px;
-    position: sticky;
-    top: 20px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
 /* ===== ACTION BUTTONS ===== */
 .action-btn {
     background-color: transparent;
