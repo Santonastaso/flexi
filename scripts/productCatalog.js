@@ -1,22 +1,21 @@
 /**
  * Product Catalog Manager - Handles printing and packaging product types
  */
-class ProductCatalogManager {
+class ProductCatalogManager extends BaseManager {
     constructor() {
-        this.storageService = window.storageService;
+        super(window.storageService);
         this.editManager = window.editManager;
-        this.elements = {};
-        this.init();
+        this.init(this.getElementMap());
     }
 
-    init() {
+    init(elementMap) {
         // Ensure storage service is available
         if (!this.storageService) {
             console.error('StorageService not available');
             return;
         }
         
-        this.bindElements();
+        this.bindElements(elementMap);
         this.attachEventListeners();
         this.loadProductCatalog();
         this.setupDynamicLabels();
@@ -41,8 +40,8 @@ class ProductCatalogManager {
         }
     }
 
-    bindElements() {
-        this.elements = {
+    getElementMap() {
+        return {
             form: document.getElementById('productForm'),
             nameInput: document.getElementById('productName'),
             descriptionInput: document.getElementById('productDescription'),
@@ -312,31 +311,7 @@ class ProductCatalogManager {
         }
     }
 
-    showMessage(message, type = 'info') {
-        // Create or get message container
-        let messageContainer = document.querySelector('.message-container');
-        if (!messageContainer) {
-            messageContainer = document.createElement('div');
-            messageContainer.className = 'message-container';
-            document.querySelector('main').insertBefore(messageContainer, document.querySelector('main').firstChild);
-        }
 
-        // Create message element
-        const messageEl = document.createElement('div');
-        messageEl.className = `message message-${type}`;
-        messageEl.textContent = message;
-
-        // Add to container
-        messageContainer.appendChild(messageEl);
-
-        // Auto-remove after 3 seconds
-        setTimeout(() => {
-            messageEl.remove();
-            if (messageContainer.children.length === 0) {
-                messageContainer.remove();
-            }
-        }, 3000);
-    }
 }
 
 // Initialize when DOM is loaded and storage service is available

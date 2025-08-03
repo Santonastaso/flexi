@@ -1,24 +1,23 @@
 /**
  * New Machinery Manager - Handles printing and packaging machinery with specific properties
  */
-class NewMachineryManager {
+class NewMachineryManager extends BaseManager {
     constructor() {
-        this.storageService = window.storageService;
+        super(window.storageService);
         this.editManager = window.editManager;
-        this.elements = {};
         this.currentEditingType = null;
         this.currentEditingId = null;
-        this.init();
+        this.init(this.getElementMap());
     }
 
-    init() {
+    init(elementMap) {
         // Ensure storage service is available
         if (!this.storageService) {
             console.error('StorageService not available');
             return;
         }
         
-        this.bindElements();
+        this.bindElements(elementMap);
         this.attachEventListeners();
         this.loadMachinery();
         this.setupFormValidation();
@@ -54,8 +53,8 @@ class NewMachineryManager {
         }
     }
 
-    bindElements() {
-        this.elements = {
+    getElementMap() {
+        return {
             // Common form elements
             machineType: document.getElementById('machineType'),
             machineCity: document.getElementById('machineCity'),
@@ -556,10 +555,7 @@ class NewMachineryManager {
         }
     }
 
-    showMessage(message, type = 'info') {
-        // Use the banner system
-        showBanner(message, type);
-    }
+
 }
 
 // Initialize when DOM is loaded and storage service is available

@@ -1,6 +1,6 @@
 // Backlog Product Integration
 function getProducts() {
-    return JSON.parse(localStorage.getItem('productsCatalog') || '[]');
+    return window.storageService.getItem('productsCatalog', []);
 }
 
 function updateProductDropdown() {

@@ -199,7 +199,7 @@ class EventStorage {
      */
     saveOffTimeEvents(machineName, events) {
         const storageKey = `offTimeEvents_${machineName}`;
-        const existingEvents = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const existingEvents = window.storageService.getItem(storageKey, []);
         
         // Add new events, avoiding duplicates
         events.forEach(newEvent => {
@@ -211,7 +211,7 @@ class EventStorage {
             }
         });
         
-        localStorage.setItem(storageKey, JSON.stringify(existingEvents));
+        window.storageService.setItem(storageKey, existingEvents);
     }
     
     /**
@@ -231,7 +231,7 @@ class EventStorage {
         
         // Clean up stored events
         const storageKey = `offTimeEvents_${machineName}`;
-        const existingEvents = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const existingEvents = window.storageService.getItem(storageKey, []);
         const startDateStr = this.formatDate(startDate);
         const endDateStr = this.formatDate(endDate);
         
@@ -239,7 +239,7 @@ class EventStorage {
             event.date < startDateStr || event.date > endDateStr
         );
         
-        localStorage.setItem(storageKey, JSON.stringify(filteredEvents));
+        window.storageService.setItem(storageKey, filteredEvents);
     }
     
     /**

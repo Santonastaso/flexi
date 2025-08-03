@@ -1,27 +1,17 @@
 /**
  * Backlog Manager - Handles task creation and management
  */
-class BacklogManager {
+class BacklogManager extends BaseManager {
     constructor() {
-        this.storageService = window.storageService;
-        this.elements = {};
-        this.init();
+        super(window.storageService);
+        this.init(this.getElementMap());
     }
     
     /**
-     * Initialize the backlog manager
+     * Get element map for binding
      */
-    init() {
-        this.bindElements();
-        this.attachEventListeners();
-        this.renderBacklog();
-    }
-    
-    /**
-     * Bind DOM elements
-     */
-    bindElements() {
-        this.elements = {
+    getElementMap() {
+        return {
             createTaskBtn: document.getElementById('createTask'),
             taskNameInput: document.getElementById('taskName'),
             taskSetupInput: document.getElementById('taskSetup'),
@@ -29,18 +19,6 @@ class BacklogManager {
             taskColorInput: document.getElementById('taskColor'),
             backlogTableBody: document.getElementById('backlog-table-body')
         };
-        
-        // Validate required elements
-        const missingElements = Object.entries(this.elements)
-            .filter(([key, element]) => !element)
-            .map(([key]) => key);
-            
-        if (missingElements.length > 0) {
-            console.error('Missing required elements:', missingElements);
-            return false;
-        }
-        
-        return true;
     }
     
     /**
@@ -63,7 +41,7 @@ class BacklogManager {
         
         // Table click events (delegation)
         this.elements.backlogTableBody.addEventListener('click', (e) => {
-            this.handleTableClick(e);
+            this.handleTableClick(e, this.elements.backlogTableBody);
         });
     }
     
@@ -75,16 +53,16 @@ class BacklogManager {
             const taskData = this.collectTaskData();
             const validationResult = this.validateTaskData(taskData);
             if (!validationResult.isValid) {
-                showBanner(validationResult.message, 'error');
+                this.showMessage(validationResult.message, 'error');
                 return;
             }
             const newTask = this.storageService.addBacklogTask(taskData);
             this.renderBacklog();
             this.clearForm();
-            showBanner('Task added successfully!', 'success');
+            this.showMessage('Task added successfully!', 'success');
         } catch (error) {
             console.error('Error adding task:', error);
-            showBanner('Error adding task. Please try again.', 'error');
+            this.showMessage('Error adding task. Please try again.', 'error');
         }
     }
     
@@ -95,7 +73,7 @@ class BacklogManager {
         // New: Task Name (free string) and Product Type (dropdown)
         const name = this.elements.taskNameInput.value.trim();
         const description = document.getElementById('taskDescription').value.trim();
-        const products = JSON.parse(localStorage.getItem('productsCatalog') || '[]');
+        const products = this.storageService.getItem('productsCatalog', []);
         const productIdx = document.getElementById('taskProduct').value;
         let product = products[productIdx];
         if (!product) product = {};
@@ -143,7 +121,7 @@ class BacklogManager {
      * Clear the form inputs
      */
     clearForm() {
-        this.elements.taskNameInput.value = '';
+        this.clearFormFields(['taskNameInput']);
         this.elements.taskSetupInput.value = '1';
         this.elements.taskProductionInput.value = '4';
         this.elements.taskColorInput.selectedIndex = 0;
@@ -168,19 +146,26 @@ class BacklogManager {
             const tasks = this.storageService.getBacklogTasks();
             const taskToDelete = tasks[index];
             if (!taskToDelete) {
-                showBanner('Task not found.', 'error');
+                this.showMessage('Task not found.', 'error');
                 return;
             }
-            showConfirmBanner('Delete this task?', () => {
+            UIComponents.confirm('Delete this task?', () => {
                 this.storageService.validateTaskCanBeDeleted(taskToDelete.id);
                 this.storageService.removeBacklogTask(taskToDelete.id);
                 this.renderBacklog();
-                showBanner('Task deleted.', 'success');
+                this.showMessage('Task deleted.', 'success');
             });
         } catch (error) {
             console.error('Error deleting task:', error);
-            showBanner(error.message, 'error');
+            this.showMessage(error.message, 'error');
         }
+    }
+    
+    /**
+     * Render the backlog table
+     */
+    renderData() {
+        this.renderBacklog();
     }
     
     /**
