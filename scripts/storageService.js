@@ -681,16 +681,12 @@ class StorageService {
     
     /**
      * Get valid machines for Gantt display (live machines that exist)
-     * Uses ONLY the machinery tables as source of truth
+     * Now uses the same source as machinery tables for SSOT
      */
     getValidGanttMachines() {
-        // Get machines from the machinery tables (source of truth)
-        const printingMachines = this.getPrintingMachines();
-        const packagingMachines = this.getPackagingMachines();
-        
-        // Combine and filter for live machines only
-        const allMachines = [...printingMachines, ...packagingMachines];
-        return allMachines.filter(machine => machine.live === true);
+        // Use the same strictly validated machines as the machinery tables
+        const validMachines = this.getValidMachinesForDisplay();
+        return validMachines.filter(machine => machine.live === true);
     }
     
     /**
