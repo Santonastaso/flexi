@@ -143,8 +143,17 @@ class NewMachineryManager {
 
             this.storageService.addMachineWithSync(machineData);
             this.clearForm();
+            
+            // Force cleanup of any orphan data and reload
+            this.storageService.syncGanttChartData();
             this.loadMachinery();
-            this.showMessage('Machine added successfully!', 'success');
+            
+            // Force refresh the page to ensure clean display
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+            
+            this.showMessage('Machine added successfully! Refreshing page...', 'success');
         } catch (error) {
             this.showMessage('Error adding machine: ' + error.message, 'error');
         }
@@ -225,6 +234,12 @@ class NewMachineryManager {
     }
 
     loadMachinery() {
+        // Clean up any invalid machines first
+        const cleanedCount = this.storageService.cleanupInvalidMachines();
+        if (cleanedCount > 0) {
+            console.log(`Cleaned up ${cleanedCount} invalid machines`);
+        }
+        
         // Get only valid machines for display (strict filtering)
         const allMachines = this.storageService.getValidMachinesForDisplay();
         const printingMachines = allMachines.filter(m => m.type === 'printing');
