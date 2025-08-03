@@ -1,6 +1,6 @@
 /**
  * Storage Service - Centralized localStorage management
- * Handles all data persistence for the Ship Production Suite
+ * Handles all data persistence for the Flexi Production Suite
  * Enhanced with strict data integrity and orphan prevention
  */
 class StorageService {

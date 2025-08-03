@@ -118,7 +118,7 @@ class MachineCalendarManager {
         }
         
         // Update browser title
-        document.title = `Ship - ${this.machineName} Availability`;
+        document.title = `Flexi - ${this.machineName} Availability`;
     }
     
     /**
