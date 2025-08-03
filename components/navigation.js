@@ -15,8 +15,6 @@ class Navigation {
                 machinery: { href: 'machinery.html', label: 'Machinery', icon: '⚙️' },
                 machineCatalog: { href: 'products_catalog.html', label: 'Catalog', icon: '📋' },
                 backlog: { href: 'backlog.html', label: 'Backlog', icon: '📝' },
-                backlogAddTask: { href: 'backlog_add_task.html', label: 'Add Task', icon: '➕' },
-                backlogTasksList: { href: 'backlog_tasks_list.html', label: 'Tasks List', icon: '📋' },
                 scheduler: { href: 'new_scheduler.html', label: 'Scheduler', icon: '📅' },
                 dataIntegrity: { href: 'data_integrity.html', label: 'Data Integrity', icon: '🔍' }
             }
@@ -81,13 +79,9 @@ class Navigation {
                 ];
             
             case 'backlog':
-            case 'backlogAddTask':
-            case 'backlogTasksList':
                 return [
                     this.navigationData.pages.machinery,
                     this.navigationData.pages.machineCatalog,
-                    this.navigationData.pages.backlogAddTask,
-                    this.navigationData.pages.backlogTasksList,
                     this.navigationData.pages.scheduler
                 ];
             
