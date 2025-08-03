@@ -2,11 +2,10 @@
  * New Backlog Manager - Handles printing and packaging production lots
  * Implements Italian calculation formulas for Stampa and Confezionamento
  */
-class NewBacklogManager {
+class NewBacklogManager extends BaseManager {
     constructor() {
-        this.storageService = window.storageService;
+        super(window.storageService);
         this.editManager = window.editManager;
-        this.elements = {};
         this.currentCalculation = null;
         this.init();
     }
@@ -18,34 +17,34 @@ class NewBacklogManager {
             return;
         }
         
-        this.bindElements();
-        this.attachEventListeners();
-        this.loadMachines();
-        this.loadBacklog();
-        this.setupFormValidation();
-        
-        // Initialize edit functionality
-        if (this.editManager) {
-            this.editManager.initTableEdit('.modern-table');
-            // Override saveEdit method
-            this.editManager.saveEdit = (row) => this.saveEdit(row);
+        if (this.init(this.getElementMap())) {
+            this.loadMachines();
+            this.loadBacklog();
+            this.setupFormValidation();
             
-            // Handle delete events
-            const table = document.querySelector('.modern-table');
-            if (table) {
-                table.addEventListener('deleteRow', (e) => {
-                    const row = e.detail.row;
-                    const taskId = row.dataset.taskId;
-                    if (taskId) {
-                        this.deleteTask(taskId);
-                    }
-                });
+            // Initialize edit functionality
+            if (this.editManager) {
+                this.editManager.initTableEdit('.modern-table');
+                // Override saveEdit method
+                this.editManager.saveEdit = (row) => this.saveEdit(row);
+                
+                // Handle delete events
+                const table = document.querySelector('.modern-table');
+                if (table) {
+                    table.addEventListener('deleteRow', (e) => {
+                        const row = e.detail.row;
+                        const taskId = row.dataset.taskId;
+                        if (taskId) {
+                            this.deleteTask(taskId);
+                        }
+                    });
+                }
             }
         }
     }
 
-    bindElements() {
-        this.elements = {
+    getElementMap() {
+        return {
             // Form inputs
             taskName: document.getElementById('taskName'),
             numeroBuste: document.getElementById('numeroBuste'),
@@ -378,14 +377,7 @@ class NewBacklogManager {
     }
 
     clearForm() {
-        this.elements.taskName.value = '';
-        this.elements.numeroBuste.value = '';
-        this.elements.passoBusta.value = '';
-        this.elements.altezzaBusta.value = '';
-        this.elements.fasciaBusta.value = '';
-        this.elements.pezziScatola.value = '';
-        this.elements.printingMachine.value = '';
-        this.elements.packagingMachine.value = '';
+        this.clearFormFields();
         this.elements.calculationResults.style.display = 'none';
         this.elements.createTaskBtn.disabled = true;
         this.currentCalculation = null;
@@ -397,6 +389,10 @@ class NewBacklogManager {
     loadBacklog() {
         const tasks = this.storageService.getBacklogTasks();
         this.renderBacklog(tasks);
+    }
+
+    renderData() {
+        this.loadBacklog();
     }
 
     renderBacklog(tasks) {
