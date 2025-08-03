@@ -580,7 +580,13 @@ class NewBacklogManager {
             const field = cell.dataset.field;
             const input = cell.querySelector('.edit-input, .edit-select');
             if (input) {
-                updatedData[field] = input.value;
+                if (field === 'color') {
+                    // For color, get the value from the select element
+                    const colorSelect = cell.querySelector('.edit-select');
+                    updatedData[field] = colorSelect ? colorSelect.value : input.value;
+                } else {
+                    updatedData[field] = input.value;
+                }
             }
         });
 
@@ -612,7 +618,7 @@ class NewBacklogManager {
             // Save updated task
             this.storageService.saveBacklogTasksWithSync(
                 this.storageService.getBacklogTasks().map(t => 
-                    t.id === taskId ? updatedTask : t
+                    String(t.id) === String(taskId) ? updatedTask : t
                 )
             );
 

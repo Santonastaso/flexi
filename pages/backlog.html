@@ -7,6 +7,82 @@
     
     <!-- External CSS -->
     <link rel="stylesheet" href="../styles/main.css">
+    
+    <style>
+        /* Edit functionality styles */
+        .editing .static-value {
+            display: none !important;
+        }
+        
+        .editing .edit-input,
+        .editing .edit-select,
+        .editing .edit-color-container {
+            display: block !important;
+        }
+        
+        .edit-input,
+        .edit-select {
+            width: 100%;
+            padding: 4px 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .edit-select {
+            background-color: white;
+        }
+        
+        .edit-color-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-edit,
+        .btn-delete,
+        .btn-save,
+        .btn-cancel {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-edit:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .btn-delete:hover {
+            background-color: #fef2f2;
+        }
+        
+        .btn-save:hover {
+            background-color: #f0fdf4;
+        }
+        
+        .btn-cancel:hover {
+            background-color: #fef2f2;
+        }
+        
+        .action-buttons,
+        .save-cancel-buttons {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+        }
+        
+        .editing .action-buttons {
+            display: none !important;
+        }
+        
+        .editing .save-cancel-buttons {
+            display: flex !important;
+        }
+    </style>
 </head>
 <body>
     <div class="page-container">
