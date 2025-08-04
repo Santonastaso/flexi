@@ -8,20 +8,25 @@
     overflow: hidden;
 }
 
+.hero > *:not(.hero-background-logo) {
+    position: relative;
+    z-index: 2;
+}
+
 .hero::before {
     content: '';
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 600px;
-    height: 300px;
+    width: 800px;
+    height: 400px;
     background-image: url('../assets/logo.svg');
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
-    opacity: 0.8;
-    z-index: -1;
+    opacity: 1;
+    z-index: 1;
     pointer-events: none;
     animation: logoFloat 20s ease-in-out infinite;
 }
@@ -29,11 +34,11 @@
 @keyframes logoFloat {
     0%, 100% {
         transform: translate(-50%, -50%) scale(1);
-        opacity: 0.8;
+        opacity: 1;
     }
     50% {
         transform: translate(-50%, -50%) scale(1.1);
-        opacity: 0.9;
+        opacity: 1;
     }
 }
 
@@ -74,8 +79,13 @@
     }
     
     .hero::before {
-        width: 400px;
-        height: 200px;
+        width: 500px;
+        height: 250px;
+    }
+    
+    .hero-background-logo img {
+        width: 500px !important;
+        height: 250px !important;
     }
     
     .headline {
