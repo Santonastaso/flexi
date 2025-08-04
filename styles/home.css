@@ -16,11 +16,11 @@
 .hero::before {
     content: '';
     position: absolute;
-    top: 50%;
+    top: 35%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 800px;
-    height: 400px;
+    width: 1000px;
+    height: 500px;
     background-image: url('../assets/logo.svg');
     background-repeat: no-repeat;
     background-position: center;
@@ -79,13 +79,15 @@
     }
     
     .hero::before {
-        width: 500px;
-        height: 250px;
+        width: 600px;
+        height: 300px;
+        top: 30%;
     }
     
     .hero-background-logo img {
-        width: 500px !important;
-        height: 250px !important;
+        width: 600px !important;
+        height: 300px !important;
+        top: 30% !important;
     }
     
     .headline {
