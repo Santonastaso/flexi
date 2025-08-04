@@ -27,7 +27,7 @@ class Navigation {
             <div class="sidebar">
                 <div class="sidebar-logo">
                     <a href="${this.navigationData.logo.href}">
-                        <img src="../assets/logo.svg" alt="Flexi" style="height: 32px; width: auto;">
+                        <img src="../assets/logo.svg" alt="Flexi">
                     </a>
                 </div>
                 
