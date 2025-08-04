@@ -359,10 +359,10 @@
 }
 
 .nav-btn {
-    background-color: white;
+    background: none;
     border: 1px solid var(--border-color);
     color: var(--text-dark);
-    padding: 8px 16px;
+    padding: 8px 12px;
     border-radius: 8px;
     cursor: pointer;
     font-family: inherit;
@@ -372,11 +372,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 40px;
+    background-color: white;
 }
 
 .nav-btn:hover {
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: var(--gc-hover);
     transform: translateY(-1px);
 }
 
@@ -393,8 +393,9 @@
 }
 
 .nav-btn.arrow-btn {
-    padding: 8px;
-    min-width: 40px;
+    padding: 6px;
+    min-width: 32px;
+    min-height: 32px;
 }
 
 .current-date-display {
