@@ -355,7 +355,7 @@ class NewMachineryManager extends BaseManager {
                 </td>
                 <td class="editable-cell" data-field="live">
                     <span class="static-value">
-                        <span class="badge ${machine.live ? 'badge-green' : 'badge-gray'}">
+                        <span class="btn ${machine.live ? 'btn-primary' : 'btn-secondary'}" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
                             ${machine.live ? 'Yes' : 'No'}
                         </span>
                     </span>
@@ -418,7 +418,7 @@ class NewMachineryManager extends BaseManager {
                 </td>
                 <td class="editable-cell" data-field="produzioneGemellare">
                     <span class="static-value">
-                        <span class="badge ${machine.produzioneGemellare ? 'badge-green' : 'badge-gray'}">
+                        <span class="btn ${machine.produzioneGemellare ? 'btn-primary' : 'btn-secondary'}" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
                             ${machine.produzioneGemellare ? 'Yes' : 'No'}
                         </span>
                     </span>
@@ -431,7 +431,7 @@ class NewMachineryManager extends BaseManager {
                 </td>
                 <td class="editable-cell" data-field="live">
                     <span class="static-value">
-                        <span class="badge ${machine.live ? 'badge-green' : 'badge-gray'}">
+                        <span class="btn ${machine.live ? 'btn-primary' : 'btn-secondary'}" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
                             ${machine.live ? 'Yes' : 'No'}
                         </span>
                     </span>

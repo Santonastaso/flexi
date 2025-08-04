@@ -238,7 +238,7 @@ class ProductCatalogManager extends BaseManager {
                 </td>
                 <td class="editable-cell" data-field="type">
                     <span class="static-value">
-                        <span class="badge ${product.type === 'printing' ? 'badge-blue' : 'badge-green'}">
+                        <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
                             ${product.type}
                         </span>
                     </span>
