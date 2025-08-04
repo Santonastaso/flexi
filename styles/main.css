@@ -304,49 +304,7 @@ p {
     line-height: 1.6;
 }
 
-/* ===== BUTTONS ===== */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    padding: 14px 28px;
-    border-radius: 28px;
-    font-size: 16px;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-    height: 48px;
-}
 
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-}
-
-.btn-primary {
-    background-color: var(--primary-green);
-    color: white;
-}
-
-.btn-primary:hover {
-    background-color: var(--primary-green-hover);
-}
-
-.btn-secondary {
-    background-color: var(--secondary-gray);
-    color: var(--text-dark);
-}
-
-.btn-secondary:hover {
-    background-color: var(--secondary-gray-hover);
-}
-
-.btn-small {
-    font-size: 14px;
-    padding: 12px 28px;
-}
 
 /* ===== FORMS ===== */
 .form-grid {
@@ -409,75 +367,7 @@ p {
     transition: all 0.2s ease;
 }
 
-/* ===== TABLES ===== */
-.table-container {
-    overflow-x: auto;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    background: white;
-    border: 1px solid var(--border-color);
-}
 
-.modern-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 1200px; /* Increased for Packaging Machines table */
-    margin: 0;
-}
-
-.modern-table th,
-.modern-table td {
-    padding: 16px;
-    text-align: left;
-    vertical-align: middle;
-    border-bottom: 1px solid var(--border-color);
-    white-space: nowrap; /* Prevents content from wrapping */
-}
-
-.modern-table th {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-light);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background-color: var(--bg-color);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.modern-table tr {
-    transition: all 0.2s ease;
-}
-
-.modern-table tr:hover {
-    background-color: #f8f9fa;
-    transform: scale(1.01);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.modern-table tr:last-child td {
-    border-bottom: none;
-}
-
-/* Custom scrollbar for table container */
-.table-container::-webkit-scrollbar {
-    height: 8px;
-}
-
-.table-container::-webkit-scrollbar-track {
-    background: var(--bg-color);
-    border-radius: 4px;
-}
-
-.table-container::-webkit-scrollbar-thumb {
-    background: var(--gray-medium);
-    border-radius: 4px;
-}
-
-.table-container::-webkit-scrollbar-thumb:hover {
-    background: var(--text-light);
-}
 
 /* ===== ACTION BUTTONS ===== */
 .action-btn {
