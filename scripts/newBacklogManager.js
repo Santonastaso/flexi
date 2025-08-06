@@ -17,31 +17,36 @@ class NewBacklogManager extends BaseManager {
             return;
         }
         
-        if (super.init(this.getElementMap())) {
-            this.loadBacklog();
-            this.setupFormValidation();
+        // Bind elements first
+        this.elements = this.getElementMap();
+        
+        // Initialize edit functionality
+        if (this.editManager) {
+            this.editManager.initTableEdit('.modern-table');
+            // Override saveEdit method
+            this.editManager.saveEdit = (row) => this.saveEdit(row);
             
-            // Initialize edit functionality
-            if (this.editManager) {
-                this.editManager.initTableEdit('.modern-table');
-                // Override saveEdit method
-                this.editManager.saveEdit = (row) => this.saveEdit(row);
-                
-                // Handle delete events
-                const table = document.querySelector('.modern-table');
-                if (table) {
-                    table.addEventListener('deleteRow', (e) => {
-                        const row = e.detail.row;
-                        const taskId = row.dataset.taskId;
-                        if (taskId) {
-                            this.deleteTask(taskId);
-                        }
-                    });
-                }
-            } else {
-                console.error('EditManager not available');
+            // Handle delete events
+            const table = document.querySelector('.modern-table');
+            if (table) {
+                table.addEventListener('deleteRow', (e) => {
+                    const row = e.detail.row;
+                    const taskId = row.dataset.taskId;
+                    if (taskId) {
+                        this.deleteTask(taskId);
+                    }
+                });
             }
+        } else {
+            console.error('EditManager not available');
         }
+        
+        // Attach event listeners
+        this.attachEventListeners();
+        
+        // Load data and setup validation
+        this.loadBacklog();
+        this.setupFormValidation();
     }
 
     getElementMap() {
@@ -102,8 +107,13 @@ class NewBacklogManager extends BaseManager {
     }
 
     attachEventListeners() {
-        this.elements.calculateBtn.addEventListener('click', () => this.calculateProduction());
-        this.elements.createTaskBtn.addEventListener('click', () => this.addToBacklog());
+        if (this.elements.calculateBtn) {
+            this.elements.calculateBtn.addEventListener('click', () => this.calculateProduction());
+        }
+        
+        if (this.elements.createTaskBtn) {
+            this.elements.createTaskBtn.addEventListener('click', () => this.addToBacklog());
+        }
         
         // Form validation and preview updates
         const technicalInputs = [this.elements.bagHeight, this.elements.bagWidth, this.elements.bagStep, this.elements.quantity];
@@ -279,35 +289,50 @@ class NewBacklogManager extends BaseManager {
     }
 
     validateForm() {
-        const hasRequiredFields = this.elements.articleCode.value.trim() &&
-                                this.elements.productionLot.value.trim() &&
-                                this.elements.workCenter.value &&
-                                this.elements.bagHeight.value &&
-                                this.elements.bagWidth.value &&
-                                this.elements.bagStep.value &&
-                                this.elements.sealSides.value &&
-                                this.elements.productType.value &&
-                                this.elements.quantity.value &&
-                                this.elements.deliveryDate.value &&
-                                this.elements.tipoLavorazione.value &&
-                                this.elements.fase.value;
+        // For calculation, only require essential fields
+        const hasCalculationFields = this.elements.bagHeight.value &&
+                                   this.elements.bagWidth.value &&
+                                   this.elements.bagStep.value &&
+                                   this.elements.quantity.value &&
+                                   this.elements.tipoLavorazione.value &&
+                                   this.elements.fase.value;
         
-        this.elements.calculateBtn.disabled = !hasRequiredFields;
-        this.elements.createTaskBtn.disabled = !hasRequiredFields || !this.currentCalculation;
+        // For adding to backlog, require all fields
+        const hasAllRequiredFields = this.elements.articleCode.value.trim() &&
+                                   this.elements.productionLot.value.trim() &&
+                                   this.elements.workCenter.value &&
+                                   this.elements.bagHeight.value &&
+                                   this.elements.bagWidth.value &&
+                                   this.elements.bagStep.value &&
+                                   this.elements.sealSides.value &&
+                                   this.elements.productType.value &&
+                                   this.elements.quantity.value &&
+                                   this.elements.deliveryDate.value &&
+                                   this.elements.tipoLavorazione.value &&
+                                   this.elements.fase.value;
+        
+        this.elements.calculateBtn.disabled = !hasCalculationFields;
+        this.elements.createTaskBtn.disabled = !hasAllRequiredFields || !this.currentCalculation;
     }
 
     calculateProduction() {
+        console.log('calculateProduction called');
         const odpData = this.collectODPFormData();
+        console.log('Collected ODP data:', odpData);
         
         if (!this.validateODPData(odpData)) {
+            console.log('Validation failed');
             return;
         }
 
         try {
+            console.log('Performing calculations...');
             const calculation = this.performODPCalculations(odpData);
+            console.log('Calculation result:', calculation);
             this.displayODPResults(calculation);
             this.currentCalculation = calculation;
             this.elements.createTaskBtn.disabled = false;
+            console.log('Calculation completed successfully');
         } catch (error) {
             console.error('ODP Calculation error:', error);
             this.showMessage('Calculation failed: ' + error.message, 'error');
@@ -346,14 +371,11 @@ class NewBacklogManager extends BaseManager {
     }
 
     validateODPData(odpData) {
-        // Check if required fields are present
-        if (!odpData.article_code || !odpData.production_lot || !odpData.work_center) {
-            this.showMessage('Please fill in all identification fields', 'error');
-            return false;
-        }
+        console.log('Validating ODP data:', odpData);
         
+        // For calculation, we only need the essential fields, not all fields
         if (!odpData.bag_height || !odpData.bag_width || !odpData.bag_step || !odpData.quantity) {
-            this.showMessage('Please fill in all technical specifications', 'error');
+            this.showMessage('Please fill in all technical specifications (bag height, width, step, quantity)', 'error');
             return false;
         }
         
@@ -362,25 +384,24 @@ class NewBacklogManager extends BaseManager {
             return false;
         }
         
-        if (!odpData.delivery_date) {
-            this.showMessage('Please select delivery date', 'error');
-            return false;
+        // Only validate article code and production lot if they are provided
+        if (odpData.article_code) {
+            const articleCodePattern = /^(P0|P9|ISP|BLKC)\w+$/;
+            if (!articleCodePattern.test(odpData.article_code)) {
+                this.showMessage('Article code must follow format: P0XXXX, P9XXXX, ISPXXXXX, or BLKCXXXX', 'error');
+                return false;
+            }
         }
         
-        // Validate article code format
-        const articleCodePattern = /^(P0|P9|ISP|BLKC)\w+$/;
-        if (!articleCodePattern.test(odpData.article_code)) {
-            this.showMessage('Article code must follow format: P0XXXX, P9XXXX, ISPXXXXX, or BLKCXXXX', 'error');
-            return false;
+        if (odpData.production_lot) {
+            const lotPattern = /^AAPU\d{3}$/;
+            if (!lotPattern.test(odpData.production_lot)) {
+                this.showMessage('Production lot must follow format: AAPU###', 'error');
+                return false;
+            }
         }
         
-        // Validate production lot format
-        const lotPattern = /^AAPU\d{3}$/;
-        if (!lotPattern.test(odpData.production_lot)) {
-            this.showMessage('Production lot must follow format: AAPU###', 'error');
-            return false;
-        }
-        
+        console.log('Validation passed');
         return true;
     }
 
@@ -520,8 +541,10 @@ class NewBacklogManager extends BaseManager {
     }
 
     renderBacklog(orders) {
+        const tableBody = this.elements.backlogTableBody;
+        
         if (!orders || orders.length === 0) {
-            this.elements.backlogTableBody.innerHTML = `
+            tableBody.innerHTML = `
                 <tr>
                     <td colspan="10" class="text-center" style="padding: 2rem; color: #6b7280;">
                         No ODP orders found. Create production orders to get started.
@@ -531,9 +554,74 @@ class NewBacklogManager extends BaseManager {
             return;
         }
 
-        this.elements.backlogTableBody.innerHTML = orders.map(order => 
-            this.createTaskRow(order)
-        ).join('');
+        // Get existing rows for comparison
+        const existingRows = Array.from(tableBody.querySelectorAll('tr[data-task-id]'));
+        const existingIds = new Set(existingRows.map(row => row.dataset.taskId));
+        const newIds = new Set(orders.map(order => String(order.id)));
+
+        // Remove rows that no longer exist
+        existingRows.forEach(row => {
+            const taskId = row.dataset.taskId;
+            if (!newIds.has(taskId)) {
+                row.remove();
+            }
+        });
+
+        // Update existing rows or add new ones
+        orders.forEach(order => {
+            const orderId = String(order.id);
+            const existingRow = tableBody.querySelector(`tr[data-task-id="${orderId}"]`);
+            
+            if (existingRow) {
+                // Update existing row incrementally
+                this.updateTaskRow(existingRow, order);
+            } else {
+                // Add new row
+                const newRow = this.createTaskRowElement(order);
+                tableBody.appendChild(newRow);
+            }
+        });
+    }
+
+    updateTaskRow(row, order) {
+        // Update only the cells that have changed
+        const cells = row.querySelectorAll('.editable-cell');
+        
+        cells.forEach(cell => {
+            const field = cell.dataset.field;
+            const staticValue = cell.querySelector('.static-value');
+            const editInput = cell.querySelector('.edit-input, .edit-select');
+            
+            if (!staticValue || !editInput) return;
+            
+            let newValue = order[field];
+            
+            // Format dates for display
+            if (field === 'delivery_date' && newValue) {
+                newValue = new Date(newValue).toLocaleDateString();
+            } else if (field === 'production_start' && newValue) {
+                newValue = new Date(newValue).toLocaleDateString();
+            }
+            
+            // Only update if value has changed
+            if (staticValue.textContent !== String(newValue || '-')) {
+                staticValue.textContent = newValue || '-';
+                
+                // Update edit input as well
+                if (editInput.tagName === 'INPUT') {
+                    editInput.value = order[field] || '';
+                } else if (editInput.tagName === 'SELECT') {
+                    editInput.value = order[field] || '';
+                }
+            }
+        });
+    }
+
+    createTaskRowElement(order) {
+        const row = document.createElement('tr');
+        row.dataset.taskId = order.id;
+        row.innerHTML = this.createTaskRow(order);
+        return row;
     }
 
     createTaskRow(order) {
@@ -663,7 +751,9 @@ class NewBacklogManager extends BaseManager {
     }
 
     deleteTask(taskId) {
+        console.log('deleteTask called with taskId:', taskId);
         const order = this.storageService.getODPOrderById(taskId);
+        console.log('Order found:', order);
         
         try {
             // Check if order can be deleted (not scheduled on Gantt)
@@ -673,7 +763,9 @@ class NewBacklogManager extends BaseManager {
                 `Are you sure you want to delete ODP "${order.odp_number}"? This action cannot be undone.` :
                 'Are you sure you want to delete this ODP order? This action cannot be undone.';
                 
+            console.log('About to call showDeleteConfirmation with message:', message);
             showDeleteConfirmation(message, () => {
+                console.log('Delete confirmation callback executed');
                 try {
                     this.storageService.removeODPOrder(taskId);
                     this.loadBacklog();

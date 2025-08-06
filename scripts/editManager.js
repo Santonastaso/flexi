@@ -192,18 +192,18 @@ class EditManager {
         return `
             <div class="action-buttons">
                 <button class="btn-edit" title="Edit">
-                    ✏️
+                    Edit
                 </button>
                 <button class="btn-delete" title="Delete">
-                    🗑️
+                    Delete
                 </button>
             </div>
             <div class="save-cancel-buttons" style="display: none;">
                 <button class="btn-save" title="Save changes">
-                    ✅
+                    Save
                 </button>
                 <button class="btn-cancel" title="Cancel edit">
-                    ❌
+                    Cancel
                 </button>
             </div>
         `;

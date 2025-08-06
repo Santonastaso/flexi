@@ -415,7 +415,7 @@ class StorageService {
             
             // Legacy compatibility fields
             name: machine.name || machine.machine_name || '',
-            type: machine.type || this.mapMachineTypeToLegacy(machine.machine_type),
+            type: machine.type || (machine.machine_type === 'PACKAGING' || machine.machine_type === 'DOYPACK' ? 'packaging' : 'printing'),
             
             // Preserve any additional fields
             ...machine,
@@ -455,16 +455,7 @@ class StorageService {
         return prefixes[machineType] || 'MACH';
     }
     
-    mapMachineTypeToLegacy(machineType) {
-        const mappings = {
-            'DIGITAL_PRINT': 'printing',
-            'FLEXO_PRINT': 'printing',
-            'ROTOGRAVURE': 'printing',
-            'PACKAGING': 'packaging',
-            'DOYPACK': 'packaging'
-        };
-        return mappings[machineType] || 'printing';
-    }
+
     
     
     
@@ -671,7 +662,7 @@ class StorageService {
     getPhasesByType(type) {
         return this.getPhases().filter(phase => phase.type === type);
     }
-
+    
     /**
      * Scheduled events management
      */
@@ -763,8 +754,11 @@ class StorageService {
      */
     validateTaskCanBeDeleted(taskId) {
         if (this.isTaskScheduled(taskId)) {
-            const task = this.getTaskById(taskId);
-            throw new Error(`Cannot delete "${task?.name}". It is currently scheduled. Please remove it from the schedule first.`);
+            // Try to get ODP order first, then fall back to old task
+            const order = this.getODPOrderById(taskId);
+            const task = order || this.getTaskById(taskId);
+            const name = order ? order.odp_number : task?.name;
+            throw new Error(`Cannot delete "${name}". It is currently scheduled. Please remove it from the schedule first.`);
         }
         return true;
     }
@@ -1182,11 +1176,11 @@ class StorageService {
             console.log(`Removing ${orphanedEvents.length} orphaned events`);
             this.saveScheduledEvents(validEvents);
         }
-        
-        return {
+            
+            return {
             oldTasksRemoved: 0, // No old tasks to remove anymore
             orphanedEventsRemoved: orphanedEvents.length
-        };
+            };
     }
     
     /**

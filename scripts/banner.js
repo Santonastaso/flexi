@@ -19,6 +19,8 @@ function showDeleteConfirmation(message, onConfirm) {
 }
 
 function showConfirmBanner(message, onConfirm) {
+    console.log('showConfirmBanner called with message:', message);
+    
     // Remove any existing modal first
     const existingModal = document.getElementById('confirmModal');
     if (existingModal) {
@@ -66,11 +68,14 @@ function showConfirmBanner(message, onConfirm) {
     
     // Add to DOM
     document.body.appendChild(modalOverlay);
+    console.log('Modal added to DOM');
     
     // Force modal to be visible
     setTimeout(() => {
         modalOverlay.style.opacity = '1';
+        modalOverlay.style.visibility = 'visible';
         modalContent.style.transform = 'translateY(0)';
+        console.log('Modal should be visible now');
     }, 10);
     
     // Add event listeners

@@ -6,9 +6,7 @@
     <title>Flexi - Production Scheduler</title>
     
     <!-- External CSS -->
-    <link rel="stylesheet" href="../styles/main.css">
-    <link rel="stylesheet" href="../styles/components.css">
-    <link rel="stylesheet" href="../styles/scheduler.css">
+    <link rel="stylesheet" href="../styles/consolidated.css">
     
     <style>
         /* Additional styles for the scheduler */
@@ -409,8 +407,9 @@
     </div>
 
     <!-- External JavaScript -->
+        <script src="../scripts/banner.js"></script>
     <script src="../scripts/utils.js"></script>
-<script src="../scripts/storageService.js"></script>
+    <script src="../scripts/storageService.js"></script>
 <script src="../scripts/baseManager.js"></script>
 <script src="../scripts/uiComponents.js"></script>
 <script src="../components/navigation.js"></script>
@@ -528,13 +527,13 @@
                 taskElement.className = 'task-item';
                 taskElement.draggable = true;
                 taskElement.dataset.taskId = task.id;
-                taskElement.style.background = task.color || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                taskElement.style.background = this.getTaskColor(task);
                 
                 // Get duration using helper function
                 const duration = this.getTaskDuration(task);
                 
                 taskElement.innerHTML = `
-                    <span>${task.name}</span>
+                    <span>${task.odp_number || task.name || 'Unknown Task'}</span>
                     <span class="task-duration">${duration}h</span>
                 `;
                 
@@ -719,18 +718,18 @@
                 const eventData = {
                     id: `event-${taskId}-${Date.now()}`,
                     taskId: taskId,
-                    taskTitle: task.name,
+                    taskTitle: task.odp_number || task.name || 'Unknown Task',
                     machine: machine,
                     date: slot.dataset.date,
                     startHour: startHour,
                     endHour: endHour,
-                    color: task.color,
+                    color: this.getTaskColor(task),
                     duration: duration
                 };
                 
                 try {
                     this.storageService.addScheduledEvent(eventData);
-                    this.showMessage(`Task "${task.name}" scheduled successfully`, 'success');
+                    this.showMessage(`Task "${task.odp_number || task.name}" scheduled successfully`, 'success');
                     
                     // Immediately remove task from pool
                     const taskElement = this.elements.taskPool.querySelector(`[data-task-id="${taskId}"]`);
@@ -773,6 +772,26 @@
             isTaskAlreadyScheduled(taskId) {
                 const events = this.storageService.getScheduledEvents();
                 return events.some(event => event.taskId === taskId);
+            }
+            
+            // Helper function to get task color based on processing type
+            getTaskColor(task) {
+                // For ODP orders, use tipo_lavorazione to determine color
+                if (task.tipo_lavorazione) {
+                    if (task.tipo_lavorazione === 'printing') {
+                        return 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'; // Blue for printing
+                    } else if (task.tipo_lavorazione === 'packaging') {
+                        return 'linear-gradient(135deg, #10b981 0%, #059669 100%)'; // Green for packaging
+                    }
+                }
+                
+                // For legacy tasks, use existing color or default
+                if (task.color) {
+                    return task.color;
+                }
+                
+                // Default color
+                return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
             }
             
             // Helper function to calculate task duration
@@ -888,7 +907,11 @@
                     this.showMessage('Task unscheduled successfully', 'success');
                     
                     // Add task back to pool immediately
-                    const task = this.storageService.getTaskById(event.taskId);
+                    let task = this.storageService.getODPOrderById(event.taskId);
+                    if (!task) {
+                        // Fall back to old backlog tasks for backward compatibility
+                        task = this.storageService.getTaskById(event.taskId);
+                    }
                     if (task) {
                         this.createTaskElement(task);
                     }

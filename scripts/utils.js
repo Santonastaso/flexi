@@ -13,17 +13,7 @@ class Utils {
         return `${year}-${month}-${day}`;
     }
 
-    /**
-     * Format time for display (HH:mm)
-     */
-    static formatTime(date, format = 'HH:mm') {
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        
-        return format
-            .replace('HH', hours)
-            .replace('mm', minutes);
-    }
+
 
     /**
      * Format hour for display (H:00)
@@ -42,33 +32,7 @@ class Utils {
         return div.innerHTML;
     }
 
-    /**
-     * Get day name
-     */
-    static getDayName(dayIndex, short = false) {
-        const days = short ? 
-            ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] :
-            ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        return days[dayIndex];
-    }
 
-    /**
-     * Check if date is today
-     */
-    static isToday(date) {
-        const today = new Date();
-        return date.toDateString() === today.toDateString();
-    }
-
-    /**
-     * Get start of week (Sunday)
-     */
-    static getStartOfWeek(date) {
-        const start = new Date(date);
-        start.setDate(start.getDate() - start.getDay());
-        start.setHours(0, 0, 0, 0);
-        return start;
-    }
 
     /**
      * Debounce function calls
@@ -85,39 +49,7 @@ class Utils {
         };
     }
 
-    /**
-     * Throttle function calls
-     */
-    static throttle(func, limit) {
-        let inThrottle;
-        return function() {
-            const args = arguments;
-            const context = this;
-            if (!inThrottle) {
-                func.apply(context, args);
-                inThrottle = true;
-                setTimeout(() => inThrottle = false, limit);
-            }
-        };
-    }
 
-    /**
-     * Deep clone an object
-     */
-    static deepClone(obj) {
-        if (obj === null || typeof obj !== 'object') return obj;
-        if (obj instanceof Date) return new Date(obj.getTime());
-        if (obj instanceof Array) return obj.map(item => Utils.deepClone(item));
-        if (typeof obj === 'object') {
-            const clonedObj = {};
-            for (const key in obj) {
-                if (obj.hasOwnProperty(key)) {
-                    clonedObj[key] = Utils.deepClone(obj[key]);
-                }
-            }
-            return clonedObj;
-        }
-    }
 
     /**
      * Generate unique ID
