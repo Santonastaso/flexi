@@ -180,7 +180,7 @@ header {
 }
 
 .sidebar-nav a.active {
-    background: var(--primary-green);
+    background: var(--primary-blue);
     color: white;
 }
 
