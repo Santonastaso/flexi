@@ -23,24 +23,18 @@ class NewMachineryManager extends BaseManager {
             
             // Initialize edit functionality
             if (this.editManager) {
-                // Initialize for both tables specifically
-                const printingTable = document.querySelector('#printing-machinery-table-body').closest('.modern-table');
-                const packagingTable = document.querySelector('#packaging-machinery-table-body').closest('.modern-table');
+                const machineryTable = document.querySelector('#machinery-table-body').closest('.modern-table');
                 
-                if (printingTable) {
-                    this.editManager.initTableEdit(printingTable);
-                }
-                if (packagingTable) {
-                    this.editManager.initTableEdit(packagingTable);
+                if (machineryTable) {
+                    this.editManager.initTableEdit(machineryTable);
                 }
                 
                 // Override saveEdit method
                 this.editManager.saveEdit = (row) => this.saveEdit(row);
                 
-                // Handle delete events for both tables
-                [printingTable, packagingTable].forEach(table => {
-                    if (table) {
-                        table.addEventListener('deleteRow', (e) => {
+                // Handle delete events
+                if (machineryTable) {
+                    machineryTable.addEventListener('deleteRow', (e) => {
                             const row = e.detail.row;
                             const machineId = row.dataset.machineId;
                             if (machineId) {
@@ -48,110 +42,111 @@ class NewMachineryManager extends BaseManager {
                             }
                         });
                     }
-                });
             }
         }
     }
 
     getElementMap() {
         return {
-            // Common form elements
+            // IDENTIFICAZIONE elements
             machineType: document.getElementById('machineType'),
-            machineCity: document.getElementById('machineCity'),
-            machineLive: document.getElementById('machineLive'),
+            machineName: document.getElementById('machineName'),
+            machineSite: document.getElementById('machineSite'),
+            machineDepartment: document.getElementById('machineDepartment'),
+
+            // CAPACITÀ TECNICHE elements
+            minWebWidth: document.getElementById('minWebWidth'),
+            maxWebWidth: document.getElementById('maxWebWidth'),
+            minBagHeight: document.getElementById('minBagHeight'),
+            maxBagHeight: document.getElementById('maxBagHeight'),
+            maxColors: document.getElementById('maxColors'),
+            supportedMaterials: document.getElementById('supportedMaterials'),
+
+            // PERFORMANCE elements
+            standardSpeed: document.getElementById('standardSpeed'),
+            efficiencyFactor: document.getElementById('efficiencyFactor'),
+            setupTimeStandard: document.getElementById('setupTimeStandard'),
+            changeoverColor: document.getElementById('changeoverColor'),
+            changeoverMaterial: document.getElementById('changeoverMaterial'),
+
+            // DISPONIBILITÀ elements
+            activeShifts: document.querySelectorAll('input[type="checkbox"][value^="T"]'),
+            hoursPerShift: document.getElementById('hoursPerShift'),
+
+            // Machine Button
             addBtn: document.getElementById('addMachine'),
 
-            // Form sections
-            printingForm: document.getElementById('printingMachineForm'),
-            packagingForm: document.getElementById('packagingMachineForm'),
+            // Machine Table body
+            machineryTableBody: document.getElementById('machinery-table-body'),
 
-            // Printing machine elements
-            printingNumeroMacchina: document.getElementById('printingNumeroMacchina'),
-            printingNominazione: document.getElementById('printingNominazione'),
-            printingNumeroColori: document.getElementById('printingNumeroColori'),
-            printingFasciaMassima: document.getElementById('printingFasciaMassima'),
 
-            // Packaging machine elements
-            packagingNumeroMacchina: document.getElementById('packagingNumeroMacchina'),
-            packagingNominazione: document.getElementById('packagingNominazione'),
-            packagingTipologiaMateriale: document.getElementById('packagingTipologiaMateriale'),
-            packagingErogazione: document.getElementById('packagingErogazione'),
-            packagingPasso: document.getElementById('packagingPasso'),
-            packagingFascia: document.getElementById('packagingFascia'),
-            packagingProduzioneGemellare: document.getElementById('packagingProduzioneGemellare'),
-
-            // Table bodies
-            printingTableBody: document.getElementById('printing-machinery-table-body'),
-            packagingTableBody: document.getElementById('packaging-machinery-table-body')
         };
     }
 
     attachEventListeners() {
-        // Machine type change
-        this.elements.machineType.addEventListener('change', () => this.handleMachineTypeChange());
-        
         // Add machine button
         this.elements.addBtn.addEventListener('click', () => this.handleAddMachine());
 
-        // Form validation
+        // Form validation for all inputs
         const allInputs = [
-            this.elements.machineCity, this.elements.machineLive,
-            this.elements.printingNumeroMacchina, this.elements.printingNominazione,
-            this.elements.printingNumeroColori, this.elements.printingFasciaMassima,
-            this.elements.packagingNumeroMacchina, this.elements.packagingNominazione,
-            this.elements.packagingTipologiaMateriale, this.elements.packagingErogazione,
-            this.elements.packagingPasso, this.elements.packagingFascia
+            this.elements.machineType, this.elements.machineName, this.elements.machineSite, this.elements.machineDepartment,
+            this.elements.minWebWidth, this.elements.maxWebWidth, this.elements.minBagHeight, this.elements.maxBagHeight,
+            this.elements.maxColors, this.elements.standardSpeed, this.elements.efficiencyFactor,
+            this.elements.setupTimeStandard, this.elements.changeoverColor, this.elements.changeoverMaterial,
+            this.elements.hoursPerShift
         ];
 
         allInputs.forEach(input => {
+            if (input) {
             input.addEventListener('input', () => this.validateForm());
             input.addEventListener('change', () => this.validateForm());
+            }
         });
+
+        // Multi-select validation
+        if (this.elements.supportedMaterials) {
+            this.elements.supportedMaterials.addEventListener('change', () => this.validateForm());
+        }
+
+        // Checkbox validation for shifts
+        this.elements.activeShifts.forEach(checkbox => {
+            checkbox.addEventListener('change', () => this.validateForm());
+        });
+
+
     }
 
     setupFormValidation() {
         this.validateForm();
     }
 
-    handleMachineTypeChange() {
-        const selectedType = this.elements.machineType.value;
-        
-        // Hide all forms first
-        this.elements.printingForm.style.display = 'none';
-        this.elements.packagingForm.style.display = 'none';
-        
-        // Show relevant form
-        if (selectedType === 'printing') {
-            this.elements.printingForm.style.display = 'block';
-        } else if (selectedType === 'packaging') {
-            this.elements.packagingForm.style.display = 'block';
-        }
-        
-        this.validateForm();
-    }
+
 
     validateForm() {
-        const type = this.elements.machineType.value;
-        const city = this.elements.machineCity.value;
-        const live = this.elements.machineLive.value;
-        
-        let isValid = type && city && live;
-        
-        if (type === 'printing') {
-            isValid = isValid && 
-                this.elements.printingNumeroMacchina.value.trim() &&
-                this.elements.printingNominazione.value.trim() &&
-                this.elements.printingNumeroColori.value &&
-                this.elements.printingFasciaMassima.value;
-        } else if (type === 'packaging') {
-            isValid = isValid && 
-                this.elements.packagingNumeroMacchina.value.trim() &&
-                this.elements.packagingNominazione.value.trim() &&
-                this.elements.packagingTipologiaMateriale.value.trim() &&
-                this.elements.packagingErogazione.value.trim() &&
-                this.elements.packagingPasso.value &&
-                this.elements.packagingFascia.value;
-        }
+        // Check required identification fields
+        const isValid = 
+            this.elements.machineType.value &&
+            this.elements.machineName.value.trim() &&
+            this.elements.machineSite.value &&
+            this.elements.machineDepartment.value &&
+            
+            // Check technical capabilities
+            this.elements.minWebWidth.value &&
+            this.elements.maxWebWidth.value &&
+            this.elements.minBagHeight.value &&
+            this.elements.maxBagHeight.value &&
+            this.elements.maxColors.value &&
+            
+            // Check performance fields
+            this.elements.standardSpeed.value &&
+            this.elements.efficiencyFactor.value &&
+            this.elements.setupTimeStandard.value &&
+            this.elements.changeoverColor.value &&
+            this.elements.changeoverMaterial.value &&
+            this.elements.hoursPerShift.value &&
+            
+            // Check that at least one shift is selected
+            Array.from(this.elements.activeShifts).some(checkbox => checkbox.checked);
         
         this.elements.addBtn.disabled = !isValid;
     }
@@ -164,129 +159,256 @@ class NewMachineryManager extends BaseManager {
             return;
         }
 
+        console.log('Adding machine with data:', machineData);
+
         try {
-            // Check for duplicate numero macchina
-            if (this.isDuplicateNumeroMacchina(machineData.numeroMacchina, machineData.type)) {
-                this.showMessage('A machine with this Numero Macchina already exists', 'error');
+            // Check for duplicate machine name
+            const existingMachines = this.storageService.getMachines();
+            const isDuplicate = existingMachines.some(machine => 
+                machine.machine_name === machineData.machine_name && 
+                machine.site === machineData.site
+            );
+            
+            if (isDuplicate) {
+                this.showMessage('A machine with this name already exists at this site', 'error');
                 return;
             }
 
-            this.storageService.addMachineWithSync(machineData);
+            // Add machine using the new storage service method
+            const newMachine = this.storageService.addMachine(machineData);
+            console.log('Machine added successfully:', newMachine);
+            
             this.clearForm();
             
-            // Force cleanup of any orphan data and reload
-            this.storageService.syncGanttChartData();
+            // Reload the machinery list
             this.loadMachinery();
             
-            // Force refresh the page to ensure clean display
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
-            
-            this.showMessage('Machine added successfully! Refreshing page...', 'success');
+            this.showMessage(`Machine "${newMachine.machine_name}" added successfully!`, 'success');
         } catch (error) {
+            console.error('Error adding machine:', error);
             this.showMessage('Error adding machine: ' + error.message, 'error');
         }
     }
 
     collectMachineData() {
-        const type = this.elements.machineType.value;
-        const baseData = {
-            id: Date.now().toString(),
-            type: type,
-            city: this.elements.machineCity.value,
-            live: this.elements.machineLive.value === 'true',
-            createdAt: new Date().toISOString()
+        // Get selected materials
+        const selectedMaterials = Array.from(this.elements.supportedMaterials.selectedOptions).map(option => option.value);
+        
+        // Get selected shifts
+        const selectedShifts = Array.from(this.elements.activeShifts)
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.value);
+
+            return {
+            // IDENTIFICAZIONE
+            machine_type: this.elements.machineType.value,
+            machine_name: this.elements.machineName.value.trim(),
+            site: this.elements.machineSite.value,
+            department: this.elements.machineDepartment.value,
+            
+            // CAPACITÀ TECNICHE
+            min_web_width: parseInt(this.elements.minWebWidth.value),
+            max_web_width: parseInt(this.elements.maxWebWidth.value),
+            min_bag_height: parseInt(this.elements.minBagHeight.value),
+            max_bag_height: parseInt(this.elements.maxBagHeight.value),
+            max_colors: parseInt(this.elements.maxColors.value),
+            supported_materials: selectedMaterials,
+            
+            // PERFORMANCE
+            standard_speed: parseInt(this.elements.standardSpeed.value),
+            efficiency_factor: parseFloat(this.elements.efficiencyFactor.value),
+            setup_time_standard: parseInt(this.elements.setupTimeStandard.value),
+            changeover_color: parseInt(this.elements.changeoverColor.value),
+            changeover_material: parseInt(this.elements.changeoverMaterial.value),
+            
+            // DISPONIBILITÀ
+            active_shifts: selectedShifts,
+            hours_per_shift: parseFloat(this.elements.hoursPerShift.value),
+            
+                // Legacy compatibility
+            type: this.elements.machineType.value === 'DIGITAL_PRINT' || this.elements.machineType.value === 'FLEXO_PRINT' || this.elements.machineType.value === 'ROTOGRAVURE' ? 'printing' : 'packaging',
+            name: this.elements.machineName.value.trim()
         };
-
-        if (type === 'printing') {
-            return {
-                ...baseData,
-                numeroMacchina: this.elements.printingNumeroMacchina.value.trim(),
-                nominazione: this.elements.printingNominazione.value.trim(),
-                numeroColori: parseInt(this.elements.printingNumeroColori.value),
-                fasciaMassima: parseInt(this.elements.printingFasciaMassima.value),
-                // Legacy compatibility
-                name: this.elements.printingNominazione.value.trim()
-            };
-        } else if (type === 'packaging') {
-            return {
-                ...baseData,
-                numeroMacchina: this.elements.packagingNumeroMacchina.value.trim(),
-                nominazione: this.elements.packagingNominazione.value.trim(),
-                tipologiaMateriale: this.elements.packagingTipologiaMateriale.value.trim(),
-                erogazione: this.elements.packagingErogazione.value.trim(),
-                passo: parseInt(this.elements.packagingPasso.value),
-                fascia: parseInt(this.elements.packagingFascia.value),
-                produzioneGemellare: this.elements.packagingProduzioneGemellare.checked,
-                // Legacy compatibility
-                name: this.elements.packagingNominazione.value.trim()
-            };
-        }
-
-        return null;
     }
 
-    isDuplicateNumeroMacchina(numeroMacchina, type, excludeId = null) {
-        const machines = this.storageService.getMachines();
-        return machines.some(machine => 
-            machine.numeroMacchina === numeroMacchina && 
-            machine.type === type &&
-            machine.id !== excludeId
-        );
-    }
+
 
     clearForm() {
+        // Clear identification fields
         this.elements.machineType.value = '';
-        this.elements.machineCity.value = '';
-        this.elements.machineLive.value = 'true';
+        this.elements.machineName.value = '';
+        this.elements.machineSite.value = '';
+        this.elements.machineDepartment.value = '';
 
-        // Clear printing form
-        this.elements.printingNumeroMacchina.value = '';
-        this.elements.printingNominazione.value = '';
-        this.elements.printingNumeroColori.value = '';
-        this.elements.printingFasciaMassima.value = '';
+        // Clear technical capabilities
+        this.elements.minWebWidth.value = '';
+        this.elements.maxWebWidth.value = '';
+        this.elements.minBagHeight.value = '';
+        this.elements.maxBagHeight.value = '';
+        this.elements.maxColors.value = '';
+        this.elements.supportedMaterials.selectedIndex = -1;
 
-        // Clear packaging form
-        this.elements.packagingNumeroMacchina.value = '';
-        this.elements.packagingNominazione.value = '';
-        this.elements.packagingTipologiaMateriale.value = '';
-        this.elements.packagingErogazione.value = '';
-        this.elements.packagingPasso.value = '';
-        this.elements.packagingFascia.value = '';
-        this.elements.packagingProduzioneGemellare.checked = false;
+        // Clear performance fields
+        this.elements.standardSpeed.value = '';
+        this.elements.efficiencyFactor.value = '';
+        this.elements.setupTimeStandard.value = '';
+        this.elements.changeoverColor.value = '';
+        this.elements.changeoverMaterial.value = '';
 
-        // Hide forms
-        this.elements.printingForm.style.display = 'none';
-        this.elements.packagingForm.style.display = 'none';
+        // Clear availability fields
+        this.elements.activeShifts.forEach(checkbox => checkbox.checked = false);
+        this.elements.hoursPerShift.value = '8.0';
+
+        // Reset to default values
+        this.elements.efficiencyFactor.value = '0.85';
+        this.elements.activeShifts[0].checked = true; // T1 by default
 
         this.validateForm();
     }
 
     loadMachinery() {
-        // Clean up any invalid machines first
-        const cleanedCount = this.storageService.cleanupInvalidMachines();
-        if (cleanedCount > 0) {
-            console.log(`Cleaned up ${cleanedCount} invalid machines`);
+        // Get all machines for display (don't clean up on every load)
+        const allMachines = this.storageService.getMachines();
+        console.log('Loading machinery:', allMachines.length, 'machines found');
+        this.renderMachinery(allMachines);
+    }
+
+    renderMachinery(machines) {
+        console.log('Rendering machinery table with', machines.length, 'machines');
+        console.log('Table body element:', this.elements.machineryTableBody);
+        
+        if (!machines || machines.length === 0) {
+            this.elements.machineryTableBody.innerHTML = `
+                <tr>
+                    <td colspan="12" class="text-center" style="padding: 2rem; color: #6b7280;">
+                        No machines available. Add machines to get started.
+                    </td>
+                </tr>
+            `;
+            return;
         }
+
+        this.elements.machineryTableBody.innerHTML = machines.map(machine => 
+            this.createMachineRow(machine)
+        ).join('');
+    }
+
+    createMachineRow(machine) {
+        const webWidthRange = `${machine.min_web_width || 0}-${machine.max_web_width || 0}`;
+        const bagHeightRange = `${machine.min_bag_height || 0}-${machine.max_bag_height || 0}`;
+        const efficiencyPercent = Math.round((machine.efficiency_factor || 0.85) * 100);
         
-        // Get only valid machines for display (strict filtering)
-        const allMachines = this.storageService.getValidMachinesForDisplay();
-        const printingMachines = allMachines.filter(m => m.type === 'printing');
-        const packagingMachines = allMachines.filter(m => m.type === 'packaging');
-        
-        this.renderPrintingMachines(printingMachines);
-        this.renderPackagingMachines(packagingMachines);
-        
-        // Check for orphaned machines
-        const allStoredMachines = this.storageService.getMachines();
-        const orphanedMachines = allStoredMachines.filter(machine => !allMachines.find(vm => 
-            (vm.name || vm.nominazione) === (machine.name || machine.nominazione)
-        ));
-        
-        if (orphanedMachines.length > 0) {
-            console.warn('Orphaned machines detected in machinery list:', orphanedMachines);
-        }
+        return `
+            <tr data-machine-id="${machine.id}">
+                <td class="editable-cell" data-field="machine_id">
+                    <span class="static-value"><strong>${machine.machine_id || machine.id}</strong></span>
+                    ${this.editManager ? this.editManager.createEditInput('text', machine.machine_id || machine.id) : ''}
+                </td>
+                <td class="editable-cell" data-field="machine_name">
+                    <span class="static-value">${machine.machine_name || machine.name}</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', machine.machine_name || machine.name) : ''}
+                </td>
+                <td class="editable-cell" data-field="machine_type">
+                    <span class="static-value">
+                        <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
+                            ${machine.machine_type || machine.type}
+                        </span>
+                    </span>
+                    ${this.editManager ? this.editManager.createEditInput('select', machine.machine_type || machine.type, {
+                        options: [
+                            { value: 'DIGITAL_PRINT', label: 'Digital Print' },
+                            { value: 'FLEXO_PRINT', label: 'Flexo Print' },
+                            { value: 'ROTOGRAVURE', label: 'Rotogravure' },
+                            { value: 'PACKAGING', label: 'Packaging' },
+                            { value: 'DOYPACK', label: 'Doypack' }
+                        ]
+                    }) : ''}
+                </td>
+                <td class="editable-cell" data-field="site">
+                    <span class="static-value">${machine.site}</span>
+                    ${this.editManager ? this.editManager.createEditInput('select', machine.site, {
+                        options: [
+                            { value: 'ZANICA', label: 'ZANICA' },
+                            { value: 'BUSTO_GAROLFO', label: 'BUSTO GAROLFO' }
+                        ]
+                    }) : ''}
+                </td>
+                <td class="editable-cell" data-field="department">
+                    <span class="static-value">${machine.department}</span>
+                    ${this.editManager ? this.editManager.createEditInput('select', machine.department, {
+                        options: [
+                            { value: 'STAMPA', label: 'STAMPA' },
+                            { value: 'CONFEZIONAMENTO', label: 'CONFEZIONAMENTO' }
+                        ]
+                    }) : ''}
+                </td>
+                <td class="editable-cell" data-field="web_width">
+                    <span class="static-value">${webWidthRange}mm</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', webWidthRange) : ''}
+                </td>
+                <td class="editable-cell" data-field="bag_height">
+                    <span class="static-value">${bagHeightRange}mm</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', bagHeightRange) : ''}
+                </td>
+                <td class="editable-cell" data-field="supported_materials">
+                    <span class="static-value">${Array.isArray(machine.supported_materials) ? machine.supported_materials.join(', ') : machine.supported_materials || '-'}</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', Array.isArray(machine.supported_materials) ? machine.supported_materials.join(', ') : machine.supported_materials) : ''}
+                </td>
+                <td class="editable-cell" data-field="max_colors">
+                    <span class="static-value">${machine.max_colors || 0}</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.max_colors || 0, { min: 1, max: 12 }) : ''}
+                </td>
+                <td class="editable-cell" data-field="standard_speed">
+                    <span class="static-value">${machine.standard_speed || 0}</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.standard_speed || 0, { min: 1 }) : ''}
+                </td>
+                <td class="editable-cell" data-field="efficiency_factor">
+                    <span class="static-value">${efficiencyPercent}%</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.efficiency_factor || 0.85, { min: 0, max: 1, step: 0.01 }) : ''}
+                </td>
+                <td class="editable-cell" data-field="setup_time_standard">
+                    <span class="static-value">${machine.setup_time_standard || 0} min</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.setup_time_standard || 0, { min: 0 }) : ''}
+                </td>
+                <td class="editable-cell" data-field="changeover_color">
+                    <span class="static-value">${machine.changeover_color || 0} min</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.changeover_color || 0, { min: 0 }) : ''}
+                </td>
+                <td class="editable-cell" data-field="changeover_material">
+                    <span class="static-value">${machine.changeover_material || 0} min</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.changeover_material || 0, { min: 0 }) : ''}
+                </td>
+                <td class="editable-cell" data-field="active_shifts">
+                    <span class="static-value">${Array.isArray(machine.active_shifts) ? machine.active_shifts.join(', ') : machine.active_shifts || '-'}</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', Array.isArray(machine.active_shifts) ? machine.active_shifts.join(', ') : machine.active_shifts) : ''}
+                </td>
+                <td class="editable-cell" data-field="hours_per_shift">
+                    <span class="static-value">${machine.hours_per_shift || 8.0}h</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.hours_per_shift || 8.0, { min: 1, max: 24, step: 0.5 }) : ''}
+                </td>
+                <td class="editable-cell" data-field="status">
+                    <span class="static-value">
+                        <span class="status-badge status-active">Active</span>
+                    </span>
+                    ${this.editManager ? this.editManager.createEditInput('select', 'active', {
+                        options: [
+                            { value: 'active', label: 'Active' },
+                            { value: 'maintenance', label: 'Maintenance' },
+                            { value: 'inactive', label: 'Inactive' }
+                        ]
+                    }) : ''}
+                </td>
+                <td class="text-center">
+                    <a href="machine_settings.html?machine=${encodeURIComponent(machine.machine_name || machine.name)}" 
+                       class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
+                        📅
+                    </a>
+                </td>
+                <td class="text-center">
+                    ${this.editManager ? this.editManager.createActionButtons() : ''}
+                </td>
+            </tr>
+        `;
     }
 
     renderPrintingMachines(machines) {
@@ -497,8 +619,9 @@ class NewMachineryManager extends BaseManager {
 
         console.log('Collected updated machine data:', updatedData);
 
-        // Validate data
-        if (!updatedData.nominazione || updatedData.nominazione.trim() === '') {
+        // Validate data - check for machine_name first, then fall back to legacy fields
+        const machineName = updatedData.machine_name || updatedData.nominazione || updatedData.name;
+        if (!machineName || machineName.trim() === '') {
             this.showMessage('Machine name cannot be empty', 'error');
             return;
         }
@@ -512,26 +635,39 @@ class NewMachineryManager extends BaseManager {
                 return;
             }
 
-            // Update machine with new values
+            // Update machine with new values - handle both new and legacy field names
             const updatedMachine = {
                 ...machine,
-                nominazione: updatedData.nominazione.trim(),
-                name: updatedData.nominazione.trim(), // Also update name field for consistency
-                numeroMacchina: updatedData.numeroMacchina,
-                city: updatedData.city,
-                live: updatedData.live === 'true'
+                // New field names
+                machine_name: machineName.trim(),
+                machine_type: updatedData.machine_type || machine.machine_type || machine.type, // Prevent null
+                site: updatedData.site || machine.site,
+                department: updatedData.department || machine.department,
+                max_colors: parseInt(updatedData.max_colors) || machine.max_colors,
+                standard_speed: parseInt(updatedData.standard_speed) || machine.standard_speed,
+                efficiency_factor: parseFloat(updatedData.efficiency_factor) || machine.efficiency_factor,
+                status: updatedData.status || machine.status,
+                
+                // Legacy field names for backward compatibility
+                name: machineName.trim(),
+                nominazione: machineName.trim(),
+                type: updatedData.machine_type || machine.machine_type || machine.type, // Prevent null
+                numeroMacchina: updatedData.machine_id || machine.machine_id || machine.numeroMacchina,
+                city: updatedData.site || machine.site || machine.city,
+                live: updatedData.status === 'active' ? true : (updatedData.status === 'inactive' ? false : machine.live)
             };
 
-            // Add type-specific fields
-            if (machine.type === 'printing') {
-                updatedMachine.numeroColori = parseInt(updatedData.numeroColori) || machine.numeroColori;
-                updatedMachine.fasciaMassima = parseInt(updatedData.fasciaMassima) || machine.fasciaMassima;
-            } else if (machine.type === 'packaging') {
-                updatedMachine.tipologiaMateriale = updatedData.tipologiaMateriale;
-                updatedMachine.erogazione = updatedData.erogazione;
-                updatedMachine.passo = parseInt(updatedData.passo) || machine.passo;
-                updatedMachine.fascia = parseInt(updatedData.fascia) || machine.fascia;
-                updatedMachine.produzioneGemellare = updatedData.produzioneGemellare === 'true';
+            // Handle web width and bag height ranges if provided
+            if (updatedData.web_width) {
+                const [minWidth, maxWidth] = updatedData.web_width.split('-').map(w => parseInt(w));
+                if (!isNaN(minWidth)) updatedMachine.min_web_width = minWidth;
+                if (!isNaN(maxWidth)) updatedMachine.max_web_width = maxWidth;
+            }
+
+            if (updatedData.bag_height) {
+                const [minHeight, maxHeight] = updatedData.bag_height.split('-').map(h => parseInt(h));
+                if (!isNaN(minHeight)) updatedMachine.min_bag_height = minHeight;
+                if (!isNaN(maxHeight)) updatedMachine.max_bag_height = maxHeight;
             }
 
             console.log('Original machine:', machine);
@@ -563,7 +699,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Wait for storage service to be available
     const initializeManager = () => {
         if (window.storageService) {
-            window.newMachineryManager = new NewMachineryManager();
+            window.machineryManager = new NewMachineryManager();
         } else {
             // If storage service not ready, wait a bit and try again
             setTimeout(initializeManager, 50);

@@ -9,6 +9,118 @@
     <link rel="stylesheet" href="../styles/main.css">
     <link rel="stylesheet" href="../styles/components.css">
     <link rel="stylesheet" href="../styles/edit.css">
+    
+    <style>
+        .form-section {
+            margin-bottom: 24px;
+            padding: 20px;
+            background: white;
+            border-radius: var(--border-radius-large);
+            border: 1px solid var(--border-color);
+        }
+        
+        .section-title {
+            margin: 0 0 16px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .form-grid--3-cols {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+        
+        .compatibility-check {
+            background: white;
+            border-radius: var(--border-radius-large);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .compatibility-results {
+            display: grid;
+            gap: 12px;
+        }
+        
+        .compatibility-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+        }
+        
+        .compatibility-item.compatible {
+            background-color: #f0f9ff;
+            border-color: #34a853;
+        }
+        
+        .compatibility-item.warning {
+            background-color: #fffbeb;
+            border-color: #fbbc04;
+        }
+        
+        .compatibility-item.incompatible {
+            background-color: #fef2f2;
+            border-color: #ea4335;
+        }
+        
+        .machine-name {
+            font-weight: 600;
+        }
+        
+        .compatibility-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .compatibility-reasons {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+        
+        @media (max-width: 768px) {
+            .form-grid--3-cols {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-draft {
+            background-color: #f3f4f6;
+            color: #6b7280;
+            border: 1px solid #d1d5db;
+        }
+        
+        .status-progress {
+            background-color: #dbeafe;
+            color: #1d4ed8;
+            border: 1px solid #93c5fd;
+        }
+        
+        .status-completed {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+    </style>
 </head>
 <body>
     <div class="page-container">
@@ -20,30 +132,125 @@
                 <div class="form-layout">
                     <!-- Left side: Input fields -->
                     <div class="form-inputs">
-                        <div class="form-grid form-grid--2-cols">
-                            <div class="form-group">
-                                <label for="taskName">Lot Name</label>
-                                <input type="text" id="taskName" placeholder="Enter lot name" required>
+                        <!-- IDENTIFICAZIONE Section -->
+                        <div class="form-section">
+                            <h3 class="section-title">🏷️ Identificazione</h3>
+                            <div class="form-grid form-grid--3-cols">
+                                <div class="form-group">
+                                    <label for="odpNumber">ODP Number</label>
+                                    <input type="text" id="odpNumber" placeholder="Auto-generated" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="articleCode">Article Code</label>
+                                    <input type="text" id="articleCode" placeholder="P0XXXX, P9XXXX, ISPXXXXX, BLKCXXXX" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="productionLot">Production Lot</label>
+                                    <input type="text" id="productionLot" placeholder="AAPU###" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="workCenter">Work Center</label>
+                                    <select id="workCenter" required>
+                                        <option value="">Select work center</option>
+                                        <option value="ZANICA">ZANICA</option>
+                                        <option value="BUSTO_GAROLFO">BUSTO GAROLFO</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label for="numeroBuste">Numero Buste</label>
-                                <input type="number" id="numeroBuste" placeholder="e.g., 5000" min="1" required>
+                        </div>
+
+                        <!-- SPECIFICHE TECNICHE Section -->
+                        <div class="form-section">
+                            <h3 class="section-title">🔧 Specifiche Tecniche</h3>
+                            <div class="form-grid form-grid--3-cols">
+                                <div class="form-group">
+                                    <label for="bagHeight">Bag Height (mm)</label>
+                                    <input type="number" id="bagHeight" placeholder="e.g., 80" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="bagWidth">Bag Width (mm)</label>
+                                    <input type="number" id="bagWidth" placeholder="e.g., 160" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="bagStep">Bag Step (mm)</label>
+                                    <input type="number" id="bagStep" placeholder="e.g., 60" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="sealSides">Seal Sides</label>
+                                    <select id="sealSides" required>
+                                        <option value="">Select seal sides</option>
+                                        <option value="3">3 sides</option>
+                                        <option value="4">4 sides</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="productType">Product Type</label>
+                                    <select id="productType" required>
+                                        <option value="">Select product type</option>
+                                        <option value="LIQUID">Liquid</option>
+                                        <option value="POWDER">Powder</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="quantity">Quantity (units)</label>
+                                    <input type="number" id="quantity" placeholder="e.g., 5000" min="1" required>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label for="passoBusta">Passo Busta (mm)</label>
-                                <input type="number" id="passoBusta" placeholder="e.g., 60" min="1" required>
+                        </div>
+
+                        <!-- PIANIFICAZIONE Section -->
+                        <div class="form-section">
+                            <h3 class="section-title">📅 Pianificazione</h3>
+                            <div class="form-grid form-grid--2-cols">
+                                <div class="form-group">
+                                    <label for="productionStart">Production Start</label>
+                                    <input type="datetime-local" id="productionStart">
+                                </div>
+                                <div class="form-group">
+                                    <label for="deliveryDate">Delivery Date</label>
+                                    <input type="datetime-local" id="deliveryDate" required>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label for="altezzaBusta">Altezza Busta (mm)</label>
-                                <input type="number" id="altezzaBusta" placeholder="e.g., 80" min="1" required>
+                        </div>
+
+                        <!-- DATI COMMERCIALI Section -->
+                        <div class="form-section">
+                            <h3 class="section-title">💼 Dati Commerciali</h3>
+                            <div class="form-grid form-grid--3-cols">
+                                <div class="form-group">
+                                    <label for="internalCustomerCode">Internal Customer Code</label>
+                                    <input type="text" id="internalCustomerCode" placeholder="Internal code">
+                                </div>
+                                <div class="form-group">
+                                    <label for="externalCustomerCode">External Customer Code</label>
+                                    <input type="text" id="externalCustomerCode" placeholder="External code">
+                                </div>
+                                <div class="form-group">
+                                    <label for="customerOrderRef">Customer Order Reference</label>
+                                    <input type="text" id="customerOrderRef" placeholder="Order reference">
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label for="fasciaBusta">Fascia Busta (mm)</label>
-                                <input type="number" id="fasciaBusta" placeholder="e.g., 160" min="1" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="pezziScatola">Pezzi Scatola</label>
-                                <input type="number" id="pezziScatola" placeholder="e.g., 500" min="1" required>
+                        </div>
+
+                        <!-- DATI LAVORAZIONE Section -->
+                        <div class="form-section">
+                            <h3 class="section-title">⚙️ Dati Lavorazione</h3>
+                            <div class="form-grid form-grid--2-cols">
+                                <div class="form-group">
+                                    <label for="tipoLavorazione">Tipo Lavorazione</label>
+                                    <select id="tipoLavorazione" required>
+                                        <option value="">Select processing type</option>
+                                        <option value="printing">Printing</option>
+                                        <option value="packaging">Packaging</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="fase">Fase</label>
+                                    <select id="fase" required>
+                                        <option value="">Select fase</option>
+                                        <!-- Options will be populated based on tipo_lavorazione -->
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -100,116 +307,46 @@
             </div>
             
             <div class="content-section">
-                <h2>Production Configuration</h2>
-                
-                <!-- Production Type Selection -->
-                <div class="production-options">
-                    <h3>Production Types</h3>
-                    <div class="option-cards">
-                        <div class="option-card">
-                            <label class="option-card-label">
-                                <input type="checkbox" id="includePrinting" checked>
-                                <div class="option-card-content">
-                                    <div class="option-icon">🖨️</div>
-                                    <div class="option-details">
-                                        <div class="option-title">Printing</div>
-                                        <div class="option-subtitle">Stampa process</div>
-                                    </div>
-                                </div>
-                            </label>
-                        </div>
-                        
-                        <div class="option-card">
-                            <label class="option-card-label">
-                                <input type="checkbox" id="includePackaging" checked>
-                                <div class="option-card-content">
-                                    <div class="option-icon">📦</div>
-                                    <div class="option-details">
-                                        <div class="option-title">Packaging</div>
-                                        <div class="option-subtitle">Confezionamento process</div>
-                                    </div>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Production Type Assignment -->
-                <div class="machine-assignment">
-                    <h3>Production Type Assignment</h3>
-                    <div class="assignment-grid">
-                        <div class="assignment-group">
-                            <label for="printingMachine" class="assignment-label">
-                                <span class="assignment-icon">🖨️</span>
-                                <span>Printing Type</span>
-                            </label>
-                            <select id="printingMachine" class="assignment-select">
-                                <option value="">Select printing type</option>
-                            </select>
-                        </div>
-                        
-                        <div class="assignment-group">
-                            <label for="packagingMachine" class="assignment-label">
-                                <span class="assignment-icon">📦</span>
-                                <span>Packaging Type</span>
-                            </label>
-                            <select id="packagingMachine" class="assignment-select">
-                                <option value="">Select packaging type</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Task Styling -->
-                <div class="task-styling">
-                    <h3>Task Appearance</h3>
-                    <div class="color-selection">
-                        <label for="taskColor" class="color-label">Task Color</label>
-                        <div class="color-options">
-                            <select id="taskColor" class="color-select">
-                                <option value="#1a73e8">Blue</option>
-                                <option value="#34a853">Green</option>
-                                <option value="#ea4335">Red</option>
-                                <option value="#fbbc04">Yellow</option>
-                                <option value="#9c27b0">Purple</option>
-                                <option value="#ff9800">Orange</option>
-                                <option value="#00bcd4">Cyan</option>
-                                <option value="#e91e63">Pink</option>
-                            </select>
-                            <div class="color-preview" id="colorPreview"></div>
-                        </div>
+                <h2>Calculation Results & Validation</h2>
+
+                <!-- Compatibility Check -->
+                <div id="compatibilityCheck" class="compatibility-check" style="display: none;">
+                    <h3>Machine Compatibility</h3>
+                    <div id="compatibilityResults" class="compatibility-results">
+                        <!-- Results will be populated by JavaScript -->
                     </div>
                 </div>
 
+                <!-- Calculation Results -->
                 <div id="calculationResults" class="calculation-results" style="display: none;">
-                    <h3>Calculation Results</h3>
+                    <h3>Cost & Time Calculations</h3>
                     <div class="results-grid">
                         <div class="result-item">
-                            <label>Linear Meters Needed:</label>
-                            <span id="linearMeters">-</span>
+                            <label>Material Quantity (MQ_INCARTO):</label>
+                            <span id="materialQuantity">-</span>
                         </div>
                         <div class="result-item">
-                            <label>Printing Time:</label>
+                            <label>Printing Time (minutes):</label>
                             <span id="printingTime">-</span>
                         </div>
                         <div class="result-item">
-                            <label>Printing Cost:</label>
+                            <label>Printing Cost (€):</label>
                             <span id="printingCost">-</span>
                         </div>
                         <div class="result-item">
-                            <label>Packaging Time:</label>
+                            <label>Packaging Time (hours):</label>
                             <span id="packagingTime">-</span>
                         </div>
                         <div class="result-item">
-                            <label>Packaging Cost:</label>
+                            <label>Packaging Cost (€):</label>
                             <span id="packagingCost">-</span>
                         </div>
                         <div class="result-item total">
-                            <label>Total Time:</label>
-                            <span id="totalTime">-</span>
+                            <label>Total Duration (hours):</label>
+                            <span id="totalDuration">-</span>
                         </div>
                         <div class="result-item total">
-                            <label>Total Cost:</label>
+                            <label>Total Cost (€):</label>
                             <span id="totalCost">-</span>
                         </div>
                     </div>
@@ -228,12 +365,26 @@
                     <table class="modern-table">
                         <thead>
                             <tr>
-                                <th>Lot Name</th>
-                                <th>Type</th>
-                                <th>Numero Buste</th>
-                                <th>Total Time (h)</th>
-                                <th>Total Cost (€)</th>
-                                <th>Color</th>
+                                <th>ODP Number</th>
+                                <th>Article Code</th>
+                                <th>Production Lot</th>
+                                <th>Work Center</th>
+                                <th>Bag Height (mm)</th>
+                                <th>Bag Width (mm)</th>
+                                <th>Bag Step (mm)</th>
+                                <th>Seal Sides</th>
+                                <th>Product Type</th>
+                                <th>Quantity</th>
+                                <th>Production Start</th>
+                                <th>Delivery Date</th>
+                                <th>Internal Customer Code</th>
+                                <th>External Customer Code</th>
+                                <th>Customer Order Ref</th>
+                                <th>Tipo Lavorazione</th>
+                                <th>Fase</th>
+                                <th>Duration (h)</th>
+                                <th>Cost (€)</th>
+                                <th>Status</th>
                                 <th class="text-center" style="width: 150px;">Actions</th>
                             </tr>
                         </thead>

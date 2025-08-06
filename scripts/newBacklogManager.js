@@ -18,8 +18,8 @@ class NewBacklogManager extends BaseManager {
         }
         
         if (super.init(this.getElementMap())) {
-            this.loadMachines();
             this.loadBacklog();
+            this.loadPhases();
             this.setupFormValidation();
             
             // Initialize edit functionality
@@ -47,44 +47,58 @@ class NewBacklogManager extends BaseManager {
 
     getElementMap() {
         return {
-            // Form inputs
-            taskName: document.getElementById('taskName'),
-            numeroBuste: document.getElementById('numeroBuste'),
-            passoBusta: document.getElementById('passoBusta'),
-            altezzaBusta: document.getElementById('altezzaBusta'),
-            fasciaBusta: document.getElementById('fasciaBusta'),
-            pezziScatola: document.getElementById('pezziScatola'),
-            includePrinting: document.getElementById('includePrinting'),
-            includePackaging: document.getElementById('includePackaging'),
-            taskColor: document.getElementById('taskColor'),
-            printingMachine: document.getElementById('printingMachine'),
-            packagingMachine: document.getElementById('packagingMachine'),
+            // IDENTIFICAZIONE fields
+            odpNumber: document.getElementById('odpNumber'),
+            articleCode: document.getElementById('articleCode'),
+            productionLot: document.getElementById('productionLot'),
+            workCenter: document.getElementById('workCenter'),
+            
+            // SPECIFICHE TECNICHE fields
+            bagHeight: document.getElementById('bagHeight'),
+            bagWidth: document.getElementById('bagWidth'),
+            bagStep: document.getElementById('bagStep'),
+            sealSides: document.getElementById('sealSides'),
+            productType: document.getElementById('productType'),
+            quantity: document.getElementById('quantity'),
+            
+            // PIANIFICAZIONE fields
+            productionStart: document.getElementById('productionStart'),
+            deliveryDate: document.getElementById('deliveryDate'),
+            
+            // DATI COMMERCIALI fields
+            internalCustomerCode: document.getElementById('internalCustomerCode'),
+            externalCustomerCode: document.getElementById('externalCustomerCode'),
+            customerOrderRef: document.getElementById('customerOrderRef'),
+            
+            // DATI LAVORAZIONE fields
+            tipoLavorazione: document.getElementById('tipoLavorazione'),
+            fase: document.getElementById('fase'),
             
             // Buttons
             calculateBtn: document.getElementById('calculateBtn'),
             createTaskBtn: document.getElementById('createTask'),
             
-            // Results
+            // Results sections
+            compatibilityCheck: document.getElementById('compatibilityCheck'),
+            compatibilityResults: document.getElementById('compatibilityResults'),
             calculationResults: document.getElementById('calculationResults'),
-            linearMeters: document.getElementById('linearMeters'),
+            
+            // Calculation results
+            materialQuantity: document.getElementById('materialQuantity'),
             printingTime: document.getElementById('printingTime'),
             printingCost: document.getElementById('printingCost'),
             packagingTime: document.getElementById('packagingTime'),
             packagingCost: document.getElementById('packagingCost'),
-            totalTime: document.getElementById('totalTime'),
+            totalDuration: document.getElementById('totalDuration'),
             totalCost: document.getElementById('totalCost'),
             
             // Table
             backlogTableBody: document.getElementById('backlog-table-body'),
             
-            // Preview elements
+            // Preview elements (keeping for bag visualization)
             previewFascia: document.getElementById('previewFascia'),
             previewAltezza: document.getElementById('previewAltezza'),
-            previewPasso: document.getElementById('previewPasso'),
-            previewNumeroBuste: document.getElementById('previewNumeroBuste'),
-            previewPezziScatola: document.getElementById('previewPezziScatola'),
-            previewTotalBoxes: document.getElementById('previewTotalBoxes'),
-            colorPreview: document.getElementById('colorPreview')
+            previewPasso: document.getElementById('previewPasso')
         };
     }
 
@@ -92,226 +106,376 @@ class NewBacklogManager extends BaseManager {
         this.elements.calculateBtn.addEventListener('click', () => this.calculateProduction());
         this.elements.createTaskBtn.addEventListener('click', () => this.addToBacklog());
         
-        // Auto-enable/disable machine selects based on checkboxes
-        this.elements.includePrinting.addEventListener('change', () => this.updateMachineSelects());
-        this.elements.includePackaging.addEventListener('change', () => this.updateMachineSelects());
-        
         // Form validation and preview updates
-        const inputs = [this.elements.numeroBuste, this.elements.passoBusta, this.elements.altezzaBusta, 
-                       this.elements.fasciaBusta, this.elements.pezziScatola];
-        inputs.forEach(input => {
+        const technicalInputs = [this.elements.bagHeight, this.elements.bagWidth, this.elements.bagStep, this.elements.quantity];
+        technicalInputs.forEach(input => {
+            if (input) {
             input.addEventListener('input', () => {
                 this.validateForm();
                 this.updatePreview();
             });
+            }
         });
         
-        // Color preview update
-        this.elements.taskColor.addEventListener('change', () => this.updateColorPreview());
+        // Handle tipo_lavorazione change to update fase options
+        if (this.elements.tipoLavorazione) {
+            this.elements.tipoLavorazione.addEventListener('change', () => {
+                this.updateFaseOptions();
+                this.validateForm();
+            });
+        }
+        
+        // Handle fase change for calculations
+        if (this.elements.fase) {
+            this.elements.fase.addEventListener('change', () => {
+                this.validateForm();
+            });
+        }
+        
+        // Auto-generate ODP number on article code change
+        if (this.elements.articleCode) {
+            this.elements.articleCode.addEventListener('input', () => {
+                this.generateODPNumber();
+                this.validateForm();
+            });
+        }
+        
+        // Real-time compatibility checking
+        const compatibilityFields = [this.elements.workCenter, this.elements.bagWidth, this.elements.bagHeight, this.elements.tipoLavorazione];
+        compatibilityFields.forEach(field => {
+            if (field) {
+                field.addEventListener('change', () => {
+                    this.checkCompatibility();
+                    this.validateForm();
+                });
+            }
+        });
     }
 
     setupFormValidation() {
+        this.loadPhases();
         this.validateForm();
-        this.updateMachineSelects();
-        this.updatePreview(); // Initial preview update
-        this.updateColorPreview(); // Initial color preview
+        this.updatePreview();
+        this.generateODPNumber();
     }
 
-    updateColorPreview() {
-        const selectedColor = this.elements.taskColor.value;
-        if (this.elements.colorPreview) {
-            this.elements.colorPreview.style.backgroundColor = selectedColor;
+    generateODPNumber() {
+        if (!this.elements.odpNumber.value) {
+            // Generate ODP number using the storage service
+            const odpNumber = this.storageService.generateODPNumber();
+            this.elements.odpNumber.value = odpNumber;
+        }
+    }
+
+    updateFaseOptions() {
+        const tipoLavorazione = this.elements.tipoLavorazione.value;
+        const faseSelect = this.elements.fase;
+        
+        console.log('Updating fase options for tipo_lavorazione:', tipoLavorazione);
+        
+        // Clear existing options
+        faseSelect.innerHTML = '<option value="">Select fase</option>';
+        
+        if (tipoLavorazione) {
+            // Get phases for the selected type
+            const phases = this.storageService.getPhasesByType(tipoLavorazione);
+            console.log('Found phases for', tipoLavorazione, ':', phases);
+            
+            phases.forEach(phase => {
+                const option = document.createElement('option');
+                option.value = phase.id;
+                option.textContent = phase.name || `${phase.type} - ${phase.id}`;
+                faseSelect.appendChild(option);
+            });
+        }
+    }
+
+    loadPhases() {
+        // Load existing phases from storage
+        const phases = this.storageService.getPhases();
+        console.log('Loading phases from storage, count:', phases.length);
+        
+        if (phases.length > 0) {
+            console.log('Available phases:', phases);
+        } else {
+            console.log('No phases found in storage. Please add phases through the phase management system.');
         }
     }
 
     updatePreview() {
-        // Get current form values
-        const numeroBuste = this.elements.numeroBuste.value || '';
-        const passoBusta = this.elements.passoBusta.value || '';
-        const altezzaBusta = this.elements.altezzaBusta.value || '';
-        const fasciaBusta = this.elements.fasciaBusta.value || '';
-        const pezziScatola = this.elements.pezziScatola.value || '';
+        // Get current form values for bag preview
+        const bagHeight = this.elements.bagHeight.value || '';
+        const bagWidth = this.elements.bagWidth.value || '';
+        const bagStep = this.elements.bagStep.value || '';
         
-        // Update SVG labels
-        this.elements.previewFascia.textContent = fasciaBusta ? `${fasciaBusta}mm` : '-';
-        this.elements.previewAltezza.textContent = altezzaBusta ? `${altezzaBusta}mm` : '-';
-        this.elements.previewPasso.textContent = passoBusta ? `${passoBusta}mm` : '-';
-        
-        // Update detail values
-        this.elements.previewNumeroBuste.textContent = numeroBuste || '-';
-        this.elements.previewPezziScatola.textContent = pezziScatola || '-';
-        
-        // Calculate and show total boxes
-        if (numeroBuste && pezziScatola) {
-            const totalBoxes = Math.ceil(parseInt(numeroBuste) / parseInt(pezziScatola));
-            this.elements.previewTotalBoxes.textContent = totalBoxes.toLocaleString();
-        } else {
-            this.elements.previewTotalBoxes.textContent = '-';
+        // Update SVG labels (using bagWidth as fascia for compatibility)
+        if (this.elements.previewFascia) {
+            this.elements.previewFascia.textContent = bagWidth ? `${bagWidth}mm` : '-';
         }
+        if (this.elements.previewAltezza) {
+            this.elements.previewAltezza.textContent = bagHeight ? `${bagHeight}mm` : '-';
+        }
+        if (this.elements.previewPasso) {
+            this.elements.previewPasso.textContent = bagStep ? `${bagStep}mm` : '-';
+        }
+    }
+
+    checkCompatibility() {
+        const workCenter = this.elements.workCenter.value;
+        const bagWidth = parseInt(this.elements.bagWidth.value) || 0;
+        const bagHeight = parseInt(this.elements.bagHeight.value) || 0;
+        const tipoLavorazione = this.elements.tipoLavorazione.value;
+        
+        if (!workCenter || !bagWidth || !bagHeight || !tipoLavorazione) {
+            this.elements.compatibilityCheck.style.display = 'none';
+            return;
+        }
+        
+        // Create a mock ODP object for compatibility checking
+        const mockODP = {
+            work_center: workCenter,
+            bag_width: bagWidth,
+            bag_height: bagHeight,
+            tipo_lavorazione: tipoLavorazione
+        };
+        
+        // Get machines and check compatibility
+        const machines = this.storageService.getMachines();
+        const compatibilityResults = [];
+        
+        machines.forEach(machine => {
+            const compatibility = Utils.isCompatible(machine, mockODP);
+            const status = Utils.getCompatibilityStatus(machine, mockODP);
+            
+            compatibilityResults.push({
+                machine: machine,
+                compatibility: compatibility,
+                status: status
+            });
+        });
+        
+        this.displayCompatibilityResults(compatibilityResults);
+        this.elements.compatibilityCheck.style.display = 'block';
+    }
+
+    displayCompatibilityResults(results) {
+        const container = this.elements.compatibilityResults;
+        container.innerHTML = '';
+        
+        if (results.length === 0) {
+            container.innerHTML = '<p>No machines found.</p>';
+            return;
+        }
+        
+        results.forEach(result => {
+            const item = document.createElement('div');
+            item.className = `compatibility-item ${result.status.status}`;
+            
+            item.innerHTML = `
+                <div>
+                    <div class="machine-name">${result.machine.machine_name || result.machine.name || result.machine.id}</div>
+                    <div class="machine-type">${result.machine.machine_type || result.machine.type || 'Unknown'}</div>
+                    ${result.compatibility.reasons.length > 0 ? 
+                        `<div class="compatibility-reasons">${result.compatibility.reasons.join(', ')}</div>` : 
+                        ''}
+                </div>
+                <div class="compatibility-status">
+                    <span class="compatibility-icon">${result.status.icon}</span>
+                    <span>${result.status.message}</span>
+                </div>
+            `;
+            
+            container.appendChild(item);
+        });
     }
 
     validateForm() {
-        const hasRequiredFields = this.elements.taskName.value.trim() &&
-                                this.elements.numeroBuste.value &&
-                                this.elements.passoBusta.value &&
-                                this.elements.altezzaBusta.value &&
-                                this.elements.fasciaBusta.value &&
-                                this.elements.pezziScatola.value;
+        const hasRequiredFields = this.elements.articleCode.value.trim() &&
+                                this.elements.productionLot.value.trim() &&
+                                this.elements.workCenter.value &&
+                                this.elements.bagHeight.value &&
+                                this.elements.bagWidth.value &&
+                                this.elements.bagStep.value &&
+                                this.elements.sealSides.value &&
+                                this.elements.productType.value &&
+                                this.elements.quantity.value &&
+                                this.elements.deliveryDate.value &&
+                                this.elements.tipoLavorazione.value &&
+                                this.elements.fase.value;
         
-        const hasAtLeastOneProcess = this.elements.includePrinting.checked || this.elements.includePackaging.checked;
-        
-        this.elements.calculateBtn.disabled = !hasRequiredFields || !hasAtLeastOneProcess;
-        this.elements.createTaskBtn.disabled = !hasRequiredFields || !hasAtLeastOneProcess || !this.currentCalculation;
-    }
-
-    updateMachineSelects() {
-        this.elements.printingMachine.disabled = !this.elements.includePrinting.checked;
-        this.elements.packagingMachine.disabled = !this.elements.includePackaging.checked;
-        
-        if (!this.elements.includePrinting.checked) {
-            this.elements.printingMachine.value = '';
-        }
-        if (!this.elements.includePackaging.checked) {
-            this.elements.packagingMachine.value = '';
-        }
-    }
-
-    loadMachines() {
-        const catalog = this.storageService.getMachineryCatalog();
-        
-        // Load printing machines
-        const printingMachines = catalog.filter(m => m.type === 'printing');
-        this.elements.printingMachine.innerHTML = '<option value="">Select printing type</option>' +
-            printingMachines.map(m => `<option value="${m.id}">${m.name} (${m.speed} m/min)</option>`).join('');
-        
-        // Load packaging machines
-        const packagingMachines = catalog.filter(m => m.type === 'packaging');
-        this.elements.packagingMachine.innerHTML = '<option value="">Select packaging type</option>' +
-            packagingMachines.map(m => `<option value="${m.id}">${m.name} (${m.speed} pkg/h)</option>`).join('');
+        this.elements.calculateBtn.disabled = !hasRequiredFields;
+        this.elements.createTaskBtn.disabled = !hasRequiredFields || !this.currentCalculation;
     }
 
     calculateProduction() {
-        const data = this.collectFormData();
+        const odpData = this.collectODPFormData();
         
-        if (!this.validateCalculationData(data)) {
+        if (!this.validateODPData(odpData)) {
             return;
         }
 
         try {
-            const calculation = this.performCalculations(data);
-            this.displayResults(calculation);
+            const calculation = this.performODPCalculations(odpData);
+            this.displayODPResults(calculation);
             this.currentCalculation = calculation;
             this.elements.createTaskBtn.disabled = false;
         } catch (error) {
-            this.showMessage('Calculation error: ' + error.message, 'error');
+            console.error('ODP Calculation error:', error);
+            this.showMessage('Calculation failed: ' + error.message, 'error');
         }
     }
 
-    collectFormData() {
+    collectODPFormData() {
         return {
-            name: this.elements.taskName.value.trim(),
-            numeroBuste: parseInt(this.elements.numeroBuste.value),
-            passoBusta: parseInt(this.elements.passoBusta.value),
-            altezzaBusta: parseInt(this.elements.altezzaBusta.value),
-            fasciaBusta: parseInt(this.elements.fasciaBusta.value),
-            pezziScatola: parseInt(this.elements.pezziScatola.value),
-            includePrinting: this.elements.includePrinting.checked,
-            includePackaging: this.elements.includePackaging.checked,
-            printingMachineId: this.elements.printingMachine.value,
-            packagingMachineId: this.elements.packagingMachine.value,
-            color: this.elements.taskColor.value
+            // IDENTIFICAZIONE
+            odp_number: this.elements.odpNumber.value.trim(),
+            article_code: this.elements.articleCode.value.trim(),
+            production_lot: this.elements.productionLot.value.trim(),
+            work_center: this.elements.workCenter.value,
+            
+            // SPECIFICHE TECNICHE
+            bag_height: parseInt(this.elements.bagHeight.value) || 0,
+            bag_width: parseInt(this.elements.bagWidth.value) || 0,
+            bag_step: parseInt(this.elements.bagStep.value) || 0,
+            seal_sides: parseInt(this.elements.sealSides.value) || 3,
+            product_type: this.elements.productType.value,
+            quantity: parseInt(this.elements.quantity.value) || 0,
+            
+            // PIANIFICAZIONE
+            production_start: this.elements.productionStart.value,
+            delivery_date: this.elements.deliveryDate.value,
+            
+            // DATI COMMERCIALI
+            internal_customer_code: this.elements.internalCustomerCode.value.trim(),
+            external_customer_code: this.elements.externalCustomerCode.value.trim(),
+            customer_order_ref: this.elements.customerOrderRef.value.trim(),
+            
+            // DATI LAVORAZIONE
+            tipo_lavorazione: this.elements.tipoLavorazione.value,
+            fase: this.elements.fase.value
         };
     }
 
-    validateCalculationData(data) {
-        if (data.includePrinting && !data.printingMachineId) {
-            this.showMessage('Please select a printing machine', 'error');
+    validateODPData(odpData) {
+        // Check if required fields are present
+        if (!odpData.article_code || !odpData.production_lot || !odpData.work_center) {
+            this.showMessage('Please fill in all identification fields', 'error');
             return false;
         }
         
-        if (data.includePackaging && !data.packagingMachineId) {
-            this.showMessage('Please select a packaging machine', 'error');
+        if (!odpData.bag_height || !odpData.bag_width || !odpData.bag_step || !odpData.quantity) {
+            this.showMessage('Please fill in all technical specifications', 'error');
+            return false;
+        }
+        
+        if (!odpData.tipo_lavorazione || !odpData.fase) {
+            this.showMessage('Please select processing type and phase', 'error');
+            return false;
+        }
+        
+        if (!odpData.delivery_date) {
+            this.showMessage('Please select delivery date', 'error');
+            return false;
+        }
+        
+        // Validate article code format
+        const articleCodePattern = /^(P0|P9|ISP|BLKC)\w+$/;
+        if (!articleCodePattern.test(odpData.article_code)) {
+            this.showMessage('Article code must follow format: P0XXXX, P9XXXX, ISPXXXXX, or BLKCXXXX', 'error');
+            return false;
+        }
+        
+        // Validate production lot format
+        const lotPattern = /^AAPU\d{3}$/;
+        if (!lotPattern.test(odpData.production_lot)) {
+            this.showMessage('Production lot must follow format: AAPU###', 'error');
             return false;
         }
         
         return true;
     }
 
-    performCalculations(data) {
-        const catalog = this.storageService.getMachineryCatalog();
-        const result = {
-            linearMeters: 0,
-            printing: { time: 0, cost: 0 },
-            packaging: { time: 0, cost: 0 },
-            total: { time: 0, cost: 0 }
-        };
-
-        // Calculate linear meters needed
-        // Formula: mt Lineari Necessari = Numero Buste * Passo / 1000
-        result.linearMeters = (data.numeroBuste * data.passoBusta) / 1000;
-
-        // PRINTING CALCULATIONS (Stampa)
-        if (data.includePrinting) {
-            const printingMachine = catalog.find(m => m.id === data.printingMachineId);
-            if (printingMachine) {
-                // Tempo Stampa = mt Lineari Necessari / Velocità (converted to minutes)
-                const printingTimeMinutes = result.linearMeters / printingMachine.speed;
-                result.printing.time = printingTimeMinutes / 60; // Convert to hours
-                
-                // Setup time is already in hours
-                const totalPrintingTime = result.printing.time + printingMachine.setupTime;
-                
-                // Costo Stampa = (Tempo Stampa + Tempo Attrezzaggio) * (Costo Orario Fase / 60) * employees
-                const hourlyCost = printingMachine.employees * printingMachine.employeeCost;
-                result.printing.cost = totalPrintingTime * hourlyCost;
-                result.printing.totalTime = totalPrintingTime;
-            }
+    performODPCalculations(odpData) {
+        // Get the selected phase for calculations
+        const selectedPhase = this.storageService.getPhaseById(odpData.fase);
+        if (!selectedPhase) {
+            throw new Error('Selected phase not found');
         }
 
-        // PACKAGING CALCULATIONS (Confezionamento)
-        if (data.includePackaging) {
-            const packagingMachine = catalog.find(m => m.id === data.packagingMachineId);
-            if (packagingMachine) {
-                // Ore di Lavorazione = Numero Buste / Velocità Oraria Fase
-                result.packaging.time = data.numeroBuste / packagingMachine.speed;
+        const result = {
+            materialQuantity: 0,
+            printing: { time: 0, cost: 0 },
+            packaging: { time: 0, cost: 0 },
+            total: { duration: 0, cost: 0 }
+        };
+
+        // Calculate material quantity: MQ_INCARTO = MT_LINEARI * (FASCIA / 1000)
+        const mtLineari = (odpData.quantity * odpData.bag_step) / 1000;
+        const fascia = odpData.bag_width;
+        result.materialQuantity = Utils.calculateMaterialQuantity(mtLineari, fascia);
+
+        // Calculate based on processing type
+        if (odpData.tipo_lavorazione === 'printing') {
+            // Printing calculations using phase parameters
+            const vStampa = selectedPhase.V_STAMPA || 0; // mt/min
+            const tSetupStampa = selectedPhase.T_SETUP_STAMPA || 0; // minutes
+            const costoHStampa = selectedPhase.COSTO_H_STAMPA || 0; // €/h
+
+            if (vStampa > 0) {
+                // Calculate printing time in minutes
+                const tStampaMin = mtLineari / vStampa;
+                result.printing.time = tStampaMin;
                 
-                // Total time including setup
-                const totalPackagingTime = result.packaging.time + packagingMachine.setupTime;
+                // Calculate printing cost using precise formula
+                result.printing.cost = Utils.calculatePrintingCost(tStampaMin, tSetupStampa, costoHStampa);
+            }
+        } else if (odpData.tipo_lavorazione === 'packaging') {
+            // Packaging calculations using phase parameters
+            const vConf = selectedPhase.V_CONF || 0; // pz/h
+            const tSetupConf = selectedPhase.T_SETUP_CONF || 0; // minutes
+            const costoHConf = selectedPhase.COSTO_H_CONF || 0; // €/h
+
+            if (vConf > 0) {
+                // Calculate packaging time in hours
+                const tConfOre = odpData.quantity / vConf;
+                result.packaging.time = tConfOre;
                 
-                // Costo Confezionamento = (Ore di Lavorazione + Tempo Attrezzaggio) * Costo Orario Fase
-                const hourlyCost = packagingMachine.employees * packagingMachine.employeeCost;
-                result.packaging.cost = totalPackagingTime * hourlyCost;
-                result.packaging.totalTime = totalPackagingTime;
+                // Calculate packaging cost using precise formula
+                result.packaging.cost = Utils.calculatePackagingCost(tConfOre, tSetupConf, costoHConf);
             }
         }
 
         // Calculate totals
-        result.total.time = (result.printing.totalTime || 0) + (result.packaging.totalTime || 0);
+        result.total.duration = result.printing.time + result.packaging.time;
         result.total.cost = result.printing.cost + result.packaging.cost;
 
         return result;
     }
 
-    displayResults(calculation) {
-        this.elements.linearMeters.textContent = `${calculation.linearMeters.toFixed(2)} m`;
+    displayODPResults(calculation) {
+        // Display material quantity
+        this.elements.materialQuantity.textContent = `${calculation.materialQuantity.toFixed(2)} m²`;
         
-        if (this.elements.includePrinting.checked) {
-            this.elements.printingTime.textContent = `${calculation.printing.totalTime.toFixed(2)} h`;
+        // Display printing results
+        if (calculation.printing.time > 0) {
+            this.elements.printingTime.textContent = `${calculation.printing.time.toFixed(2)} min`;
             this.elements.printingCost.textContent = `€${calculation.printing.cost.toFixed(2)}`;
         } else {
             this.elements.printingTime.textContent = '-';
             this.elements.printingCost.textContent = '-';
         }
         
-        if (this.elements.includePackaging.checked) {
-            this.elements.packagingTime.textContent = `${calculation.packaging.totalTime.toFixed(2)} h`;
+        // Display packaging results
+        if (calculation.packaging.time > 0) {
+            this.elements.packagingTime.textContent = `${calculation.packaging.time.toFixed(2)} h`;
             this.elements.packagingCost.textContent = `€${calculation.packaging.cost.toFixed(2)}`;
         } else {
             this.elements.packagingTime.textContent = '-';
             this.elements.packagingCost.textContent = '-';
         }
         
-        this.elements.totalTime.textContent = `${calculation.total.time.toFixed(2)} h`;
+        // Display totals
+        this.elements.totalDuration.textContent = `${calculation.total.duration.toFixed(2)} h`;
         this.elements.totalCost.textContent = `€${calculation.total.cost.toFixed(2)}`;
         
         this.elements.calculationResults.style.display = 'block';
@@ -323,58 +487,28 @@ class NewBacklogManager extends BaseManager {
             return;
         }
 
-        const data = this.collectFormData();
+        const odpData = this.collectODPFormData();
         
-        // Create tasks based on selected processes
-        const tasks = [];
-        
-        if (data.includePrinting) {
-            const printingMachine = this.storageService.getMachineryById(data.printingMachineId);
-            tasks.push({
-                name: `${data.name} - Printing`,
-                type: 'printing',
-                numeroBuste: data.numeroBuste,
-                passoBusta: data.passoBusta,
-                altezzaBusta: data.altezzaBusta,
-                fasciaBusta: data.fasciaBusta,
-                pezziScatola: data.pezziScatola,
-                machineId: data.printingMachineId,
-                machineName: printingMachine.name,
-                totalTime: this.currentCalculation.printing.totalTime.toFixed(2),
-                totalCost: this.currentCalculation.printing.cost.toFixed(2),
-                color: data.color,
-                linearMeters: this.currentCalculation.linearMeters.toFixed(2)
-            });
-        }
-        
-        if (data.includePackaging) {
-            const packagingMachine = this.storageService.getMachineryById(data.packagingMachineId);
-            tasks.push({
-                name: `${data.name} - Packaging`,
-                type: 'packaging',
-                numeroBuste: data.numeroBuste,
-                passoBusta: data.passoBusta,
-                altezzaBusta: data.altezzaBusta,
-                fasciaBusta: data.fasciaBusta,
-                pezziScatola: data.pezziScatola,
-                machineId: data.packagingMachineId,
-                machineName: packagingMachine.name,
-                totalTime: this.currentCalculation.packaging.totalTime.toFixed(2),
-                totalCost: this.currentCalculation.packaging.cost.toFixed(2),
-                color: data.color
-            });
-        }
+        // Create ODP order with calculated values
+        const odpOrder = {
+            ...odpData,
+            duration: this.currentCalculation.total.duration,
+            cost: this.currentCalculation.total.cost,
+            status: 'DRAFT',
+            title: `${odpData.article_code} - ${odpData.production_lot}`,
+            description: `${odpData.tipo_lavorazione} production order`,
+            priority: 'medium'
+        };
 
         try {
-            tasks.forEach(task => {
-                this.storageService.addBacklogTaskWithSync(task);
-            });
+            // Add ODP order to storage
+            const newOrder = this.storageService.addODPOrder(odpOrder);
             
-            this.showMessage(`Added ${tasks.length} task(s) to backlog`, 'success');
+            this.showMessage(`ODP Order ${newOrder.odp_number} added to backlog`, 'success');
             this.clearForm();
             this.loadBacklog();
         } catch (error) {
-            this.showMessage('Error adding to backlog: ' + error.message, 'error');
+            this.showMessage('Error adding ODP to backlog: ' + error.message, 'error');
         }
     }
 
@@ -385,72 +519,152 @@ class NewBacklogManager extends BaseManager {
         this.currentCalculation = null;
         this.validateForm();
         this.updatePreview(); // Reset preview
-        this.updateColorPreview(); // Reset color preview
     }
 
     loadBacklog() {
-        const tasks = this.storageService.getBacklogTasks();
-        this.renderBacklog(tasks);
+        const odpOrders = this.storageService.getODPOrders();
+        this.renderBacklog(odpOrders);
     }
 
     renderData() {
         this.loadBacklog();
     }
 
-    renderBacklog(tasks) {
-        if (!tasks || tasks.length === 0) {
+    renderBacklog(orders) {
+        if (!orders || orders.length === 0) {
             this.elements.backlogTableBody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center" style="padding: 2rem; color: #6b7280;">
-                        No tasks in backlog. Create production lots to get started.
+                    <td colspan="10" class="text-center" style="padding: 2rem; color: #6b7280;">
+                        No ODP orders found. Create production orders to get started.
                     </td>
                 </tr>
             `;
             return;
         }
 
-        this.elements.backlogTableBody.innerHTML = tasks.map(task => 
-            this.createTaskRow(task)
+        this.elements.backlogTableBody.innerHTML = orders.map(order => 
+            this.createTaskRow(order)
         ).join('');
     }
 
-    createTaskRow(task) {
+    createTaskRow(order) {
+        const deliveryDate = order.delivery_date ? new Date(order.delivery_date).toLocaleDateString() : '-';
+        const productionStart = order.production_start ? new Date(order.production_start).toLocaleDateString() : '-';
+        const statusClass = order.status === 'DRAFT' ? 'status-draft' : order.status === 'IN_PROGRESS' ? 'status-progress' : 'status-completed';
+        
         return `
-            <tr data-task-id="${task.id}">
-                <td class="editable-cell" data-field="name">
-                    <span class="static-value"><strong>${task.name}</strong></span>
-                    ${this.editManager.createEditInput('text', task.name)}
+            <tr data-task-id="${order.id}">
+                <td class="editable-cell" data-field="odp_number">
+                    <span class="static-value"><strong>${order.odp_number}</strong></span>
+                    ${this.editManager.createEditInput('text', order.odp_number)}
                 </td>
-                <td class="editable-cell" data-field="type">
+                <td class="editable-cell" data-field="article_code">
+                    <span class="static-value">${order.article_code}</span>
+                    ${this.editManager.createEditInput('text', order.article_code)}
+                </td>
+                <td class="editable-cell" data-field="production_lot">
+                    <span class="static-value">${order.production_lot}</span>
+                    ${this.editManager.createEditInput('text', order.production_lot)}
+                </td>
+                <td class="editable-cell" data-field="work_center">
+                    <span class="static-value">${order.work_center}</span>
+                    ${this.editManager.createEditInput('select', order.work_center, {
+                        options: [
+                            { value: 'ZANICA', label: 'ZANICA' },
+                            { value: 'BUSTO_GAROLFO', label: 'BUSTO GAROLFO' }
+                        ]
+                    })}
+                </td>
+                <td class="editable-cell" data-field="bag_height">
+                    <span class="static-value">${order.bag_height || '-'}</span>
+                    ${this.editManager.createEditInput('number', order.bag_height, { min: 1 })}
+                </td>
+                <td class="editable-cell" data-field="bag_width">
+                    <span class="static-value">${order.bag_width || '-'}</span>
+                    ${this.editManager.createEditInput('number', order.bag_width, { min: 1 })}
+                </td>
+                <td class="editable-cell" data-field="bag_step">
+                    <span class="static-value">${order.bag_step || '-'}</span>
+                    ${this.editManager.createEditInput('number', order.bag_step, { min: 1 })}
+                </td>
+                <td class="editable-cell" data-field="seal_sides">
+                    <span class="static-value">${order.seal_sides || '-'}</span>
+                    ${this.editManager.createEditInput('select', order.seal_sides, {
+                        options: [
+                            { value: '3', label: '3 sides' },
+                            { value: '4', label: '4 sides' }
+                        ]
+                    })}
+                </td>
+                <td class="editable-cell" data-field="product_type">
+                    <span class="static-value">${order.product_type || '-'}</span>
+                    ${this.editManager.createEditInput('select', order.product_type, {
+                        options: [
+                            { value: 'LIQUID', label: 'Liquid' },
+                            { value: 'POWDER', label: 'Powder' }
+                        ]
+                    })}
+                </td>
+                <td class="editable-cell" data-field="quantity">
+                    <span class="static-value">${order.quantity || '-'}</span>
+                    ${this.editManager.createEditInput('number', order.quantity, { min: 1 })}
+                </td>
+                <td class="editable-cell" data-field="production_start">
+                    <span class="static-value">${productionStart}</span>
+                    ${this.editManager.createEditInput('datetime-local', order.production_start)}
+                </td>
+                <td class="editable-cell" data-field="delivery_date">
+                    <span class="static-value">${deliveryDate}</span>
+                    ${this.editManager.createEditInput('date', order.delivery_date)}
+                </td>
+                <td class="editable-cell" data-field="internal_customer_code">
+                    <span class="static-value">${order.internal_customer_code || '-'}</span>
+                    ${this.editManager.createEditInput('text', order.internal_customer_code)}
+                </td>
+                <td class="editable-cell" data-field="external_customer_code">
+                    <span class="static-value">${order.external_customer_code || '-'}</span>
+                    ${this.editManager.createEditInput('text', order.external_customer_code)}
+                </td>
+                <td class="editable-cell" data-field="customer_order_ref">
+                    <span class="static-value">${order.customer_order_ref || '-'}</span>
+                    ${this.editManager.createEditInput('text', order.customer_order_ref)}
+                </td>
+                <td class="editable-cell" data-field="tipo_lavorazione">
                     <span class="static-value">
                         <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
-                            ${task.type}
+                            ${order.tipo_lavorazione}
                         </span>
                     </span>
-                    ${this.editManager.createEditInput('select', task.type, {
+                    ${this.editManager.createEditInput('select', order.tipo_lavorazione, {
                         options: [
                             { value: 'printing', label: 'Printing' },
                             { value: 'packaging', label: 'Packaging' }
                         ]
                     })}
                 </td>
-                <td class="editable-cell" data-field="numeroBuste">
-                    <span class="static-value">${task.numeroBuste || '-'}</span>
-                    ${this.editManager.createEditInput('number', task.numeroBuste, { min: 1 })}
+                <td class="editable-cell" data-field="fase">
+                    <span class="static-value">${order.fase || '-'}</span>
+                    ${this.editManager.createEditInput('text', order.fase)}
                 </td>
-                <td class="editable-cell" data-field="totalTime">
-                    <span class="static-value">${task.totalTime}h</span>
-                    ${this.editManager.createEditInput('number', task.totalTime, { min: 0.1, step: 0.1 })}
+                <td class="editable-cell" data-field="duration">
+                    <span class="static-value">${order.duration ? order.duration.toFixed(2) + 'h' : '-'}</span>
+                    ${this.editManager.createEditInput('number', order.duration, { min: 0.1, step: 0.1 })}
                 </td>
-                <td class="editable-cell" data-field="totalCost">
-                    <span class="static-value">€${task.totalCost}</span>
-                    ${this.editManager.createEditInput('number', task.totalCost, { min: 0, step: 0.01 })}
+                <td class="editable-cell" data-field="cost">
+                    <span class="static-value">€${order.cost ? order.cost.toFixed(2) : '-'}</span>
+                    ${this.editManager.createEditInput('number', order.cost, { min: 0, step: 0.01 })}
                 </td>
-                <td class="editable-cell" data-field="color">
+                <td class="editable-cell" data-field="status">
                     <span class="static-value">
-                        <div class="color-indicator" style="background-color: ${task.color}; width: 20px; height: 20px; border-radius: 50%; display: inline-block;"></div>
+                        <span class="status-badge ${statusClass}">${order.status}</span>
                     </span>
-                    ${this.editManager.createEditInput('color', task.color)}
+                    ${this.editManager.createEditInput('select', order.status, {
+                        options: [
+                            { value: 'DRAFT', label: 'Draft' },
+                            { value: 'IN_PROGRESS', label: 'In Progress' },
+                            { value: 'COMPLETED', label: 'Completed' }
+                        ]
+                    })}
                 </td>
                 <td class="text-center">
                     ${this.editManager.createActionButtons()}
@@ -460,28 +674,28 @@ class NewBacklogManager extends BaseManager {
     }
 
     deleteTask(taskId) {
-        const task = this.storageService.getTaskById(taskId);
+        const order = this.storageService.getODPOrderById(taskId);
         
         try {
-            // Check if task can be deleted (not scheduled on Gantt)
+            // Check if order can be deleted (not scheduled on Gantt)
             this.storageService.validateTaskCanBeDeleted(taskId);
             
-            const message = task ? 
-                `Are you sure you want to delete "${task.name}"? This action cannot be undone.` :
-                'Are you sure you want to delete this task? This action cannot be undone.';
+            const message = order ? 
+                `Are you sure you want to delete ODP "${order.odp_number}"? This action cannot be undone.` :
+                'Are you sure you want to delete this ODP order? This action cannot be undone.';
                 
             showDeleteConfirmation(message, () => {
                 try {
-                    this.storageService.removeBacklogTaskWithSync(taskId);
+                    this.storageService.removeODPOrder(taskId);
                     this.loadBacklog();
-                    this.showMessage('Task deleted successfully', 'success');
+                    this.showMessage('ODP order deleted successfully', 'success');
                 } catch (error) {
-                    this.showMessage('Error deleting task: ' + error.message, 'error');
+                    this.showMessage('Error deleting ODP order: ' + error.message, 'error');
                 }
             });
         } catch (error) {
-            // Task is scheduled - show specific error
-            this.showMessage(error.message + ' Move the task back to the pool first.', 'error');
+            // Order is scheduled - show specific error
+            this.showMessage(error.message + ' Move the order back to the pool first.', 'error');
         }
     }
 
@@ -572,21 +786,61 @@ class NewBacklogManager extends BaseManager {
 
         console.log('Collected updated data:', updatedData);
 
-        // Validate data
-        if (!updatedData.name || updatedData.name.trim() === '') {
-            this.showMessage('Task name cannot be empty', 'error');
+        // Try to find the task as an ODP order first
+        let task = this.storageService.getODPOrderById(taskId);
+        let isODPOrder = true;
+
+        if (!task) {
+            // Fall back to old backlog task
+            task = this.storageService.getTaskById(taskId);
+            isODPOrder = false;
+        }
+
+        if (!task) {
+            this.showMessage('Task not found', 'error');
             return;
         }
 
         try {
-            // Get current task
-            const task = this.storageService.getTaskById(taskId);
-            if (!task) {
-                this.showMessage('Task not found', 'error');
+            if (isODPOrder) {
+                // Handle ODP order updates
+                const updatedOrder = {
+                    ...task,
+                    odp_number: updatedData.odp_number?.trim() || task.odp_number,
+                    article_code: updatedData.article_code?.trim() || task.article_code,
+                    production_lot: updatedData.production_lot?.trim() || task.production_lot,
+                    work_center: updatedData.work_center || task.work_center,
+                    tipo_lavorazione: updatedData.tipo_lavorazione || task.tipo_lavorazione,
+                    duration: parseFloat(updatedData.duration) || task.duration,
+                    cost: parseFloat(updatedData.cost) || task.cost,
+                    delivery_date: updatedData.delivery_date || task.delivery_date,
+                    status: updatedData.status || task.status
+                };
+
+                // Validate required fields for ODP orders
+                if (!updatedOrder.odp_number || updatedOrder.odp_number.trim() === '') {
+                    this.showMessage('ODP number cannot be empty', 'error');
+                    return;
+                }
+
+                if (!updatedOrder.article_code || updatedOrder.article_code.trim() === '') {
+                    this.showMessage('Article code cannot be empty', 'error');
+                    return;
+                }
+
+                console.log('Original ODP order:', task);
+                console.log('Updated ODP order:', updatedOrder);
+
+                // Update ODP order
+                this.storageService.updateODPOrder(taskId, updatedOrder);
+
+            } else {
+                // Handle old backlog task updates
+                if (!updatedData.name || updatedData.name.trim() === '') {
+                    this.showMessage('Task name cannot be empty', 'error');
                 return;
             }
 
-            // Update task with new values
             const updatedTask = {
                 ...task,
                 name: updatedData.name.trim(),
@@ -606,6 +860,7 @@ class NewBacklogManager extends BaseManager {
                     String(t.id) === String(taskId) ? updatedTask : t
                 )
             );
+            }
 
             // Exit edit mode
             this.editManager.cancelEdit(row);

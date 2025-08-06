@@ -10,7 +10,9 @@ class StorageService {
             BACKLOG_TASKS: 'backlogTasks',
             SCHEDULED_EVENTS: 'scheduledEvents',
             MACHINE_AVAILABILITY: 'machineAvailability',
-            MACHINERY_CATALOG: 'machineryCatalog'
+            MACHINERY_CATALOG: 'machineryCatalog',
+            ODP_ORDERS: 'odpOrders',
+            PHASES: 'productionPhases'
         };
         
         // Initialize default data if not present
@@ -43,16 +45,16 @@ class StorageService {
      */
     runInitialDataIntegrityCheck() {
         try {
-            // Clean up duplicate tasks first
-            const duplicateResults = this.cleanupDuplicateTasks();
+            // Clean up old backlog tasks and orphaned events (migration to ODP structure)
+            const cleanupResults = this.cleanupDuplicateTasks();
             
             // Then sync Gantt chart data
             const syncResults = this.syncGanttChartData();
             
-            if (duplicateResults.duplicateTasksRemoved > 0 || duplicateResults.orphanedEventsRemoved > 0 || 
+            if (cleanupResults.oldTasksRemoved > 0 || cleanupResults.orphanedEventsRemoved > 0 || 
                 syncResults.ghostMachinesRemoved > 0 || syncResults.ghostTasksRemoved > 0 || syncResults.orphanedEventsRemoved > 0) {
-                console.log('Initial data integrity check completed:', { ...duplicateResults, ...syncResults });
-                this.showIntegrityNotification({ ...duplicateResults, ...syncResults });
+                console.log('Initial data integrity check completed:', { ...cleanupResults, ...syncResults });
+                this.showIntegrityNotification({ ...cleanupResults, ...syncResults });
             }
         } catch (error) {
             console.error('Error during initial data integrity check:', error);
@@ -375,35 +377,134 @@ class StorageService {
     
     addMachine(machine) {
         const machines = this.getMachines();
+        
+        // Generate machine_id if not provided (TYPE_SITE_NN format)
+        if (!machine.machine_id && machine.machine_type && machine.site) {
+            machine.machine_id = this.generateMachineId(machine.machine_type, machine.site);
+        }
+        
         const newMachine = {
             id: machine.id || Date.now().toString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            
+            // IDENTIFICAZIONE (Identification)
+            machine_id: machine.machine_id || machine.id || Date.now().toString(),
+            machine_name: machine.machine_name || machine.name || '',
+            machine_type: machine.machine_type || machine.type || 'DIGITAL_PRINT',
+            site: machine.site || 'ZANICA',
+            department: machine.department || 'STAMPA',
+            
+            // CAPACITÀ TECNICHE (Technical Capabilities)
+            min_web_width: parseInt(machine.min_web_width) || 0,
+            max_web_width: parseInt(machine.max_web_width) || 1000,
+            min_bag_height: parseInt(machine.min_bag_height) || 0,
+            max_bag_height: parseInt(machine.max_bag_height) || 500,
+            supported_materials: machine.supported_materials || ['DUPLEX'],
+            max_colors: parseInt(machine.max_colors) || 4,
+            
+            // PERFORMANCE
+            standard_speed: parseInt(machine.standard_speed) || 100,
+            efficiency_factor: parseFloat(machine.efficiency_factor) || 0.85,
+            setup_time_standard: parseInt(machine.setup_time_standard) || 30,
+            changeover_color: parseInt(machine.changeover_color) || 15,
+            changeover_material: parseInt(machine.changeover_material) || 45,
+            
+            // DISPONIBILITÀ (Availability)
+            active_shifts: machine.active_shifts || ['T1'],
+            hours_per_shift: parseFloat(machine.hours_per_shift) || 8.0,
+            maintenance_schedule: machine.maintenance_schedule || {},
+            
+            // Legacy compatibility fields
+            name: machine.name || machine.machine_name || '',
+            type: machine.type || this.mapMachineTypeToLegacy(machine.machine_type),
+            
+            // Preserve any additional fields
             ...machine,
+            
             createdAt: machine.createdAt || new Date().toISOString()
         };
+        
         machines.push(newMachine);
         this.saveMachines(machines);
         return newMachine;
     }
     
+    generateMachineId(machineType, site) {
+        const machines = this.getMachines();
+        const prefix = this.getMachineTypePrefix(machineType);
+        const siteCode = site === 'ZANICA' ? 'ZAN' : 'BGF';
+        
+        // Find existing machines with same prefix and site
+        const existingIds = machines
+            .filter(m => m.machine_id && m.machine_id.startsWith(`${prefix}_${siteCode}_`))
+            .map(m => m.machine_id.split('_').pop())
+            .map(num => parseInt(num))
+            .filter(num => !isNaN(num));
+            
+        const nextNumber = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
+        return `${prefix}_${siteCode}_${nextNumber.toString().padStart(2, '0')}`;
+    }
+    
+    getMachineTypePrefix(machineType) {
+        const prefixes = {
+            'DIGITAL_PRINT': 'DIGI',
+            'FLEXO_PRINT': 'FLEX',
+            'ROTOGRAVURE': 'ROTO',
+            'PACKAGING': 'PACK',
+            'DOYPACK': 'DOYP'
+        };
+        return prefixes[machineType] || 'MACH';
+    }
+    
+    mapMachineTypeToLegacy(machineType) {
+        const mappings = {
+            'DIGITAL_PRINT': 'printing',
+            'FLEXO_PRINT': 'printing',
+            'ROTOGRAVURE': 'printing',
+            'PACKAGING': 'packaging',
+            'DOYPACK': 'packaging'
+        };
+        return mappings[machineType] || 'printing';
+    }
+    
     getMachinesByType(type) {
-        return this.getValidMachinesForDisplay().filter(machine => machine.type === type);
+        return this.getValidMachinesForDisplay().filter(machine => {
+            const machineType = machine.machine_type || machine.type;
+            return machineType != null && machineType !== '';
+        });
     }
     
-    getPrintingMachines() {
-        return this.getValidMachinesForDisplay().filter(machine => machine.type === 'printing');
+        getPrintingMachines() {
+        return this.getValidMachinesForDisplay().filter(machine => {
+            const machineType = machine.machine_type || machine.type;
+            return machineType != null && machineType !== '';
+        });
     }
-    
+
     getPackagingMachines() {
-        return this.getValidMachinesForDisplay().filter(machine => machine.type === 'packaging');
+        return this.getValidMachinesForDisplay().filter(machine => {
+            const machineType = machine.machine_type || machine.type;
+            return machineType != null && machineType !== '';
+        });
     }
     
     getLiveMachines() {
-        return this.getValidMachinesForDisplay().filter(machine => machine.live);
+        return this.getValidMachinesForDisplay().filter(machine => {
+            // Legacy machines have 'live' property
+            if (machine.hasOwnProperty('live')) {
+                return machine.live === true;
+            }
+            
+            // New enhanced machines are considered live by default
+            // unless they have a specific status field indicating otherwise
+            return machine.status !== 'inactive' && machine.status !== 'maintenance';
+        });
     }
     
     getMachineByName(name) {
         return this.getValidMachinesForDisplay().find(machine => 
-            machine.name === name || machine.nominazione === name
+            machine.name === name || machine.nominazione === name || machine.machine_name === name
         );
     }
     
@@ -436,10 +537,197 @@ class StorageService {
         return filteredTasks;
     }
     
-    getTaskById(taskId) {
+        getTaskById(taskId) {
         return this.getBacklogTasks().find(task => String(task.id) === String(taskId));
     }
-    
+
+    /**
+     * ODP (Ordine di Produzione) Management
+     */
+    getODPOrders() {
+        return this.getItem(this.STORAGE_KEYS.ODP_ORDERS, []);
+    }
+
+    saveODPOrders(orders) {
+        return this.setItem(this.STORAGE_KEYS.ODP_ORDERS, orders);
+    }
+
+    addODPOrder(order) {
+        const orders = this.getODPOrders();
+        
+        // Generate ODP number if not provided
+        if (!order.odp_number) {
+            order.odp_number = this.generateODPNumber();
+        }
+        
+        const newOrder = {
+            id: order.id || (Date.now() + Math.random().toString(36).substr(2, 9)),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            status: order.status || 'DRAFT',
+            
+            // IDENTIFICAZIONE (Identification)
+            odp_number: order.odp_number,
+            article_code: order.article_code || '',
+            production_lot: order.production_lot || '',
+            work_center: order.work_center || 'ZANICA',
+            
+            // SPECIFICHE TECNICHE (Technical Specifications)
+            bag_height: parseInt(order.bag_height) || 0,
+            bag_width: parseInt(order.bag_width) || 0,
+            bag_step: parseInt(order.bag_step) || 0,
+            seal_sides: parseInt(order.seal_sides) || 3,
+            product_type: order.product_type || 'LIQUID',
+            
+            // PIANIFICAZIONE (Planning)
+            production_start: order.production_start || null,
+            delivery_date: order.delivery_date || null,
+            assigned_phase: order.assigned_phase || '',
+            
+            // DATI COMMERCIALI (Commercial Data)
+            internal_customer_code: order.internal_customer_code || '',
+            external_customer_code: order.external_customer_code || '',
+            customer_order_ref: order.customer_order_ref || '',
+            
+            // DATI LAVORAZIONE (Processing Data)
+            tipo_lavorazione: order.tipo_lavorazione || 'printing',
+            fase: order.fase || '',
+            
+            // COLONNE DA CALCOLARE (Calculated Columns)
+            duration: parseFloat(order.duration) || 0,
+            cost: parseFloat(order.cost) || 0,
+            
+            // Additional fields for compatibility with existing system
+            title: order.title || `${order.article_code || 'ODP'} - ${order.production_lot || ''}`,
+            description: order.description || '',
+            priority: order.priority || 'medium',
+            quantity: parseInt(order.quantity) || 1
+        };
+        
+        orders.push(newOrder);
+        this.saveODPOrders(orders);
+        return newOrder;
+    }
+
+    generateODPNumber() {
+        const orders = this.getODPOrders();
+        const existingNumbers = orders
+            .map(o => o.odp_number)
+            .filter(num => num && num.startsWith('OP'))
+            .map(num => parseInt(num.substring(2)))
+            .filter(num => !isNaN(num));
+        
+        const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+        return `OP${nextNumber.toString().padStart(6, '0')}`;
+    }
+
+    updateODPOrder(id, updates) {
+        const orders = this.getODPOrders();
+        const index = orders.findIndex(order => String(order.id) === String(id));
+        
+        if (index !== -1) {
+            orders[index] = {
+                ...orders[index],
+                ...updates,
+                updated_at: new Date().toISOString()
+            };
+            this.saveODPOrders(orders);
+            return orders[index];
+        }
+        return null;
+    }
+
+    removeODPOrder(id) {
+        const orders = this.getODPOrders();
+        const filteredOrders = orders.filter(order => String(order.id) !== String(id));
+        this.saveODPOrders(filteredOrders);
+        return filteredOrders;
+    }
+
+    getODPOrderById(id) {
+        return this.getODPOrders().find(order => String(order.id) === String(id));
+    }
+
+    getODPOrderByNumber(odpNumber) {
+        return this.getODPOrders().find(order => order.odp_number === odpNumber);
+    }
+
+    getODPOrdersByWorkCenter(workCenter) {
+        return this.getODPOrders().filter(order => order.work_center === workCenter);
+    }
+
+    getODPOrdersByStatus(status) {
+        return this.getODPOrders().filter(order => order.status === status);
+    }
+
+    /**
+     * Phase (Fase) Management
+     */
+    getPhases() {
+        return this.getItem(this.STORAGE_KEYS.PHASES, []);
+    }
+
+    savePhases(phases) {
+        return this.setItem(this.STORAGE_KEYS.PHASES, phases);
+    }
+
+    addPhase(phase) {
+        const phases = this.getPhases();
+        const newPhase = {
+            id: phase.id || (Date.now() + Math.random().toString(36).substr(2, 9)),
+            name: phase.name || '',
+            type: phase.type || 'printing', // 'printing' or 'packaging'
+            
+            // Printing parameters
+            V_STAMPA: parseInt(phase.V_STAMPA) || 0, // Velocità stampa in mt/min
+            T_SETUP_STAMPA: parseInt(phase.T_SETUP_STAMPA) || 0, // Tempo attrezzaggio stampa in min
+            COSTO_H_STAMPA: parseFloat(phase.COSTO_H_STAMPA) || 0, // Costo orario stampa in €/h
+            
+            // Packaging parameters
+            V_CONF: parseInt(phase.V_CONF) || 0, // Velocità confezionamento in pz/h
+            T_SETUP_CONF: parseInt(phase.T_SETUP_CONF) || 0, // Tempo attrezzaggio confezionamento in min
+            COSTO_H_CONF: parseFloat(phase.COSTO_H_CONF) || 0, // Costo orario confezionamento in €/h
+            
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+        
+        phases.push(newPhase);
+        this.savePhases(phases);
+        return newPhase;
+    }
+
+    updatePhase(id, updates) {
+        const phases = this.getPhases();
+        const index = phases.findIndex(phase => String(phase.id) === String(id));
+        
+        if (index !== -1) {
+            phases[index] = {
+                ...phases[index],
+                ...updates,
+                updated_at: new Date().toISOString()
+            };
+            this.savePhases(phases);
+            return phases[index];
+        }
+        return null;
+    }
+
+    removePhase(id) {
+        const phases = this.getPhases();
+        const filteredPhases = phases.filter(phase => String(phase.id) !== String(id));
+        this.savePhases(filteredPhases);
+        return filteredPhases;
+    }
+
+    getPhaseById(id) {
+        return this.getPhases().find(phase => String(phase.id) === String(id));
+    }
+
+    getPhasesByType(type) {
+        return this.getPhases().filter(phase => phase.type === type);
+    }
+
     /**
      * Scheduled events management
      */
@@ -700,24 +988,72 @@ class StorageService {
     getValidGanttMachines() {
         // Get machines that are present in the machinery tables (printing + packaging)
         const validMachines = this.getValidMachinesForDisplay();
+        console.log('Valid machines for display:', validMachines.length);
         
-        const printingMachines = validMachines.filter(m => m.type === 'printing');
-        const packagingMachines = validMachines.filter(m => m.type === 'packaging');
+        // Filter for machines with any type (not null)
+        const machinesWithType = validMachines.filter(m => {
+            const machineType = m.machine_type || m.type;
+            return machineType != null && machineType !== '';
+        });
         
-        // Combine and filter for live machines only
-        const allMachineryTableMachines = [...printingMachines, ...packagingMachines];
-        return allMachineryTableMachines.filter(machine => machine.live === true);
+        console.log('Machines with type:', machinesWithType.length);
+        
+        // Filter for active machines (check both legacy 'live' property and new active status)
+        const ganttMachines = machinesWithType.filter(machine => {
+            // Legacy machines have 'live' property
+            if (machine.hasOwnProperty('live')) {
+                return machine.live === true;
+            }
+            
+            // New enhanced machines are considered active by default
+            // unless they have a specific status field indicating otherwise
+            return machine.status !== 'inactive' && machine.status !== 'maintenance';
+        });
+        
+        console.log('Gantt machines after filtering:', ganttMachines.length);
+        console.log('Gantt machines:', ganttMachines);
+        
+        return ganttMachines;
     }
     
     /**
-     * Get valid tasks for task pool (tasks not scheduled)
+     * Get valid tasks for task pool (ODP orders not scheduled)
      */
     getValidTaskPoolTasks() {
-        const tasks = this.getBacklogTasks();
+        const odpOrders = this.getODPOrders();
         const scheduledEvents = this.getScheduledEvents();
         const scheduledTaskIds = new Set(scheduledEvents.map(event => event.taskId));
         
-        return tasks.filter(task => !scheduledTaskIds.has(task.id));
+        console.log('ODP orders found:', odpOrders.length);
+        console.log('Scheduled events found:', scheduledEvents.length);
+        console.log('Scheduled task IDs:', Array.from(scheduledTaskIds));
+        
+        // Convert ODP orders to task format for Gantt compatibility
+        const tasks = odpOrders.map(order => ({
+            id: order.id,
+            name: order.odp_number,
+            title: `${order.article_code} - ${order.production_lot}`,
+            type: order.tipo_lavorazione,
+            duration: order.duration || 0,
+            cost: order.cost || 0,
+            machineId: null, // Will be assigned when scheduled
+            machineName: null,
+            // Additional fields for compatibility
+            numeroBuste: order.quantity || 0,
+            passoBusta: order.bag_step || 0,
+            altezzaBusta: order.bag_height || 0,
+            fasciaBusta: order.bag_width || 0,
+            color: '#3B82F6', // Default blue color
+            linearMeters: 0, // Will be calculated if needed
+            totalTime: order.duration || 0,
+            totalCost: order.cost || 0
+        }));
+        
+        const availableTasks = tasks.filter(task => !scheduledTaskIds.has(task.id));
+        console.log('Available tasks for task pool:', availableTasks.length);
+        console.log('Available tasks:', availableTasks);
+        
+        return availableTasks;
     }
     
     /**
@@ -727,7 +1063,7 @@ class StorageService {
         const machines = this.getValidMachinesForDisplay();
         const events = this.getScheduledEvents();
         
-        const validMachineNames = new Set(machines.map(m => m.name || m.nominazione));
+        const validMachineNames = new Set(machines.map(m => m.name || m.nominazione || m.machine_name));
         const machinesInEvents = new Set(events.map(e => e.machine));
         
         const orphanMachines = Array.from(machinesInEvents).filter(name => !validMachineNames.has(name));
@@ -745,34 +1081,34 @@ class StorageService {
     }
     
     /**
-     * Strict validation: Ensure all tasks in events exist in backlog
+     * Strict validation: Ensure all tasks in events exist in ODP orders
      */
     validateTaskIntegrity() {
-        const tasks = this.getValidTasksForDisplay();
+        const odpOrders = this.getValidTasksForDisplay();
         const events = this.getScheduledEvents();
         
         // Convert all IDs to strings for consistent comparison
-        const validTaskIds = new Set(tasks.map(t => String(t.id)));
+        const validTaskIds = new Set(odpOrders.map(o => String(o.id)));
         const taskIdsInEvents = new Set(events.map(e => String(e.taskId)));
         
         const orphanTasks = Array.from(taskIdsInEvents).filter(id => !validTaskIds.has(id));
         
         if (orphanTasks.length > 0) {
             console.warn('Orphan tasks detected in events:', orphanTasks);
-            console.warn('Valid task IDs:', Array.from(validTaskIds));
+            console.warn('Valid ODP order IDs:', Array.from(validTaskIds));
             console.warn('Task IDs in events:', Array.from(taskIdsInEvents));
             
             // Additional debugging for the specific case
             orphanTasks.forEach(orphanId => {
                 const orphanEvent = events.find(e => String(e.taskId) === orphanId);
-                const matchingTask = tasks.find(t => String(t.id) === orphanId);
-                console.warn(`Orphan ID: ${orphanId}, Event:`, orphanEvent, 'Matching task:', matchingTask);
+                const matchingOrder = odpOrders.find(o => String(o.id) === orphanId);
+                console.warn(`Orphan ID: ${orphanId}, Event:`, orphanEvent, 'Matching ODP order:', matchingOrder);
             });
             
             return {
                 isValid: false,
                 orphanTasks: orphanTasks,
-                message: `Found ${orphanTasks.length} tasks in events that don't exist in backlog`
+                message: `Found ${orphanTasks.length} tasks in events that don't exist in ODP orders`
             };
         }
         
@@ -810,25 +1146,14 @@ class StorageService {
     getValidMachinesForDisplay() {
         const machines = this.getMachines();
         return machines.filter(machine => {
-            // Must have a name
-            if (!machine.name && !machine.nominazione) {
+            // Must have a name (check both legacy and new formats)
+            if (!machine.name && !machine.nominazione && !machine.machine_name) {
                 console.warn('Machine without name found:', machine);
                 return false;
             }
             
-            // Must have required properties based on type
-            if (machine.type === 'printing') {
-                if (!machine.numeroMacchina || !machine.nominazione) {
-                    console.warn('Printing machine missing required properties:', machine);
-                    return false;
-                }
-            } else if (machine.type === 'packaging') {
-                if (!machine.numeroMacchina || !machine.nominazione) {
-                    console.warn('Packaging machine missing required properties:', machine);
-                    return false;
-                }
-            } else {
-                // No type specified - invalid machine
+            // Must have a type (check both new and legacy formats)
+            if (!machine.machine_type && !machine.type) {
                 console.warn('Machine without type found:', machine);
                 return false;
             }
@@ -847,12 +1172,15 @@ class StorageService {
         if (validMachines.length !== machines.length) {
             const invalidMachines = machines.filter(machine => {
                 // Check if machine is in valid machines list
-                const isValid = validMachines.some(validMachine => 
-                    (validMachine.name || validMachine.nominazione) === (machine.name || machine.nominazione)
-                );
+                const isValid = validMachines.some(validMachine => {
+                    const machineName = machine.name || machine.nominazione || machine.machine_name;
+                    const validMachineName = validMachine.name || validMachine.nominazione || validMachine.machine_name;
+                    return machineName === validMachineName;
+                });
                 
                 if (!isValid) {
-                    console.log(`Removing invalid machine: ${machine.name || machine.nominazione}`, machine);
+                    const machineName = machine.name || machine.nominazione || machine.machine_name;
+                    console.log(`Removing invalid machine: ${machineName}`, machine);
                 }
                 
                 return isValid;
@@ -930,14 +1258,14 @@ class StorageService {
     }
     
     /**
-     * Get only valid tasks for display (strict filtering)
+     * Get only valid ODP orders for display (strict filtering)
      */
     getValidTasksForDisplay() {
-        const tasks = this.getBacklogTasks();
-        return tasks.filter(task => {
+        const odpOrders = this.getODPOrders();
+        return odpOrders.filter(order => {
             // Must have required properties
-            if (!task.id || !task.name) {
-                console.warn('Task missing required properties:', task);
+            if (!order.id || !order.odp_number) {
+                console.warn('ODP order missing required properties:', order);
                 return false;
             }
             
@@ -946,54 +1274,35 @@ class StorageService {
     }
     
     /**
-     * Clean up duplicate tasks and orphaned data
+     * Clean up old backlog tasks and orphaned events (migration to ODP structure)
      */
     cleanupDuplicateTasks() {
-        const tasks = this.getBacklogTasks();
+        const oldTasks = this.getBacklogTasks();
         const events = this.getScheduledEvents();
+        const odpOrders = this.getODPOrders();
         
-        // Find duplicate task IDs
-        const taskIds = new Set();
-        const duplicateTaskIds = new Set();
+        // Get valid ODP order IDs
+        const validOdpIds = new Set(odpOrders.map(o => String(o.id)));
         
-        tasks.forEach(task => {
-            if (taskIds.has(task.id)) {
-                duplicateTaskIds.add(task.id);
-            } else {
-                taskIds.add(task.id);
-            }
-        });
-        
-        if (duplicateTaskIds.size > 0) {
-            console.warn('Found duplicate task IDs:', Array.from(duplicateTaskIds));
-            
-            // Remove duplicate tasks (keep the first one)
-            const seenIds = new Set();
-            const uniqueTasks = tasks.filter(task => {
-                if (seenIds.has(task.id)) {
-                    console.log(`Removing duplicate task: ${task.name} (ID: ${task.id})`);
-                    return false;
-                }
-                seenIds.add(task.id);
-                return true;
-            });
-            
-            // Also remove any events referencing duplicate tasks
-            const validTaskIds = new Set(uniqueTasks.map(t => t.id));
-            const validEvents = events.filter(event => validTaskIds.has(event.taskId));
-            
-            this.saveBacklogTasks(uniqueTasks);
-            this.saveScheduledEvents(validEvents);
-            
-            console.log(`Cleaned up ${tasks.length - uniqueTasks.length} duplicate tasks and ${events.length - validEvents.length} orphaned events`);
-            
-            return {
-                duplicateTasksRemoved: tasks.length - uniqueTasks.length,
-                orphanedEventsRemoved: events.length - validEvents.length
-            };
+        // Remove all old backlog tasks (they're replaced by ODP orders)
+        if (oldTasks.length > 0) {
+            console.log(`Removing ${oldTasks.length} old backlog tasks (migrated to ODP structure)`);
+            this.saveBacklogTasks([]);
         }
         
-        return { duplicateTasksRemoved: 0, orphanedEventsRemoved: 0 };
+        // Remove events that reference non-existent tasks
+        const validEvents = events.filter(event => validOdpIds.has(String(event.taskId)));
+        const orphanedEvents = events.filter(event => !validOdpIds.has(String(event.taskId)));
+        
+        if (orphanedEvents.length > 0) {
+            console.log(`Removing ${orphanedEvents.length} orphaned events`);
+            this.saveScheduledEvents(validEvents);
+        }
+        
+        return {
+            oldTasksRemoved: oldTasks.length,
+            orphanedEventsRemoved: orphanedEvents.length
+        };
     }
     
     /**

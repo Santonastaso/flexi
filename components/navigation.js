@@ -12,6 +12,7 @@ class Navigation {
             pages: {
                 home: { href: 'index.html', label: 'Home', icon: '🏠' },
                 machinery: { href: 'machinery.html', label: 'Machinery', icon: '⚙️' },
+                phases: { href: 'phases.html', label: 'Phases', icon: '🔄' },
                 machineCatalog: { href: 'products_catalog.html', label: 'Catalog', icon: '📋' },
                 backlog: { href: 'backlog.html', label: 'Backlog', icon: '📝' },
                 scheduler: { href: 'scheduler.html', label: 'Scheduler', icon: '📅' }
@@ -66,6 +67,15 @@ class Navigation {
             
             case 'machinery':
                 return [
+                    this.navigationData.pages.phases,
+                    this.navigationData.pages.machineCatalog,
+                    this.navigationData.pages.backlog,
+                    this.navigationData.pages.scheduler
+                ];
+            
+            case 'phases':
+                return [
+                    this.navigationData.pages.machinery,
                     this.navigationData.pages.machineCatalog,
                     this.navigationData.pages.backlog,
                     this.navigationData.pages.scheduler
@@ -74,6 +84,7 @@ class Navigation {
             case 'machineCatalog':
                 return [
                     this.navigationData.pages.machinery,
+                    this.navigationData.pages.phases,
                     this.navigationData.pages.backlog,
                     this.navigationData.pages.scheduler
                 ];
@@ -81,6 +92,7 @@ class Navigation {
             case 'backlog':
                 return [
                     this.navigationData.pages.machinery,
+                    this.navigationData.pages.phases,
                     this.navigationData.pages.machineCatalog,
                     this.navigationData.pages.scheduler
                 ];
@@ -88,6 +100,7 @@ class Navigation {
             case 'scheduler':
                 return [
                     this.navigationData.pages.machinery,
+                    this.navigationData.pages.phases,
                     this.navigationData.pages.machineCatalog,
                     this.navigationData.pages.backlog
                 ];

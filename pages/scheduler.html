@@ -615,7 +615,7 @@
                     <div class="machine-row" data-machine="${machine.name}">
                         <div class="machine-label">
                             <div class="machine-name">${machine.name}</div>
-                            <div class="machine-city">${machine.city}</div>
+                            <div class="machine-city">${machine.site || machine.city}</div>
                         </div>
                         <div class="machine-slots">
                 `;
@@ -676,7 +676,13 @@
             }
             
             scheduleTask(taskId, slot) {
-                const task = this.storageService.getTaskById(taskId);
+                // Try to find the task in ODP orders first, then fall back to old backlog tasks
+                let task = this.storageService.getODPOrderById(taskId);
+                
+                if (!task) {
+                    // Fall back to old backlog tasks for backward compatibility
+                    task = this.storageService.getTaskById(taskId);
+                }
                 
                 if (!task) {
                     this.showMessage('Task not found', 'error');
