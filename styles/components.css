@@ -10,7 +10,7 @@
     justify-content: center;
     padding: 12px 24px;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     font-family: inherit;
     font-size: 14px;
     font-weight: 600;
@@ -186,7 +186,7 @@
     width: 100%;
     padding: 12px 16px;
     border: 2px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     font-family: inherit;
     font-size: 14px;
     background: white;
@@ -235,7 +235,7 @@
 /* ===== TABLE COMPONENTS ===== */
 .table-container {
     background: white;
-    border-radius: 12px;
+    border-radius: var(--border-radius-large);
     overflow-x: auto;
     overflow-y: hidden;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);

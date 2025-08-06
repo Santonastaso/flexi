@@ -234,7 +234,12 @@ class ViewManager {
             
             // Set entire day as off-time (7 AM to 7 PM)
             for (let hour = 7; hour < 19; hour++) {
-                this.calendarRenderer.eventStorage.setHourUnavailable(machineName, dateStr, hour);
+                // Set hour as unavailable using storage service
+                const unavailableHours = window.storageService.getMachineAvailabilityForDate(machineName, dateStr);
+                if (!unavailableHours.includes(hour)) {
+                    unavailableHours.push(hour);
+                    window.storageService.setMachineAvailability(machineName, dateStr, unavailableHours);
+                }
             }
             
             current.setDate(current.getDate() + 1);
@@ -289,10 +294,7 @@ class ViewManager {
     }
     
     formatDate(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        return Utils.formatDate(date);
     }
     
     formatDisplayDate(date) {
@@ -303,10 +305,7 @@ class ViewManager {
     }
     
     getStartOfWeek(date) {
-        const start = new Date(date);
-        start.setDate(start.getDate() - start.getDay());
-        start.setHours(0, 0, 0, 0);
-        return start;
+        return Utils.getStartOfWeek(date);
     }
 }
 

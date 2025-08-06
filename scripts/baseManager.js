@@ -101,12 +101,25 @@ class BaseManager {
     }
 
     /**
+     * Clear all form input fields automatically
+     */
+    clearFormFields() {
+        Object.values(this.elements).forEach(element => {
+            if (element && (element.tagName === 'INPUT' || element.tagName === 'SELECT' || element.tagName === 'TEXTAREA')) {
+                if (element.type === 'checkbox' || element.type === 'radio') {
+                    element.checked = false;
+                } else {
+                    element.value = '';
+                }
+            }
+        });
+    }
+
+    /**
      * Escape HTML to prevent XSS
      */
     escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        return Utils.escapeHtml(text);
     }
 
     /**

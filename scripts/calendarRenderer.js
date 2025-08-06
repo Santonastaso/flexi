@@ -3,10 +3,10 @@
  * Implements Google Calendar-style layout and behavior
  */
 class CalendarRenderer {
-    constructor(container, viewManager, eventStorage) {
+    constructor(container, viewManager, storageService) {
         this.container = container;
         this.viewManager = viewManager;
-        this.eventStorage = eventStorage;
+        this.storageService = storageService;
         this.currentView = 'month';
         this.currentDate = new Date();
         this.machineName = null;
@@ -126,7 +126,7 @@ class CalendarRenderer {
                 const isCurrentMonth = current.getMonth() === month;
                 const isToday = current.toDateString() === today.toDateString();
                 const dateStr = this.formatDate(current);
-                const events = this.eventStorage.getEventsForDate(this.machineName, dateStr);
+                const events = this.storageService.getEventsByDate(dateStr).filter(e => e.machine === this.machineName);
                 
                 html += `
                     <div class="day-cell ${isCurrentMonth ? 'current-month' : 'other-month'} ${isToday ? 'today' : ''}"
@@ -197,8 +197,10 @@ class CalendarRenderer {
                     <div class="time-label">${this.formatHour(hour)}</div>
                     ${days.map(day => {
                         const dateStr = this.formatDate(day);
-                        const events = this.eventStorage.getEventsForDateTime(this.machineName, dateStr, hour);
-                        const isUnavailable = this.eventStorage.isHourUnavailable(this.machineName, dateStr, hour);
+                        const events = this.storageService.getEventsByDate(dateStr).filter(e => 
+                            e.machine === this.machineName && hour >= e.startHour && hour < e.endHour);
+                        const unavailableHours = this.storageService.getMachineAvailabilityForDate(this.machineName, dateStr);
+                        const isUnavailable = unavailableHours.includes(hour);
                         
                         return `
                             <div class="time-slot ${isUnavailable ? 'unavailable' : ''} ${events.length > 0 ? 'has-events' : ''}"
@@ -226,7 +228,8 @@ class CalendarRenderer {
         for (let week = 0; week < 6; week++) {
             for (let day = 0; day < 7; day++) {
                 const isCurrentMonth = current.getMonth() === month;
-                const hasEvents = this.eventStorage.getEventsForDate(this.machineName, this.formatDate(current)).length > 0;
+                const hasEvents = this.storageService.getEventsByDate(this.formatDate(current))
+                    .filter(e => e.machine === this.machineName).length > 0;
                 
                 html += `
                     <div class="mini-day ${isCurrentMonth ? 'current-month' : ''} ${hasEvents ? 'has-events' : ''}">
@@ -288,52 +291,47 @@ class CalendarRenderer {
     handleTimeSlotClick(dateStr, hour) {
         if (!this.machineName) return;
         
-        const hasScheduledEvents = this.eventStorage.getEventsForDateTime(this.machineName, dateStr, hour)
-            .some(event => event.type === 'scheduled');
+        const scheduledEvents = this.storageService.getEventsByDate(dateStr)
+            .filter(e => e.machine === this.machineName && hour >= e.startHour && hour < e.endHour);
+        const hasScheduledEvents = scheduledEvents.length > 0;
             
         if (hasScheduledEvents) {
             alert('This slot is occupied by a scheduled task. You cannot mark it as unavailable.');
             return;
         }
         
-        this.eventStorage.toggleHourAvailability(this.machineName, dateStr, hour);
+        this.storageService.toggleMachineHourAvailability(this.machineName, dateStr, hour);
         this.render(); // Re-render current view
     }
     
     // Utility methods
     getStartOfWeek(date) {
-        const start = new Date(date);
-        start.setDate(start.getDate() - start.getDay());
-        start.setHours(0, 0, 0, 0);
-        return start;
+        return Utils.getStartOfWeek(date);
     }
     
     getMonthEventCount(year, month) {
         if (!this.machineName) return 0;
-        return this.eventStorage.getEventsForMonth(this.machineName, year, month).length;
+        return this.storageService.getEventsByMachine(this.machineName)
+            .filter(e => {
+                const eventDate = new Date(e.date);
+                return eventDate.getFullYear() === year && eventDate.getMonth() === month;
+            }).length;
     }
     
     formatDate(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        return Utils.formatDate(date);
     }
     
     formatHour(hour) {
-        return `${hour}:00`;
+        return Utils.formatHour(hour);
     }
     
     getDayName(dayIndex, short = false) {
-        const days = short ? 
-            ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] :
-            ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        return days[dayIndex];
+        return Utils.getDayName(dayIndex, short);
     }
     
     isToday(date) {
-        const today = new Date();
-        return date.toDateString() === today.toDateString();
+        return Utils.isToday(date);
     }
 }
 

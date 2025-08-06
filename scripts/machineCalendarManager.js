@@ -76,14 +76,14 @@ class MachineCalendarManager {
      */
     initializeComponents() {
         try {
-            // Initialize storage
-            this.eventStorage = new EventStorage();
+            // Use storage service directly instead of eventStorage wrapper
+            this.storageService = window.storageService;
             
             // Initialize calendar renderer
             this.calendarRenderer = new CalendarRenderer(
                 this.elements.calendarContainer,
                 null, // ViewManager will be set later
-                this.eventStorage
+                this.storageService
             );
             
             // Initialize view manager
@@ -169,8 +169,35 @@ class MachineCalendarManager {
      * Public method to get machine availability summary
      */
     getMachineSummary(startDate, endDate) {
-        if (this.eventStorage && this.machineName) {
-            return this.eventStorage.getMachineSummary(this.machineName, startDate, endDate);
+        if (this.storageService && this.machineName) {
+            // Calculate summary directly from storage service data
+            const summary = {
+                totalDays: 0,
+                offTimeDays: 0,
+                scheduledDays: 0,
+                availableDays: 0,
+                totalOffTimeHours: 0,
+                totalScheduledHours: 0
+            };
+            
+            const current = new Date(startDate);
+            while (current <= endDate) {
+                const dateStr = Utils.formatDate(current);
+                const unavailableHours = this.storageService.getMachineAvailabilityForDate(this.machineName, dateStr);
+                const events = this.storageService.getEventsByDate(dateStr).filter(e => e.machine === this.machineName);
+                
+                summary.totalDays++;
+                summary.totalOffTimeHours += unavailableHours.length;
+                summary.totalScheduledHours += events.reduce((total, e) => total + (e.endHour - e.startHour), 0);
+                
+                if (unavailableHours.length > 0) summary.offTimeDays++;
+                if (events.length > 0) summary.scheduledDays++;
+                if (unavailableHours.length === 0 && events.length === 0) summary.availableDays++;
+                
+                current.setDate(current.getDate() + 1);
+            }
+            
+            return summary;
         }
         return null;
     }
@@ -179,8 +206,16 @@ class MachineCalendarManager {
      * Public method to set off-time for a date range
      */
     setOffTimeRange(startDate, endDate) {
-        if (this.eventStorage && this.machineName) {
-            this.eventStorage.setDateRangeOffTime(this.machineName, startDate, endDate);
+        if (this.storageService && this.machineName) {
+            // Set hours as unavailable directly using storage service
+            const current = new Date(startDate);
+            while (current <= endDate) {
+                const dateStr = Utils.formatDate(current);
+                for (let hour = 7; hour < 19; hour++) {
+                    this.storageService.setMachineAvailability(this.machineName, dateStr, [hour]);
+                }
+                current.setDate(current.getDate() + 1);
+            }
             this.refresh();
         }
     }
@@ -189,8 +224,14 @@ class MachineCalendarManager {
      * Public method to remove off-time for a date range
      */
     removeOffTimeRange(startDate, endDate) {
-        if (this.eventStorage && this.machineName) {
-            this.eventStorage.removeOffTimeEvents(this.machineName, startDate, endDate);
+        if (this.storageService && this.machineName) {
+            // Clear unavailable hours directly using storage service
+            const current = new Date(startDate);
+            while (current <= endDate) {
+                const dateStr = Utils.formatDate(current);
+                this.storageService.setMachineAvailability(this.machineName, dateStr, []);
+                current.setDate(current.getDate() + 1);
+            }
             this.refresh();
         }
     }
@@ -207,11 +248,7 @@ class MachineCalendarManager {
         const endDate = new Date();
         endDate.setMonth(endDate.getMonth() + 2); // 2 months ahead
         
-        const events = this.eventStorage.getEventsForMonth(
-            this.machineName, 
-            startDate.getFullYear(), 
-            startDate.getMonth()
-        );
+        const events = this.storageService.getEventsByMachine(this.machineName);
         
         const summary = this.getMachineSummary(startDate, endDate);
         

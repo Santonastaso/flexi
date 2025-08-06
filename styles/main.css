@@ -14,6 +14,23 @@
     --border-color: #e5e7eb;
     --danger-red: #ef4444;
     --gray-medium: #9ca3af;
+    
+    /* Border radius values */
+    --border-radius: 8px;
+    --border-radius-large: 12px;
+    --border-radius-xl: 16px;
+    
+    /* Spacing values */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    
+    /* Common shadows */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 8px rgba(0,0,0,0.1);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.08);
 }
 
 /* ===== RESET & BASE STYLES ===== */
@@ -71,7 +88,7 @@ main {
 .content-section {
     background-color: white;
     padding: 32px;
-    border-radius: 16px;
+    border-radius: var(--border-radius-xl);
     box-shadow: 0 8px 32px rgba(0,0,0,0.08);
     margin-bottom: 40px;
     transition: box-shadow 0.3s ease;
@@ -132,7 +149,7 @@ header {
     color: var(--text-light);
     font-weight: 600;
     font-size: 14px;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     transition: all 0.3s ease;
     gap: 12px;
     position: relative;
@@ -214,7 +231,7 @@ header {
     z-index: 1001;
     background: white;
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: var(--border-radius-large);
     padding: 12px;
     cursor: pointer;
     box-shadow: 0 4px 16px rgba(0,0,0,0.1);
@@ -351,7 +368,7 @@ p {
     width: 100%;
     padding: 12px;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     font-size: 14px;
     background-color: #fff;
     height: 48px;
@@ -463,7 +480,7 @@ p {
 
 .modal-content {
     background-color: white;
-    border-radius: 16px;
+    border-radius: var(--border-radius-xl);
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     max-width: 480px;
     width: 90%;
@@ -541,7 +558,7 @@ p {
     background-color: white;
     color: var(--text-dark);
     padding: 12px 24px;
-    border-radius: 8px;
+    border-radius: var(--border-radius);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     font-size: 14px;
     font-weight: 600;
