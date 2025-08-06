@@ -1005,7 +1005,6 @@
             // Ensure task pool is clean and properly filtered
             ensureTaskPoolClean() {
                 const taskPool = this.elements.taskPool;
-                const tasks = this.storageService.getBacklogTasks();
                 const scheduledEvents = this.storageService.getScheduledEvents();
                 
                 // Remove any tasks that are already scheduled

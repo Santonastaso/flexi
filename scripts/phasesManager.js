@@ -4,6 +4,7 @@
 class PhasesManager extends BaseManager {
     constructor() {
         super(window.storageService);
+        this.editManager = window.editManager;
         this.init();
     }
 
@@ -11,6 +12,25 @@ class PhasesManager extends BaseManager {
         if (super.init(this.getElementMap())) {
             this.loadPhases();
             this.setupFormValidation();
+            
+            // Initialize edit functionality
+            if (this.editManager) {
+                this.editManager.initTableEdit('.modern-table');
+                // Override saveEdit method
+                this.editManager.saveEdit = (row) => this.saveEdit(row);
+                
+                // Handle delete events
+                const table = document.querySelector('.modern-table');
+                if (table) {
+                    table.addEventListener('deleteRow', (e) => {
+                        const row = e.detail.row;
+                        const phaseId = row.dataset.phaseId;
+                        if (phaseId) {
+                            this.deletePhase(phaseId);
+                        }
+                    });
+                }
+            }
         }
     }
 
@@ -84,22 +104,49 @@ class PhasesManager extends BaseManager {
     createPhaseRow(phase) {
         return `
             <tr data-phase-id="${phase.id}">
-                <td>${phase.name}</td>
-                <td>
-                    <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
-                        ${phase.type}
-                    </span>
+                <td class="editable-cell" data-field="name">
+                    <span class="static-value">${phase.name}</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', phase.name) : ''}
                 </td>
-                <td>${phase.V_STAMPA || 0} mt/min</td>
-                <td>${phase.T_SETUP_STAMPA || 0} min</td>
-                <td>€${phase.COSTO_H_STAMPA || 0}/h</td>
-                <td>${phase.V_CONF || 0} pz/h</td>
-                <td>${phase.T_SETUP_CONF || 0} min</td>
-                <td>€${phase.COSTO_H_CONF || 0}/h</td>
+                <td class="editable-cell" data-field="type">
+                    <span class="static-value">
+                        <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
+                            ${phase.type}
+                        </span>
+                    </span>
+                    ${this.editManager ? this.editManager.createEditInput('select', phase.type, {
+                        options: [
+                            { value: 'printing', label: 'Printing' },
+                            { value: 'packaging', label: 'Packaging' }
+                        ]
+                    }) : ''}
+                </td>
+                <td class="editable-cell" data-field="V_STAMPA">
+                    <span class="static-value">${phase.V_STAMPA || 0} mt/min</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', phase.V_STAMPA || 0, { min: 0 }) : ''}
+                </td>
+                <td class="editable-cell" data-field="T_SETUP_STAMPA">
+                    <span class="static-value">${phase.T_SETUP_STAMPA || 0} min</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', phase.T_SETUP_STAMPA || 0, { min: 0 }) : ''}
+                </td>
+                <td class="editable-cell" data-field="COSTO_H_STAMPA">
+                    <span class="static-value">€${phase.COSTO_H_STAMPA || 0}/h</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', phase.COSTO_H_STAMPA || 0, { min: 0, step: 0.01 }) : ''}
+                </td>
+                <td class="editable-cell" data-field="V_CONF">
+                    <span class="static-value">${phase.V_CONF || 0} pz/h</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', phase.V_CONF || 0, { min: 0 }) : ''}
+                </td>
+                <td class="editable-cell" data-field="T_SETUP_CONF">
+                    <span class="static-value">${phase.T_SETUP_CONF || 0} min</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', phase.T_SETUP_CONF || 0, { min: 0 }) : ''}
+                </td>
+                <td class="editable-cell" data-field="COSTO_H_CONF">
+                    <span class="static-value">€${phase.COSTO_H_CONF || 0}/h</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', phase.COSTO_H_CONF || 0, { min: 0, step: 0.01 }) : ''}
+                </td>
                 <td class="text-center">
-                    <button class="btn btn-danger btn-sm" onclick="window.phasesManager.deletePhase('${phase.id}')">
-                        Delete
-                    </button>
+                    ${this.editManager ? this.editManager.createActionButtons() : ''}
                 </td>
             </tr>
         `;
@@ -205,14 +252,72 @@ class PhasesManager extends BaseManager {
         this.validatePhaseForm();
     }
 
-    deletePhase(phaseId) {
-        try {
-            this.storageService.removePhase(phaseId);
-            this.loadPhases();
-            this.showMessage('Phase deleted successfully', 'success');
-        } catch (error) {
-            this.showMessage('Error deleting phase: ' + error.message, 'error');
+    saveEdit(row) {
+        const phaseId = row.dataset.phaseId;
+        if (!phaseId) {
+            console.error('No phase ID found in row');
+            return;
         }
+
+        // Collect edited values using the edit manager
+        const updatedData = this.editManager.collectEditedValues(row);
+
+        console.log('Collected updated phase data:', updatedData);
+
+        try {
+            // Get current phase
+            const phase = this.storageService.getPhaseById(phaseId);
+            if (!phase) {
+                this.showMessage('Phase not found', 'error');
+                return;
+            }
+
+            // Update phase with new values
+            const updatedPhase = {
+                ...phase,
+                name: updatedData.name || phase.name,
+                type: updatedData.type || phase.type,
+                V_STAMPA: parseInt(updatedData.V_STAMPA) || phase.V_STAMPA,
+                T_SETUP_STAMPA: parseInt(updatedData.T_SETUP_STAMPA) || phase.T_SETUP_STAMPA,
+                COSTO_H_STAMPA: parseFloat(updatedData.COSTO_H_STAMPA) || phase.COSTO_H_STAMPA,
+                V_CONF: parseInt(updatedData.V_CONF) || phase.V_CONF,
+                T_SETUP_CONF: parseInt(updatedData.T_SETUP_CONF) || phase.T_SETUP_CONF,
+                COSTO_H_CONF: parseFloat(updatedData.COSTO_H_CONF) || phase.COSTO_H_CONF
+            };
+
+            console.log('Original phase:', phase);
+            console.log('Updated phase:', updatedPhase);
+
+            // Update phase
+            this.storageService.updatePhase(phaseId, updatedPhase);
+
+            // Exit edit mode
+            this.editManager.cancelEdit(row);
+
+            // Update display
+            this.loadPhases();
+            this.showMessage('Phase updated successfully', 'success');
+
+        } catch (error) {
+            this.showMessage('Error updating phase: ' + error.message, 'error');
+        }
+    }
+
+    deletePhase(phaseId) {
+        const phase = this.storageService.getPhaseById(phaseId);
+        const phaseName = phase ? phase.name : 'this phase';
+        
+        const message = `Are you sure you want to delete "${phaseName}"? This action cannot be undone.`;
+        
+        showDeleteConfirmation(message, () => {
+            try {
+                this.storageService.removePhase(phaseId);
+                this.loadPhases();
+                this.showMessage('Phase deleted successfully', 'success');
+            } catch (error) {
+                this.showMessage('Error deleting phase: ' + error.message, 'error');
+            }
+        });
     }
 }
 

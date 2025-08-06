@@ -9,14 +9,13 @@ class Navigation {
             logo: {
                 href: 'index.html'
             },
-            pages: {
-                home: { href: 'index.html', label: 'Home', icon: '🏠' },
-                machinery: { href: 'machinery.html', label: 'Machinery', icon: '⚙️' },
-                phases: { href: 'phases.html', label: 'Phases', icon: '🔄' },
-                machineCatalog: { href: 'products_catalog.html', label: 'Catalog', icon: '📋' },
-                backlog: { href: 'backlog.html', label: 'Backlog', icon: '📝' },
-                scheduler: { href: 'scheduler.html', label: 'Scheduler', icon: '📅' }
-            }
+                    pages: {
+            home: { href: 'index.html', label: 'Home', icon: '🏠' },
+            machinery: { href: 'machinery.html', label: 'Machinery', icon: '⚙️' },
+            phases: { href: 'phases.html', label: 'Phases', icon: '🔄' },
+            backlog: { href: 'backlog.html', label: 'Backlog', icon: '📝' },
+            scheduler: { href: 'scheduler.html', label: 'Scheduler', icon: '📅' }
+        }
         };
     }
     
@@ -68,7 +67,6 @@ class Navigation {
             case 'machinery':
                 return [
                     this.navigationData.pages.phases,
-                    this.navigationData.pages.machineCatalog,
                     this.navigationData.pages.backlog,
                     this.navigationData.pages.scheduler
                 ];
@@ -76,15 +74,6 @@ class Navigation {
             case 'phases':
                 return [
                     this.navigationData.pages.machinery,
-                    this.navigationData.pages.machineCatalog,
-                    this.navigationData.pages.backlog,
-                    this.navigationData.pages.scheduler
-                ];
-            
-            case 'machineCatalog':
-                return [
-                    this.navigationData.pages.machinery,
-                    this.navigationData.pages.phases,
                     this.navigationData.pages.backlog,
                     this.navigationData.pages.scheduler
                 ];
@@ -93,7 +82,6 @@ class Navigation {
                 return [
                     this.navigationData.pages.machinery,
                     this.navigationData.pages.phases,
-                    this.navigationData.pages.machineCatalog,
                     this.navigationData.pages.scheduler
                 ];
             
@@ -101,7 +89,6 @@ class Navigation {
                 return [
                     this.navigationData.pages.machinery,
                     this.navigationData.pages.phases,
-                    this.navigationData.pages.machineCatalog,
                     this.navigationData.pages.backlog
                 ];
             
@@ -171,8 +158,8 @@ function initializeNavigation() {
         currentPage = 'home';
     } else if (path.includes('machinery.html')) {
         currentPage = 'machinery';
-    } else if (path.includes('products_catalog.html')) {
-        currentPage = 'machineCatalog';
+    } else if (path.includes('phases.html')) {
+        currentPage = 'phases';
     } else if (path.includes('backlog.html')) {
         currentPage = 'backlog';
     } else if (path.includes('scheduler')) {
@@ -187,8 +174,8 @@ function initializeNavigation() {
             currentPage = 'backlog';
         } else if (document.getElementById('machinery-table-body')) {
             currentPage = 'machinery';
-        } else if (document.getElementById('machineryCatalogList')) {
-            currentPage = 'machineCatalog';
+        } else if (document.getElementById('phases-table-body')) {
+            currentPage = 'phases';
         } else if (document.getElementById('calendarContainer')) {
             currentPage = 'scheduler';
         } else if (document.getElementById('availability-calendar')) {

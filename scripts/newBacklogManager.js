@@ -19,7 +19,6 @@ class NewBacklogManager extends BaseManager {
         
         if (super.init(this.getElementMap())) {
             this.loadBacklog();
-            this.loadPhases();
             this.setupFormValidation();
             
             // Initialize edit functionality
@@ -171,15 +170,12 @@ class NewBacklogManager extends BaseManager {
         const tipoLavorazione = this.elements.tipoLavorazione.value;
         const faseSelect = this.elements.fase;
         
-        console.log('Updating fase options for tipo_lavorazione:', tipoLavorazione);
-        
         // Clear existing options
         faseSelect.innerHTML = '<option value="">Select fase</option>';
         
         if (tipoLavorazione) {
             // Get phases for the selected type
             const phases = this.storageService.getPhasesByType(tipoLavorazione);
-            console.log('Found phases for', tipoLavorazione, ':', phases);
             
             phases.forEach(phase => {
                 const option = document.createElement('option');
@@ -192,14 +188,7 @@ class NewBacklogManager extends BaseManager {
 
     loadPhases() {
         // Load existing phases from storage
-        const phases = this.storageService.getPhases();
-        console.log('Loading phases from storage, count:', phases.length);
-        
-        if (phases.length > 0) {
-            console.log('Available phases:', phases);
-        } else {
-            console.log('No phases found in storage. Please add phases through the phase management system.');
-        }
+        this.storageService.getPhases();
     }
 
     updatePreview() {
@@ -787,14 +776,7 @@ class NewBacklogManager extends BaseManager {
         console.log('Collected updated data:', updatedData);
 
         // Try to find the task as an ODP order first
-        let task = this.storageService.getODPOrderById(taskId);
-        let isODPOrder = true;
-
-        if (!task) {
-            // Fall back to old backlog task
-            task = this.storageService.getTaskById(taskId);
-            isODPOrder = false;
-        }
+        const task = this.storageService.getODPOrderById(taskId);
 
         if (!task) {
             this.showMessage('Task not found', 'error');
@@ -802,65 +784,36 @@ class NewBacklogManager extends BaseManager {
         }
 
         try {
-            if (isODPOrder) {
-                // Handle ODP order updates
-                const updatedOrder = {
-                    ...task,
-                    odp_number: updatedData.odp_number?.trim() || task.odp_number,
-                    article_code: updatedData.article_code?.trim() || task.article_code,
-                    production_lot: updatedData.production_lot?.trim() || task.production_lot,
-                    work_center: updatedData.work_center || task.work_center,
-                    tipo_lavorazione: updatedData.tipo_lavorazione || task.tipo_lavorazione,
-                    duration: parseFloat(updatedData.duration) || task.duration,
-                    cost: parseFloat(updatedData.cost) || task.cost,
-                    delivery_date: updatedData.delivery_date || task.delivery_date,
-                    status: updatedData.status || task.status
-                };
+            // Handle ODP order updates
+            const updatedOrder = {
+                ...task,
+                odp_number: updatedData.odp_number?.trim() || task.odp_number,
+                article_code: updatedData.article_code?.trim() || task.article_code,
+                production_lot: updatedData.production_lot?.trim() || task.production_lot,
+                work_center: updatedData.work_center || task.work_center,
+                tipo_lavorazione: updatedData.tipo_lavorazione || task.tipo_lavorazione,
+                duration: parseFloat(updatedData.duration) || task.duration,
+                cost: parseFloat(updatedData.cost) || task.cost,
+                delivery_date: updatedData.delivery_date || task.delivery_date,
+                status: updatedData.status || task.status
+            };
 
-                // Validate required fields for ODP orders
-                if (!updatedOrder.odp_number || updatedOrder.odp_number.trim() === '') {
-                    this.showMessage('ODP number cannot be empty', 'error');
-                    return;
-                }
-
-                if (!updatedOrder.article_code || updatedOrder.article_code.trim() === '') {
-                    this.showMessage('Article code cannot be empty', 'error');
-                    return;
-                }
-
-                console.log('Original ODP order:', task);
-                console.log('Updated ODP order:', updatedOrder);
-
-                // Update ODP order
-                this.storageService.updateODPOrder(taskId, updatedOrder);
-
-            } else {
-                // Handle old backlog task updates
-                if (!updatedData.name || updatedData.name.trim() === '') {
-                    this.showMessage('Task name cannot be empty', 'error');
+            // Validate required fields for ODP orders
+            if (!updatedOrder.odp_number || updatedOrder.odp_number.trim() === '') {
+                this.showMessage('ODP number cannot be empty', 'error');
                 return;
             }
 
-            const updatedTask = {
-                ...task,
-                name: updatedData.name.trim(),
-                type: updatedData.type,
-                numeroBuste: parseInt(updatedData.numeroBuste) || task.numeroBuste,
-                totalTime: parseFloat(updatedData.totalTime) || task.totalTime,
-                totalCost: parseFloat(updatedData.totalCost) || task.totalCost,
-                color: updatedData.color
-            };
-
-            console.log('Original task:', task);
-            console.log('Updated task:', updatedTask);
-
-            // Save updated task
-            this.storageService.saveBacklogTasksWithSync(
-                this.storageService.getBacklogTasks().map(t => 
-                    String(t.id) === String(taskId) ? updatedTask : t
-                )
-            );
+            if (!updatedOrder.article_code || updatedOrder.article_code.trim() === '') {
+                this.showMessage('Article code cannot be empty', 'error');
+                return;
             }
+
+            console.log('Original ODP order:', task);
+            console.log('Updated ODP order:', updatedOrder);
+
+            // Update ODP order
+            this.storageService.updateODPOrder(taskId, updatedOrder);
 
             // Exit edit mode
             this.editManager.cancelEdit(row);

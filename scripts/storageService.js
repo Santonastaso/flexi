@@ -7,10 +7,8 @@ class StorageService {
     constructor() {
         this.STORAGE_KEYS = {
             MACHINES: 'schedulerMachines',
-            BACKLOG_TASKS: 'backlogTasks',
             SCHEDULED_EVENTS: 'scheduledEvents',
             MACHINE_AVAILABILITY: 'machineAvailability',
-            MACHINERY_CATALOG: 'machineryCatalog',
             ODP_ORDERS: 'odpOrders',
             PHASES: 'productionPhases'
         };
@@ -468,26 +466,7 @@ class StorageService {
         return mappings[machineType] || 'printing';
     }
     
-    getMachinesByType(type) {
-        return this.getValidMachinesForDisplay().filter(machine => {
-            const machineType = machine.machine_type || machine.type;
-            return machineType != null && machineType !== '';
-        });
-    }
     
-        getPrintingMachines() {
-        return this.getValidMachinesForDisplay().filter(machine => {
-            const machineType = machine.machine_type || machine.type;
-            return machineType != null && machineType !== '';
-        });
-    }
-
-    getPackagingMachines() {
-        return this.getValidMachinesForDisplay().filter(machine => {
-            const machineType = machine.machine_type || machine.type;
-            return machineType != null && machineType !== '';
-        });
-    }
     
     getLiveMachines() {
         return this.getValidMachinesForDisplay().filter(machine => {
@@ -502,44 +481,9 @@ class StorageService {
         });
     }
     
-    getMachineByName(name) {
-        return this.getValidMachinesForDisplay().find(machine => 
-            machine.name === name || machine.nominazione === name || machine.machine_name === name
-        );
-    }
+
     
-    /**
-     * Backlog task management
-     */
-    getBacklogTasks() {
-        return this.getItem(this.STORAGE_KEYS.BACKLOG_TASKS, []);
-    }
-    
-    saveBacklogTasks(tasks) {
-        return this.setItem(this.STORAGE_KEYS.BACKLOG_TASKS, tasks);
-    }
-    
-    addBacklogTask(task) {
-        const tasks = this.getBacklogTasks();
-        const newTask = {
-            id: Date.now() + Math.random().toString(36).substr(2, 9),
-            ...task
-        };
-        tasks.push(newTask);
-        this.saveBacklogTasks(tasks);
-        return newTask;
-    }
-    
-    removeBacklogTask(taskId) {
-        const tasks = this.getBacklogTasks();
-        const filteredTasks = tasks.filter(task => String(task.id) !== String(taskId));
-        this.saveBacklogTasks(filteredTasks);
-        return filteredTasks;
-    }
-    
-        getTaskById(taskId) {
-        return this.getBacklogTasks().find(task => String(task.id) === String(taskId));
-    }
+
 
     /**
      * ODP (Ordine di Produzione) Management
@@ -833,62 +777,9 @@ class StorageService {
         return true;
     }
     
-    /**
-     * Machinery catalog management
-     */
-    getMachineryCatalog() {
-        return this.getItem(this.STORAGE_KEYS.MACHINERY_CATALOG, []);
-    }
-    
-    saveMachineryCatalog(catalog) {
-        return this.setItem(this.STORAGE_KEYS.MACHINERY_CATALOG, catalog);
-    }
-    
-    addMachineryCatalogItem(machinery) {
-        const catalog = this.getMachineryCatalog();
-        const newMachinery = {
-            id: Date.now().toString(),
-            ...machinery,
-            createdAt: new Date().toISOString()
-        };
-        catalog.push(newMachinery);
-        this.saveMachineryCatalog(catalog);
-        return newMachinery;
-    }
-    
-    removeMachineryCatalogItem(machineryId) {
-        const catalog = this.getMachineryCatalog();
-        const filteredCatalog = catalog.filter(machinery => machinery.id !== machineryId);
-        this.saveMachineryCatalog(filteredCatalog);
-        return filteredCatalog;
-    }
-    
-    getMachineryById(machineryId) {
-        return this.getMachineryCatalog().find(machinery => machinery.id === machineryId);
-    }
-    
-    getMachineryByType(type) {
-        return this.getMachineryCatalog().filter(machinery => machinery.type === type);
-    }
 
-    /**
-     * Data cleanup and maintenance
-     */
-    cleanupOrphanedEvents() {
-        const tasks = this.getBacklogTasks();
-        const events = this.getScheduledEvents();
-        // Convert all IDs to strings for consistent comparison
-        const validTaskIds = new Set(tasks.map(task => String(task.id)));
-        
-        const validEvents = events.filter(event => validTaskIds.has(String(event.taskId)));
-        
-        if (validEvents.length !== events.length) {
-            this.saveScheduledEvents(validEvents);
-            console.log(`Cleaned up ${events.length - validEvents.length} orphaned events`);
-            return events.length - validEvents.length;
-        }
-        return 0;
-    }
+
+
     
     /**
      * Comprehensive data synchronization and ghost cleanup
@@ -1274,21 +1165,14 @@ class StorageService {
     }
     
     /**
-     * Clean up old backlog tasks and orphaned events (migration to ODP structure)
+     * Clean up orphaned events (migration to ODP structure)
      */
     cleanupDuplicateTasks() {
-        const oldTasks = this.getBacklogTasks();
         const events = this.getScheduledEvents();
         const odpOrders = this.getODPOrders();
         
         // Get valid ODP order IDs
         const validOdpIds = new Set(odpOrders.map(o => String(o.id)));
-        
-        // Remove all old backlog tasks (they're replaced by ODP orders)
-        if (oldTasks.length > 0) {
-            console.log(`Removing ${oldTasks.length} old backlog tasks (migrated to ODP structure)`);
-            this.saveBacklogTasks([]);
-        }
         
         // Remove events that reference non-existent tasks
         const validEvents = events.filter(event => validOdpIds.has(String(event.taskId)));
@@ -1300,7 +1184,7 @@ class StorageService {
         }
         
         return {
-            oldTasksRemoved: oldTasks.length,
+            oldTasksRemoved: 0, // No old tasks to remove anymore
             orphanedEventsRemoved: orphanedEvents.length
         };
     }
@@ -1331,28 +1215,7 @@ class StorageService {
         return result;
     }
     
-    /**
-     * Enhanced task operations with notifications
-     */
-    addBacklogTaskWithSync(task) {
-        const result = this.addBacklogTask(task);
-        this.notifyDataChange('tasks', 'add', result);
-        return result;
-    }
-    
-    removeBacklogTaskWithSync(taskId) {
-        const result = this.removeBacklogTask(taskId);
-        this.syncGanttChartData();
-        this.notifyDataChange('tasks', 'remove', { id: taskId });
-        return result;
-    }
-    
-    saveBacklogTasksWithSync(tasks) {
-        const result = this.saveBacklogTasks(tasks);
-        this.syncGanttChartData();
-        this.notifyDataChange('tasks', 'update', tasks);
-        return result;
-    }
+
 }
 
 // Export as global singleton
