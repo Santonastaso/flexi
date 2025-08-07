@@ -9,8 +9,8 @@ class ProductionScheduler {
         
         // Configuration
         this.config = {
-            START_HOUR: 8,
-            END_HOUR: 20,
+            START_HOUR: 0,
+            END_HOUR: 24,
             SLOT_WIDTH: 80,
             LABEL_WIDTH: 150
         };

@@ -144,7 +144,7 @@
         .calendar-grid {
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            overflow: hidden;
+            overflow-x: auto;
             background: white;
         }
         
@@ -152,26 +152,31 @@
             display: flex;
             background: var(--bg-color);
             border-bottom: 1px solid var(--border-color);
+            width: 100%;
         }
         
         .machine-label-header {
-            width: 200px;
+            min-width: 250px;
+            width: auto;
             padding: 16px;
             font-weight: 800;
             color: var(--text-dark);
             border-right: 1px solid var(--border-color);
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
+            flex-shrink: 0;
         }
         
         .time-header {
             flex: 1;
             display: flex;
+            min-width: 1920px; /* 24 slots * 80px each */
+            flex-shrink: 0;
         }
         
         .time-slot-header {
-            flex: 1;
+            width: 80px;
             min-width: 80px;
             padding: 16px 8px;
             text-align: center;
@@ -182,16 +187,21 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
+            box-sizing: border-box;
+            background: var(--bg-color);
         }
         
         .time-slot-header:last-child {
-            border-right: none;
+            border-right: 1px solid var(--border-color);
         }
         
         .machine-row {
             display: flex;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 3px solid #d1d5db;
             min-height: 80px;
+            width: 100%;
+            min-width: 2170px; /* 250px machine column + 24 slots * 80px each */
         }
         
         .machine-row:last-child {
@@ -199,13 +209,15 @@
         }
         
         .machine-label {
-            width: 200px;
+            min-width: 250px;
+            width: auto;
             padding: 16px;
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             justify-content: center;
             background: white;
+            flex-shrink: 0;
         }
         
         .machine-name {
@@ -225,12 +237,13 @@
             display: flex;
             position: relative;
             overflow: visible;
-            width: 100%;
+            min-width: 1920px; /* 24 slots * 80px each */
             min-height: 60px;
+            flex-shrink: 0;
         }
         
         .time-slot {
-            flex: 1 1 0%;
+            width: 80px;
             min-width: 80px;
             border-right: 1px solid var(--border-color);
             position: relative;
@@ -238,10 +251,12 @@
             transition: all 0.2s ease;
             cursor: pointer;
             overflow: visible;
+            flex-shrink: 0;
+            box-sizing: border-box;
         }
         
         .time-slot:last-child {
-            border-right: none;
+            border-right: 1px solid var(--border-color);
         }
         
         .time-slot:hover {
@@ -584,7 +599,7 @@
                 `;
                 
                 // Time headers
-                for (let hour = 8; hour < 20; hour++) {
+                for (let hour = 0; hour < 24; hour++) {
                     html += `<div class="time-slot-header">${hour}:00</div>`;
                 }
                 
@@ -619,7 +634,7 @@
                         <div class="machine-slots">
                 `;
                 
-                for (let hour = 8; hour < 20; hour++) {
+                for (let hour = 0; hour < 24; hour++) {
                     const isUnavailable = unavailableHours.includes(hour);
                     const slotClass = isUnavailable ? 'time-slot unavailable' : 'time-slot';
                     
@@ -703,7 +718,7 @@
                 const endHour = startHour + duration;
                 
                 // Validate time range
-                if (endHour > 20) {
+                if (endHour > 24) {
                     this.showMessage(`Task does not fit in the remaining time (needs ${duration}h, ends at ${endHour}:00)`, 'error');
                     return;
                 }
@@ -848,10 +863,10 @@
                 
                 // Calculate position and width based on duration
                 const duration = event.endHour - event.startHour;
-                const startIndex = event.startHour - 8; // 8am is index 0
+                const startIndex = event.startHour - 0; // 0am is index 0
                 
                 // Calculate position and width as percentages of the container
-                const slotPercentage = 100 / 12; // 12 slots total (8am-8pm)
+                const slotPercentage = 100 / 24; // 24 slots total (0am-12am)
                 const leftPosition = startIndex * slotPercentage;
                 const width = duration * slotPercentage;
                 
@@ -937,7 +952,7 @@
                 const newEndHour = newStartHour + event.duration;
                 
                 // Validate time range
-                if (newEndHour > 20) {
+                if (newEndHour > 24) {
                     this.showMessage('Event does not fit in the remaining time', 'error');
                     return;
                 }

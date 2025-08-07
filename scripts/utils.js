@@ -22,6 +22,24 @@ class Utils {
         return `${hour}:00`;
     }
 
+    static getStartOfWeek(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day; // Adjust to Sunday
+        return new Date(d.setDate(diff));
+    }
+
+    static getDayName(dayIndex, short = false) {
+        const dayNames = short ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : 
+                                   ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        return dayNames[dayIndex];
+    }
+
+    static isToday(date) {
+        const today = new Date();
+        return date.toDateString() === today.toDateString();
+    }
+
     /**
      * Escape HTML to prevent XSS
      */

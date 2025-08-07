@@ -61,8 +61,16 @@ class ViewManager {
                             <input type="text" id="start-date" placeholder="dd/mm/yyyy" class="date-input">
                         </div>
                         <div class="input-group">
+                            <label for="start-time">Start Time:</label>
+                            <input type="time" id="start-time" class="time-input">
+                        </div>
+                        <div class="input-group">
                             <label for="end-date">End Date:</label>
                             <input type="text" id="end-date" placeholder="dd/mm/yyyy" class="date-input">
+                        </div>
+                        <div class="input-group">
+                            <label for="end-time">End Time:</label>
+                            <input type="time" id="end-time" class="time-input">
                         </div>
                         <button class="set-off-time-btn" id="set-off-time-btn">Set Off-Time</button>
                     </div>
@@ -196,7 +204,9 @@ class ViewManager {
     
     handleSetOffTime() {
         const startDateInput = document.getElementById('start-date');
+        const startTimeInput = document.getElementById('start-time');
         const endDateInput = document.getElementById('end-date');
+        const endTimeInput = document.getElementById('end-time');
         
         const startDate = this.parseDateInput(startDateInput.value);
         const endDate = this.parseDateInput(endDateInput.value);
@@ -211,38 +221,70 @@ class ViewManager {
             return;
         }
         
-        // Set off-time for the date range
-        this.setOffTimeRange(startDate, endDate);
+        // Parse time inputs
+        const startTime = startTimeInput.value;
+        const endTime = endTimeInput.value;
+        
+        if (!startTime || !endTime) {
+            alert('Please enter both start and end times.');
+            return;
+        }
+        
+        // Set off-time for the specific time range
+        this.setOffTimeRange(startDate, endDate, startTime, endTime);
         
         // Clear inputs
         startDateInput.value = '';
+        startTimeInput.value = '';
         endDateInput.value = '';
+        endTimeInput.value = '';
         
         // Refresh calendar
         this.calendarRenderer.render();
         
-        alert(`Off-time period set from ${this.formatDisplayDate(startDate)} to ${this.formatDisplayDate(endDate)}`);
+        alert(`Off-time period set from ${this.formatDisplayDate(startDate)} ${startTime} to ${this.formatDisplayDate(endDate)} ${endTime}`);
     }
     
-    setOffTimeRange(startDate, endDate) {
+    setOffTimeRange(startDate, endDate, startTime, endTime) {
         const machineName = this.calendarRenderer.machineName;
         if (!machineName) return;
+        
+        // Parse time strings to hours and minutes
+        const [startHour, startMinute] = startTime.split(':').map(Number);
+        const [endHour, endMinute] = endTime.split(':').map(Number);
         
         const current = new Date(startDate);
         while (current <= endDate) {
             const dateStr = this.formatDate(current);
             
-            // Set entire day as off-time (7 AM to 7 PM)
-            for (let hour = 7; hour < 19; hour++) {
-                // Set hour as unavailable using storage service
-                const unavailableHours = window.storageService.getMachineAvailabilityForDate(machineName, dateStr);
-                if (!unavailableHours.includes(hour)) {
-                    unavailableHours.push(hour);
-                    window.storageService.setMachineAvailability(machineName, dateStr, unavailableHours);
+            // Set specific time range as unavailable
+            for (let hour = startHour; hour <= endHour; hour++) {
+                if (hour === startHour && hour === endHour) {
+                    // Same hour, check minutes
+                    if (startMinute <= endMinute) {
+                        this.setHourUnavailable(machineName, dateStr, hour);
+                    }
+                } else if (hour === startHour) {
+                    // Start hour, set from start minute to end of hour
+                    this.setHourUnavailable(machineName, dateStr, hour);
+                } else if (hour === endHour) {
+                    // End hour, set from start of hour to end minute
+                    this.setHourUnavailable(machineName, dateStr, hour);
+                } else {
+                    // Full hour in between
+                    this.setHourUnavailable(machineName, dateStr, hour);
                 }
             }
             
             current.setDate(current.getDate() + 1);
+        }
+    }
+
+    setHourUnavailable(machineName, dateStr, hour) {
+        const unavailableHours = window.storageService.getMachineAvailabilityForDate(machineName, dateStr);
+        if (!unavailableHours.includes(hour)) {
+            unavailableHours.push(hour);
+            window.storageService.setMachineAvailability(machineName, dateStr, unavailableHours);
         }
     }
     

@@ -12,8 +12,8 @@ class CalendarRenderer {
         this.machineName = null;
         
         // Time range for week view
-        this.startHour = 7;
-        this.endHour = 19;
+        this.startHour = 0;
+        this.endHour = 24;
         
         this.init();
     }
@@ -128,10 +128,19 @@ class CalendarRenderer {
                 const dateStr = this.formatDate(current);
                 const events = this.storageService.getEventsByDate(dateStr).filter(e => e.machine === this.machineName);
                 
+                // Check if day is unavailable
+                const unavailableHours = this.storageService.getMachineAvailabilityForDate(this.machineName, dateStr);
+                const isUnavailable = unavailableHours.length >= 24; // Full day unavailable
+                const isPartiallyUnavailable = unavailableHours.length > 0 && unavailableHours.length < 24;
+                
                 html += `
-                    <div class="day-cell ${isCurrentMonth ? 'current-month' : 'other-month'} ${isToday ? 'today' : ''}"
+                    <div class="day-cell ${isCurrentMonth ? 'current-month' : 'other-month'} ${isToday ? 'today' : ''} ${isUnavailable ? 'unavailable' : ''} ${isPartiallyUnavailable ? 'partially-unavailable' : ''}"
                          data-date="${dateStr}">
-                        <div class="day-number">${current.getDate()}</div>
+                        <div class="day-number">
+                            ${current.getDate()}
+                            ${isUnavailable ? '<span class="unavailable-indicator">✕</span>' : ''}
+                            ${isPartiallyUnavailable ? '<span class="partially-unavailable-indicator">⚠</span>' : ''}
+                        </div>
                         <div class="day-events">
                             ${this.renderDayEvents(events)}
                         </div>
@@ -205,6 +214,7 @@ class CalendarRenderer {
                         return `
                             <div class="time-slot ${isUnavailable ? 'unavailable' : ''} ${events.length > 0 ? 'has-events' : ''}"
                                  data-date="${dateStr}" data-hour="${hour}">
+                                ${isUnavailable ? '<span class="unavailable-indicator">✕</span>' : ''}
                                 ${this.renderTimeSlotEvents(events)}
                             </div>
                         `;

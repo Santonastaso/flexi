@@ -10,7 +10,18 @@ function showBanner(message, type) {
     banner.textContent = message;
     banner.className = 'banner ' + type;
     banner.style.display = 'flex';
-    setTimeout(() => { banner.style.display = 'none'; }, 3000);
+    
+    // Trigger animation by adding show class
+    setTimeout(() => {
+        banner.classList.add('show');
+    }, 10);
+    
+    setTimeout(() => { 
+        banner.classList.remove('show');
+        setTimeout(() => {
+            banner.style.display = 'none';
+        }, 300);
+    }, 3000);
 }
 
 // Standardized delete confirmation - this is the approved standard

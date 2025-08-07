@@ -6,8 +6,8 @@ class SharedCalendarRenderer {
     constructor(container, options = {}) {
         this.container = container;
         this.options = {
-            startHour: options.startHour || 7,
-            endHour: options.endHour || 19,
+                    startHour: options.startHour || 0,
+        endHour: options.endHour || 24,
             showMachines: options.showMachines !== undefined ? options.showMachines : true,
             interactive: options.interactive !== undefined ? options.interactive : true,
             slotHeight: options.slotHeight || 48,

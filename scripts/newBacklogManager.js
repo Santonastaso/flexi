@@ -108,11 +108,21 @@ class NewBacklogManager extends BaseManager {
 
     attachEventListeners() {
         if (this.elements.calculateBtn) {
-            this.elements.calculateBtn.addEventListener('click', () => this.calculateProduction());
+            this.elements.calculateBtn.addEventListener('click', () => {
+                this.validateForm();
+                if (!this.elements.calculateBtn.disabled) {
+                    this.calculateProduction();
+                }
+            });
         }
         
         if (this.elements.createTaskBtn) {
-            this.elements.createTaskBtn.addEventListener('click', () => this.addToBacklog());
+            this.elements.createTaskBtn.addEventListener('click', () => {
+                this.validateForm();
+                if (!this.elements.createTaskBtn.disabled) {
+                    this.addToBacklog();
+                }
+            });
         }
         
         // Form validation and preview updates
@@ -120,7 +130,6 @@ class NewBacklogManager extends BaseManager {
         technicalInputs.forEach(input => {
             if (input) {
             input.addEventListener('input', () => {
-                this.validateForm();
                 this.updatePreview();
             });
             }
@@ -130,14 +139,14 @@ class NewBacklogManager extends BaseManager {
         if (this.elements.tipoLavorazione) {
             this.elements.tipoLavorazione.addEventListener('change', () => {
                 this.updateFaseOptions();
-                this.validateForm();
             });
         }
         
         // Handle fase change for calculations
         if (this.elements.fase) {
             this.elements.fase.addEventListener('change', () => {
-                this.validateForm();
+                // No validation here, just enable/disable buttons based on field presence
+                this.updateButtonStates();
             });
         }
         
@@ -145,7 +154,6 @@ class NewBacklogManager extends BaseManager {
         if (this.elements.articleCode) {
             this.elements.articleCode.addEventListener('input', () => {
                 this.generateODPNumber();
-                this.validateForm();
             });
         }
         
@@ -155,7 +163,39 @@ class NewBacklogManager extends BaseManager {
             if (field) {
                 field.addEventListener('change', () => {
                     this.checkCompatibility();
-                    this.validateForm();
+                });
+            }
+        });
+
+        // Date validation - only validate when buttons are clicked, not on change
+        if (this.elements.productionStart) {
+            this.elements.productionStart.addEventListener('change', () => {
+                // No validation here, just update button states
+                this.updateButtonStates();
+            });
+        }
+
+        if (this.elements.deliveryDate) {
+            this.elements.deliveryDate.addEventListener('change', () => {
+                // No validation here, just update button states
+                this.updateButtonStates();
+            });
+        }
+
+        // Additional form validations - only update button states, not validate
+        const allInputs = [
+            this.elements.articleCode, this.elements.productionLot, this.elements.workCenter,
+            this.elements.sealSides, this.elements.productType, this.elements.internalCustomerCode,
+            this.elements.externalCustomerCode, this.elements.customerOrderRef
+        ];
+
+        allInputs.forEach(input => {
+            if (input) {
+                input.addEventListener('input', () => {
+                    this.updateButtonStates();
+                });
+                input.addEventListener('change', () => {
+                    this.updateButtonStates();
                 });
             }
         });
@@ -163,7 +203,7 @@ class NewBacklogManager extends BaseManager {
 
     setupFormValidation() {
         this.loadPhases();
-        this.validateForm();
+        this.updateButtonStates();
         this.updatePreview();
         this.generateODPNumber();
     }
@@ -199,6 +239,40 @@ class NewBacklogManager extends BaseManager {
     loadPhases() {
         // Load existing phases from storage
         this.storageService.getPhases();
+    }
+
+    getPhaseName(phaseId) {
+        if (!phaseId) return null;
+        const phase = this.storageService.getPhaseById(phaseId);
+        return phase ? phase.name : phaseId;
+    }
+
+    validateDates() {
+        const productionStart = this.elements.productionStart.value;
+        const deliveryDate = this.elements.deliveryDate.value;
+        
+        // Clear previous date validation errors
+        this.showValidationError('productionStart', '');
+        this.showValidationError('deliveryDate', '');
+        
+        // Only validate if both dates are provided
+        if (productionStart && deliveryDate) {
+            const startDate = new Date(productionStart);
+            const deliveryDateObj = new Date(deliveryDate);
+            
+            if (startDate >= deliveryDateObj) {
+                this.elements.productionStart.setCustomValidity('Production start must be before delivery date');
+                this.elements.deliveryDate.setCustomValidity('Delivery date must be after production start');
+                this.showValidationError('productionStart', 'Production start must be before delivery date');
+                this.showValidationError('deliveryDate', 'Delivery date must be after production start');
+                return false;
+            } else {
+                this.elements.productionStart.setCustomValidity('');
+                this.elements.deliveryDate.setCustomValidity('');
+            }
+        }
+        
+        return true;
     }
 
     updatePreview() {
@@ -288,7 +362,7 @@ class NewBacklogManager extends BaseManager {
         });
     }
 
-    validateForm() {
+    updateButtonStates() {
         // For calculation, only require essential fields
         const hasCalculationFields = this.elements.bagHeight.value &&
                                    this.elements.bagWidth.value &&
@@ -313,6 +387,163 @@ class NewBacklogManager extends BaseManager {
         
         this.elements.calculateBtn.disabled = !hasCalculationFields;
         this.elements.createTaskBtn.disabled = !hasAllRequiredFields || !this.currentCalculation;
+    }
+
+    validateForm() {
+        // Clear any previous validation errors
+        this.clearValidationErrors();
+        
+        // Validate dates first
+        const datesValid = this.validateDates();
+        
+        // For calculation, only require essential fields
+        const hasCalculationFields = this.elements.bagHeight.value &&
+                                   this.elements.bagWidth.value &&
+                                   this.elements.bagStep.value &&
+                                   this.elements.quantity.value &&
+                                   this.elements.tipoLavorazione.value &&
+                                   this.elements.fase.value;
+        
+        // For adding to backlog, require all fields
+        const hasAllRequiredFields = this.elements.articleCode.value.trim() &&
+                                   this.elements.productionLot.value.trim() &&
+                                   this.elements.workCenter.value &&
+                                   this.elements.bagHeight.value &&
+                                   this.elements.bagWidth.value &&
+                                   this.elements.bagStep.value &&
+                                   this.elements.sealSides.value &&
+                                   this.elements.productType.value &&
+                                   this.elements.quantity.value &&
+                                   this.elements.deliveryDate.value &&
+                                   this.elements.tipoLavorazione.value &&
+                                   this.elements.fase.value;
+        
+        // Additional validation for numeric fields
+        const numericValidation = this.validateNumericFields();
+        
+        // Validate field formats
+        this.validateFieldFormats();
+        
+        this.elements.calculateBtn.disabled = !hasCalculationFields || !numericValidation;
+        this.elements.createTaskBtn.disabled = !hasAllRequiredFields || !this.currentCalculation || !datesValid || !numericValidation;
+    }
+
+    validateNumericFields() {
+        const bagHeight = parseInt(this.elements.bagHeight.value) || 0;
+        const bagWidth = parseInt(this.elements.bagWidth.value) || 0;
+        const bagStep = parseInt(this.elements.bagStep.value) || 0;
+        const quantity = parseInt(this.elements.quantity.value) || 0;
+        
+        let isValid = true;
+        
+        // Check if values are positive (only if they have values)
+        if (this.elements.bagHeight.value && bagHeight <= 0) {
+            this.showValidationError('bagHeight', 'Bag height must be greater than 0');
+            isValid = false;
+        }
+        
+        if (this.elements.bagWidth.value && bagWidth <= 0) {
+            this.showValidationError('bagWidth', 'Bag width must be greater than 0');
+            isValid = false;
+        }
+        
+        if (this.elements.bagStep.value && bagStep <= 0) {
+            this.showValidationError('bagStep', 'Bag step must be greater than 0');
+            isValid = false;
+        }
+        
+        if (this.elements.quantity.value && quantity <= 0) {
+            this.showValidationError('quantity', 'Quantity must be greater than 0');
+            isValid = false;
+        }
+        
+        // Check if bag width is greater than or equal to bag step (only if both have values)
+        if (this.elements.bagWidth.value && this.elements.bagStep.value && bagWidth > 0 && bagStep > 0 && bagWidth < bagStep) {
+            this.showValidationError('bagWidth', 'Bag width must be greater than or equal to bag step');
+            isValid = false;
+        }
+        
+        return isValid;
+    }
+
+    showValidationError(fieldId, message) {
+        const errorElement = document.getElementById(`${fieldId}-error`);
+        const inputElement = this.elements[fieldId];
+        
+        if (errorElement) {
+            errorElement.textContent = message;
+            errorElement.style.display = message ? 'block' : 'none';
+        }
+        
+        if (inputElement) {
+            if (message) {
+                inputElement.classList.add('validation-error');
+                inputElement.classList.remove('validation-success');
+            } else {
+                inputElement.classList.remove('validation-error');
+                inputElement.classList.remove('validation-success');
+            }
+        }
+    }
+
+    clearValidationErrors() {
+        const errorElements = document.querySelectorAll('.validation-error');
+        errorElements.forEach(element => {
+            element.style.display = 'none';
+            element.textContent = '';
+        });
+        
+        // Clear validation CSS classes from all form inputs
+        const formInputs = document.querySelectorAll('.form-group input, .form-group select');
+        formInputs.forEach(input => {
+            input.classList.remove('validation-error', 'validation-success');
+        });
+    }
+
+    validateFieldFormats() {
+        // Validate article code format
+        const articleCode = this.elements.articleCode.value.trim();
+        if (articleCode) {
+            const articleCodePattern = /^(P0|P9|ISP|BLKC)\w+$/;
+            if (!articleCodePattern.test(articleCode)) {
+                this.showValidationError('articleCode', 'Article code must follow format: P0XXXX, P9XXXX, ISPXXXXX, or BLKCXXXX');
+            }
+        }
+        
+        // Validate production lot format
+        const productionLot = this.elements.productionLot.value.trim();
+        if (productionLot) {
+            const lotPattern = /^AAPU\d{3}$/;
+            if (!lotPattern.test(productionLot)) {
+                this.showValidationError('productionLot', 'Production lot must follow format: AAPU###');
+            }
+        }
+    }
+
+    validateFieldFormat(input) {
+        const fieldId = input.id;
+        const value = input.value.trim();
+        
+        // Clear previous error for this field
+        this.showValidationError(fieldId, '');
+        
+        if (!value) return; // Skip validation for empty fields
+        
+        switch (fieldId) {
+            case 'articleCode':
+                const articleCodePattern = /^(P0|P9|ISP|BLKC)\w+$/;
+                if (!articleCodePattern.test(value)) {
+                    this.showValidationError(fieldId, 'Article code must follow format: P0XXXX, P9XXXX, ISPXXXXX, or BLKCXXXX');
+                }
+                break;
+                
+            case 'productionLot':
+                const lotPattern = /^AAPU\d{3}$/;
+                if (!lotPattern.test(value)) {
+                    this.showValidationError(fieldId, 'Production lot must follow format: AAPU###');
+                }
+                break;
+        }
     }
 
     calculateProduction() {
@@ -382,6 +613,29 @@ class NewBacklogManager extends BaseManager {
         if (!odpData.tipo_lavorazione || !odpData.fase) {
             this.showMessage('Please select processing type and phase', 'error');
             return false;
+        }
+        
+        // Validate numeric values (only if they have values)
+        if (odpData.bag_height <= 0 || odpData.bag_width <= 0 || odpData.bag_step <= 0 || odpData.quantity <= 0) {
+            this.showMessage('All numeric values must be greater than 0', 'error');
+            return false;
+        }
+        
+        // Validate bag dimensions make sense
+        if (odpData.bag_width < odpData.bag_step) {
+            this.showMessage('Bag width must be greater than or equal to bag step', 'error');
+            return false;
+        }
+        
+        // Validate dates if both are provided
+        if (odpData.production_start && odpData.delivery_date) {
+            const startDate = new Date(odpData.production_start);
+            const deliveryDate = new Date(odpData.delivery_date);
+            
+            if (startDate >= deliveryDate) {
+                this.showMessage('Production start date must be before delivery date', 'error');
+                return false;
+            }
         }
         
         // Only validate article code and production lot if they are provided
@@ -601,6 +855,8 @@ class NewBacklogManager extends BaseManager {
                 newValue = new Date(newValue).toLocaleDateString();
             } else if (field === 'production_start' && newValue) {
                 newValue = new Date(newValue).toLocaleDateString();
+            } else if (field === 'fase') {
+                newValue = this.getPhaseName(newValue);
             }
             
             // Only update if value has changed
@@ -720,7 +976,7 @@ class NewBacklogManager extends BaseManager {
                     })}
                 </td>
                 <td class="editable-cell" data-field="fase">
-                    <span class="static-value">${order.fase || '-'}</span>
+                    <span class="static-value">${this.getPhaseName(order.fase) || '-'}</span>
                     ${this.editManager.createEditInput('text', order.fase)}
                 </td>
                 <td class="editable-cell" data-field="duration">
@@ -883,10 +1139,21 @@ class NewBacklogManager extends BaseManager {
                 article_code: updatedData.article_code?.trim() || task.article_code,
                 production_lot: updatedData.production_lot?.trim() || task.production_lot,
                 work_center: updatedData.work_center || task.work_center,
+                bag_height: parseFloat(updatedData.bag_height) || task.bag_height,
+                bag_width: parseFloat(updatedData.bag_width) || task.bag_width,
+                bag_step: parseFloat(updatedData.bag_step) || task.bag_step,
+                seal_sides: updatedData.seal_sides || task.seal_sides,
+                product_type: updatedData.product_type || task.product_type,
+                quantity: parseFloat(updatedData.quantity) || task.quantity,
+                production_start: updatedData.production_start || task.production_start,
+                delivery_date: updatedData.delivery_date || task.delivery_date,
+                internal_customer_code: updatedData.internal_customer_code?.trim() || task.internal_customer_code,
+                external_customer_code: updatedData.external_customer_code?.trim() || task.external_customer_code,
+                customer_order_ref: updatedData.customer_order_ref?.trim() || task.customer_order_ref,
                 tipo_lavorazione: updatedData.tipo_lavorazione || task.tipo_lavorazione,
+                fase: updatedData.fase || task.fase,
                 duration: parseFloat(updatedData.duration) || task.duration,
                 cost: parseFloat(updatedData.cost) || task.cost,
-                delivery_date: updatedData.delivery_date || task.delivery_date,
                 status: updatedData.status || task.status
             };
 

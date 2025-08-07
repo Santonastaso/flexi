@@ -162,23 +162,16 @@ class UIComponents {
 
     /**
      * Create banner notification
+     * @deprecated Use the global showBanner function from banner.js instead
      */
     static showBanner(message, type = 'info', duration = 5000) {
-        const banner = document.createElement('div');
-        banner.className = `banner ${type}`;
-        banner.innerHTML = `
-            <span>${this.escapeHtml(message)}</span>
-            <button class="banner-close" onclick="this.parentElement.remove()">&times;</button>
-        `;
-        
-        document.body.appendChild(banner);
-        
-        // Auto-remove after duration
-        setTimeout(() => {
-            if (banner.parentElement) {
-                banner.remove();
-            }
-        }, duration);
+        // Use the global showBanner function for consistency
+        if (typeof window.showBanner === 'function') {
+            window.showBanner(message, type);
+        } else {
+            console.warn('Global showBanner function not found, falling back to console.log');
+            console.log(`${type.toUpperCase()}: ${message}`);
+        }
     }
 
     /**
@@ -288,6 +281,12 @@ class UIComponents {
      * Format date for display
      */
     static formatDate(date, format = 'YYYY-MM-DD') {
+        // Use Utils.formatDate for consistency, but handle custom format if needed
+        if (format === 'YYYY-MM-DD') {
+            return Utils.formatDate(date);
+        }
+        
+        // For custom formats, use the original implementation
         const d = new Date(date);
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, '0');

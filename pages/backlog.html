@@ -298,10 +298,12 @@
                                     <div class="form-group">
                                         <label for="articleCode">Article Code</label>
                                         <input type="text" id="articleCode" placeholder="P0XXXX, P9XXXX, ISPXXXXX, BLKCXXXX" required>
+                                        <span class="validation-error" id="articleCode-error" style="display: none;"></span>
                                     </div>
                                     <div class="form-group">
                                         <label for="productionLot">Production Lot</label>
                                         <input type="text" id="productionLot" placeholder="AAPU###" required>
+                                        <span class="validation-error" id="productionLot-error" style="display: none;"></span>
                                     </div>
                                     <div class="form-group">
                                         <label for="workCenter">Work Center</label>
@@ -321,10 +323,12 @@
                                     <div class="form-group">
                                         <label for="productionStart">Production Start</label>
                                         <input type="datetime-local" id="productionStart">
+                                        <span class="validation-error" id="productionStart-error" style="display: none;"></span>
                                     </div>
                                     <div class="form-group">
                                         <label for="deliveryDate">Delivery Date</label>
                                         <input type="datetime-local" id="deliveryDate" required>
+                                        <span class="validation-error" id="deliveryDate-error" style="display: none;"></span>
                                     </div>
                                 </div>
                             </div>
@@ -338,14 +342,17 @@
                                     <div class="form-group">
                                         <label for="bagHeight">Bag Height (mm)</label>
                                         <input type="number" id="bagHeight" placeholder="e.g., 80" min="1" required>
+                                        <span class="validation-error" id="bagHeight-error" style="display: none;"></span>
                                     </div>
                                     <div class="form-group">
                                         <label for="bagWidth">Bag Width (mm)</label>
                                         <input type="number" id="bagWidth" placeholder="e.g., 160" min="1" required>
+                                        <span class="validation-error" id="bagWidth-error" style="display: none;"></span>
                                     </div>
                                     <div class="form-group">
                                         <label for="bagStep">Bag Step (mm)</label>
                                         <input type="number" id="bagStep" placeholder="e.g., 60" min="1" required>
+                                        <span class="validation-error" id="bagStep-error" style="display: none;"></span>
                                     </div>
                                     <div class="form-group">
                                         <label for="sealSides">Seal Sides</label>
@@ -366,6 +373,7 @@
                                     <div class="form-group">
                                         <label for="quantity">Quantity (units)</label>
                                         <input type="number" id="quantity" placeholder="e.g., 5000" min="1" required>
+                                        <span class="validation-error" id="quantity-error" style="display: none;"></span>
                                     </div>
                                 </div>
                                 <!-- Visual preview moved inside here -->
@@ -617,6 +625,37 @@
                 width: 250px;
                 height: 167px;
             }
+        }
+
+        /* Table improvements for backlog */
+        .modern-table th,
+        .modern-table td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+        }
+
+        .modern-table th:first-child,
+        .modern-table td:first-child {
+            max-width: 120px;
+        }
+
+        .modern-table th:last-child,
+        .modern-table td:last-child {
+            max-width: 150px;
+            white-space: normal;
+        }
+
+        .modern-table .status-badge {
+            white-space: nowrap;
+        }
+
+        .modern-table .btn {
+            white-space: nowrap;
+            font-size: 12px;
+            padding: 4px 8px;
+            min-height: 28px;
         }
 
 
