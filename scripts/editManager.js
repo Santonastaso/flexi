@@ -152,7 +152,7 @@ class EditManager {
             case 'text':
                 return `<input type="text" class="edit-input" value="${value || ''}" style="display: none;">`;
             case 'number':
-                return `<input type="number" class="edit-input" value="${value || ''}" min="${options.min || 0}" step="${options.step || 1}" style="display: none;">`;
+                return `<input type="number" class="edit-input" value="${value || ''}" min="0" step="${options.step || 1}" style="display: none;">`;
             case 'select':
                 const optionsHtml = options.options.map(opt => 
                     `<option value="${opt.value}" ${opt.value === value ? 'selected' : ''}>${opt.label}</option>`

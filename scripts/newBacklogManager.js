@@ -255,21 +255,18 @@ class NewBacklogManager extends BaseManager {
         this.showValidationError('productionStart', '');
         this.showValidationError('deliveryDate', '');
         
-        // Only validate if both dates are provided
-        if (productionStart && deliveryDate) {
-            const startDate = new Date(productionStart);
-            const deliveryDateObj = new Date(deliveryDate);
-            
-            if (startDate >= deliveryDateObj) {
-                this.elements.productionStart.setCustomValidity('Production start must be before delivery date');
-                this.elements.deliveryDate.setCustomValidity('Delivery date must be after production start');
-                this.showValidationError('productionStart', 'Production start must be before delivery date');
-                this.showValidationError('deliveryDate', 'Delivery date must be after production start');
-                return false;
-            } else {
-                this.elements.productionStart.setCustomValidity('');
-                this.elements.deliveryDate.setCustomValidity('');
-            }
+        // Use utility function for date validation
+        const dateValidation = Utils.validateDateRange(productionStart, deliveryDate);
+        
+        if (!dateValidation.isValid) {
+            this.elements.productionStart.setCustomValidity('Production start must be before delivery date');
+            this.elements.deliveryDate.setCustomValidity('Delivery date must be after production start');
+            this.showValidationError('productionStart', 'Production start must be before delivery date');
+            this.showValidationError('deliveryDate', 'Delivery date must be after production start');
+            return false;
+        } else {
+            this.elements.productionStart.setCustomValidity('');
+            this.elements.deliveryDate.setCustomValidity('');
         }
         
         return true;
@@ -364,26 +361,34 @@ class NewBacklogManager extends BaseManager {
 
     updateButtonStates() {
         // For calculation, only require essential fields
-        const hasCalculationFields = this.elements.bagHeight.value &&
-                                   this.elements.bagWidth.value &&
-                                   this.elements.bagStep.value &&
-                                   this.elements.quantity.value &&
-                                   this.elements.tipoLavorazione.value &&
-                                   this.elements.fase.value;
+        const calculationFields = ['bagHeight', 'bagWidth', 'bagStep', 'quantity', 'tipoLavorazione', 'fase'];
+        const calculationData = {
+            bagHeight: this.elements.bagHeight.value,
+            bagWidth: this.elements.bagWidth.value,
+            bagStep: this.elements.bagStep.value,
+            quantity: this.elements.quantity.value,
+            tipoLavorazione: this.elements.tipoLavorazione.value,
+            fase: this.elements.fase.value
+        };
+        const hasCalculationFields = Utils.hasRequiredFields(calculationData, calculationFields);
         
         // For adding to backlog, require all fields
-        const hasAllRequiredFields = this.elements.articleCode.value.trim() &&
-                                   this.elements.productionLot.value.trim() &&
-                                   this.elements.workCenter.value &&
-                                   this.elements.bagHeight.value &&
-                                   this.elements.bagWidth.value &&
-                                   this.elements.bagStep.value &&
-                                   this.elements.sealSides.value &&
-                                   this.elements.productType.value &&
-                                   this.elements.quantity.value &&
-                                   this.elements.deliveryDate.value &&
-                                   this.elements.tipoLavorazione.value &&
-                                   this.elements.fase.value;
+        const allRequiredFields = ['articleCode', 'productionLot', 'workCenter', 'bagHeight', 'bagWidth', 'bagStep', 'sealSides', 'productType', 'quantity', 'deliveryDate', 'tipoLavorazione', 'fase'];
+        const allFieldsData = {
+            articleCode: this.elements.articleCode.value.trim(),
+            productionLot: this.elements.productionLot.value.trim(),
+            workCenter: this.elements.workCenter.value,
+            bagHeight: this.elements.bagHeight.value,
+            bagWidth: this.elements.bagWidth.value,
+            bagStep: this.elements.bagStep.value,
+            sealSides: this.elements.sealSides.value,
+            productType: this.elements.productType.value,
+            quantity: this.elements.quantity.value,
+            deliveryDate: this.elements.deliveryDate.value,
+            tipoLavorazione: this.elements.tipoLavorazione.value,
+            fase: this.elements.fase.value
+        };
+        const hasAllRequiredFields = Utils.hasRequiredFields(allFieldsData, allRequiredFields);
         
         this.elements.calculateBtn.disabled = !hasCalculationFields;
         this.elements.createTaskBtn.disabled = !hasAllRequiredFields || !this.currentCalculation;
@@ -397,26 +402,34 @@ class NewBacklogManager extends BaseManager {
         const datesValid = this.validateDates();
         
         // For calculation, only require essential fields
-        const hasCalculationFields = this.elements.bagHeight.value &&
-                                   this.elements.bagWidth.value &&
-                                   this.elements.bagStep.value &&
-                                   this.elements.quantity.value &&
-                                   this.elements.tipoLavorazione.value &&
-                                   this.elements.fase.value;
+        const calculationFields = ['bagHeight', 'bagWidth', 'bagStep', 'quantity', 'tipoLavorazione', 'fase'];
+        const calculationData = {
+            bagHeight: this.elements.bagHeight.value,
+            bagWidth: this.elements.bagWidth.value,
+            bagStep: this.elements.bagStep.value,
+            quantity: this.elements.quantity.value,
+            tipoLavorazione: this.elements.tipoLavorazione.value,
+            fase: this.elements.fase.value
+        };
+        const hasCalculationFields = Utils.hasRequiredFields(calculationData, calculationFields);
         
         // For adding to backlog, require all fields
-        const hasAllRequiredFields = this.elements.articleCode.value.trim() &&
-                                   this.elements.productionLot.value.trim() &&
-                                   this.elements.workCenter.value &&
-                                   this.elements.bagHeight.value &&
-                                   this.elements.bagWidth.value &&
-                                   this.elements.bagStep.value &&
-                                   this.elements.sealSides.value &&
-                                   this.elements.productType.value &&
-                                   this.elements.quantity.value &&
-                                   this.elements.deliveryDate.value &&
-                                   this.elements.tipoLavorazione.value &&
-                                   this.elements.fase.value;
+        const allRequiredFields = ['articleCode', 'productionLot', 'workCenter', 'bagHeight', 'bagWidth', 'bagStep', 'sealSides', 'productType', 'quantity', 'deliveryDate', 'tipoLavorazione', 'fase'];
+        const allFieldsData = {
+            articleCode: this.elements.articleCode.value.trim(),
+            productionLot: this.elements.productionLot.value.trim(),
+            workCenter: this.elements.workCenter.value,
+            bagHeight: this.elements.bagHeight.value,
+            bagWidth: this.elements.bagWidth.value,
+            bagStep: this.elements.bagStep.value,
+            sealSides: this.elements.sealSides.value,
+            productType: this.elements.productType.value,
+            quantity: this.elements.quantity.value,
+            deliveryDate: this.elements.deliveryDate.value,
+            tipoLavorazione: this.elements.tipoLavorazione.value,
+            fase: this.elements.fase.value
+        };
+        const hasAllRequiredFields = Utils.hasRequiredFields(allFieldsData, allRequiredFields);
         
         // Additional validation for numeric fields
         const numericValidation = this.validateNumericFields();
@@ -429,41 +442,51 @@ class NewBacklogManager extends BaseManager {
     }
 
     validateNumericFields() {
-        const bagHeight = parseInt(this.elements.bagHeight.value) || 0;
-        const bagWidth = parseInt(this.elements.bagWidth.value) || 0;
-        const bagStep = parseInt(this.elements.bagStep.value) || 0;
-        const quantity = parseInt(this.elements.quantity.value) || 0;
+        const fieldLabels = {
+            bagHeight: 'Bag height',
+            bagWidth: 'Bag width',
+            bagStep: 'Bag step',
+            quantity: 'Quantity'
+        };
         
-        let isValid = true;
+        const numericFields = ['bagHeight', 'bagWidth', 'bagStep', 'quantity'];
+        const fieldData = {
+            bagHeight: this.elements.bagHeight.value,
+            bagWidth: this.elements.bagWidth.value,
+            bagStep: this.elements.bagStep.value,
+            quantity: this.elements.quantity.value
+        };
         
-        // Check if values are positive (only if they have values)
-        if (this.elements.bagHeight.value && bagHeight <= 0) {
-            this.showValidationError('bagHeight', 'Bag height must be greater than 0');
-            isValid = false;
-        }
+        // Use utility function for numeric validation
+        const numericValidation = Utils.validateNumericFields(numericFields, fieldData, fieldLabels);
         
-        if (this.elements.bagWidth.value && bagWidth <= 0) {
-            this.showValidationError('bagWidth', 'Bag width must be greater than 0');
-            isValid = false;
-        }
-        
-        if (this.elements.bagStep.value && bagStep <= 0) {
-            this.showValidationError('bagStep', 'Bag step must be greater than 0');
-            isValid = false;
-        }
-        
-        if (this.elements.quantity.value && quantity <= 0) {
-            this.showValidationError('quantity', 'Quantity must be greater than 0');
-            isValid = false;
-        }
+        // Show validation errors for invalid fields
+        numericFields.forEach(field => {
+            const value = fieldData[field];
+            if (value) {
+                const numValue = parseInt(value) || 0;
+                if (numValue < 0) {
+                    this.showValidationError(field, fieldLabels[field] + ' must be greater than or equal to 0');
+                } else {
+                    this.showValidationError(field, '');
+                }
+            }
+        });
         
         // Check if bag width is greater than or equal to bag step (only if both have values)
-        if (this.elements.bagWidth.value && this.elements.bagStep.value && bagWidth > 0 && bagStep > 0 && bagWidth < bagStep) {
-            this.showValidationError('bagWidth', 'Bag width must be greater than or equal to bag step');
-            isValid = false;
+        if (this.elements.bagWidth.value && this.elements.bagStep.value) {
+            const relationshipValidation = Utils.validateFieldRelationship(
+                'bagWidth', this.elements.bagWidth.value,
+                'bagStep', this.elements.bagStep.value,
+                'Bag width', 'Bag step'
+            );
+            if (!relationshipValidation.isValid) {
+                this.showValidationError('bagWidth', relationshipValidation.message);
+                return false;
+            }
         }
         
-        return isValid;
+        return numericValidation.isValid;
     }
 
     showValidationError(fieldId, message) {
@@ -501,50 +524,30 @@ class NewBacklogManager extends BaseManager {
     }
 
     validateFieldFormats() {
-        // Validate article code format
-        const articleCode = this.elements.articleCode.value.trim();
-        if (articleCode) {
-            const articleCodePattern = /^(P0|P9|ISP|BLKC)\w+$/;
-            if (!articleCodePattern.test(articleCode)) {
+        const patterns = Utils.getValidationPatterns();
+        const fieldData = {
+            articleCode: this.elements.articleCode.value.trim(),
+            productionLot: this.elements.productionLot.value.trim()
+        };
+        
+        // Use utility function for format validation
+        const formatValidation = Utils.validateFieldFormats({
+            articleCode: patterns.articleCode,
+            productionLot: patterns.productionLot
+        }, fieldData);
+        
+        // Show validation errors for invalid fields
+        if (!formatValidation.isValid) {
+            if (fieldData.articleCode && !patterns.articleCode.test(fieldData.articleCode)) {
                 this.showValidationError('articleCode', 'Article code must follow format: P0XXXX, P9XXXX, ISPXXXXX, or BLKCXXXX');
             }
-        }
-        
-        // Validate production lot format
-        const productionLot = this.elements.productionLot.value.trim();
-        if (productionLot) {
-            const lotPattern = /^AAPU\d{3}$/;
-            if (!lotPattern.test(productionLot)) {
+            if (fieldData.productionLot && !patterns.productionLot.test(fieldData.productionLot)) {
                 this.showValidationError('productionLot', 'Production lot must follow format: AAPU###');
             }
         }
     }
 
-    validateFieldFormat(input) {
-        const fieldId = input.id;
-        const value = input.value.trim();
-        
-        // Clear previous error for this field
-        this.showValidationError(fieldId, '');
-        
-        if (!value) return; // Skip validation for empty fields
-        
-        switch (fieldId) {
-            case 'articleCode':
-                const articleCodePattern = /^(P0|P9|ISP|BLKC)\w+$/;
-                if (!articleCodePattern.test(value)) {
-                    this.showValidationError(fieldId, 'Article code must follow format: P0XXXX, P9XXXX, ISPXXXXX, or BLKCXXXX');
-                }
-                break;
-                
-            case 'productionLot':
-                const lotPattern = /^AAPU\d{3}$/;
-                if (!lotPattern.test(value)) {
-                    this.showValidationError(fieldId, 'Production lot must follow format: AAPU###');
-                }
-                break;
-        }
-    }
+
 
     calculateProduction() {
         console.log('calculateProduction called');
@@ -605,51 +608,71 @@ class NewBacklogManager extends BaseManager {
         console.log('Validating ODP data:', odpData);
         
         // For calculation, we only need the essential fields, not all fields
-        if (!odpData.bag_height || !odpData.bag_width || !odpData.bag_step || !odpData.quantity) {
-            this.showMessage('Please fill in all technical specifications (bag height, width, step, quantity)', 'error');
+        const essentialFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'tipo_lavorazione', 'fase'];
+        const essentialData = {
+            bag_height: odpData.bag_height,
+            bag_width: odpData.bag_width,
+            bag_step: odpData.bag_step,
+            quantity: odpData.quantity,
+            tipo_lavorazione: odpData.tipo_lavorazione,
+            fase: odpData.fase
+        };
+        
+        const essentialValidation = Utils.validateRequiredFields(essentialData, essentialFields);
+        if (!essentialValidation.isValid) {
+            this.showMessage('Please fill in all technical specifications (bag height, width, step, quantity, processing type, and phase)', 'error');
             return false;
         }
         
-        if (!odpData.tipo_lavorazione || !odpData.fase) {
-            this.showMessage('Please select processing type and phase', 'error');
-            return false;
-        }
-        
-        // Validate numeric values (only if they have values)
-        if (odpData.bag_height <= 0 || odpData.bag_width <= 0 || odpData.bag_step <= 0 || odpData.quantity <= 0) {
-            this.showMessage('All numeric values must be greater than 0', 'error');
+        // Validate numeric values using utility function
+        const fieldLabels = {
+            bag_height: 'Bag height',
+            bag_width: 'Bag width',
+            bag_step: 'Bag step',
+            quantity: 'Quantity'
+        };
+        const numericFields = ['bag_height', 'bag_width', 'bag_step', 'quantity'];
+        const numericValidation = Utils.validateNumericFields(numericFields, odpData, fieldLabels);
+        if (!numericValidation.isValid) {
+            this.showMessage(numericValidation.errors.join(', '), 'error');
             return false;
         }
         
         // Validate bag dimensions make sense
-        if (odpData.bag_width < odpData.bag_step) {
-            this.showMessage('Bag width must be greater than or equal to bag step', 'error');
+        const relationshipValidation = Utils.validateFieldRelationship(
+            'bag_width', odpData.bag_width,
+            'bag_step', odpData.bag_step,
+            'Bag width', 'Bag step'
+        );
+        if (!relationshipValidation.isValid) {
+            this.showMessage(relationshipValidation.message, 'error');
             return false;
         }
         
-        // Validate dates if both are provided
-        if (odpData.production_start && odpData.delivery_date) {
-            const startDate = new Date(odpData.production_start);
-            const deliveryDate = new Date(odpData.delivery_date);
-            
-            if (startDate >= deliveryDate) {
-                this.showMessage('Production start date must be before delivery date', 'error');
-                return false;
-            }
+        // Validate dates if both are provided using utility function
+        const dateValidation = Utils.validateDateRange(odpData.production_start, odpData.delivery_date);
+        if (!dateValidation.isValid) {
+            this.showMessage('Production start date must be before delivery date', 'error');
+            return false;
         }
         
-        // Only validate article code and production lot if they are provided
-        if (odpData.article_code) {
-            const articleCodePattern = /^(P0|P9|ISP|BLKC)\w+$/;
-            if (!articleCodePattern.test(odpData.article_code)) {
+        // Validate field formats using utility function
+        const patterns = Utils.getValidationPatterns();
+        const formatData = {
+            articleCode: odpData.article_code,
+            productionLot: odpData.production_lot
+        };
+        const formatValidation = Utils.validateFieldFormats({
+            articleCode: patterns.articleCode,
+            productionLot: patterns.productionLot
+        }, formatData);
+        
+        if (!formatValidation.isValid) {
+            if (odpData.article_code && !patterns.articleCode.test(odpData.article_code)) {
                 this.showMessage('Article code must follow format: P0XXXX, P9XXXX, ISPXXXXX, or BLKCXXXX', 'error');
                 return false;
             }
-        }
-        
-        if (odpData.production_lot) {
-            const lotPattern = /^AAPU\d{3}$/;
-            if (!lotPattern.test(odpData.production_lot)) {
+            if (odpData.production_lot && !patterns.productionLot.test(odpData.production_lot)) {
                 this.showMessage('Production lot must follow format: AAPU###', 'error');
                 return false;
             }
@@ -910,15 +933,15 @@ class NewBacklogManager extends BaseManager {
                 </td>
                 <td class="editable-cell" data-field="bag_height">
                     <span class="static-value">${order.bag_height || '-'}</span>
-                    ${this.editManager.createEditInput('number', order.bag_height, { min: 1 })}
+                    ${this.editManager.createEditInput('number', order.bag_height)}
                 </td>
                 <td class="editable-cell" data-field="bag_width">
                     <span class="static-value">${order.bag_width || '-'}</span>
-                    ${this.editManager.createEditInput('number', order.bag_width, { min: 1 })}
+                    ${this.editManager.createEditInput('number', order.bag_width)}
                 </td>
                 <td class="editable-cell" data-field="bag_step">
                     <span class="static-value">${order.bag_step || '-'}</span>
-                    ${this.editManager.createEditInput('number', order.bag_step, { min: 1 })}
+                    ${this.editManager.createEditInput('number', order.bag_step)}
                 </td>
                 <td class="editable-cell" data-field="seal_sides">
                     <span class="static-value">${order.seal_sides || '-'}</span>
@@ -940,7 +963,7 @@ class NewBacklogManager extends BaseManager {
                 </td>
                 <td class="editable-cell" data-field="quantity">
                     <span class="static-value">${order.quantity || '-'}</span>
-                    ${this.editManager.createEditInput('number', order.quantity, { min: 1 })}
+                    ${this.editManager.createEditInput('number', order.quantity)}
                 </td>
                 <td class="editable-cell" data-field="production_start">
                     <span class="static-value">${productionStart}</span>
@@ -1158,18 +1181,46 @@ class NewBacklogManager extends BaseManager {
             };
 
             // Validate required fields for ODP orders
-            if (!updatedOrder.odp_number || updatedOrder.odp_number.trim() === '') {
-                this.showMessage('ODP number cannot be empty', 'error');
-                return;
-            }
-
-            if (!updatedOrder.article_code || updatedOrder.article_code.trim() === '') {
-                this.showMessage('Article code cannot be empty', 'error');
+            const requiredFields = ['odp_number', 'article_code'];
+            const requiredFieldLabels = {
+                odp_number: 'ODP number',
+                article_code: 'Article code'
+            };
+            const requiredValidation = Utils.validateRequiredFields(updatedOrder, requiredFields, requiredFieldLabels);
+            if (!requiredValidation.isValid) {
+                this.showMessage(requiredValidation.errors.join(', '), 'error');
                 return;
             }
 
             console.log('Original ODP order:', task);
             console.log('Updated ODP order:', updatedOrder);
+
+            // Validate numeric fields are non-negative
+            const fieldLabels = {
+                bag_height: 'Bag height',
+                bag_width: 'Bag width',
+                bag_step: 'Bag step',
+                quantity: 'Quantity',
+                duration: 'Duration',
+                cost: 'Cost'
+            };
+            const numericFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'duration', 'cost'];
+            const numericValidation = Utils.validateNumericFields(numericFields, updatedOrder, fieldLabels);
+            if (!numericValidation.isValid) {
+                this.showMessage(numericValidation.errors.join(', '), 'error');
+                return;
+            }
+
+            // Validate bag dimensions make sense
+            const relationshipValidation = Utils.validateFieldRelationship(
+                'bag_width', updatedOrder.bag_width,
+                'bag_step', updatedOrder.bag_step,
+                'Bag width', 'Bag step'
+            );
+            if (!relationshipValidation.isValid) {
+                this.showMessage(relationshipValidation.message, 'error');
+                return;
+            }
 
             // Update ODP order
             this.storageService.updateODPOrder(taskId, updatedOrder);

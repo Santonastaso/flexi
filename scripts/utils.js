@@ -79,12 +79,13 @@ class Utils {
     /**
      * Validate required fields
      */
-    static validateRequiredFields(data, requiredFields) {
+    static validateRequiredFields(data, requiredFields, fieldLabels = {}) {
         const errors = [];
         
         requiredFields.forEach(field => {
             if (!data[field] || (typeof data[field] === 'string' && !data[field].trim())) {
-                errors.push(`${field} is required`);
+                const label = fieldLabels[field] || field.replace(/([A-Z])/g, ' $1').toLowerCase();
+                errors.push(`${label} is required`);
             }
         });
         
@@ -103,6 +104,147 @@ class Utils {
         } else {
             console.log(`${type.toUpperCase()}: ${message}`);
         }
+    }
+
+    /**
+     * Validate numeric fields are non-negative
+     */
+    static validateNumericFields(fields, data, fieldLabels = {}) {
+        const errors = [];
+        
+        fields.forEach(field => {
+            const value = parseFloat(data[field]);
+            if (data[field] && (isNaN(value) || value < 0)) {
+                const label = fieldLabels[field] || field.replace(/([A-Z])/g, ' $1').toLowerCase();
+                errors.push(`${label} must be greater than or equal to 0`);
+            }
+        });
+        
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
+    }
+
+    /**
+     * Validate date range (start before end)
+     */
+    static validateDateRange(startDate, endDate) {
+        if (!startDate || !endDate) return { isValid: true, errors: [] };
+        
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        if (start >= end) {
+            return {
+                isValid: false,
+                errors: ['Start date must be before end date']
+            };
+        }
+        
+        return { isValid: true, errors: [] };
+    }
+
+    /**
+     * Validate field format using regex patterns
+     */
+    static validateFieldFormats(fields, data) {
+        const errors = [];
+        
+        Object.entries(fields).forEach(([fieldName, pattern]) => {
+            const value = data[fieldName];
+            if (value && !pattern.test(value)) {
+                errors.push(`${fieldName} format is invalid`);
+            }
+        });
+        
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
+    }
+
+    /**
+     * Check if form has required fields for button state
+     */
+    static hasRequiredFields(data, requiredFields) {
+        return requiredFields.every(field => {
+            const value = data[field];
+            return value && (typeof value === 'string' ? value.trim() : true);
+        });
+    }
+
+    /**
+     * Common validation patterns
+     */
+    static getValidationPatterns() {
+        return {
+            articleCode: /^(P0|P9|ISP|BLKC)\w+$/,
+            productionLot: /^AAPU\d{3}$/,
+            odpNumber: /^ODP\d{6}$/
+        };
+    }
+
+    /**
+     * Generic field validation with custom messages
+     */
+    static validateFields(fields, data, validators = {}) {
+        const errors = [];
+        
+        Object.entries(validators).forEach(([field, validator]) => {
+            const value = data[field];
+            if (value !== undefined && value !== null && value !== '') {
+                const result = validator(value);
+                if (!result.isValid) {
+                    errors.push(result.message);
+                }
+            }
+        });
+        
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
+    }
+
+    /**
+     * Create a numeric validator for a field
+     */
+    static createNumericValidator(fieldName, min = 0, max = null) {
+        return (value) => {
+            const num = parseFloat(value);
+            if (isNaN(num)) {
+                return { isValid: false, message: `${fieldName} must be a valid number` };
+            }
+            if (num < min) {
+                return { isValid: false, message: `${fieldName} must be greater than or equal to ${min}` };
+            }
+            if (max !== null && num > max) {
+                return { isValid: false, message: `${fieldName} must be less than or equal to ${max}` };
+            }
+            return { isValid: true };
+        };
+    }
+
+    /**
+     * Validate that one field is greater than or equal to another field
+     */
+    static validateFieldRelationship(field1, value1, field2, value2, field1Label, field2Label) {
+        const num1 = parseFloat(value1);
+        const num2 = parseFloat(value2);
+        
+        if (isNaN(num1) || isNaN(num2)) {
+            return { isValid: true }; // Skip validation if values aren't numbers
+        }
+        
+        if (num1 < num2) {
+            return { 
+                isValid: false, 
+                message: `${field1Label} must be greater than or equal to ${field2Label}` 
+            };
+        }
+        
+        return { isValid: true };
     }
 
     /**

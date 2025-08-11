@@ -124,31 +124,56 @@ class NewMachineryManager extends BaseManager {
 
     validateForm() {
         // Check required identification fields
-        const isValid = 
-            this.elements.machineType.value &&
-            this.elements.machineName.value.trim() &&
-            this.elements.machineSite.value &&
-            this.elements.machineDepartment.value &&
-            
-            // Check technical capabilities
-            this.elements.minWebWidth.value &&
-            this.elements.maxWebWidth.value &&
-            this.elements.minBagHeight.value &&
-            this.elements.maxBagHeight.value &&
-            this.elements.maxColors.value &&
-            
-            // Check performance fields
-            this.elements.standardSpeed.value &&
-            this.elements.efficiencyFactor.value &&
-            this.elements.setupTimeStandard.value &&
-            this.elements.changeoverColor.value &&
-            this.elements.changeoverMaterial.value &&
-            this.elements.hoursPerShift.value &&
-            
-            // Check that at least one shift is selected
-            Array.from(this.elements.activeShifts).some(checkbox => checkbox.checked);
+        const requiredFields = ['machineType', 'machineName', 'machineSite', 'machineDepartment', 'minWebWidth', 'maxWebWidth', 'minBagHeight', 'maxBagHeight', 'maxColors', 'standardSpeed', 'efficiencyFactor', 'setupTimeStandard', 'changeoverColor', 'changeoverMaterial', 'hoursPerShift'];
         
-        this.elements.addBtn.disabled = !isValid;
+        const fieldData = {
+            machineType: this.elements.machineType.value,
+            machineName: this.elements.machineName.value.trim(),
+            machineSite: this.elements.machineSite.value,
+            machineDepartment: this.elements.machineDepartment.value,
+            minWebWidth: this.elements.minWebWidth.value,
+            maxWebWidth: this.elements.maxWebWidth.value,
+            minBagHeight: this.elements.minBagHeight.value,
+            maxBagHeight: this.elements.maxBagHeight.value,
+            maxColors: this.elements.maxColors.value,
+            standardSpeed: this.elements.standardSpeed.value,
+            efficiencyFactor: this.elements.efficiencyFactor.value,
+            setupTimeStandard: this.elements.setupTimeStandard.value,
+            changeoverColor: this.elements.changeoverColor.value,
+            changeoverMaterial: this.elements.changeoverMaterial.value,
+            hoursPerShift: this.elements.hoursPerShift.value
+        };
+        
+        const hasRequiredFields = Utils.hasRequiredFields(fieldData, requiredFields);
+        
+        // Check that at least one shift is selected
+        const hasShifts = Array.from(this.elements.activeShifts).some(checkbox => checkbox.checked);
+        
+        this.elements.addBtn.disabled = !(hasRequiredFields && hasShifts);
+    }
+
+    validateMachineNumericFields(machineData) {
+        const fieldLabels = {
+            min_web_width: 'Minimum web width',
+            max_web_width: 'Maximum web width',
+            min_bag_height: 'Minimum bag height',
+            max_bag_height: 'Maximum bag height',
+            max_colors: 'Maximum colors',
+            standard_speed: 'Standard speed',
+            efficiency_factor: 'Efficiency factor',
+            setup_time_standard: 'Setup time',
+            changeover_color: 'Color changeover time',
+            changeover_material: 'Material changeover time',
+            hours_per_shift: 'Hours per shift'
+        };
+
+        const numericFields = [
+            'min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height', 'max_colors',
+            'standard_speed', 'efficiency_factor', 'setup_time_standard', 'changeover_color',
+            'changeover_material', 'hours_per_shift'
+        ];
+
+        return Utils.validateNumericFields(numericFields, machineData, fieldLabels);
     }
 
     handleAddMachine() {
@@ -156,6 +181,13 @@ class NewMachineryManager extends BaseManager {
         
         if (!machineData) {
             this.showMessage('Please fill in all required fields', 'error');
+            return;
+        }
+
+        // Validate numeric fields are non-negative
+        const numericValidation = this.validateMachineNumericFields(machineData);
+        if (!numericValidation.isValid) {
+            this.showMessage(numericValidation.errors.join(', '), 'error');
             return;
         }
 
@@ -621,8 +653,13 @@ class NewMachineryManager extends BaseManager {
 
         // Validate data - check for machine_name first, then fall back to legacy fields
         const machineName = updatedData.machine_name || updatedData.nominazione || updatedData.name;
-        if (!machineName || machineName.trim() === '') {
-            this.showMessage('Machine name cannot be empty', 'error');
+        const requiredValidation = Utils.validateRequiredFields(
+            { machine_name: machineName }, 
+            ['machine_name'], 
+            { machine_name: 'Machine name' }
+        );
+        if (!requiredValidation.isValid) {
+            this.showMessage(requiredValidation.errors.join(', '), 'error');
             return;
         }
 
@@ -672,6 +709,13 @@ class NewMachineryManager extends BaseManager {
 
             console.log('Original machine:', machine);
             console.log('Updated machine:', updatedMachine);
+
+            // Validate numeric fields are non-negative
+            const numericValidation = this.validateMachineNumericFields(updatedMachine);
+            if (!numericValidation.isValid) {
+                this.showMessage(numericValidation.errors.join(', '), 'error');
+                return;
+            }
 
             // Save updated machine
             const updatedMachines = machines.map(m => 

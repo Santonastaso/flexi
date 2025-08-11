@@ -170,25 +170,54 @@ class PhasesManager extends BaseManager {
     }
 
     validatePhaseForm() {
-        const isValid = 
-            this.elements.phaseName.value.trim() &&
-            this.elements.phaseType.value;
+        const baseFields = ['phaseName', 'phaseType'];
+        const baseData = {
+            phaseName: this.elements.phaseName.value.trim(),
+            phaseType: this.elements.phaseType.value
+        };
+        
+        const baseValid = Utils.hasRequiredFields(baseData, baseFields);
         
         if (this.elements.phaseType.value === 'printing') {
-            const printingValid = 
-                this.elements.vStampa.value &&
-                this.elements.tSetupStampa.value &&
-                this.elements.costoHStampa.value;
-            this.elements.addPhaseBtn.disabled = !(isValid && printingValid);
+            const printingFields = ['vStampa', 'tSetupStampa', 'costoHStampa'];
+            const printingData = {
+                vStampa: this.elements.vStampa.value,
+                tSetupStampa: this.elements.tSetupStampa.value,
+                costoHStampa: this.elements.costoHStampa.value
+            };
+            const printingValid = Utils.hasRequiredFields(printingData, printingFields);
+            this.elements.addPhaseBtn.disabled = !(baseValid && printingValid);
         } else if (this.elements.phaseType.value === 'packaging') {
-            const packagingValid = 
-                this.elements.vConf.value &&
-                this.elements.tSetupConf.value &&
-                this.elements.costoHConf.value;
-            this.elements.addPhaseBtn.disabled = !(isValid && packagingValid);
+            const packagingFields = ['vConf', 'tSetupConf', 'costoHConf'];
+            const packagingData = {
+                vConf: this.elements.vConf.value,
+                tSetupConf: this.elements.tSetupConf.value,
+                costoHConf: this.elements.costoHConf.value
+            };
+            const packagingValid = Utils.hasRequiredFields(packagingData, packagingFields);
+            this.elements.addPhaseBtn.disabled = !(baseValid && packagingValid);
         } else {
             this.elements.addPhaseBtn.disabled = true;
         }
+    }
+
+    validatePhaseNumericFields(phaseData) {
+        const fieldLabels = {
+            V_STAMPA: 'Printing speed',
+            T_SETUP_STAMPA: 'Printing setup time',
+            COSTO_H_STAMPA: 'Printing hourly cost',
+            V_CONF: 'Packaging speed',
+            T_SETUP_CONF: 'Packaging setup time',
+            COSTO_H_CONF: 'Packaging hourly cost'
+        };
+
+        if (phaseData.type === 'printing') {
+            return Utils.validateNumericFields(['V_STAMPA', 'T_SETUP_STAMPA', 'COSTO_H_STAMPA'], phaseData, fieldLabels);
+        } else if (phaseData.type === 'packaging') {
+            return Utils.validateNumericFields(['V_CONF', 'T_SETUP_CONF', 'COSTO_H_CONF'], phaseData, fieldLabels);
+        }
+        
+        return { isValid: true, errors: [] };
     }
 
     handleAddPhase() {
@@ -196,6 +225,13 @@ class PhasesManager extends BaseManager {
         
         if (!phaseData) {
             this.showMessage('Please fill in all required fields', 'error');
+            return;
+        }
+
+        // Validate numeric fields are non-negative
+        const numericValidation = this.validatePhaseNumericFields(phaseData);
+        if (!numericValidation.isValid) {
+            this.showMessage(numericValidation.errors.join(', '), 'error');
             return;
         }
 
@@ -287,6 +323,13 @@ class PhasesManager extends BaseManager {
 
             console.log('Original phase:', phase);
             console.log('Updated phase:', updatedPhase);
+
+            // Validate numeric fields are non-negative
+            const numericValidation = this.validatePhaseNumericFields(updatedPhase);
+            if (!numericValidation.isValid) {
+                this.showMessage(numericValidation.errors.join(', '), 'error');
+                return;
+            }
 
             // Update phase
             this.storageService.updatePhase(phaseId, updatedPhase);
