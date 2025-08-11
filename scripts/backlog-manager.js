@@ -2,7 +2,7 @@
  * New Backlog Manager - Handles printing and packaging production lots
  * Implements Italian calculation formulas for Stampa and Confezionamento
  */
-class NewBacklogManager extends BaseManager {
+class BacklogManager extends BaseManager {
     constructor() {
         super(window.storageService);
         this.editManager = window.editManager;
@@ -11,11 +11,7 @@ class NewBacklogManager extends BaseManager {
     }
 
     init() {
-        // Ensure storage service is available
-        if (!this.storageService) {
-            console.error('StorageService not available');
-            return;
-        }
+        if (!this.validateStorageService()) return;
         
         // Bind elements first
         this.elements = this.getElementMap();
@@ -569,7 +565,7 @@ class NewBacklogManager extends BaseManager {
             console.log('Calculation completed successfully');
         } catch (error) {
             console.error('ODP Calculation error:', error);
-            this.showMessage('Calculation failed: ' + error.message, 'error');
+            this.showErrorMessage('calculation', error);
         }
     }
 
@@ -791,11 +787,11 @@ class NewBacklogManager extends BaseManager {
             // Add ODP order to storage
             const newOrder = this.storageService.addODPOrder(odpOrder);
             
-            this.showMessage(`ODP Order ${newOrder.odp_number} added to backlog`, 'success');
+            this.showSuccessMessage('ODP Order added to backlog', newOrder.odp_number);
             this.clearForm();
             this.loadBacklog();
         } catch (error) {
-            this.showMessage('Error adding ODP to backlog: ' + error.message, 'error');
+            this.showErrorMessage('adding ODP to backlog', error);
         }
     }
 
@@ -1045,13 +1041,13 @@ class NewBacklogManager extends BaseManager {
             console.log('About to call showDeleteConfirmation with message:', message);
             showDeleteConfirmation(message, () => {
                 console.log('Delete confirmation callback executed');
-                try {
-                    this.storageService.removeODPOrder(taskId);
-                    this.loadBacklog();
-                    this.showMessage('ODP order deleted successfully', 'success');
-                } catch (error) {
-                    this.showMessage('Error deleting ODP order: ' + error.message, 'error');
-                }
+                            try {
+                this.storageService.removeODPOrder(taskId);
+                this.loadBacklog();
+                this.showSuccessMessage('ODP order deleted');
+            } catch (error) {
+                this.showErrorMessage('deleting ODP order', error);
+            }
             });
         } catch (error) {
             // Order is scheduled - show specific error
@@ -1230,10 +1226,10 @@ class NewBacklogManager extends BaseManager {
 
             // Update display
             this.loadBacklog();
-            this.showMessage('Task updated successfully', 'success');
+            this.showSuccessMessage('Task updated');
 
         } catch (error) {
-            this.showMessage('Error updating task: ' + error.message, 'error');
+            this.showErrorMessage('updating task', error);
         }
     }
 
@@ -1242,15 +1238,5 @@ class NewBacklogManager extends BaseManager {
 
 // Initialize when DOM is loaded and storage service is available
 document.addEventListener('DOMContentLoaded', () => {
-    // Wait for storage service to be available
-    const initializeManager = () => {
-        if (window.storageService) {
-            window.newBacklogManager = new NewBacklogManager();
-        } else {
-            // If storage service not ready, wait a bit and try again
-            setTimeout(initializeManager, 50);
-        }
-    };
-    
-    initializeManager();
+    BaseManager.initializeManager(BacklogManager, 'backlogManager');
 });

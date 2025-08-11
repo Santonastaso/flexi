@@ -11,10 +11,10 @@ class Navigation {
             },
                     pages: {
             home: { href: 'index.html', label: 'Home', icon: '🏠' },
-            machinery: { href: 'machinery.html', label: 'Machinery', icon: '⚙️' },
-            phases: { href: 'phases.html', label: 'Phases', icon: '🔄' },
-            backlog: { href: 'backlog.html', label: 'Backlog', icon: '📝' },
-            scheduler: { href: 'scheduler.html', label: 'Scheduler', icon: '📅' }
+            machinery: { href: 'machinery-page.html', label: 'Machinery', icon: '⚙️' },
+            phases: { href: 'phases-page.html', label: 'Phases', icon: '🔄' },
+            backlog: { href: 'backlog-page.html', label: 'Backlog', icon: '📝' },
+            scheduler: { href: 'scheduler-page.html', label: 'Scheduler', icon: '📅' }
         }
         };
     }
@@ -92,7 +92,7 @@ class Navigation {
                     this.navigationData.pages.backlog
                 ];
             
-            case 'machine_settings':
+            case 'machine-settings':
                 return [
                     { href: this.navigationData.pages.machinery.href, label: 'Back to Machinery' },
                     this.navigationData.pages.scheduler
@@ -156,16 +156,16 @@ function initializeNavigation() {
     
     if (path.includes('index.html') || path === '/' || path === '') {
         currentPage = 'home';
-    } else if (path.includes('machinery.html')) {
+    } else if (path.includes('machinery-page.html')) {
         currentPage = 'machinery';
-    } else if (path.includes('phases.html')) {
+    } else if (path.includes('phases-page.html')) {
         currentPage = 'phases';
-    } else if (path.includes('backlog.html')) {
+    } else if (path.includes('backlog-page.html')) {
         currentPage = 'backlog';
-    } else if (path.includes('scheduler')) {
+    } else if (path.includes('scheduler-page.html')) {
         currentPage = 'scheduler';
-    } else if (path.includes('machine_settings.html')) {
-        currentPage = 'machine_settings';
+    } else if (path.includes('machine-settings-page.html')) {
+        currentPage = 'machine-settings';
     }
     
     // Alternative detection based on page elements

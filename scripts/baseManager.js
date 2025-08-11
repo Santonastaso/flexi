@@ -70,6 +70,63 @@ class BaseManager {
     }
 
     /**
+     * Common success message for CRUD operations
+     */
+    showSuccessMessage(operation, itemName = '') {
+        const message = itemName ? 
+            `${operation} "${itemName}" completed successfully!` : 
+            `${operation} completed successfully!`;
+        this.showMessage(message, 'success');
+    }
+
+    /**
+     * Common error message for CRUD operations
+     */
+    showErrorMessage(operation, error) {
+        const message = `Error ${operation}: ${error.message}`;
+        this.showMessage(message, 'error');
+    }
+
+    /**
+     * Common CRUD operation wrapper with error handling
+     */
+    async executeCRUDOperation(operation, operationFn, successMessage, itemName = '') {
+        try {
+            const result = await operationFn();
+            this.showSuccessMessage(successMessage, itemName);
+            return result;
+        } catch (error) {
+            this.showErrorMessage(successMessage.toLowerCase(), error);
+            throw error;
+        }
+    }
+
+    /**
+     * Common initialization pattern for managers
+     */
+    static initializeManager(ManagerClass, managerName) {
+        const initializeManager = () => {
+            if (window.storageService) {
+                window[managerName] = new ManagerClass();
+            } else {
+                setTimeout(initializeManager, 50);
+            }
+        };
+        initializeManager();
+    }
+
+    /**
+     * Common storage service validation
+     */
+    validateStorageService() {
+        if (!this.storageService) {
+            console.error('StorageService not available');
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Validate required form fields
      */
     validateRequiredFields(fields) {

@@ -9,6 +9,8 @@ class PhasesManager extends BaseManager {
     }
 
     init() {
+        if (!this.validateStorageService()) return;
+        
         if (super.init(this.getElementMap())) {
             this.loadPhases();
             this.setupFormValidation();
@@ -220,18 +222,71 @@ class PhasesManager extends BaseManager {
         return { isValid: true, errors: [] };
     }
 
+    showValidationError(fieldId, message) {
+        const errorElement = document.getElementById(`${fieldId}-error`);
+        const inputElement = this.elements[fieldId];
+        
+        if (errorElement) {
+            errorElement.textContent = message;
+            errorElement.style.display = message ? 'block' : 'none';
+        }
+        
+        if (inputElement) {
+            if (message) {
+                inputElement.classList.add('validation-error');
+                inputElement.classList.remove('validation-success');
+            } else {
+                inputElement.classList.remove('validation-error');
+                inputElement.classList.remove('validation-success');
+            }
+        }
+    }
+
+    clearValidationErrors() {
+        const errorElements = document.querySelectorAll('.validation-error');
+        errorElements.forEach(element => {
+            element.style.display = 'none';
+            element.textContent = '';
+        });
+        
+        // Clear validation CSS classes from all form inputs
+        const formInputs = document.querySelectorAll('.form-group input, .form-group select');
+        formInputs.forEach(input => {
+            input.classList.remove('validation-error', 'validation-success');
+        });
+    }
+
     handleAddPhase() {
+        // Clear previous validation errors
+        this.clearValidationErrors();
+        
         const phaseData = this.collectPhaseData();
         
         if (!phaseData) {
-            this.showMessage('Please fill in all required fields', 'error');
+            this.showValidationError('phaseName', 'Phase name is required');
+            this.showValidationError('phaseType', 'Phase type is required');
             return;
         }
 
         // Validate numeric fields are non-negative
         const numericValidation = this.validatePhaseNumericFields(phaseData);
         if (!numericValidation.isValid) {
-            this.showMessage(numericValidation.errors.join(', '), 'error');
+            // Show inline validation errors
+            numericValidation.errors.forEach(error => {
+                if (error.includes('Printing speed')) {
+                    this.showValidationError('vStampa', error);
+                } else if (error.includes('Printing setup time')) {
+                    this.showValidationError('tSetupStampa', error);
+                } else if (error.includes('Printing hourly cost')) {
+                    this.showValidationError('costoHStampa', error);
+                } else if (error.includes('Packaging speed')) {
+                    this.showValidationError('vConf', error);
+                } else if (error.includes('Packaging setup time')) {
+                    this.showValidationError('tSetupConf', error);
+                } else if (error.includes('Packaging hourly cost')) {
+                    this.showValidationError('costoHConf', error);
+                }
+            });
             return;
         }
 
@@ -239,9 +294,9 @@ class PhasesManager extends BaseManager {
             const newPhase = this.storageService.addPhase(phaseData);
             this.clearPhaseForm();
             this.loadPhases();
-            this.showMessage(`Phase "${newPhase.name}" added successfully!`, 'success');
+            this.showSuccessMessage('Phase added', newPhase.name);
         } catch (error) {
-            this.showMessage('Error adding phase: ' + error.message, 'error');
+            this.showErrorMessage('adding phase', error);
         }
     }
 
@@ -339,10 +394,10 @@ class PhasesManager extends BaseManager {
 
             // Update display
             this.loadPhases();
-            this.showMessage('Phase updated successfully', 'success');
+            this.showSuccessMessage('Phase updated');
 
         } catch (error) {
-            this.showMessage('Error updating phase: ' + error.message, 'error');
+            this.showErrorMessage('updating phase', error);
         }
     }
 
@@ -356,9 +411,9 @@ class PhasesManager extends BaseManager {
             try {
                 this.storageService.removePhase(phaseId);
                 this.loadPhases();
-                this.showMessage('Phase deleted successfully', 'success');
+                this.showSuccessMessage('Phase deleted');
             } catch (error) {
-                this.showMessage('Error deleting phase: ' + error.message, 'error');
+                this.showErrorMessage('deleting phase', error);
             }
         });
     }
@@ -366,15 +421,5 @@ class PhasesManager extends BaseManager {
 
 // Initialize when DOM is loaded and storage service is available
 document.addEventListener('DOMContentLoaded', () => {
-    // Wait for storage service to be available
-    const initializeManager = () => {
-        if (window.storageService) {
-            window.phasesManager = new PhasesManager();
-        } else {
-            // If storage service not ready, wait a bit and try again
-            setTimeout(initializeManager, 50);
-        }
-    };
-    
-    initializeManager();
+    BaseManager.initializeManager(PhasesManager, 'phasesManager');
 }); 

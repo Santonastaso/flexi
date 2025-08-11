@@ -1,7 +1,7 @@
 /**
  * New Machinery Manager - Handles printing and packaging machinery with specific properties
  */
-class NewMachineryManager extends BaseManager {
+class MachineryManager extends BaseManager {
     constructor() {
         super(window.storageService);
         this.editManager = window.editManager;
@@ -431,7 +431,7 @@ class NewMachineryManager extends BaseManager {
                     }) : ''}
                 </td>
                 <td class="text-center">
-                    <a href="machine_settings.html?machine=${encodeURIComponent(machine.machine_name || machine.name)}" 
+                    <a href="machine-settings-page.html?machine=${encodeURIComponent(machine.machine_name || machine.name)}" 
                        class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
                         📅
                     </a>
@@ -521,7 +521,7 @@ class NewMachineryManager extends BaseManager {
                     }) : ''}
                 </td>
                 <td class="text-center">
-                    <a href="machine_settings.html?machine=${encodedName}" 
+                    <a href="machine-settings-page.html?machine=${encodedName}" 
                        class="action-btn" 
                        title="Edit Availability">⚙️</a>
                 </td>
@@ -597,7 +597,7 @@ class NewMachineryManager extends BaseManager {
                     }) : ''}
                 </td>
                 <td class="text-center">
-                    <a href="machine_settings.html?machine=${encodedName}" 
+                    <a href="machine-settings-page.html?machine=${encodedName}" 
                        class="action-btn" 
                        title="Edit Availability">⚙️</a>
                 </td>
@@ -743,7 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Wait for storage service to be available
     const initializeManager = () => {
         if (window.storageService) {
-            window.machineryManager = new NewMachineryManager();
+            window.machineryManager = new MachineryManager();
         } else {
             // If storage service not ready, wait a bit and try again
             setTimeout(initializeManager, 50);
