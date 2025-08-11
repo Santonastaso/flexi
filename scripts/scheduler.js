@@ -1,46 +1,31 @@
 /**
- * Production Scheduler - Main scheduling system with drag-and-drop functionality
- * Now uses shared calendar components for consistency with machinery settings
+ * Production Scheduler - Fixed Implementation
+ * Uses existing CSS structure and StorageService API
  */
-class ProductionScheduler {
+class Scheduler {
     constructor() {
         this.storageService = window.storageService;
-        this.elements = {};
-        
-        // Configuration
-        this.config = {
-            START_HOUR: 0,
-            END_HOUR: 24,
-            SLOT_WIDTH: 80,
-            LABEL_WIDTH: 150
-        };
-        
-        // State
-        this.currentDate = new Date("2025-08-01T00:00:00");
+        this.currentDate = new Date();
         this.currentDate.setHours(0, 0, 0, 0);
         
-        // Shared components
-        this.calendarRenderer = null;
-        this.slotHandler = null;
+        this.elements = {};
+        this.dragState = {
+            isDragging: false,
+            draggedElement: null,
+            dragType: null // 'task' or 'event'
+        };
         
         this.init();
     }
     
-    /**
-     * Initialize the scheduler
-     */
     init() {
         this.bindElements();
         this.attachEventListeners();
-        this.initializeSharedComponents();
-        this.loadTasksIntoPool();
-        this.renderScheduler();
+        this.loadTasks();
+        this.renderCalendar();
         this.updateDateDisplay();
     }
     
-    /**
-     * Bind DOM elements
-     */
     bindElements() {
         this.elements = {
             taskPool: document.getElementById('taskPool'),
@@ -48,7 +33,8 @@ class ProductionScheduler {
             currentDate: document.getElementById('currentDate'),
             todayBtn: document.getElementById('todayBtn'),
             prevDay: document.getElementById('prevDay'),
-            nextDay: document.getElementById('nextDay')
+            nextDay: document.getElementById('nextDay'),
+            messageContainer: document.getElementById('messageContainer')
         };
         
         // Validate required elements
@@ -64,400 +50,489 @@ class ProductionScheduler {
         return true;
     }
     
-    /**
-     * Attach event listeners
-     */
     attachEventListeners() {
-        if (!this.elements.todayBtn) return;
-        
         this.elements.todayBtn.addEventListener('click', () => this.goToToday());
         this.elements.prevDay.addEventListener('click', () => this.previousDay());
         this.elements.nextDay.addEventListener('click', () => this.nextDay());
+        
+        // Setup task pool drop zone
+        this.setupTaskPoolDropZone();
     }
     
-    /**
-     * Initialize shared calendar components
-     */
-    initializeSharedComponents() {
-        // Get only valid machines for the calendar (strict filtering)
-        const machines = this.storageService.getValidMachinesForDisplay();
+    setupTaskPoolDropZone() {
+        const taskPool = this.elements.taskPool;
         
-        // Run data integrity check before initializing
-        const integrityCheck = this.storageService.validateDataIntegrity();
-        if (!integrityCheck.isValid) {
-            console.warn('Data integrity issues detected during scheduler initialization:', integrityCheck);
-            this.showMessage('Data integrity issues detected. Some items may not display correctly.', 'warning');
-        }
-        
-        // Initialize shared calendar renderer with interactive disabled
-        // We'll handle interactions through the slot handler
-        this.calendarRenderer = new SharedCalendarRenderer(this.elements.calendarContainer, {
-            startHour: this.config.START_HOUR,
-            endHour: this.config.END_HOUR,
-            showMachines: true,
-            interactive: false, // Disable built-in interactions
-            currentDate: this.currentDate,
-            machines: machines,
-            onEventDelete: (event) => this.handleEventDelete(event)
+        taskPool.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            taskPool.classList.add('drag-over');
         });
         
-        // Initialize slot handler with custom callbacks
-        this.slotHandler = new SlotHandler({
-            enableDragDrop: true,
-            enableClick: false, // Disable click for scheduler (only drag/drop)
-            enableHover: true,
-            onSlotDrop: (slotData, taskId, event, slot) => this.handleSlotDrop(slotData, taskId, event, slot),
-            onValidationError: (message) => this.showMessage(message, 'error'),
-            onSuccess: (type, data, element) => this.handleSuccess(type, data, element)
+        taskPool.addEventListener('dragleave', (e) => {
+            if (!taskPool.contains(e.relatedTarget)) {
+                taskPool.classList.remove('drag-over');
+            }
+        });
+        
+        taskPool.addEventListener('drop', (e) => {
+            e.preventDefault();
+            taskPool.classList.remove('drag-over');
+            
+            const eventId = e.dataTransfer.getData('text/plain');
+            if (eventId && this.dragState.dragType === 'event') {
+                this.unscheduleEvent(eventId);
+            }
         });
     }
     
-    /**
-     * Render the entire scheduler
-     */
-    renderScheduler() {
-        if (!this.calendarRenderer) return;
+    loadTasks() {
+        const taskPool = this.elements.taskPool;
         
-        // Update calendar date and machines
-        this.calendarRenderer.updateDate(this.currentDate);
-        this.calendarRenderer.updateMachines(this.storageService.getMachines());
+        // Clear the task pool completely
+        taskPool.innerHTML = '';
         
-        // Render the calendar
-        this.calendarRenderer.render();
+        // Get available tasks (ODP orders that aren't scheduled)
+        const allOrders = this.storageService.getODPOrders();
+        const scheduledEvents = this.storageService.getScheduledEvents();
+        const scheduledTaskIds = new Set(scheduledEvents.map(event => event.taskId));
         
-        // Initialize slot interactions
-        this.slotHandler.initializeSlots(this.elements.calendarContainer);
+        const availableTasks = allOrders.filter(order => !scheduledTaskIds.has(order.id));
         
-        // Render events
-        this.renderAllScheduledEvents();
-    }
-    
-    /**
-     * Handle slot drop events
-     */
-    handleSlotDrop(slotData, taskId, event, slot) {
-        const task = this.storageService.getBacklogTaskById(taskId);
-        if (!task) {
-            this.showMessage('Task not found', 'error');
+        if (availableTasks.length === 0) {
+            taskPool.innerHTML = '<div class="empty-state">No tasks available for scheduling</div>';
             return;
         }
         
-        // Check if slot can accommodate the task
-        if (!this.canScheduleTask(slotData, task)) {
-            return; // Error already shown by validation
-        }
-        
-        // Create the scheduled event
-        const eventData = {
-            id: `${taskId}-${Date.now()}`,
-            taskId: taskId,
-            taskTitle: task.name,
-            machine: slotData.machine,
-            date: slotData.date,
-            startHour: slotData.hour,
-            endHour: slotData.hour + task.duration,
-            color: task.color,
-            duration: task.duration
-        };
-        
-        try {
-            this.storageService.addScheduledEvent(eventData);
-            this.showMessage(`Task "${task.name}" scheduled successfully`, 'success');
-            
-            // Refresh the entire scheduler
-            this.refreshScheduler();
-        } catch (error) {
-            this.showMessage(`Failed to schedule task: ${error.message}`, 'error');
-        }
-    }
-    
-    /**
-     * Handle success callbacks from slot handler
-     */
-    handleSuccess(type, data, element) {
-        switch (type) {
-            case 'schedule':
-                this.refreshScheduler();
-                break;
-            case 'unschedule':
-                this.refreshScheduler();
-                break;
-            case 'message':
-                this.showMessage(data.message, 'success');
-                break;
-        }
-    }
-    
-    /**
-     * Check if a task can be scheduled at a specific slot
-     */
-    canScheduleTask(slotData, task) {
-        return this.slotHandler.validateSlotForDrop(slotData, task.id);
-    }
-    
-    /**
-     * Show user feedback messages
-     */
-    showMessage(message, type = 'info') {
-        // Create or update message element
-        let messageEl = document.getElementById('scheduler-message');
-        if (!messageEl) {
-            messageEl = document.createElement('div');
-            messageEl.id = 'scheduler-message';
-            messageEl.className = 'scheduler-message';
-            
-            // Insert after the task pool
-            const taskPool = this.elements.taskPool;
-            if (taskPool && taskPool.parentNode) {
-                taskPool.parentNode.insertBefore(messageEl, taskPool.nextSibling);
-            }
-        }
-        
-        messageEl.className = `scheduler-message ${type}`;
-        messageEl.textContent = message;
-        messageEl.style.display = 'block';
-        
-        // Auto-hide after 3 seconds
-        setTimeout(() => {
-            if (messageEl) {
-                messageEl.style.display = 'none';
-            }
-        }, 3000);
-    }
-    
-    /**
-     * Check if a time slot is occupied by existing events or machine unavailability
-     */
-    isTimeSlotOccupied(checkEvent) {
-        const dateKey = this.currentDate.toISOString().split('T')[0];
-        const existingEvents = this.storageService.getEventsByDate(dateKey);
-        
-        // Check for overlapping events on the same machine
-        for (const existingEvent of existingEvents) {
-            if (existingEvent.id === checkEvent.id || existingEvent.machine !== checkEvent.machine) {
-                continue;
-            }
-            
-            // Check for time overlap
-            if (checkEvent.startHour < existingEvent.endHour && 
-                checkEvent.endHour > existingEvent.startHour) {
-                return true;
-            }
-        }
-        
-        // Check machine availability
-        const unavailableHours = this.storageService.getMachineAvailabilityForDate(
-            checkEvent.machine, 
-            dateKey
-        );
-        
-        for (let h = checkEvent.startHour; h < checkEvent.endHour; h++) {
-            if (unavailableHours.includes(h)) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Render the main scheduling grid
-     */
-    renderGrid() {
-        if (!this.elements.calendarContainer) return;
-        
-        this.elements.calendarContainer.innerHTML = '';
-        
-        // Create header
-        const header = this.createHeader();
-        this.elements.calendarContainer.appendChild(header);
-        
-        // Create body with machine rows
-        const body = this.createBody();
-        this.elements.calendarContainer.appendChild(body);
-        
-        // Setup drag and drop zones
-        this.setupDropZones();
-    }
-    
-    /**
-     * Create calendar header
-     */
-    createHeader() {
-        const header = document.createElement('div');
-        header.className = 'calendar-header';
-        
-        // Label spacer
-        const labelSpacer = document.createElement('div');
-        labelSpacer.className = 'header-label-spacer';
-        header.appendChild(labelSpacer);
-        
-        // Time slots
-        const timelineGrid = document.createElement('div');
-        timelineGrid.className = 'timeline-grid';
-        
-        for (let hour = this.config.START_HOUR; hour < this.config.END_HOUR; hour++) {
-            const timeSlot = document.createElement('div');
-            timeSlot.className = 'header-time-slot';
-            timeSlot.textContent = `${hour}:00`;
-            timelineGrid.appendChild(timeSlot);
-        }
-        
-        header.appendChild(timelineGrid);
-        return header;
-    }
-    
-    /**
-     * Create calendar body with machine rows
-     */
-    createBody() {
-        const body = document.createElement('div');
-        body.className = 'calendar-body';
-        
-        const machines = this.storageService.getLiveMachines();
-        const dateKey = this.currentDate.toISOString().split('T')[0];
-        
-        machines.forEach((machine) => {
-            const machineRow = this.createMachineRow(machine, dateKey);
-            body.appendChild(machineRow);
+        availableTasks.forEach(task => {
+            this.createTaskElement(task);
         });
-        
-        return body;
     }
     
-    /**
-     * Create a machine row
-     */
-    createMachineRow(machine, dateKey) {
-        const machineRow = document.createElement('div');
-        machineRow.className = 'machine-row';
-        machineRow.dataset.machineName = machine.name;
-        
-        // Machine label
-        const labelCol = document.createElement('div');
-        labelCol.className = 'machine-label-col';
-        labelCol.textContent = machine.name;
-        machineRow.appendChild(labelCol);
-        
-        // Schedule area
-        const scheduleArea = document.createElement('div');
-        scheduleArea.className = 'machine-schedule-area';
-        
-        // Get unavailable hours for this machine and date
-        const unavailableHours = this.storageService.getMachineAvailabilityForDate(
-            machine.name, 
-            dateKey
-        );
-        
-        // Create time slots
-        for (let hour = this.config.START_HOUR; hour < this.config.END_HOUR; hour++) {
-            const slot = document.createElement('div');
-            slot.className = 'machine-slot';
-            slot.dataset.hour = hour;
-            
-            if (unavailableHours.includes(hour)) {
-                slot.classList.add('unavailable');
-                slot.textContent = 'X';
-            }
-            
-            scheduleArea.appendChild(slot);
-        }
-        
-        machineRow.appendChild(scheduleArea);
-        return machineRow;
-    }
-    
-    /**
-     * Render a task in the task pool
-     */
-    renderTaskInPool(task) {
-        if (!this.elements.taskPool) return;
-        
+    createTaskElement(task) {
         const taskElement = document.createElement('div');
         taskElement.className = 'task-item';
-        taskElement.id = `pool-task-${task.id}`;
-        taskElement.dataset.taskId = task.id;
-        taskElement.style.backgroundColor = task.color;
-        // Show correct name and total time in pool
-        taskElement.textContent = `${task.name} (${task.totalTime || task.duration || ''}h)`;
         taskElement.draggable = true;
+        taskElement.dataset.taskId = task.id;
+        taskElement.style.background = this.getTaskColor(task);
+        
+        const duration = this.getTaskDuration(task);
+        
+        taskElement.innerHTML = `
+            <span>${task.odp_number || task.name || 'Unknown Task'}</span>
+            <span class="task-duration">${duration}h</span>
+        `;
+        
+        // Drag events
+        taskElement.addEventListener('dragstart', (e) => {
+            this.dragState.isDragging = true;
+            this.dragState.draggedElement = taskElement;
+            this.dragState.dragType = 'task';
+            
+            taskElement.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', task.id);
+            e.dataTransfer.setData('application/json', JSON.stringify(task));
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        
+        taskElement.addEventListener('dragend', (e) => {
+            this.dragState.isDragging = false;
+            this.dragState.draggedElement = null;
+            this.dragState.dragType = null;
+            taskElement.classList.remove('dragging');
+            
+            // Clear drag-over states
+            document.querySelectorAll('.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+        });
         
         this.elements.taskPool.appendChild(taskElement);
     }
     
-    /**
-     * Load tasks into the task pool
-     */
-    loadTasksIntoPool() {
-        if (!this.elements.taskPool) return;
+    renderCalendar() {
+        const machines = this.storageService.getMachines();
+        const calendarContainer = this.elements.calendarContainer;
+        calendarContainer.innerHTML = '';
         
-        // Clear existing tasks to prevent duplication
-        this.elements.taskPool.innerHTML = '';
+        if (machines.length === 0) {
+            calendarContainer.innerHTML = '<div class="empty-state">No machines available</div>';
+            return;
+        }
         
-        // Get only valid tasks that are not scheduled (strict filtering)
-        const tasks = this.storageService.getValidTasksForDisplay();
-        const scheduledEvents = this.storageService.getScheduledEvents();
+        // Create header
+        this.createCalendarHeader(calendarContainer);
         
-        tasks.forEach(task => {
-            // Only show tasks that aren't currently scheduled
-            if (!scheduledEvents.some(event => event.taskId === task.id)) {
-                this.renderTaskInPool(task);
+        // Create machine rows
+        machines.forEach(machine => {
+            this.createMachineRow(machine, calendarContainer);
+        });
+        
+        // Render scheduled events
+        this.renderScheduledEvents();
+    }
+    
+    createCalendarHeader(container) {
+        const headerRow = document.createElement('div');
+        headerRow.className = 'calendar-header-row';
+        
+        // Machine label header
+        const machineHeader = document.createElement('div');
+        machineHeader.className = 'machine-label-header';
+        machineHeader.textContent = 'Machines';
+        headerRow.appendChild(machineHeader);
+        
+        // Time headers
+        const timeHeader = document.createElement('div');
+        timeHeader.className = 'time-header';
+        
+        for (let hour = 0; hour < 24; hour++) {
+            const timeSlot = document.createElement('div');
+            timeSlot.className = 'time-slot-header';
+            timeSlot.textContent = `${hour.toString().padStart(2, '0')}:00`;
+            timeHeader.appendChild(timeSlot);
+        }
+        
+        headerRow.appendChild(timeHeader);
+        container.appendChild(headerRow);
+    }
+    
+    createMachineRow(machine, container) {
+        const machineRow = document.createElement('div');
+        machineRow.className = 'machine-row';
+        machineRow.dataset.machine = machine.machine_name || machine.name;
+        
+        // Machine label
+        const machineLabel = document.createElement('div');
+        machineLabel.className = 'machine-label';
+        
+        const machineName = document.createElement('div');
+        machineName.className = 'machine-name';
+        machineName.textContent = machine.machine_name || machine.name || 'Unknown Machine';
+        machineLabel.appendChild(machineName);
+        
+        if (machine.site) {
+            const machineCity = document.createElement('div');
+            machineCity.className = 'machine-city';
+            machineCity.textContent = machine.site;
+            machineLabel.appendChild(machineCity);
+        }
+        
+        machineRow.appendChild(machineLabel);
+        
+        // Machine slots
+        const machineSlots = document.createElement('div');
+        machineSlots.className = 'machine-slots';
+        
+        for (let hour = 0; hour < 24; hour++) {
+            const timeSlot = document.createElement('div');
+            timeSlot.className = 'time-slot';
+            timeSlot.dataset.hour = hour;
+            timeSlot.dataset.machine = machine.machine_name || machine.name;
+            
+            // Setup drop zone
+            this.setupSlotDropZone(timeSlot);
+            
+            machineSlots.appendChild(timeSlot);
+        }
+        
+        machineRow.appendChild(machineSlots);
+        container.appendChild(machineRow);
+    }
+    
+    setupSlotDropZone(slot) {
+        slot.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            slot.classList.add('drag-over');
+            
+            // Add visual feedback for valid drop zones
+            if (this.dragState.isDragging) {
+                slot.style.backgroundColor = 'rgba(37, 99, 235, 0.1)';
             }
         });
         
-        console.log(`Loaded ${tasks.length} valid tasks into pool`);
+        slot.addEventListener('dragleave', (e) => {
+            slot.classList.remove('drag-over');
+            slot.style.backgroundColor = ''; // Reset background color
+        });
         
-        // Check for orphaned tasks
-        const allTasks = this.storageService.getBacklogTasks();
-        const orphanedTasks = allTasks.filter(task => !tasks.find(vt => vt.id === task.id));
-        if (orphanedTasks.length > 0) {
-            console.warn('Orphaned tasks detected in task pool:', orphanedTasks);
+        slot.addEventListener('drop', (e) => {
+            e.preventDefault();
+            slot.classList.remove('drag-over');
+            slot.style.backgroundColor = ''; // Reset background color
+            
+            const taskId = e.dataTransfer.getData('text/plain');
+            
+            // Only try to parse JSON if we're dragging a task (not an event)
+            if (taskId && this.dragState.dragType === 'task') {
+                try {
+                    const taskDataJson = e.dataTransfer.getData('application/json');
+                    if (taskDataJson) {
+                        const taskData = JSON.parse(taskDataJson);
+                        this.scheduleTask(taskId, taskData, slot);
+                    } else {
+                        console.warn('No task data found for task ID:', taskId);
+                    }
+                } catch (error) {
+                    console.error('Error parsing task data:', error);
+                    this.showMessage('Error scheduling task: Invalid data', 'error');
+                }
+            } else if (taskId && this.dragState.dragType === 'event') {
+                // Handle moving existing events (rescheduling)
+                this.rescheduleEvent(taskId, slot);
+            }
+        });
+    }
+    
+    scheduleTask(taskId, taskData, slot) {
+        const machine = slot.dataset.machine;
+        const hour = parseInt(slot.dataset.hour);
+        const duration = this.getTaskDuration(taskData);
+        
+        // Create event
+        const event = {
+            id: `${taskId}-${Date.now()}`,
+            taskId: taskId,
+            taskTitle: taskData.odp_number || taskData.name || 'Unknown Task',
+            machine: machine,
+            date: this.formatDate(this.currentDate),
+            startHour: hour,
+            endHour: hour + duration,
+            color: this.getTaskColor(taskData),
+            duration: duration
+        };
+        
+        // Validate scheduling
+        if (!this.canScheduleTask(machine, hour, duration)) {
+            this.showMessage('Cannot schedule task at this time', 'error');
+            return;
+        }
+        
+        try {
+            this.storageService.addScheduledEvent(event);
+            this.showMessage(`Task scheduled successfully on ${machine}`, 'success');
+            this.refreshScheduler();
+        } catch (error) {
+            this.showMessage('Failed to schedule task', 'error');
         }
     }
     
-    /**
-     * Render all scheduled events for the current date
-     */
-    renderAllScheduledEvents() {
-        if (!this.calendarRenderer) return;
-        
-        const dateKey = this.currentDate.toISOString().split('T')[0];
-        const events = this.storageService.getEventsByDate(dateKey);
-        
-        // Use the shared calendar renderer to render events
-        this.calendarRenderer.renderEvents(events);
+    unscheduleEvent(eventId) {
+        try {
+            this.storageService.removeScheduledEvent(eventId);
+            this.showMessage('Task unscheduled successfully', 'success');
+                this.refreshScheduler();
+        } catch (error) {
+            this.showMessage('Failed to unschedule task', 'error');
+        }
     }
     
-    /**
-     * Go to today's date
-     */
+    rescheduleEvent(eventId, newSlot) {
+        try {
+            // Get the existing event
+            const existingEvents = this.storageService.getScheduledEvents();
+            const existingEvent = existingEvents.find(event => event.id === eventId);
+            
+            if (!existingEvent) {
+                this.showMessage('Event not found', 'error');
+                return;
+            }
+            
+            // Calculate new position
+            const newMachine = newSlot.dataset.machine;
+            const newHour = parseInt(newSlot.dataset.hour);
+            const duration = existingEvent.duration || 1;
+            
+            // Check if the new position is valid
+            if (!this.canScheduleTask(newMachine, newHour, duration, eventId)) {
+                this.showMessage('Cannot reschedule task to this time slot', 'error');
+                return;
+            }
+            
+            // Remove the old event
+            this.storageService.removeScheduledEvent(eventId);
+            
+            // Create the new event with updated position
+            const newEvent = {
+                ...existingEvent,
+                machine: newMachine,
+                date: this.formatDate(this.currentDate),
+                startHour: newHour,
+                endHour: newHour + duration
+            };
+            
+            // Add the rescheduled event
+            this.storageService.addScheduledEvent(newEvent);
+            this.showMessage(`Task rescheduled successfully to ${newMachine}`, 'success');
+            this.refreshScheduler();
+            
+        } catch (error) {
+            console.error('Error rescheduling event:', error);
+            this.showMessage('Failed to reschedule task', 'error');
+        }
+    }
+    
+    canScheduleTask(machine, startHour, duration, excludeEventId = null) {
+        const endHour = startHour + duration;
+        
+        // Check if within working hours (0-24)
+        if (startHour < 0 || endHour > 24) {
+            return false;
+        }
+        
+        // Check for conflicts with existing events
+        const dateKey = this.formatDate(this.currentDate);
+        const existingEvents = this.storageService.getEventsByDate(dateKey);
+        
+        for (const event of existingEvents) {
+            // Skip the event we're moving (for rescheduling)
+            if (excludeEventId && event.id === excludeEventId) {
+                continue;
+            }
+            
+            if (event.machine === machine) {
+            // Check for time overlap
+                if (startHour < event.endHour && endHour > event.startHour) {
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    }
+    
+    getTaskColor(task) {
+        if (task.tipo_lavorazione) {
+            if (task.tipo_lavorazione === 'printing') {
+                return 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
+            } else if (task.tipo_lavorazione === 'packaging') {
+                return 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            }
+        }
+        
+        if (task.color) {
+            return task.color;
+        }
+        
+        return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    }
+    
+    getTaskDuration(task) {
+        let duration = 1;
+        
+        if (task.duration) {
+            duration = parseFloat(task.duration);
+        } else if (task.totalTime) {
+            duration = parseFloat(task.totalTime);
+        }
+        
+        if (isNaN(duration) || duration <= 0) {
+            duration = 1;
+        } else {
+            duration = Math.round(duration * 10) / 10;
+        }
+        
+        return duration;
+    }
+    
+    renderScheduledEvents() {
+        // Clear existing events
+        this.elements.calendarContainer.querySelectorAll('.scheduled-event').forEach(el => el.remove());
+        
+        const dateKey = this.formatDate(this.currentDate);
+        const events = this.storageService.getEventsByDate(dateKey);
+        
+        events.forEach(event => {
+            this.renderEvent(event);
+        });
+    }
+    
+    renderEvent(event) {
+        const machineRow = this.elements.calendarContainer.querySelector(`[data-machine="${event.machine}"]`);
+        if (!machineRow) return;
+        
+        const slots = machineRow.querySelector('.machine-slots');
+        if (!slots) return;
+        
+        const eventElement = document.createElement('div');
+        eventElement.className = 'scheduled-event';
+        eventElement.dataset.eventId = event.id;
+        eventElement.dataset.taskId = event.taskId;
+        eventElement.style.background = event.color || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        
+        const duration = event.endHour - event.startHour;
+        const startIndex = event.startHour;
+        const slotPercentage = 100 / 24;
+        const leftPosition = startIndex * slotPercentage;
+        const width = duration * slotPercentage;
+        
+        eventElement.style.position = 'absolute';
+        eventElement.style.left = `${leftPosition}%`;
+        eventElement.style.width = `${width}%`;
+        eventElement.style.height = '90%';
+        eventElement.style.top = '5%';
+        eventElement.textContent = event.taskTitle;
+        eventElement.draggable = true;
+        
+        // Make event draggable for unscheduling
+        eventElement.addEventListener('dragstart', (e) => {
+            this.dragState.isDragging = true;
+            this.dragState.draggedElement = eventElement;
+            this.dragState.dragType = 'event';
+            
+            eventElement.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', event.id);
+            e.dataTransfer.effectAllowed = 'move';
+        });
+        
+        eventElement.addEventListener('dragend', (e) => {
+            this.dragState.isDragging = false;
+            this.dragState.draggedElement = null;
+            this.dragState.dragType = null;
+            eventElement.classList.remove('dragging');
+        });
+        
+        slots.appendChild(eventElement);
+    }
+    
+    formatDate(date) {
+        return Utils.formatDate(date);
+    }
+    
+    showMessage(message, type) {
+        const messageEl = this.elements.messageContainer;
+        
+        messageEl.className = `message ${type}`;
+        messageEl.textContent = message;
+        messageEl.style.display = 'block';
+        
+        setTimeout(() => {
+            messageEl.style.display = 'none';
+        }, 3000);
+    }
+    
     goToToday() {
         this.currentDate = new Date();
         this.currentDate.setHours(0, 0, 0, 0);
-        this.refreshScheduler();
         this.updateDateDisplay();
+        this.renderCalendar();
     }
     
-    /**
-     * Navigation methods
-     */
     previousDay() {
         this.currentDate.setDate(this.currentDate.getDate() - 1);
-        this.refreshScheduler();
+        this.updateDateDisplay();
+        this.renderCalendar();
     }
     
     nextDay() {
         this.currentDate.setDate(this.currentDate.getDate() + 1);
-        this.refreshScheduler();
+        this.updateDateDisplay();
+        this.renderCalendar();
     }
     
-    /**
-     * Update the date display
-     */
     updateDateDisplay() {
-        if (!this.elements.currentDate) return;
-        
-        const today = new Date("2025-08-01T00:00:00");
+        if (this.elements.currentDate) {
+            const today = new Date();
         today.setHours(0, 0, 0, 0);
         
         if (this.currentDate.getTime() === today.getTime()) {
@@ -467,31 +542,13 @@ class ProductionScheduler {
                 month: 'long',
                 day: 'numeric'
             });
+            }
         }
     }
     
-    /**
-     * Refresh the entire scheduler
-     */
     refreshScheduler() {
-        this.renderScheduler();
-        this.loadTasksIntoPool();
-        this.updateDateDisplay();
-    }
-    
-    /**
-     * Public method to refresh from external sources
-     */
-    refresh() {
-        this.refreshScheduler();
-    }
-
-    /**
-     * Handle event deletion from the calendar renderer
-     */
-    handleEventDelete(event) {
-        this.storageService.removeScheduledEvent(event.id);
-        this.refreshScheduler();
+        this.loadTasks();
+        this.renderCalendar();
     }
 }
 
@@ -499,6 +556,24 @@ class ProductionScheduler {
 document.addEventListener('DOMContentLoaded', () => {
     // Only initialize if we're on the scheduler page
     if (document.getElementById('calendarContainer')) {
-        window.productionScheduler = new ProductionScheduler();
+        window.scheduler = new Scheduler();
+        
+        // Listen for storage changes to refresh scheduler
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'backlogTasks' || e.key === 'scheduledEvents' || e.key === 'schedulerMachines') {
+                window.scheduler.refreshScheduler();
+            }
+        });
+        
+        // Listen for data change events for real-time updates
+        window.addEventListener('dataChange', (e) => {
+            const { dataType, action } = e.detail;
+            
+            if (dataType === 'machines' || dataType === 'tasks') {
+                if (window.scheduler) {
+                    window.scheduler.refreshScheduler();
+                }
+            }
+        });
     }
 });
