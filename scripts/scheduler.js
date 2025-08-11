@@ -150,12 +150,19 @@ class Scheduler {
     }
     
     renderCalendar() {
-        const machines = this.storageService.getMachines();
+        // Get only active machines for scheduling
+        const allMachines = this.storageService.getMachines();
+        console.log('🔍 Scheduler Debug - All machines:', allMachines);
+        
+        const activeMachines = this.getActiveMachines(allMachines);
+        console.log('🔍 Scheduler Debug - Active machines:', activeMachines);
+        
         const calendarContainer = this.elements.calendarContainer;
         calendarContainer.innerHTML = '';
         
-        if (machines.length === 0) {
-            calendarContainer.innerHTML = '<div class="empty-state">No machines available</div>';
+        if (activeMachines.length === 0) {
+            console.warn('⚠️ No active machines found for scheduling. All machines:', allMachines);
+            calendarContainer.innerHTML = '<div class="empty-state">No active machines available for scheduling</div>';
             return;
         }
         
@@ -163,12 +170,38 @@ class Scheduler {
         this.createCalendarHeader(calendarContainer);
         
         // Create machine rows
-        machines.forEach(machine => {
+        activeMachines.forEach(machine => {
             this.createMachineRow(machine, calendarContainer);
         });
         
         // Render scheduled events
         this.renderScheduledEvents();
+    }
+
+    /**
+     * Get machines that are available for production scheduling
+     * @param {Array} machines - All machines
+     * @returns {Array} - Active machines only
+     */
+    getActiveMachines(machines) {
+        return machines.filter(machine => {
+            // Check status field (case-insensitive)
+            if (machine.status) {
+                return machine.status.toUpperCase() === 'ACTIVE';
+            }
+            
+            // Fallback: machines with names are considered active
+            return machine.machine_name || machine.name || machine.nominazione;
+        });
+    }
+    
+    /**
+     * Get display name for machine (with fallback to legacy fields)
+     * @param {Object} machine - Machine object
+     * @returns {string} - Display name
+     */
+    getMachineDisplayName(machine) {
+        return machine.machine_name || machine.name || machine.nominazione || 'Unknown Machine';
     }
     
     createCalendarHeader(container) {
@@ -199,7 +232,10 @@ class Scheduler {
     createMachineRow(machine, container) {
         const machineRow = document.createElement('div');
         machineRow.className = 'machine-row';
-        machineRow.dataset.machine = machine.machine_name || machine.name;
+        
+        // Use unified model field consistently
+        const displayName = this.getMachineDisplayName(machine);
+        machineRow.dataset.machine = displayName;
         
         // Machine label
         const machineLabel = document.createElement('div');
@@ -207,7 +243,7 @@ class Scheduler {
         
         const machineName = document.createElement('div');
         machineName.className = 'machine-name';
-        machineName.textContent = machine.machine_name || machine.name || 'Unknown Machine';
+        machineName.textContent = displayName;
         machineLabel.appendChild(machineName);
         
         if (machine.site) {
@@ -215,6 +251,16 @@ class Scheduler {
             machineCity.className = 'machine-city';
             machineCity.textContent = machine.site;
             machineLabel.appendChild(machineCity);
+        }
+        
+        // Add machine status indicator
+        if (machine.status && machine.status !== 'ACTIVE') {
+            const statusIndicator = document.createElement('div');
+            statusIndicator.className = 'machine-status';
+            statusIndicator.textContent = machine.status;
+            statusIndicator.style.fontSize = '11px';
+            statusIndicator.style.color = '#666';
+            machineLabel.appendChild(statusIndicator);
         }
         
         machineRow.appendChild(machineLabel);
@@ -227,7 +273,7 @@ class Scheduler {
             const timeSlot = document.createElement('div');
             timeSlot.className = 'time-slot';
             timeSlot.dataset.hour = hour;
-            timeSlot.dataset.machine = machine.machine_name || machine.name;
+            timeSlot.dataset.machine = this.getMachineDisplayName(machine);
             
             // Setup drop zone
             this.setupSlotDropZone(timeSlot);

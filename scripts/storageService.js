@@ -294,15 +294,7 @@ class StorageService {
      * Initialize default data for first-time users
      */
     initializeDefaults() {
-        if (!this.getMachines().length) {
-            const defaultMachines = [
-                { name: 'BOBST M5', city: 'Tallinn', live: true },
-                { name: 'Gallus 1', city: 'Milan', live: true },
-                { name: 'Mark Andy P7', city: 'Tallinn', live: false }
-            ];
-            this.saveMachines(defaultMachines);
-        }
-        
+        // No hardcoded machines - users must add their own
         // Add console commands for debugging
         this.addConsoleCommands();
     }
@@ -321,9 +313,10 @@ class StorageService {
             getValidTasks: () => this.getValidTasksForDisplay(),
             removeVvvvvv: () => this.removeSpecificMachine('vvvvvv'),
             cleanupDuplicates: () => this.cleanupDuplicateTasks(),
-            removeMachineById: (id) => this.removeMachineById(id)
+            removeMachineById: (id) => this.removeMachineById(id),
+            debugMachines: () => this.debugMachines(),
         };
-        
+
         console.log(`
 🔧 Storage Service Debug Commands:
 ==================================
@@ -336,8 +329,52 @@ class StorageService {
 - storageDebug.removeVvvvvv()     // Remove the "vvvvvv" machine specifically
 - storageDebug.cleanupDuplicates() // Clean up duplicate tasks and orphaned data
 - storageDebug.removeMachineById(id) // Remove machine by ID
+- storageDebug.debugMachines()    // Debug machine data
         `);
     }
+
+    /**
+     * Debug machine data and migration status
+     */
+    debugMachines() {
+        console.log('🔍 Machine Debug Information:');
+        console.log('================================');
+        
+        const rawMachines = this.getItem(this.STORAGE_KEYS.MACHINES, []);
+        console.log('Raw machines from localStorage:', rawMachines);
+        
+        const migratedMachines = this.getMachines();
+        console.log('Machines after migration:', migratedMachines);
+        
+        const activeMachines = this.getActiveMachines();
+        console.log('Active machines:', activeMachines);
+        
+        // Check migration status
+        const needsMigration = this.needsMachineModelMigration(rawMachines);
+        console.log('Needs migration:', needsMigration);
+        
+        // Check individual machine status
+        migratedMachines.forEach((machine, index) => {
+            console.log(`Machine ${index + 1}:`, {
+                id: machine.id,
+                name: machine.machine_name || machine.name || machine.nominazione,
+                status: machine.status,
+                hasLive: machine.hasOwnProperty('live'),
+                live: machine.live,
+                version: machine.version,
+                needsMigration: !machine.status || machine.version < 1
+            });
+        });
+        
+        return {
+            raw: rawMachines,
+            migrated: migratedMachines,
+            active: activeMachines,
+            needsMigration: needsMigration
+        };
+    }
+
+
     
     /**
      * Generic methods for localStorage operations
@@ -368,6 +405,27 @@ class StorageService {
     getMachines() {
         return this.getItem(this.STORAGE_KEYS.MACHINES, []);
     }
+
+    /**
+     * Get only active machines for production scheduling
+     */
+    getActiveMachines() {
+        return this.getMachines().filter(machine => {
+            // Check status field (case-insensitive)
+            if (machine.status) {
+                return machine.status.toUpperCase() === 'ACTIVE';
+            }
+            
+            // Fallback: machines with names are considered active
+            return machine.machine_name || machine.name || machine.nominazione;
+        });
+    }
+
+
+
+
+
+
     
     saveMachines(machines) {
         return this.setItem(this.STORAGE_KEYS.MACHINES, machines);
@@ -381,51 +439,15 @@ class StorageService {
             machine.machine_id = this.generateMachineId(machine.machine_type, machine.site);
         }
         
-        const newMachine = {
-            id: machine.id || Date.now().toString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            
-            // IDENTIFICAZIONE (Identification)
-            machine_id: machine.machine_id || machine.id || Date.now().toString(),
-            machine_name: machine.machine_name || machine.name || '',
-            machine_type: machine.machine_type || machine.type || 'DIGITAL_PRINT',
-            site: machine.site || 'ZANICA',
-            department: machine.department || 'STAMPA',
-            
-            // CAPACITÀ TECNICHE (Technical Capabilities)
-            min_web_width: parseInt(machine.min_web_width) || 0,
-            max_web_width: parseInt(machine.max_web_width) || 1000,
-            min_bag_height: parseInt(machine.min_bag_height) || 0,
-            max_bag_height: parseInt(machine.max_bag_height) || 500,
-            supported_materials: machine.supported_materials || ['DUPLEX'],
-            max_colors: parseInt(machine.max_colors) || 4,
-            
-            // PERFORMANCE
-            standard_speed: parseInt(machine.standard_speed) || 100,
-            efficiency_factor: parseFloat(machine.efficiency_factor) || 0.85,
-            setup_time_standard: parseInt(machine.setup_time_standard) || 30,
-            changeover_color: parseInt(machine.changeover_color) || 15,
-            changeover_material: parseInt(machine.changeover_material) || 45,
-            
-            // DISPONIBILITÀ (Availability)
-            active_shifts: machine.active_shifts || ['T1'],
-            hours_per_shift: parseFloat(machine.hours_per_shift) || 8.0,
-            maintenance_schedule: machine.maintenance_schedule || {},
-            
-            // Legacy compatibility fields
-            name: machine.name || machine.machine_name || '',
-            type: machine.type || (machine.machine_type === 'PACKAGING' || machine.machine_type === 'DOYPACK' ? 'packaging' : 'printing'),
-            
-            // Preserve any additional fields
-            ...machine,
-            
-            createdAt: machine.createdAt || new Date().toISOString()
-        };
+        // Add timestamp if not present
+        if (!machine.created_at) {
+            machine.created_at = new Date().toISOString();
+        }
+        machine.updated_at = new Date().toISOString();
         
-        machines.push(newMachine);
+        machines.push(machine);
         this.saveMachines(machines);
-        return newMachine;
+        return machine;
     }
     
     generateMachineId(machineType, site) {

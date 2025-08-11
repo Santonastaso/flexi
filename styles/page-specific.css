@@ -532,6 +532,19 @@
     padding: 40px;
 }
 
+/* Machine status indicators */
+.machine-inactive {
+    opacity: 0.6;
+}
+
+.machine-status {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-top: 2px;
+}
+
 @media (max-width: 768px) {
     .machine-label-header,
     .machine-label {

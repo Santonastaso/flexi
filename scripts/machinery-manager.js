@@ -1,6 +1,14 @@
 /**
  * New Machinery Manager - Handles printing and packaging machinery with specific properties
+ * 
+ * UNIFIED MACHINE MODEL DEFINITION:
+ * This is the single source of truth for all machine data in the application.
  */
+
+
+
+
+
 class MachineryManager extends BaseManager {
     constructor() {
         super(window.storageService);
@@ -9,6 +17,28 @@ class MachineryManager extends BaseManager {
         this.currentEditingId = null;
         this.init(this.getElementMap());
     }
+
+
+
+    /**
+     * Check if a machine is available for production
+     * @param {Object} machine - Machine object
+     * @returns {boolean} - True if machine is available
+     */
+    static isActiveMachine(machine) {
+        return machine && machine.status && machine.status.toUpperCase() === 'ACTIVE';
+    }
+
+    /**
+     * Get display name for machine (with fallback to legacy fields)
+     * @param {Object} machine - Machine object
+     * @returns {string} - Display name
+     */
+    static getMachineDisplayName(machine) {
+        return machine.machine_name || machine.name || machine.nominazione || 'Unknown Machine';
+    }
+
+
 
     init(elementMap) {
         // Ensure storage service is available
@@ -244,12 +274,13 @@ class MachineryManager extends BaseManager {
             .filter(checkbox => checkbox.checked)
             .map(checkbox => checkbox.value);
 
-            return {
+        const machineData = {
             // IDENTIFICAZIONE
             machine_type: this.elements.machineType.value,
             machine_name: this.elements.machineName.value.trim(),
             site: this.elements.machineSite.value,
             department: this.elements.machineDepartment.value,
+            status: 'ACTIVE', // Default to active for new machines
             
             // CAPACITÀ TECNICHE
             min_web_width: parseInt(this.elements.minWebWidth.value),
@@ -269,11 +300,11 @@ class MachineryManager extends BaseManager {
             // DISPONIBILITÀ
             active_shifts: selectedShifts,
             hours_per_shift: parseFloat(this.elements.hoursPerShift.value),
-            
-                // Legacy compatibility
-            type: this.elements.machineType.value === 'DIGITAL_PRINT' || this.elements.machineType.value === 'FLEXO_PRINT' || this.elements.machineType.value === 'ROTOGRAVURE' ? 'printing' : 'packaging',
-            name: this.elements.machineName.value.trim()
+            maintenance_schedule: {},
+            availability_calendar: {}
         };
+
+        return machineData;
     }
 
 
@@ -327,15 +358,19 @@ class MachineryManager extends BaseManager {
         const bagHeightRange = `${machine.min_bag_height || 0}-${machine.max_bag_height || 0}`;
         const efficiencyPercent = Math.round((machine.efficiency_factor || 0.85) * 100);
         
+        // Use unified model helper for display name
+        const displayName = MachineryManager.getMachineDisplayName(machine);
+        const isActive = MachineryManager.isActiveMachine(machine);
+        
         return `
-            <tr data-machine-id="${machine.id}">
+            <tr data-machine-id="${machine.id}" class="${!isActive ? 'machine-inactive' : ''}">
                 <td class="editable-cell" data-field="machine_id">
                     <span class="static-value"><strong>${machine.machine_id || machine.id}</strong></span>
                     ${this.editManager ? this.editManager.createEditInput('text', machine.machine_id || machine.id) : ''}
                 </td>
                 <td class="editable-cell" data-field="machine_name">
-                    <span class="static-value">${machine.machine_name || machine.name}</span>
-                    ${this.editManager ? this.editManager.createEditInput('text', machine.machine_name || machine.name) : ''}
+                    <span class="static-value">${displayName}</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', displayName) : ''}
                 </td>
                 <td class="editable-cell" data-field="machine_type">
                     <span class="static-value">
