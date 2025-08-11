@@ -84,7 +84,7 @@ class PhasesManager extends BaseManager {
 
     loadPhases() {
         const phases = this.storageService.getPhases();
-        console.log('Loading phases:', phases.length, 'phases found');
+
         this.renderPhases(phases);
     }
 
@@ -203,24 +203,7 @@ class PhasesManager extends BaseManager {
         }
     }
 
-    validatePhaseNumericFields(phaseData) {
-        const fieldLabels = {
-            V_STAMPA: 'Printing speed',
-            T_SETUP_STAMPA: 'Printing setup time',
-            COSTO_H_STAMPA: 'Printing hourly cost',
-            V_CONF: 'Packaging speed',
-            T_SETUP_CONF: 'Packaging setup time',
-            COSTO_H_CONF: 'Packaging hourly cost'
-        };
 
-        if (phaseData.type === 'printing') {
-            return Utils.validateNumericFields(['V_STAMPA', 'T_SETUP_STAMPA', 'COSTO_H_STAMPA'], phaseData, fieldLabels);
-        } else if (phaseData.type === 'packaging') {
-            return Utils.validateNumericFields(['V_CONF', 'T_SETUP_CONF', 'COSTO_H_CONF'], phaseData, fieldLabels);
-        }
-        
-        return { isValid: true, errors: [] };
-    }
 
     showValidationError(fieldId, message) {
         const errorElement = document.getElementById(`${fieldId}-error`);
@@ -268,11 +251,25 @@ class PhasesManager extends BaseManager {
             return;
         }
 
-        // Validate numeric fields are non-negative
-        const numericValidation = this.validatePhaseNumericFields(phaseData);
-        if (!numericValidation.isValid) {
+        // Use consolidated validation for numeric fields
+        const validationConfig = {
+            numericFields: phaseData.type === 'printing' ? 
+                ['V_STAMPA', 'T_SETUP_STAMPA', 'COSTO_H_STAMPA'] : 
+                ['V_CONF', 'T_SETUP_CONF', 'COSTO_H_CONF'],
+            fieldLabels: {
+                V_STAMPA: 'Printing speed',
+                T_SETUP_STAMPA: 'Printing setup time',
+                COSTO_H_STAMPA: 'Printing hourly cost',
+                V_CONF: 'Packaging speed',
+                T_SETUP_CONF: 'Packaging setup time',
+                COSTO_H_CONF: 'Packaging hourly cost'
+            }
+        };
+        
+        const validation = this.validateForm(phaseData, validationConfig);
+        if (!validation.isValid) {
             // Show inline validation errors
-            numericValidation.errors.forEach(error => {
+            validation.errors.forEach(error => {
                 if (error.includes('Printing speed')) {
                     this.showValidationError('vStampa', error);
                 } else if (error.includes('Printing setup time')) {
@@ -328,15 +325,10 @@ class PhasesManager extends BaseManager {
     }
 
     clearPhaseForm() {
-        this.elements.phaseName.value = '';
-        this.elements.phaseType.value = '';
-        this.elements.vStampa.value = '';
-        this.elements.tSetupStampa.value = '';
-        this.elements.costoHStampa.value = '';
-        this.elements.vConf.value = '';
-        this.elements.tSetupConf.value = '';
-        this.elements.costoHConf.value = '';
+        // Use base manager method to clear all form fields
+        this.clearFormFields();
         
+        // Reset specific display states
         this.elements.printingParams.style.display = 'none';
         this.elements.packagingParams.style.display = 'none';
         
@@ -350,10 +342,24 @@ class PhasesManager extends BaseManager {
             return;
         }
 
-        // Collect edited values using the edit manager
-        const updatedData = this.editManager.collectEditedValues(row);
-
-        console.log('Collected updated phase data:', updatedData);
+        // Use consolidated validation for edit row
+        const updatedData = this.validateEditRow(
+            row,
+            [], // No required fields for phases edit
+            ['V_STAMPA', 'T_SETUP_STAMPA', 'COSTO_H_STAMPA', 'V_CONF', 'T_SETUP_CONF', 'COSTO_H_CONF'], // Numeric fields
+            {
+                V_STAMPA: 'V Stampa',
+                T_SETUP_STAMPA: 'T Setup Stampa', 
+                COSTO_H_STAMPA: 'Costo H Stampa',
+                V_CONF: 'V Conf',
+                T_SETUP_CONF: 'T Setup Conf',
+                COSTO_H_CONF: 'Costo H Conf'
+            }
+        );
+        
+        if (!updatedData) {
+            return; // Validation failed, error already shown
+        }
 
         try {
             // Get current phase
@@ -376,15 +382,9 @@ class PhasesManager extends BaseManager {
                 COSTO_H_CONF: parseFloat(updatedData.COSTO_H_CONF) || phase.COSTO_H_CONF
             };
 
-            console.log('Original phase:', phase);
-            console.log('Updated phase:', updatedPhase);
 
-            // Validate numeric fields are non-negative
-            const numericValidation = this.validatePhaseNumericFields(updatedPhase);
-            if (!numericValidation.isValid) {
-                this.showMessage(numericValidation.errors.join(', '), 'error');
-                return;
-            }
+
+
 
             // Update phase
             this.storageService.updatePhase(phaseId, updatedPhase);

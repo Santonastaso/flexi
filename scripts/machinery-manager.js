@@ -180,18 +180,31 @@ class MachineryManager extends BaseManager {
         const machineData = this.collectMachineData();
         
         if (!machineData) {
-            this.showMessage('Please fill in all required fields', 'error');
+            this.showErrorMessage('adding machine', new Error('Please fill in all required fields'));
             return;
         }
 
-        // Validate numeric fields are non-negative
-        const numericValidation = this.validateMachineNumericFields(machineData);
-        if (!numericValidation.isValid) {
-            this.showMessage(numericValidation.errors.join(', '), 'error');
+        // Use consolidated validation
+        const validationConfig = {
+            numericFields: ['maxColors', 'standardSpeed', 'hoursPerShift', 'min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height'],
+            fieldLabels: {
+                maxColors: 'Max colors',
+                standardSpeed: 'Standard speed',
+                hoursPerShift: 'Hours per shift',
+                min_web_width: 'Min web width',
+                max_web_width: 'Max web width',
+                min_bag_height: 'Min bag height',
+                max_bag_height: 'Max bag height'
+            }
+        };
+        
+        const validation = this.validateForm(machineData, validationConfig);
+        if (!validation.isValid) {
+            this.showErrorMessage('validating machine data', new Error(validation.errors.join(', ')));
             return;
         }
 
-        console.log('Adding machine with data:', machineData);
+
 
         try {
             // Check for duplicate machine name
@@ -202,13 +215,13 @@ class MachineryManager extends BaseManager {
             );
             
             if (isDuplicate) {
-                this.showMessage('A machine with this name already exists at this site', 'error');
+                this.showErrorMessage('adding machine', new Error('A machine with this name already exists at this site'));
                 return;
             }
 
             // Add machine using the new storage service method
             const newMachine = this.storageService.addMachine(machineData);
-            console.log('Machine added successfully:', newMachine);
+
             
             this.clearForm();
             
@@ -266,34 +279,19 @@ class MachineryManager extends BaseManager {
 
 
     clearForm() {
-        // Clear identification fields
-        this.elements.machineType.value = '';
-        this.elements.machineName.value = '';
-        this.elements.machineSite.value = '';
-        this.elements.machineDepartment.value = '';
+        // Use base manager method to clear all form fields
+        this.clearFormFields();
 
-        // Clear technical capabilities
-        this.elements.minWebWidth.value = '';
-        this.elements.maxWebWidth.value = '';
-        this.elements.minBagHeight.value = '';
-        this.elements.maxBagHeight.value = '';
-        this.elements.maxColors.value = '';
-        this.elements.supportedMaterials.selectedIndex = -1;
-
-        // Clear performance fields
-        this.elements.standardSpeed.value = '';
-        this.elements.efficiencyFactor.value = '';
-        this.elements.setupTimeStandard.value = '';
-        this.elements.changeoverColor.value = '';
-        this.elements.changeoverMaterial.value = '';
-
-        // Clear availability fields
-        this.elements.activeShifts.forEach(checkbox => checkbox.checked = false);
+        // Reset to default values and special cases
         this.elements.hoursPerShift.value = '8.0';
-
-        // Reset to default values
         this.elements.efficiencyFactor.value = '0.85';
-        this.elements.activeShifts[0].checked = true; // T1 by default
+        this.elements.supportedMaterials.selectedIndex = -1;
+        
+        // Reset checkboxes and set T1 as default
+        this.elements.activeShifts.forEach(checkbox => checkbox.checked = false);
+        if (this.elements.activeShifts[0]) {
+            this.elements.activeShifts[0].checked = true; // T1 by default
+        }
 
         this.validateForm();
     }
@@ -301,13 +299,12 @@ class MachineryManager extends BaseManager {
     loadMachinery() {
         // Get all machines for display (don't clean up on every load)
         const allMachines = this.storageService.getMachines();
-        console.log('Loading machinery:', allMachines.length, 'machines found');
+
         this.renderMachinery(allMachines);
     }
 
     renderMachinery(machines) {
-        console.log('Rendering machinery table with', machines.length, 'machines');
-        console.log('Table body element:', this.elements.machineryTableBody);
+
         
         if (!machines || machines.length === 0) {
             this.elements.machineryTableBody.innerHTML = `
@@ -646,21 +643,25 @@ class MachineryManager extends BaseManager {
             return;
         }
 
-        // Collect edited values using the edit manager
-        const updatedData = this.editManager.collectEditedValues(row);
-
-        console.log('Collected updated machine data:', updatedData);
-
-        // Validate data - check for machine_name first, then fall back to legacy fields
-        const machineName = updatedData.machine_name || updatedData.nominazione || updatedData.name;
-        const requiredValidation = Utils.validateRequiredFields(
-            { machine_name: machineName }, 
-            ['machine_name'], 
-            { machine_name: 'Machine name' }
+        // Use consolidated validation for edit row
+        const updatedData = this.validateEditRow(
+            row,
+            ['machine_name'], // Required fields (will check for legacy field names)
+            ['maxColors', 'standardSpeed', 'hoursPerShift', 'min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height'], // Numeric fields
+            {
+                machine_name: 'Machine name',
+                maxColors: 'Max colors',
+                standardSpeed: 'Standard speed',
+                hoursPerShift: 'Hours per shift',
+                min_web_width: 'Min web width',
+                max_web_width: 'Max web width',
+                min_bag_height: 'Min bag height',
+                max_bag_height: 'Max bag height'
+            }
         );
-        if (!requiredValidation.isValid) {
-            this.showMessage(requiredValidation.errors.join(', '), 'error');
-            return;
+        
+        if (!updatedData) {
+            return; // Validation failed, error already shown
         }
 
         try {
@@ -707,15 +708,9 @@ class MachineryManager extends BaseManager {
                 if (!isNaN(maxHeight)) updatedMachine.max_bag_height = maxHeight;
             }
 
-            console.log('Original machine:', machine);
-            console.log('Updated machine:', updatedMachine);
 
-            // Validate numeric fields are non-negative
-            const numericValidation = this.validateMachineNumericFields(updatedMachine);
-            if (!numericValidation.isValid) {
-                this.showMessage(numericValidation.errors.join(', '), 'error');
-                return;
-            }
+
+
 
             // Save updated machine
             const updatedMachines = machines.map(m => 

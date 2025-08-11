@@ -546,23 +546,17 @@ class BacklogManager extends BaseManager {
 
 
     calculateProduction() {
-        console.log('calculateProduction called');
         const odpData = this.collectODPFormData();
-        console.log('Collected ODP data:', odpData);
         
         if (!this.validateODPData(odpData)) {
-            console.log('Validation failed');
             return;
         }
 
         try {
-            console.log('Performing calculations...');
             const calculation = this.performODPCalculations(odpData);
-            console.log('Calculation result:', calculation);
             this.displayODPResults(calculation);
             this.currentCalculation = calculation;
             this.elements.createTaskBtn.disabled = false;
-            console.log('Calculation completed successfully');
         } catch (error) {
             console.error('ODP Calculation error:', error);
             this.showErrorMessage('calculation', error);
@@ -601,7 +595,7 @@ class BacklogManager extends BaseManager {
     }
 
     validateODPData(odpData) {
-        console.log('Validating ODP data:', odpData);
+
         
         // For calculation, we only need the essential fields, not all fields
         const essentialFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'tipo_lavorazione', 'fase'];
@@ -616,7 +610,7 @@ class BacklogManager extends BaseManager {
         
         const essentialValidation = Utils.validateRequiredFields(essentialData, essentialFields);
         if (!essentialValidation.isValid) {
-            this.showMessage('Please fill in all technical specifications (bag height, width, step, quantity, processing type, and phase)', 'error');
+            this.showErrorMessage('validating form', new Error('Please fill in all technical specifications (bag height, width, step, quantity, processing type, and phase)'));
             return false;
         }
         
@@ -630,7 +624,7 @@ class BacklogManager extends BaseManager {
         const numericFields = ['bag_height', 'bag_width', 'bag_step', 'quantity'];
         const numericValidation = Utils.validateNumericFields(numericFields, odpData, fieldLabels);
         if (!numericValidation.isValid) {
-            this.showMessage(numericValidation.errors.join(', '), 'error');
+            this.showErrorMessage('validating numeric data', new Error(numericValidation.errors.join(', ')));
             return false;
         }
         
@@ -641,7 +635,7 @@ class BacklogManager extends BaseManager {
             'Bag width', 'Bag step'
         );
         if (!relationshipValidation.isValid) {
-            this.showMessage(relationshipValidation.message, 'error');
+            this.showErrorMessage('validating field relationships', new Error(relationshipValidation.message));
             return false;
         }
         
@@ -674,7 +668,7 @@ class BacklogManager extends BaseManager {
             }
         }
         
-        console.log('Validation passed');
+
         return true;
     }
 
@@ -1026,9 +1020,7 @@ class BacklogManager extends BaseManager {
     }
 
     deleteTask(taskId) {
-        console.log('deleteTask called with taskId:', taskId);
         const order = this.storageService.getODPOrderById(taskId);
-        console.log('Order found:', order);
         
         try {
             // Check if order can be deleted (not scheduled on Gantt)
@@ -1038,9 +1030,7 @@ class BacklogManager extends BaseManager {
                 `Are you sure you want to delete ODP "${order.odp_number}"? This action cannot be undone.` :
                 'Are you sure you want to delete this ODP order? This action cannot be undone.';
                 
-            console.log('About to call showDeleteConfirmation with message:', message);
             showDeleteConfirmation(message, () => {
-                console.log('Delete confirmation callback executed');
                             try {
                 this.storageService.removeODPOrder(taskId);
                 this.loadBacklog();
@@ -1140,8 +1130,6 @@ class BacklogManager extends BaseManager {
         // Collect edited values using the edit manager
         const updatedData = this.editManager.collectEditedValues(row);
 
-        console.log('Collected updated data:', updatedData);
-
         // Try to find the task as an ODP order first
         const task = this.storageService.getODPOrderById(taskId);
 
@@ -1188,8 +1176,7 @@ class BacklogManager extends BaseManager {
                 return;
             }
 
-            console.log('Original ODP order:', task);
-            console.log('Updated ODP order:', updatedOrder);
+
 
             // Validate numeric fields are non-negative
             const fieldLabels = {
@@ -1203,7 +1190,7 @@ class BacklogManager extends BaseManager {
             const numericFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'duration', 'cost'];
             const numericValidation = Utils.validateNumericFields(numericFields, updatedOrder, fieldLabels);
             if (!numericValidation.isValid) {
-                this.showMessage(numericValidation.errors.join(', '), 'error');
+                this.showErrorMessage('validating numeric data', new Error(numericValidation.errors.join(', ')));
                 return;
             }
 
@@ -1214,7 +1201,7 @@ class BacklogManager extends BaseManager {
                 'Bag width', 'Bag step'
             );
             if (!relationshipValidation.isValid) {
-                this.showMessage(relationshipValidation.message, 'error');
+                this.showErrorMessage('validating field relationships', new Error(relationshipValidation.message));
                 return;
             }
 

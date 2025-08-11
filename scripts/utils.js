@@ -13,8 +13,6 @@ class Utils {
         return `${year}-${month}-${day}`;
     }
 
-
-
     /**
      * Format hour for display (H:00)
      */
@@ -50,8 +48,6 @@ class Utils {
         return div.innerHTML;
     }
 
-
-
     /**
      * Debounce function calls
      */
@@ -66,8 +62,6 @@ class Utils {
             timeout = setTimeout(later, wait);
         };
     }
-
-
 
     /**
      * Generate unique ID

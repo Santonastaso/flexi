@@ -310,20 +310,6 @@ class UIComponents {
             .replace('HH', hours)
             .replace('mm', minutes);
     }
-
-    /**
-     * Create a debounced function
-     */
-    static debounce(func, wait) {
-        return Utils.debounce(func, wait);
-    }
-
-    /**
-     * Create a throttled function
-     */
-    static throttle(func, limit) {
-        return Utils.throttle(func, limit);
-    }
 }
 
 // Export for use in other modules

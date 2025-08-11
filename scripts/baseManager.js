@@ -173,13 +173,6 @@ class BaseManager {
     }
 
     /**
-     * Escape HTML to prevent XSS
-     */
-    escapeHtml(text) {
-        return Utils.escapeHtml(text);
-    }
-
-    /**
      * Create action buttons for tables
      */
     createActionButtons(editCallback, deleteCallback, saveCallback = null, cancelCallback = null) {
@@ -250,6 +243,102 @@ class BaseManager {
      */
     handleCancel(row) {
         // Override in subclasses
+    }
+
+    /**
+     * Consolidated validation for forms with required fields, numeric validation, and relationships
+     */
+    validateForm(data, config) {
+        const errors = [];
+        
+        // Required fields validation
+        if (config.requiredFields) {
+            const requiredValidation = Utils.validateRequiredFields(
+                data, 
+                config.requiredFields, 
+                config.fieldLabels || {}
+            );
+            if (!requiredValidation.isValid) {
+                errors.push(...requiredValidation.errors);
+            }
+        }
+        
+        // Numeric fields validation  
+        if (config.numericFields) {
+            const numericValidation = Utils.validateNumericFields(
+                config.numericFields, 
+                data, 
+                config.fieldLabels || {}
+            );
+            if (!numericValidation.isValid) {
+                errors.push(...numericValidation.errors);
+            }
+        }
+        
+        // Field relationship validation
+        if (config.relationships) {
+            config.relationships.forEach(rel => {
+                const relationshipValidation = Utils.validateFieldRelationship(
+                    rel.field1, data[rel.field1],
+                    rel.field2, data[rel.field2], 
+                    rel.field1Label, rel.field2Label
+                );
+                if (!relationshipValidation.isValid) {
+                    errors.push(relationshipValidation.message);
+                }
+            });
+        }
+        
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
+    }
+
+    /**
+     * Standard edit row validation and error handling
+     */
+    validateEditRow(row, requiredFields, numericFields, fieldLabels = {}) {
+        const updatedData = this.editManager.collectEditedValues(row);
+        
+        const validationConfig = {
+            requiredFields: requiredFields,
+            numericFields: numericFields,
+            fieldLabels: fieldLabels
+        };
+        
+        const validation = this.validateForm(updatedData, validationConfig);
+        
+        if (!validation.isValid) {
+            this.showErrorMessage('validating data', new Error(validation.errors.join(', ')));
+            return null;
+        }
+        
+        return updatedData;
+    }
+
+    /**
+     * Element binding helper with error handling
+     */
+    bindElementsById(elementIds) {
+        const elements = {};
+        const missing = [];
+        
+        elementIds.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                elements[id] = element;
+            } else {
+                missing.push(id);
+            }
+        });
+        
+        if (missing.length > 0) {
+            console.error('Missing elements:', missing);
+            return null;
+        }
+        
+        return elements;
     }
 
     /**
