@@ -92,7 +92,7 @@ class PhasesManager extends BaseManager {
         if (!phases || phases.length === 0) {
             this.elements.phasesTableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="text-center" style="padding: 2rem; color: #6b7280;">
+                    <td colspan="12" class="text-center" style="padding: 2rem; color: #6b7280;">
                         No phases found. Add phases to get started.
                     </td>
                 </tr>
@@ -104,16 +104,24 @@ class PhasesManager extends BaseManager {
     }
 
     createPhaseRow(phase) {
+        const createdDate = phase.created_at ? new Date(phase.created_at).toLocaleDateString() : '-';
+        const updatedDate = phase.updated_at ? new Date(phase.updated_at).toLocaleDateString() : '-';
+        
         return `
             <tr data-phase-id="${phase.id}">
+                <!-- IDENTIFICAZIONE (Identification) -->
+                <td class="editable-cell" data-field="id">
+                    <span class="static-value">${phase.id}</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', phase.id) : ''}
+                </td>
                 <td class="editable-cell" data-field="name">
-                    <span class="static-value">${phase.name}</span>
+                    <span class="static-value">${phase.name || '-'}</span>
                     ${this.editManager ? this.editManager.createEditInput('text', phase.name) : ''}
                 </td>
                 <td class="editable-cell" data-field="type">
                     <span class="static-value">
                         <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
-                            ${phase.type}
+                            ${phase.type || '-'}
                         </span>
                     </span>
                     ${this.editManager ? this.editManager.createEditInput('select', phase.type, {
@@ -123,6 +131,8 @@ class PhasesManager extends BaseManager {
                         ]
                     }) : ''}
                 </td>
+                
+                <!-- PRINTING PARAMETERS -->
                 <td class="editable-cell" data-field="V_STAMPA">
                     <span class="static-value">${phase.V_STAMPA || 0} mt/h</span>
                     ${this.editManager ? this.editManager.createEditInput('number', phase.V_STAMPA || 0, { min: 0 }) : ''}
@@ -135,6 +145,8 @@ class PhasesManager extends BaseManager {
                     <span class="static-value">€${phase.COSTO_H_STAMPA || 0}/h</span>
                     ${this.editManager ? this.editManager.createEditInput('number', phase.COSTO_H_STAMPA || 0, { min: 0, step: 0.01 }) : ''}
                 </td>
+                
+                <!-- PACKAGING PARAMETERS -->
                 <td class="editable-cell" data-field="V_CONF">
                     <span class="static-value">${phase.V_CONF || 0} pz/h</span>
                     ${this.editManager ? this.editManager.createEditInput('number', phase.V_CONF || 0, { min: 0 }) : ''}
@@ -147,6 +159,18 @@ class PhasesManager extends BaseManager {
                     <span class="static-value">€${phase.COSTO_H_CONF || 0}/h</span>
                     ${this.editManager ? this.editManager.createEditInput('number', phase.COSTO_H_CONF || 0, { min: 0, step: 0.01 }) : ''}
                 </td>
+                
+                <!-- TIMESTAMPS -->
+                <td class="editable-cell" data-field="created_at">
+                    <span class="static-value">${createdDate}</span>
+                    ${this.editManager ? this.editManager.createEditInput('datetime-local', phase.created_at) : ''}
+                </td>
+                <td class="editable-cell" data-field="updated_at">
+                    <span class="static-value">${updatedDate}</span>
+                    ${this.editManager ? this.editManager.createEditInput('datetime-local', phase.updated_at) : ''}
+                </td>
+                
+                <!-- Actions -->
                 <td class="text-center">
                     ${this.editManager ? this.editManager.createActionButtons() : ''}
                 </td>

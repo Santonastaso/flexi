@@ -343,7 +343,7 @@ class MachineryManager extends BaseManager {
         if (!machines || machines.length === 0) {
             this.elements.machineryTableBody.innerHTML = `
                 <tr>
-                    <td colspan="12" class="text-center" style="padding: 2rem; color: #6b7280;">
+                    <td colspan="28" class="text-center" style="padding: 2rem; color: #6b7280;">
                         No machines available. Add machines to get started.
                     </td>
                 </tr>
@@ -360,6 +360,8 @@ class MachineryManager extends BaseManager {
         const webWidthRange = `${machine.min_web_width || 0}-${machine.max_web_width || 0}`;
         const bagHeightRange = `${machine.min_bag_height || 0}-${machine.max_bag_height || 0}`;
         const efficiencyPercent = Math.round((machine.efficiency_factor || 0.85) * 100);
+        const createdDate = machine.created_at ? new Date(machine.created_at).toLocaleDateString() : '-';
+        const updatedDate = machine.updated_at ? new Date(machine.updated_at).toLocaleDateString() : '-';
         
         // Use unified model helper for display name
         const displayName = MachineryManager.getMachineDisplayName(machine);
@@ -367,18 +369,15 @@ class MachineryManager extends BaseManager {
         
         return `
             <tr data-machine-id="${machine.id}" class="${!isActive ? 'machine-inactive' : ''}">
+                <!-- IDENTIFICAZIONE (Identification) -->
                 <td class="editable-cell" data-field="machine_id">
                     <span class="static-value"><strong>${machine.machine_id || machine.id}</strong></span>
                     ${this.editManager ? this.editManager.createEditInput('text', machine.machine_id || machine.id) : ''}
                 </td>
-                <td class="editable-cell" data-field="machine_name">
-                    <span class="static-value">${displayName}</span>
-                    ${this.editManager ? this.editManager.createEditInput('text', displayName) : ''}
-                </td>
                 <td class="editable-cell" data-field="machine_type">
                     <span class="static-value">
                         <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
-                            ${machine.machine_type || machine.type}
+                            ${machine.machine_type || machine.type || '-'}
                         </span>
                     </span>
                     ${this.editManager ? this.editManager.createEditInput('select', machine.machine_type || machine.type, {
@@ -391,8 +390,12 @@ class MachineryManager extends BaseManager {
                         ]
                     }) : ''}
                 </td>
+                <td class="editable-cell" data-field="machine_name">
+                    <span class="static-value">${displayName || '-'}</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', displayName) : ''}
+                </td>
                 <td class="editable-cell" data-field="site">
-                    <span class="static-value">${machine.site}</span>
+                    <span class="static-value">${machine.site || '-'}</span>
                     ${this.editManager ? this.editManager.createEditInput('select', machine.site, {
                         options: [
                             { value: 'ZANICA', label: 'ZANICA' },
@@ -401,7 +404,7 @@ class MachineryManager extends BaseManager {
                     }) : ''}
                 </td>
                 <td class="editable-cell" data-field="department">
-                    <span class="static-value">${machine.department}</span>
+                    <span class="static-value">${machine.department || '-'}</span>
                     ${this.editManager ? this.editManager.createEditInput('select', machine.department, {
                         options: [
                             { value: 'STAMPA', label: 'STAMPA' },
@@ -409,13 +412,35 @@ class MachineryManager extends BaseManager {
                         ]
                     }) : ''}
                 </td>
-                <td class="editable-cell" data-field="web_width">
-                    <span class="static-value">${webWidthRange}mm</span>
-                    ${this.editManager ? this.editManager.createEditInput('text', webWidthRange) : ''}
+                <td class="editable-cell" data-field="status">
+                    <span class="static-value">
+                        <span class="status-badge status-active">${machine.status || 'Active'}</span>
+                    </span>
+                    ${this.editManager ? this.editManager.createEditInput('select', machine.status || 'active', {
+                        options: [
+                            { value: 'active', label: 'Active' },
+                            { value: 'maintenance', label: 'Maintenance' },
+                            { value: 'inactive', label: 'Inactive' }
+                        ]
+                    }) : ''}
                 </td>
-                <td class="editable-cell" data-field="bag_height">
-                    <span class="static-value">${bagHeightRange}mm</span>
-                    ${this.editManager ? this.editManager.createEditInput('text', bagHeightRange) : ''}
+                
+                <!-- CAPACITÀ TECNICHE (Technical Capabilities) -->
+                <td class="editable-cell" data-field="min_web_width">
+                    <span class="static-value">${machine.min_web_width || 0}</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.min_web_width || 0, { min: 0 }) : ''}
+                </td>
+                <td class="editable-cell" data-field="max_web_width">
+                    <span class="static-value">${machine.max_web_width || 0}</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.max_web_width || 0, { min: 0 }) : ''}
+                </td>
+                <td class="editable-cell" data-field="min_bag_height">
+                    <span class="static-value">${machine.min_bag_height || 0}</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.min_bag_height || 0, { min: 0 }) : ''}
+                </td>
+                <td class="editable-cell" data-field="max_bag_height">
+                    <span class="static-value">${machine.max_bag_height || 0}</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.max_bag_height || 0, { min: 0 }) : ''}
                 </td>
                 <td class="editable-cell" data-field="supported_materials">
                     <span class="static-value">${Array.isArray(machine.supported_materials) ? machine.supported_materials.join(', ') : machine.supported_materials || '-'}</span>
@@ -425,6 +450,8 @@ class MachineryManager extends BaseManager {
                     <span class="static-value">${machine.max_colors || 0}</span>
                     ${this.editManager ? this.editManager.createEditInput('number', machine.max_colors || 0, { min: 1, max: 12 }) : ''}
                 </td>
+                
+                <!-- PERFORMANCE -->
                 <td class="editable-cell" data-field="standard_speed">
                     <span class="static-value">${machine.standard_speed || 0}</span>
                     ${this.editManager ? this.editManager.createEditInput('number', machine.standard_speed || 0, { min: 1 }) : ''}
@@ -445,6 +472,8 @@ class MachineryManager extends BaseManager {
                     <span class="static-value">${machine.changeover_material || 0} h</span>
                     ${this.editManager ? this.editManager.createEditInput('number', machine.changeover_material || 0, { min: 0, step: 0.1 }) : ''}
                 </td>
+                
+                <!-- DISPONIBILITÀ (Availability) -->
                 <td class="editable-cell" data-field="active_shifts">
                     <span class="static-value">${Array.isArray(machine.active_shifts) ? machine.active_shifts.join(', ') : machine.active_shifts || '-'}</span>
                     ${this.editManager ? this.editManager.createEditInput('text', Array.isArray(machine.active_shifts) ? machine.active_shifts.join(', ') : machine.active_shifts) : ''}
@@ -453,18 +482,30 @@ class MachineryManager extends BaseManager {
                     <span class="static-value">${machine.hours_per_shift || 8.0}h</span>
                     ${this.editManager ? this.editManager.createEditInput('number', machine.hours_per_shift || 8.0, { min: 1, max: 24, step: 0.5 }) : ''}
                 </td>
-                <td class="editable-cell" data-field="status">
-                    <span class="static-value">
-                        <span class="status-badge status-active">Active</span>
-                    </span>
-                    ${this.editManager ? this.editManager.createEditInput('select', 'active', {
-                        options: [
-                            { value: 'active', label: 'Active' },
-                            { value: 'maintenance', label: 'Maintenance' },
-                            { value: 'inactive', label: 'Inactive' }
-                        ]
-                    }) : ''}
+                
+                <!-- Additional fields for compatibility -->
+                <td class="editable-cell" data-field="name">
+                    <span class="static-value">${machine.name || '-'}</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', machine.name) : ''}
                 </td>
+                <td class="editable-cell" data-field="nominazione">
+                    <span class="static-value">${machine.nominazione || '-'}</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', machine.nominazione) : ''}
+                </td>
+                <td class="editable-cell" data-field="type">
+                    <span class="static-value">${machine.type || '-'}</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', machine.type) : ''}
+                </td>
+                <td class="editable-cell" data-field="created_at">
+                    <span class="static-value">${createdDate}</span>
+                    ${this.editManager ? this.editManager.createEditInput('datetime-local', machine.created_at) : ''}
+                </td>
+                <td class="editable-cell" data-field="updated_at">
+                    <span class="static-value">${updatedDate}</span>
+                    ${this.editManager ? this.editManager.createEditInput('datetime-local', machine.updated_at) : ''}
+                </td>
+                
+                <!-- Actions -->
                 <td class="text-center">
                     <a href="machine-settings-page.html?machine=${encodeURIComponent(machine.machine_name || machine.name)}" 
                        class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">

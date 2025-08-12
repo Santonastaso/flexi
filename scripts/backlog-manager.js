@@ -925,7 +925,7 @@ class BacklogManager extends BaseManager {
         if (!orders || orders.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="10" class="text-center" style="padding: 2rem; color: #6b7280;">
+                    <td colspan="32" class="text-center" style="padding: 2rem; color: #6b7280;">
                         No ODP orders found. Create production orders to get started.
                     </td>
                 </tr>
@@ -1008,24 +1008,31 @@ class BacklogManager extends BaseManager {
     createTaskRow(order) {
         const deliveryDate = order.delivery_date ? new Date(order.delivery_date).toLocaleDateString() : '-';
         const productionStart = order.production_start ? new Date(order.production_start).toLocaleDateString() : '-';
+        const createdDate = order.created_at ? new Date(order.created_at).toLocaleDateString() : '-';
+        const updatedDate = order.updated_at ? new Date(order.updated_at).toLocaleDateString() : '-';
         const statusClass = order.status === 'DRAFT' ? 'status-draft' : order.status === 'IN_PROGRESS' ? 'status-progress' : 'status-completed';
         
         return `
             <tr data-task-id="${order.id}">
+                <!-- IDENTIFICAZIONE (Identification) -->
+                <td class="editable-cell" data-field="id">
+                    <span class="static-value">${order.id}</span>
+                    ${this.editManager.createEditInput('text', order.id)}
+                </td>
                 <td class="editable-cell" data-field="odp_number">
                     <span class="static-value"><strong>${order.odp_number}</strong></span>
                     ${this.editManager.createEditInput('text', order.odp_number)}
                 </td>
                 <td class="editable-cell" data-field="article_code">
-                    <span class="static-value">${order.article_code}</span>
+                    <span class="static-value">${order.article_code || '-'}</span>
                     ${this.editManager.createEditInput('text', order.article_code)}
                 </td>
                 <td class="editable-cell" data-field="production_lot">
-                    <span class="static-value">${order.production_lot}</span>
+                    <span class="static-value">${order.production_lot || '-'}</span>
                     ${this.editManager.createEditInput('text', order.production_lot)}
                 </td>
                 <td class="editable-cell" data-field="work_center">
-                    <span class="static-value">${order.work_center}</span>
+                    <span class="static-value">${order.work_center || '-'}</span>
                     ${this.editManager.createEditInput('select', order.work_center, {
                         options: [
                             { value: 'ZANICA', label: 'ZANICA' },
@@ -1033,6 +1040,16 @@ class BacklogManager extends BaseManager {
                         ]
                     })}
                 </td>
+                <td class="editable-cell" data-field="created_at">
+                    <span class="static-value">${createdDate}</span>
+                    ${this.editManager.createEditInput('datetime-local', order.created_at)}
+                </td>
+                <td class="editable-cell" data-field="updated_at">
+                    <span class="static-value">${updatedDate}</span>
+                    ${this.editManager.createEditInput('datetime-local', order.updated_at)}
+                </td>
+                
+                <!-- SPECIFICHE TECNICHE (Technical Specifications) -->
                 <td class="editable-cell" data-field="bag_height">
                     <span class="static-value">${order.bag_height || '-'}</span>
                     ${this.editManager.createEditInput('number', order.bag_height)}
@@ -1067,6 +1084,8 @@ class BacklogManager extends BaseManager {
                     <span class="static-value">${order.quantity || '-'}</span>
                     ${this.editManager.createEditInput('number', order.quantity)}
                 </td>
+                
+                <!-- PIANIFICAZIONE (Planning) -->
                 <td class="editable-cell" data-field="production_start">
                     <span class="static-value">${productionStart}</span>
                     ${this.editManager.createEditInput('datetime-local', order.production_start)}
@@ -1075,6 +1094,12 @@ class BacklogManager extends BaseManager {
                     <span class="static-value">${deliveryDate}</span>
                     ${this.editManager.createEditInput('date', order.delivery_date)}
                 </td>
+                <td class="editable-cell" data-field="assigned_phase">
+                    <span class="static-value">${order.assigned_phase || '-'}</span>
+                    ${this.editManager.createEditInput('text', order.assigned_phase)}
+                </td>
+                
+                <!-- DATI COMMERCIALI (Commercial Data) -->
                 <td class="editable-cell" data-field="internal_customer_code">
                     <span class="static-value">${order.internal_customer_code || '-'}</span>
                     ${this.editManager.createEditInput('text', order.internal_customer_code)}
@@ -1087,10 +1112,12 @@ class BacklogManager extends BaseManager {
                     <span class="static-value">${order.customer_order_ref || '-'}</span>
                     ${this.editManager.createEditInput('text', order.customer_order_ref)}
                 </td>
+                
+                <!-- DATI LAVORAZIONE (Processing Data) -->
                 <td class="editable-cell" data-field="tipo_lavorazione">
                     <span class="static-value">
                         <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
-                            ${order.tipo_lavorazione}
+                            ${order.tipo_lavorazione || '-'}
                         </span>
                     </span>
                     ${this.editManager.createEditInput('select', order.tipo_lavorazione, {
@@ -1104,6 +1131,8 @@ class BacklogManager extends BaseManager {
                     <span class="static-value">${this.getPhaseName(order.fase) || '-'}</span>
                     ${this.editManager.createEditInput('text', order.fase)}
                 </td>
+                
+                <!-- COLONNE DA CALCOLARE (Calculated Columns) -->
                 <td class="editable-cell" data-field="duration">
                     <span class="static-value">${order.duration ? order.duration.toFixed(2) + 'h' : '-'}</span>
                     ${this.editManager.createEditInput('number', order.duration, { min: 0.1, step: 0.1 })}
@@ -1112,9 +1141,29 @@ class BacklogManager extends BaseManager {
                     <span class="static-value">€${order.cost ? order.cost.toFixed(2) : '-'}</span>
                     ${this.editManager.createEditInput('number', order.cost, { min: 0, step: 0.01 })}
                 </td>
+                
+                <!-- Additional fields for compatibility -->
+                <td class="editable-cell" data-field="title">
+                    <span class="static-value">${order.title || '-'}</span>
+                    ${this.editManager.createEditInput('text', order.title)}
+                </td>
+                <td class="editable-cell" data-field="description">
+                    <span class="static-value">${order.description || '-'}</span>
+                    ${this.editManager.createEditInput('text', order.description)}
+                </td>
+                <td class="editable-cell" data-field="priority">
+                    <span class="static-value">${order.priority || '-'}</span>
+                    ${this.editManager.createEditInput('select', order.priority, {
+                        options: [
+                            { value: 'low', label: 'Low' },
+                            { value: 'medium', label: 'Medium' },
+                            { value: 'high', label: 'High' }
+                        ]
+                    })}
+                </td>
                 <td class="editable-cell" data-field="status">
                     <span class="static-value">
-                        <span class="status-badge ${statusClass}">${order.status}</span>
+                        <span class="status-badge ${statusClass}">${order.status || '-'}</span>
                     </span>
                     ${this.editManager.createEditInput('select', order.status, {
                         options: [
