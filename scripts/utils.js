@@ -325,35 +325,26 @@ class Utils {
         }
     }
 
-    /**
-     * Material calculation utilities
-     */
-    static calculateMaterialQuantity(mtLineari, fascia) {
-        // MQ_INCARTO = MT_LINEARI * (FASCIA / 1000)
-        const mtLineariNum = parseFloat(mtLineari) || 0;
-        const fasciaNum = parseFloat(fascia) || 0;
-        return mtLineariNum * (fasciaNum / 1000);
-    }
+
 
     /**
      * Printing cost calculation
      */
-    static calculatePrintingCost(tStampaMin, tSetupStampa, costoHStampa) {
-        // COSTO_STAMPA = (T_STAMPA_MIN + T_SETUP_STAMPA) * (COSTO_H_STAMPA / 60)
-        const totalTime = (parseFloat(tStampaMin) || 0) + (parseFloat(tSetupStampa) || 0);
+    static calculatePrintingCost(tempoODPTotaleStampa, costoHStampa) {
+        // costo_ODP_stampa = tempo_ODP_totale_Stampa * costo_orario_fase
+        const totalTime = parseFloat(tempoODPTotaleStampa) || 0;
         const hourlyRate = parseFloat(costoHStampa) || 0;
-        return totalTime * (hourlyRate / 60);
+        return totalTime * hourlyRate; // Time already in hours
     }
 
     /**
      * Packaging cost calculation
      */
-    static calculatePackagingCost(tConfOre, tSetupConf, costoHConf) {
-        // COSTO_CONF = (T_CONF_ORE + (T_SETUP_CONF / 60)) * COSTO_H_CONF
-        const confTime = parseFloat(tConfOre) || 0;
-        const setupTimeHours = (parseFloat(tSetupConf) || 0) / 60;
+    static calculatePackagingCost(tempoODPTotale, costoHConf) {
+        // costo_ODP_confezionamento = tempo_ODP_totale * costo_orario_fase
+        const totalTime = parseFloat(tempoODPTotale) || 0;
         const hourlyRate = parseFloat(costoHConf) || 0;
-        return (confTime + setupTimeHours) * hourlyRate;
+        return totalTime * hourlyRate; // Time already in hours
     }
 }
 

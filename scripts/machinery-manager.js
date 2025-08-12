@@ -128,31 +128,31 @@ class MachineryManager extends BaseManager {
 
         allInputs.forEach(input => {
             if (input) {
-            input.addEventListener('input', () => this.validateForm());
-            input.addEventListener('change', () => this.validateForm());
+            input.addEventListener('input', () => this.validateFormFields());
+            input.addEventListener('change', () => this.validateFormFields());
             }
         });
 
         // Multi-select validation
-        if (this.elements.supportedMaterials) {
-            this.elements.supportedMaterials.addEventListener('change', () => this.validateForm());
+                if (this.elements.supportedMaterials) {
+            this.elements.supportedMaterials.addEventListener('change', () => this.validateFormFields());
         }
-
+        
         // Checkbox validation for shifts
         this.elements.activeShifts.forEach(checkbox => {
-            checkbox.addEventListener('change', () => this.validateForm());
+            checkbox.addEventListener('change', () => this.validateFormFields());
         });
 
 
     }
 
     setupFormValidation() {
-        this.validateForm();
+        this.validateFormFields();
     }
 
 
 
-    validateForm() {
+    validateFormFields() {
         // Check required identification fields
         const requiredFields = ['machineType', 'machineName', 'machineSite', 'machineDepartment', 'minWebWidth', 'maxWebWidth', 'minBagHeight', 'maxBagHeight', 'maxColors', 'standardSpeed', 'efficiencyFactor', 'setupTimeStandard', 'changeoverColor', 'changeoverMaterial', 'hoursPerShift'];
         
@@ -293,9 +293,9 @@ class MachineryManager extends BaseManager {
             // PERFORMANCE
             standard_speed: parseInt(this.elements.standardSpeed.value),
             efficiency_factor: parseFloat(this.elements.efficiencyFactor.value),
-            setup_time_standard: parseInt(this.elements.setupTimeStandard.value),
-            changeover_color: parseInt(this.elements.changeoverColor.value),
-            changeover_material: parseInt(this.elements.changeoverMaterial.value),
+            setup_time_standard: parseFloat(this.elements.setupTimeStandard.value),
+            changeover_color: parseFloat(this.elements.changeoverColor.value),
+            changeover_material: parseFloat(this.elements.changeoverMaterial.value),
             
             // DISPONIBILITÀ
             active_shifts: selectedShifts,
@@ -316,6 +316,9 @@ class MachineryManager extends BaseManager {
         // Reset to default values and special cases
         this.elements.hoursPerShift.value = '8.0';
         this.elements.efficiencyFactor.value = '0.85';
+        this.elements.setupTimeStandard.value = '0.5';
+        this.elements.changeoverColor.value = '0.25';
+        this.elements.changeoverMaterial.value = '0.75';
         this.elements.supportedMaterials.selectedIndex = -1;
         
         // Reset checkboxes and set T1 as default
@@ -324,7 +327,7 @@ class MachineryManager extends BaseManager {
             this.elements.activeShifts[0].checked = true; // T1 by default
         }
 
-        this.validateForm();
+        this.validateFormFields();
     }
 
     loadMachinery() {
@@ -431,16 +434,16 @@ class MachineryManager extends BaseManager {
                     ${this.editManager ? this.editManager.createEditInput('number', machine.efficiency_factor || 0.85, { min: 0, max: 1, step: 0.01 }) : ''}
                 </td>
                 <td class="editable-cell" data-field="setup_time_standard">
-                    <span class="static-value">${machine.setup_time_standard || 0} min</span>
-                    ${this.editManager ? this.editManager.createEditInput('number', machine.setup_time_standard || 0, { min: 0 }) : ''}
+                    <span class="static-value">${machine.setup_time_standard || 0} h</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.setup_time_standard || 0, { min: 0, step: 0.1 }) : ''}
                 </td>
                 <td class="editable-cell" data-field="changeover_color">
-                    <span class="static-value">${machine.changeover_color || 0} min</span>
-                    ${this.editManager ? this.editManager.createEditInput('number', machine.changeover_color || 0, { min: 0 }) : ''}
+                    <span class="static-value">${machine.changeover_color || 0} h</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.changeover_color || 0, { min: 0, step: 0.1 }) : ''}
                 </td>
                 <td class="editable-cell" data-field="changeover_material">
-                    <span class="static-value">${machine.changeover_material || 0} min</span>
-                    ${this.editManager ? this.editManager.createEditInput('number', machine.changeover_material || 0, { min: 0 }) : ''}
+                    <span class="static-value">${machine.changeover_material || 0} h</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', machine.changeover_material || 0, { min: 0, step: 0.1 }) : ''}
                 </td>
                 <td class="editable-cell" data-field="active_shifts">
                     <span class="static-value">${Array.isArray(machine.active_shifts) ? machine.active_shifts.join(', ') : machine.active_shifts || '-'}</span>
@@ -672,6 +675,7 @@ class MachineryManager extends BaseManager {
     }
 
     saveEdit(row) {
+        console.log('saveEdit called with row:', row);
         const machineId = row.dataset.machineId;
         if (!machineId) {
             console.error('No machine ID found in row');
@@ -679,19 +683,36 @@ class MachineryManager extends BaseManager {
         }
 
         // Use consolidated validation for edit row
+        console.log('About to call validateEditRow with:', {
+            row,
+            requiredFields: ['machine_name'],
+            numericFields: ['machine_id', 'max_colors', 'standard_speed', 'efficiency_factor', 'setup_time_standard', 'changeover_color', 'changeover_material', 'hours_per_shift'],
+            fieldLabels: {
+                machine_name: 'Machine name',
+                machine_id: 'Machine ID',
+                max_colors: 'Max colors',
+                standard_speed: 'Standard speed',
+                efficiency_factor: 'Efficiency factor',
+                setup_time_standard: 'Setup time standard',
+                changeover_color: 'Color changeover time',
+                changeover_material: 'Material changeover time',
+                hours_per_shift: 'Hours per shift'
+            }
+        });
+        
         const updatedData = this.validateEditRow(
             row,
-            ['machine_name'], // Required fields (will check for legacy field names)
-            ['maxColors', 'standardSpeed', 'hoursPerShift', 'min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height'], // Numeric fields
+            ['machine_name'], // Required fields
+            ['max_colors', 'standard_speed', 'efficiency_factor', 'setup_time_standard', 'changeover_color', 'changeover_material', 'hours_per_shift'], // Numeric fields
             {
                 machine_name: 'Machine name',
-                maxColors: 'Max colors',
-                standardSpeed: 'Standard speed',
-                hoursPerShift: 'Hours per shift',
-                min_web_width: 'Min web width',
-                max_web_width: 'Max web width',
-                min_bag_height: 'Min bag height',
-                max_bag_height: 'Max bag height'
+                max_colors: 'Max colors',
+                standard_speed: 'Standard speed',
+                efficiency_factor: 'Efficiency factor',
+                setup_time_standard: 'Setup time standard',
+                changeover_color: 'Color changeover time',
+                changeover_material: 'Material changeover time',
+                hours_per_shift: 'Hours per shift'
             }
         );
         
@@ -707,23 +728,29 @@ class MachineryManager extends BaseManager {
                 this.showMessage('Machine not found', 'error');
                 return;
             }
+            
+            console.log('Processing machine update:', {
+                machineId,
+                currentMachine: machine,
+                updatedData: updatedData
+            });
 
             // Update machine with new values - handle both new and legacy field names
             const updatedMachine = {
                 ...machine,
                 // New field names
-                machine_name: machineName.trim(),
+                machine_name: updatedData.machine_name ? updatedData.machine_name.trim() : machine.machine_name,
                 machine_type: updatedData.machine_type || machine.machine_type || machine.type, // Prevent null
                 site: updatedData.site || machine.site,
                 department: updatedData.department || machine.department,
-                max_colors: parseInt(updatedData.max_colors) || machine.max_colors,
-                standard_speed: parseInt(updatedData.standard_speed) || machine.standard_speed,
-                efficiency_factor: parseFloat(updatedData.efficiency_factor) || machine.efficiency_factor,
+                max_colors: updatedData.max_colors ? parseInt(updatedData.max_colors) || machine.max_colors : machine.max_colors,
+                standard_speed: updatedData.standard_speed ? parseInt(updatedData.standard_speed) || machine.standard_speed : machine.standard_speed,
+                efficiency_factor: updatedData.efficiency_factor ? parseFloat(updatedData.efficiency_factor) || machine.efficiency_factor : machine.efficiency_factor,
                 status: updatedData.status || machine.status,
                 
                 // Legacy field names for backward compatibility
-                name: machineName.trim(),
-                nominazione: machineName.trim(),
+                name: updatedData.machine_name ? updatedData.machine_name.trim() : machine.machine_name,
+                nominazione: updatedData.machine_name ? updatedData.machine_name.trim() : machine.machine_name,
                 type: updatedData.machine_type || machine.machine_type || machine.type, // Prevent null
                 numeroMacchina: updatedData.machine_id || machine.machine_id || machine.numeroMacchina,
                 city: updatedData.site || machine.site || machine.city,
@@ -742,6 +769,8 @@ class MachineryManager extends BaseManager {
                 if (!isNaN(minHeight)) updatedMachine.min_bag_height = minHeight;
                 if (!isNaN(maxHeight)) updatedMachine.max_bag_height = maxHeight;
             }
+            
+            console.log('Final updated machine object:', updatedMachine);
 
 
 

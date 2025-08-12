@@ -636,13 +636,13 @@ class StorageService {
             type: phase.type || 'printing', // 'printing' or 'packaging'
             
             // Printing parameters
-            V_STAMPA: parseInt(phase.V_STAMPA) || 0, // Velocità stampa in mt/min
-            T_SETUP_STAMPA: parseInt(phase.T_SETUP_STAMPA) || 0, // Tempo attrezzaggio stampa in min
+            V_STAMPA: parseInt(phase.V_STAMPA) || 0, // Velocità stampa in mt/h
+            T_SETUP_STAMPA: parseFloat(phase.T_SETUP_STAMPA) || 0, // Tempo attrezzaggio stampa in h
             COSTO_H_STAMPA: parseFloat(phase.COSTO_H_STAMPA) || 0, // Costo orario stampa in €/h
             
             // Packaging parameters
             V_CONF: parseInt(phase.V_CONF) || 0, // Velocità confezionamento in pz/h
-            T_SETUP_CONF: parseInt(phase.T_SETUP_CONF) || 0, // Tempo attrezzaggio confezionamento in min
+            T_SETUP_CONF: parseFloat(phase.T_SETUP_CONF) || 0, // Tempo attrezzaggio confezionamento in h
             COSTO_H_CONF: parseFloat(phase.COSTO_H_CONF) || 0, // Costo orario confezionamento in €/h
             
             created_at: new Date().toISOString(),

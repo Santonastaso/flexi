@@ -18,12 +18,13 @@ class BacklogManager extends BaseManager {
         
         // Initialize edit functionality
         if (this.editManager) {
-            this.editManager.initTableEdit('.modern-table');
+            // Only initialize edit functionality on the actual data table, not the form
+            this.editManager.initTableEdit('#backlog-table-body');
             // Override saveEdit method
             this.editManager.saveEdit = (row) => this.saveEdit(row);
             
             // Handle delete events
-            const table = document.querySelector('.modern-table');
+            const table = document.querySelector('#backlog-table-body');
             if (table) {
                 table.addEventListener('deleteRow', (e) => {
                     const row = e.detail.row;
@@ -43,6 +44,9 @@ class BacklogManager extends BaseManager {
         // Load data and setup validation
         this.loadBacklog();
         this.setupFormValidation();
+        
+        // Set up a periodic check to ensure form fields are always visible
+        this.setupFormFieldVisibilityProtection();
     }
 
     getElementMap() {
@@ -84,10 +88,13 @@ class BacklogManager extends BaseManager {
             calculationResults: document.getElementById('calculationResults'),
             
             // Calculation results
-            materialQuantity: document.getElementById('materialQuantity'),
-            printingTime: document.getElementById('printingTime'),
+            printingProcessingTime: document.getElementById('printingProcessingTime'),
+            printingSetupTime: document.getElementById('printingSetupTime'),
+            printingTotalTime: document.getElementById('printingTotalTime'),
             printingCost: document.getElementById('printingCost'),
-            packagingTime: document.getElementById('packagingTime'),
+            packagingProcessingTime: document.getElementById('packagingProcessingTime'),
+            packagingSetupTime: document.getElementById('packagingSetupTime'),
+            packagingTotalTime: document.getElementById('packagingTotalTime'),
             packagingCost: document.getElementById('packagingCost'),
             totalDuration: document.getElementById('totalDuration'),
             totalCost: document.getElementById('totalCost'),
@@ -391,6 +398,9 @@ class BacklogManager extends BaseManager {
     }
 
     validateForm() {
+        // Ensure all form fields are visible before validation
+        this.ensureFormFieldsVisible();
+        
         // Clear any previous validation errors
         this.clearValidationErrors();
         
@@ -489,12 +499,20 @@ class BacklogManager extends BaseManager {
         const errorElement = document.getElementById(`${fieldId}-error`);
         const inputElement = this.elements[fieldId];
         
+        console.log(`showValidationError called for ${fieldId} with message: "${message}"`);
+        console.log(`Error element found:`, !!errorElement);
+        console.log(`Input element found:`, !!inputElement);
+        
         if (errorElement) {
             errorElement.textContent = message;
             errorElement.style.display = message ? 'block' : 'none';
         }
         
         if (inputElement) {
+            // Ensure the input element is always visible
+            inputElement.style.display = 'block';
+            inputElement.style.visibility = 'visible';
+            
             if (message) {
                 inputElement.classList.add('validation-error');
                 inputElement.classList.remove('validation-success');
@@ -502,6 +520,9 @@ class BacklogManager extends BaseManager {
                 inputElement.classList.remove('validation-error');
                 inputElement.classList.remove('validation-success');
             }
+            
+            console.log(`Input element ${fieldId} display style:`, inputElement.style.display);
+            console.log(`Input element ${fieldId} visibility:`, inputElement.style.visibility);
         }
     }
 
@@ -517,6 +538,38 @@ class BacklogManager extends BaseManager {
         formInputs.forEach(input => {
             input.classList.remove('validation-error', 'validation-success');
         });
+        
+        // Ensure all form fields are always visible
+        this.ensureFormFieldsVisible();
+    }
+    
+    ensureFormFieldsVisible() {
+        // Force all form input fields to be visible
+        const formInputs = document.querySelectorAll('.form-group input, .form-group select');
+        formInputs.forEach(input => {
+            input.style.display = 'block';
+            input.style.visibility = 'visible';
+            input.style.opacity = '1';
+        });
+        
+        console.log('ensureFormFieldsVisible called - all form fields should now be visible');
+    }
+    
+    setupFormFieldVisibilityProtection() {
+        // Check every 100ms to ensure form fields are always visible
+        setInterval(() => {
+            const formInputs = document.querySelectorAll('.form-group input, .form-group select');
+            formInputs.forEach(input => {
+                if (input.style.display === 'none' || input.style.visibility === 'hidden') {
+                    console.log(`Form field ${input.id} was hidden, restoring visibility`);
+                    input.style.display = 'block';
+                    input.style.visibility = 'visible';
+                    input.style.opacity = '1';
+                }
+            });
+        }, 100);
+        
+        console.log('Form field visibility protection activated');
     }
 
     validateFieldFormats() {
@@ -680,74 +733,133 @@ class BacklogManager extends BaseManager {
         }
 
         const result = {
-            materialQuantity: 0,
-            printing: { time: 0, cost: 0 },
-            packaging: { time: 0, cost: 0 },
+            printing: { 
+                processingTime: 0,  // Time without setup
+                setupTime: 0,       // Setup time only
+                totalTime: 0,       // Processing + setup
+                cost: 0 
+            },
+            packaging: { 
+                processingTime: 0,  // Time without setup
+                setupTime: 0,       // Setup time only
+                totalTime: 0,       // Processing + setup
+                cost: 0 
+            },
             total: { duration: 0, cost: 0 }
         };
 
-        // Calculate material quantity: MQ_INCARTO = MT_LINEARI * (FASCIA / 1000)
-        const mtLineari = (odpData.quantity * odpData.bag_step) / 1000;
-        const fascia = odpData.bag_width;
-        result.materialQuantity = Utils.calculateMaterialQuantity(mtLineari, fascia);
-
         // Calculate based on processing type
         if (odpData.tipo_lavorazione === 'printing') {
-            // Printing calculations using phase parameters
-            const vStampa = selectedPhase.V_STAMPA || 0; // mt/min
-            const tSetupStampa = selectedPhase.T_SETUP_STAMPA || 0; // minutes
+            // ODP di Stampa calculations
+            const vStampa = selectedPhase.V_STAMPA || 0; // mt/h
+            const tSetupStampa = selectedPhase.T_SETUP_STAMPA || 0; // hours
             const costoHStampa = selectedPhase.COSTO_H_STAMPA || 0; // €/h
 
             if (vStampa > 0) {
-                // Calculate printing time in minutes
-                const tStampaMin = mtLineari / vStampa;
-                result.printing.time = tStampaMin;
+                // mt_da_stampare = (Passo * Quantità)/1000
+                const mtDaStampare = (odpData.bag_step * odpData.quantity) / 1000;
                 
-                // Calculate printing cost using precise formula
-                result.printing.cost = Utils.calculatePrintingCost(tStampaMin, tSetupStampa, costoHStampa);
+                // tempo_stampa = durata_ODP_Stampa = mt_da_stampare / velocità_fase_stampa
+                const tempoStampa = mtDaStampare / vStampa;
+                
+                // tempo_ODP_totale_Stampa = tempo_stampa + tempo_setUP_fase_stampa
+                const tempoODPTotaleStampa = tempoStampa + tSetupStampa;
+                
+                // Store all time components separately
+                result.printing.processingTime = tempoStampa;
+                result.printing.setupTime = tSetupStampa;
+                result.printing.totalTime = tempoODPTotaleStampa;
+                
+                // costo_ODP_stampa = tempo_ODP_totale_Stampa * costo_orario_fase
+                result.printing.cost = Utils.calculatePrintingCost(tempoODPTotaleStampa, costoHStampa);
+                
+                console.log('Printing ODP Calculation:', {
+                    bagStep: odpData.bag_step,
+                    quantity: odpData.quantity,
+                    mtDaStampare: mtDaStampare,
+                    vStampa: vStampa,
+                    tempoStampa: tempoStampa,
+                    tSetupStampa: tSetupStampa,
+                    tempoODPTotaleStampa: tempoODPTotaleStampa,
+                    cost: result.printing.cost
+                });
             }
         } else if (odpData.tipo_lavorazione === 'packaging') {
-            // Packaging calculations using phase parameters
+            // ODP di Confezionamento calculations
             const vConf = selectedPhase.V_CONF || 0; // pz/h
-            const tSetupConf = selectedPhase.T_SETUP_CONF || 0; // minutes
+            const tSetupConf = selectedPhase.T_SETUP_CONF || 0; // hours
             const costoHConf = selectedPhase.COSTO_H_CONF || 0; // €/h
 
             if (vConf > 0) {
-                // Calculate packaging time in hours
-                const tConfOre = odpData.quantity / vConf;
-                result.packaging.time = tConfOre;
+                // tempo_confezionamento = pezzi_ODP / velocità_fase_confezionamento
+                const tempoConfezionamento = odpData.quantity / vConf;
                 
-                // Calculate packaging cost using precise formula
-                result.packaging.cost = Utils.calculatePackagingCost(tConfOre, tSetupConf, costoHConf);
+                // tempo_ODP_totale = tempo_confezionamento + tempo_setUP_fase_confezionamento
+                const tempoODPTotale = tempoConfezionamento + tSetupConf;
+                
+                // Store all time components separately
+                result.packaging.processingTime = tempoConfezionamento;
+                result.packaging.setupTime = tSetupConf;
+                result.packaging.totalTime = tempoODPTotale;
+                
+                // costo_ODP_confezionamento = tempo_ODP_totale * costo_orario_fase
+                result.packaging.cost = Utils.calculatePackagingCost(tempoODPTotale, costoHConf);
+                
+                console.log('Packaging ODP Calculation:', {
+                    quantity: odpData.quantity,
+                    vConf: vConf,
+                    tempoConfezionamento: tempoConfezionamento,
+                    tSetupConf: tSetupConf,
+                    tempoODPTotale: tempoODPTotale,
+                    cost: result.packaging.cost
+                });
             }
         }
 
         // Calculate totals
-        result.total.duration = result.printing.time + result.packaging.time;
+        result.total.duration = result.printing.totalTime + result.packaging.totalTime;
         result.total.cost = result.printing.cost + result.packaging.cost;
+        
+        console.log('Total ODP Calculation:', {
+            printingProcessingTime: result.printing.processingTime,
+            printingSetupTime: result.printing.setupTime,
+            printingTotalTime: result.printing.totalTime,
+            packagingProcessingTime: result.packaging.processingTime,
+            packagingSetupTime: result.packaging.setupTime,
+            packagingTotalTime: result.packaging.totalTime,
+            totalDuration: result.total.duration,
+            printingCost: result.printing.cost,
+            packagingCost: result.packaging.cost,
+            totalCost: result.total.cost
+        });
 
         return result;
     }
 
     displayODPResults(calculation) {
-        // Display material quantity
-        this.elements.materialQuantity.textContent = `${calculation.materialQuantity.toFixed(2)} m²`;
-        
         // Display printing results
-        if (calculation.printing.time > 0) {
-            this.elements.printingTime.textContent = `${calculation.printing.time.toFixed(2)} min`;
+        if (calculation.printing.totalTime > 0) {
+            this.elements.printingProcessingTime.textContent = `${calculation.printing.processingTime.toFixed(2)} h`;
+            this.elements.printingSetupTime.textContent = `${calculation.printing.setupTime.toFixed(2)} h`;
+            this.elements.printingTotalTime.textContent = `${calculation.printing.totalTime.toFixed(2)} h`;
             this.elements.printingCost.textContent = `€${calculation.printing.cost.toFixed(2)}`;
         } else {
-            this.elements.printingTime.textContent = '-';
+            this.elements.printingProcessingTime.textContent = '-';
+            this.elements.printingSetupTime.textContent = '-';
+            this.elements.printingTotalTime.textContent = '-';
             this.elements.printingCost.textContent = '-';
         }
         
         // Display packaging results
-        if (calculation.packaging.time > 0) {
-            this.elements.packagingTime.textContent = `${calculation.packaging.time.toFixed(2)} h`;
+        if (calculation.packaging.totalTime > 0) {
+            this.elements.packagingProcessingTime.textContent = `${calculation.packaging.processingTime.toFixed(2)} h`;
+            this.elements.packagingSetupTime.textContent = `${calculation.packaging.setupTime.toFixed(2)} h`;
+            this.elements.packagingTotalTime.textContent = `${calculation.packaging.totalTime.toFixed(2)} h`;
             this.elements.packagingCost.textContent = `€${calculation.packaging.cost.toFixed(2)}`;
         } else {
-            this.elements.packagingTime.textContent = '-';
+            this.elements.packagingProcessingTime.textContent = '-';
+            this.elements.packagingSetupTime.textContent = '-';
+            this.elements.packagingTotalTime.textContent = '-';
             this.elements.packagingCost.textContent = '-';
         }
         

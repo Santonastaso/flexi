@@ -251,27 +251,52 @@ class BaseManager {
     validateForm(data, config) {
         const errors = [];
         
+        // Debug logging
+        console.log('validateForm called with:', { data, config });
+        
         // Required fields validation
         if (config.requiredFields) {
-            const requiredValidation = Utils.validateRequiredFields(
-                data, 
-                config.requiredFields, 
-                config.fieldLabels || {}
-            );
-            if (!requiredValidation.isValid) {
-                errors.push(...requiredValidation.errors);
+            try {
+                console.log('About to call Utils.validateRequiredFields with:', {
+                    data,
+                    requiredFields: config.requiredFields,
+                    fieldLabels: config.fieldLabels || {}
+                });
+                const requiredValidation = Utils.validateRequiredFields(
+                    data, 
+                    config.requiredFields, 
+                    config.fieldLabels || {}
+                );
+                console.log('Required validation result:', requiredValidation);
+                if (!requiredValidation.isValid) {
+                    errors.push(...requiredValidation.errors);
+                }
+            } catch (error) {
+                console.error('Error in required validation:', error);
+                errors.push('Required validation failed: ' + error.message);
             }
         }
         
         // Numeric fields validation  
         if (config.numericFields) {
-            const numericValidation = Utils.validateNumericFields(
-                config.numericFields, 
-                data, 
-                config.fieldLabels || {}
-            );
-            if (!numericValidation.isValid) {
-                errors.push(...numericValidation.errors);
+            try {
+                console.log('About to call Utils.validateNumericFields with:', {
+                    data,
+                    numericFields: config.numericFields,
+                    fieldLabels: config.fieldLabels || {}
+                });
+                const numericValidation = Utils.validateNumericFields(
+                    config.numericFields, 
+                    data, 
+                    config.fieldLabels || {}
+                );
+                console.log('Numeric validation result:', numericValidation);
+                if (!numericValidation.isValid) {
+                    errors.push(...numericValidation.errors);
+                }
+            } catch (error) {
+                console.error('Error in numeric validation:', error);
+                errors.push('Numeric validation failed: ' + error.message);
             }
         }
         
@@ -289,6 +314,7 @@ class BaseManager {
             });
         }
         
+        console.log('validateForm returning:', { isValid: errors.length === 0, errors: errors });
         return {
             isValid: errors.length === 0,
             errors: errors
@@ -300,6 +326,14 @@ class BaseManager {
      */
     validateEditRow(row, requiredFields, numericFields, fieldLabels = {}) {
         const updatedData = this.editManager.collectEditedValues(row);
+        console.log('collectEditedValues returned:', updatedData);
+        
+        // Check if updatedData is valid
+        if (!updatedData || typeof updatedData !== 'object') {
+            console.error('Invalid updatedData:', updatedData);
+            this.showErrorMessage('validating data', new Error('Failed to collect edited values'));
+            return null;
+        }
         
         const validationConfig = {
             requiredFields: requiredFields,
@@ -307,7 +341,27 @@ class BaseManager {
             fieldLabels: fieldLabels
         };
         
-        const validation = this.validateForm(updatedData, validationConfig);
+        console.log('About to call this.validateForm with:', { updatedData, validationConfig });
+        console.log('this.validateForm exists:', typeof this.validateForm);
+        console.log('this.validateForm is function:', typeof this.validateForm === 'function');
+        
+        // Test if we can call the method at all
+        let validation;
+        try {
+            validation = this.validateForm(updatedData, validationConfig);
+            console.log('validateForm call completed, result:', validation);
+        } catch (error) {
+            console.error('Error calling validateForm:', error);
+            this.showErrorMessage('validating data', new Error('Validation method error: ' + error.message));
+            return null;
+        }
+        
+        // Check if validation result is valid
+        if (!validation || typeof validation !== 'object' || validation.isValid === undefined) {
+            console.error('Invalid validation result:', validation);
+            this.showErrorMessage('validating data', new Error('Validation failed'));
+            return null;
+        }
         
         if (!validation.isValid) {
             this.showErrorMessage('validating data', new Error(validation.errors.join(', ')));

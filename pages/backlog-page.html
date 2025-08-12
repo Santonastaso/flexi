@@ -196,12 +196,23 @@
                 </div>
                 <div id="calculationResults" class="calculation-results" style="display: none;">
                     <h3>Cost & Time Calculations</h3>
-                    <div class="results-grid">
-                        <div class="result-item"><label>Material Quantity (MQ_INCARTO):</label><span id="materialQuantity">-</span></div>
-                        <div class="result-item"><label>Printing Time (minutes):</label><span id="printingTime">-</span></div>
+                                        <div class="results-grid">
+                        <!-- Printing Section -->
+                        <div class="result-item section-header"><label>🖨️ Printing Operations</label></div>
+                        <div class="result-item"><label>Processing Time (hours):</label><span id="printingProcessingTime">-</span></div>
+                        <div class="result-item"><label>Setup Time (hours):</label><span id="printingSetupTime">-</span></div>
+                        <div class="result-item"><label>Total Printing Time (hours):</label><span id="printingTotalTime">-</span></div>
                         <div class="result-item"><label>Printing Cost (€):</label><span id="printingCost">-</span></div>
-                        <div class="result-item"><label>Packaging Time (hours):</label><span id="packagingTime">-</span></div>
+                        
+                        <!-- Packaging Section -->
+                        <div class="result-item section-header"><label>📦 Packaging Operations</label></div>
+                        <div class="result-item"><label>Processing Time (hours):</label><span id="packagingProcessingTime">-</span></div>
+                        <div class="result-item"><label>Setup Time (hours):</label><span id="packagingSetupTime">-</span></div>
+                        <div class="result-item"><label>Total Packaging Time (hours):</label><span id="packagingTotalTime">-</span></div>
                         <div class="result-item"><label>Packaging Cost (€):</label><span id="packagingCost">-</span></div>
+                        
+                        <!-- Totals Section -->
+                        <div class="result-item section-header"><label>📊 Totals</label></div>
                         <div class="result-item total"><label>Total Duration (hours):</label><span id="totalDuration">-</span></div>
                         <div class="result-item total"><label>Total Cost (€):</label><span id="totalCost">-</span></div>
                     </div>

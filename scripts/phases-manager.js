@@ -124,11 +124,11 @@ class PhasesManager extends BaseManager {
                     }) : ''}
                 </td>
                 <td class="editable-cell" data-field="V_STAMPA">
-                    <span class="static-value">${phase.V_STAMPA || 0} mt/min</span>
+                    <span class="static-value">${phase.V_STAMPA || 0} mt/h</span>
                     ${this.editManager ? this.editManager.createEditInput('number', phase.V_STAMPA || 0, { min: 0 }) : ''}
                 </td>
                 <td class="editable-cell" data-field="T_SETUP_STAMPA">
-                    <span class="static-value">${phase.T_SETUP_STAMPA || 0} min</span>
+                    <span class="static-value">${phase.T_SETUP_STAMPA || 0} h</span>
                     ${this.editManager ? this.editManager.createEditInput('number', phase.T_SETUP_STAMPA || 0, { min: 0 }) : ''}
                 </td>
                 <td class="editable-cell" data-field="COSTO_H_STAMPA">
@@ -140,7 +140,7 @@ class PhasesManager extends BaseManager {
                     ${this.editManager ? this.editManager.createEditInput('number', phase.V_CONF || 0, { min: 0 }) : ''}
                 </td>
                 <td class="editable-cell" data-field="T_SETUP_CONF">
-                    <span class="static-value">${phase.T_SETUP_CONF || 0} min</span>
+                    <span class="static-value">${phase.T_SETUP_CONF || 0} h</span>
                     ${this.editManager ? this.editManager.createEditInput('number', phase.T_SETUP_CONF || 0, { min: 0 }) : ''}
                 </td>
                 <td class="editable-cell" data-field="COSTO_H_CONF">
@@ -257,12 +257,12 @@ class PhasesManager extends BaseManager {
                 ['V_STAMPA', 'T_SETUP_STAMPA', 'COSTO_H_STAMPA'] : 
                 ['V_CONF', 'T_SETUP_CONF', 'COSTO_H_CONF'],
             fieldLabels: {
-                V_STAMPA: 'Printing speed',
-                T_SETUP_STAMPA: 'Printing setup time',
-                COSTO_H_STAMPA: 'Printing hourly cost',
-                V_CONF: 'Packaging speed',
-                T_SETUP_CONF: 'Packaging setup time',
-                COSTO_H_CONF: 'Packaging hourly cost'
+                            V_STAMPA: 'Printing speed (mt/h)',
+            T_SETUP_STAMPA: 'Printing setup time (h)',
+            COSTO_H_STAMPA: 'Printing hourly cost',
+            V_CONF: 'Packaging speed (pz/h)',
+            T_SETUP_CONF: 'Packaging setup time (h)',
+            COSTO_H_CONF: 'Packaging hourly cost'
             }
         };
         
@@ -309,14 +309,14 @@ class PhasesManager extends BaseManager {
             return {
                 ...baseData,
                 V_STAMPA: parseInt(this.elements.vStampa.value),
-                T_SETUP_STAMPA: parseInt(this.elements.tSetupStampa.value),
+                T_SETUP_STAMPA: parseFloat(this.elements.tSetupStampa.value),
                 COSTO_H_STAMPA: parseFloat(this.elements.costoHStampa.value)
             };
         } else if (phaseType === 'packaging') {
             return {
                 ...baseData,
                 V_CONF: parseInt(this.elements.vConf.value),
-                T_SETUP_CONF: parseInt(this.elements.tSetupConf.value),
+                T_SETUP_CONF: parseFloat(this.elements.tSetupConf.value),
                 COSTO_H_CONF: parseFloat(this.elements.costoHConf.value)
             };
         }
@@ -331,6 +331,14 @@ class PhasesManager extends BaseManager {
         // Reset specific display states
         this.elements.printingParams.style.display = 'none';
         this.elements.packagingParams.style.display = 'none';
+        
+        // Set default values for new phases
+        if (this.elements.vStampa) this.elements.vStampa.value = '6000'; // Default printing speed mt/h
+        if (this.elements.tSetupStampa) this.elements.tSetupStampa.value = '0.5'; // Default setup time h
+        if (this.elements.costoHStampa) this.elements.costoHStampa.value = '50'; // Default hourly cost
+        if (this.elements.vConf) this.elements.vConf.value = '1000'; // Default packaging speed pz/h
+        if (this.elements.tSetupConf) this.elements.tSetupConf.value = '0.25'; // Default setup time h
+        if (this.elements.costoHConf) this.elements.costoHConf.value = '40'; // Default hourly cost
         
         this.validatePhaseForm();
     }
@@ -375,10 +383,10 @@ class PhasesManager extends BaseManager {
                 name: updatedData.name || phase.name,
                 type: updatedData.type || phase.type,
                 V_STAMPA: parseInt(updatedData.V_STAMPA) || phase.V_STAMPA,
-                T_SETUP_STAMPA: parseInt(updatedData.T_SETUP_STAMPA) || phase.T_SETUP_STAMPA,
+                T_SETUP_STAMPA: parseFloat(updatedData.T_SETUP_STAMPA) || phase.T_SETUP_STAMPA,
                 COSTO_H_STAMPA: parseFloat(updatedData.COSTO_H_STAMPA) || phase.COSTO_H_STAMPA,
                 V_CONF: parseInt(updatedData.V_CONF) || phase.V_CONF,
-                T_SETUP_CONF: parseInt(updatedData.T_SETUP_CONF) || phase.T_SETUP_CONF,
+                T_SETUP_CONF: parseFloat(updatedData.T_SETUP_CONF) || phase.T_SETUP_CONF,
                 COSTO_H_CONF: parseFloat(updatedData.COSTO_H_CONF) || phase.COSTO_H_CONF
             };
 
