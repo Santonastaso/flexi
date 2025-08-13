@@ -368,8 +368,8 @@ class MachineryManager extends BaseManager {
                     ${this.editManager ? this.editManager.createEditInput('text', displayName) : ''}
                 </td>
                 <td class="editable-cell" data-field="work_center">
-                    <span class="static-value">${machine.work_center || machine.site || '-'}</span>
-                    ${this.editManager ? this.editManager.createEditInput('select', machine.work_center || machine.site, {
+                                            <span class="static-value">${machine.work_center || '-'}</span>
+                                            ${this.editManager ? this.editManager.createEditInput('select', machine.work_center, {
                         options: [
                             { value: 'ZANICA', label: 'ZANICA' },
                             { value: 'BUSTO_GAROLFO', label: 'BUSTO GAROLFO' }
@@ -511,8 +511,8 @@ class MachineryManager extends BaseManager {
                     ${this.editManager ? this.editManager.createEditInput('text', machine.numeroMacchina) : ''}
                 </td>
                 <td class="editable-cell" data-field="machine_name">
-                    <span class="static-value">${Utils.escapeHtml(machine.machine_name || machine.nominazione || '')}</span>
-                    ${this.editManager ? this.editManager.createEditInput('text', machine.machine_name || machine.nominazione) : ''}
+                                            <span class="static-value">${Utils.escapeHtml(machine.machine_name || '')}</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', machine.machine_name) : ''}
                 </td>
                 <td class="editable-cell" data-field="city">
                     <span class="static-value">${Utils.escapeHtml(machine.city || '')}</span>
@@ -566,8 +566,8 @@ class MachineryManager extends BaseManager {
                     ${this.editManager ? this.editManager.createEditInput('text', machine.numeroMacchina) : ''}
                 </td>
                 <td class="editable-cell" data-field="machine_name">
-                    <span class="static-value">${machine.machine_name || machine.nominazione || ''}</span>
-                    ${this.editManager ? this.editManager.createEditInput('text', machine.machine_name || machine.nominazione) : ''}
+                    <span class="static-value">${machine.machine_name || ''}</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', machine.machine_name) : ''}
                 </td>
                 <td class="editable-cell" data-field="city">
                     <span class="static-value">${machine.city}</span>
@@ -633,8 +633,14 @@ class MachineryManager extends BaseManager {
     }
 
     editMachine(machineId) {
-        // TODO: Implement inline editing similar to old system
-        this.showMessage('Edit functionality coming soon', 'info');
+        // Basic edit functionality - redirect to machine settings page
+        const machine = this.storageService.getMachines().find(m => m.id === machineId);
+        if (machine) {
+            const encodedName = encodeURIComponent(machine.machine_name);
+            window.location.href = `machine-settings-page.html?machine=${encodedName}`;
+        } else {
+            this.showMessage('Machine not found', 'error');
+        }
     }
 
     deleteMachine(machineId) {
@@ -717,23 +723,23 @@ class MachineryManager extends BaseManager {
                 updatedData: updatedData
             });
 
-            // Update machine with new values - handle both new and legacy field names
+            // Update machine with new values
             const updatedMachine = {
                 ...machine,
                 // New field names
                 machine_name: updatedData.machine_name ? updatedData.machine_name.trim() : machine.machine_name,
                 machine_type: updatedData.machine_type || machine.machine_type, // Prevent null
-                work_center: updatedData.work_center || machine.work_center || machine.site,
+                work_center: updatedData.work_center || machine.work_center,
                 department: updatedData.department || machine.department,
                 standard_speed: updatedData.standard_speed ? parseInt(updatedData.standard_speed) || machine.standard_speed : machine.standard_speed,
                 status: updatedData.status || machine.status,
                 
-                // Legacy field names for backward compatibility
+                // Field names for compatibility
                 name: updatedData.machine_name ? updatedData.machine_name.trim() : machine.machine_name,
-                nominazione: updatedData.machine_name ? updatedData.machine_name.trim() : machine.machine_name,
+                machine_name: updatedData.machine_name ? updatedData.machine_name.trim() : machine.machine_name,
                 type: updatedData.machine_type || machine.machine_type, // Prevent null
                 numeroMacchina: updatedData.machine_id || machine.machine_id || machine.numeroMacchina,
-                work_center: updatedData.work_center || machine.work_center || machine.site || machine.city,
+                work_center: updatedData.work_center || machine.work_center,
                 live: updatedData.status === 'active' ? true : (updatedData.status === 'inactive' ? false : machine.live)
             };
 

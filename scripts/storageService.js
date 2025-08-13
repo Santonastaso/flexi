@@ -411,10 +411,10 @@ class StorageService {
     
     getLiveMachines() {
         return this.getValidMachinesForDisplay().filter(machine => {
-            // Legacy machines have 'live' property
-            if (machine.hasOwnProperty('live')) {
-                return machine.live === true;
-            }
+                    // Check if machine has 'live' property
+        if (machine.hasOwnProperty('live')) {
+            return machine.live === true;
+        }
             
             // New enhanced machines are considered live by default
             // unless they have a specific status field indicating otherwise
@@ -601,7 +601,7 @@ class StorageService {
         const newPhase = {
             id: phase.id || (Date.now() + Math.random().toString(36).substr(2, 9)),
             name: phase.name || '',
-            department: phase.department || phase.type || 'STAMPA', // 'STAMPA' or 'CONFEZIONAMENTO'
+            department: phase.department || 'STAMPA', // 'STAMPA' or 'CONFEZIONAMENTO'
             numero_persone: parseInt(phase.numero_persone) || 1, // Number of people required
             
             // Printing parameters
@@ -655,8 +655,7 @@ class StorageService {
 
     getPhasesByDepartment(department) {
         return this.getPhases().filter(phase => {
-            // Handle both new department field and legacy type field
-            return (phase.department === department) || (phase.type === department);
+            return phase.department === department;
         });
     }
     
@@ -802,7 +801,7 @@ class StorageService {
             if (machine.status) {
                 return String(machine.status).toUpperCase() !== 'INACTIVE';
             }
-            // Legacy fallback: show if has a name
+            // Default: show machine
             return true;
         });
     }
@@ -824,7 +823,7 @@ class StorageService {
             id: order.id,
             name: order.odp_number,
 
-            type: order.tipo_lavorazione,
+            type: order.department,
             duration: order.duration || 0,
             cost: order.cost || 0,
             machineId: null, // Will be assigned when scheduled

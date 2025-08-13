@@ -136,10 +136,10 @@ class PhasesManager extends BaseManager {
                 <td class="editable-cell" data-field="department">
                     <span class="static-value">
                         <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
-                            ${Utils.escapeHtml(phase.department || phase.type || '-')}
+                            ${Utils.escapeHtml(phase.department || '-')}
                         </span>
                     </span>
-                    ${this.editManager ? this.editManager.createEditInput('select', phase.department || phase.type, {
+                                            ${this.editManager ? this.editManager.createEditInput('select', phase.department, {
                         options: [
                             { value: 'STAMPA', label: 'STAMPA' },
                             { value: 'CONFEZIONAMENTO', label: 'CONFEZIONAMENTO' }
@@ -431,7 +431,7 @@ class PhasesManager extends BaseManager {
             const updatedPhase = {
                 ...phase,
                 name: updatedData.name || phase.name,
-                department: updatedData.department || phase.department || phase.type,
+                department: updatedData.department || phase.department,
                 numero_persone: parseInt(updatedData.numero_persone) || phase.numero_persone || 1,
                 V_STAMPA: parseInt(updatedData.V_STAMPA) || phase.V_STAMPA,
                 T_SETUP_STAMPA: parseFloat(updatedData.T_SETUP_STAMPA) || phase.T_SETUP_STAMPA,

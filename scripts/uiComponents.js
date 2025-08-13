@@ -137,19 +137,7 @@ class UIComponents {
         }
     }
 
-    /**
-     * Create banner notification
-     * @deprecated Use the global showBanner function from banner.js instead
-     */
-    static showBanner(message, type = 'info', duration = 5000) {
-        // Use the global showBanner function for consistency
-        if (typeof window.showBanner === 'function') {
-            window.showBanner(message, type);
-        } else {
-            console.warn('Global showBanner function not found, falling back to console.log');
-            console.log(`${type.toUpperCase()}: ${message}`);
-        }
-    }
+
 
     /**
      * Create loading spinner

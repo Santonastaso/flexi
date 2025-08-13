@@ -527,7 +527,7 @@ class BacklogManager extends BaseManager {
             phases.forEach(phase => {
                 const option = document.createElement('option');
                 option.value = phase.id;
-                option.textContent = phase.name || `${phase.department || phase.type} - ${phase.id}`;
+                option.textContent = phase.name || `${phase.department} - ${phase.id}`;
                 faseSelect.appendChild(option);
             });
         } else {
@@ -1140,12 +1140,12 @@ class BacklogManager extends BaseManager {
             total: { duration: 0, cost: 0 }
         };
 
-        // Calculate based on the phase's department/type, not the form's auto-determined department
+        // Calculate based on the phase's department, not the form's auto-determined department
         // This ensures we use the correct calculation method for the selected phase
-        const phaseDepartment = selectedPhase.department || selectedPhase.type;
+        const phaseDepartment = selectedPhase.department;
         
         if (window.DEBUG) {
-            console.log('🔍 Phase department/type:', {
+            console.log('🔍 Phase department:', {
                 odpDepartment: odpData.department,
                 phaseDepartment: phaseDepartment,
                 selectedPhase: selectedPhase,
@@ -1583,10 +1583,10 @@ class BacklogManager extends BaseManager {
                 <td class="editable-cell" data-field="department">
                     <span class="static-value">
                         <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
-                            ${order.department || order.tipo_lavorazione || '-'}
+                            ${order.department || '-'}
                         </span>
                     </span>
-                    ${this.editManager.createEditInput('select', order.department || order.tipo_lavorazione, {
+                                            ${this.editManager.createEditInput('select', order.department, {
                         options: [
                             { value: 'STAMPA', label: 'STAMPA' },
                             { value: 'CONFEZIONAMENTO', label: 'CONFEZIONAMENTO' }
@@ -1778,7 +1778,7 @@ class BacklogManager extends BaseManager {
                 internal_customer_code: updatedData.internal_customer_code ? Utils.normalizeCode(updatedData.internal_customer_code) : task.internal_customer_code,
                 external_customer_code: updatedData.external_customer_code ? Utils.normalizeCode(updatedData.external_customer_code) : task.external_customer_code,
                 customer_order_ref: updatedData.customer_order_ref ? Utils.normalizeCode(updatedData.customer_order_ref) : task.customer_order_ref,
-                department: updatedData.department ? Utils.normalizeEnumLower(updatedData.department) : task.department || task.tipo_lavorazione,
+                department: updatedData.department ? Utils.normalizeEnumLower(updatedData.department) : task.department,
                 fase: updatedData.fase ? Utils.normalizeId(updatedData.fase) : task.fase,
                 duration: parseFloat(updatedData.duration) || task.duration,
                 cost: parseFloat(updatedData.cost) || task.cost,

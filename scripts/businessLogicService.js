@@ -56,7 +56,7 @@ class BusinessLogicService {
     }
 
     /**
-     * Get machine display name (with fallback to legacy fields)
+     * Get machine display name
      */
     getMachineDisplayName(machine) {
         if (!machine) return 'Unknown Machine';
@@ -66,15 +66,7 @@ class BusinessLogicService {
             return machine.machine_name;
         }
         
-        // Fallback to legacy fields
-        if (machine.nominazione) {
-            return machine.nominazione;
-        }
-        
-        if (machine.name) {
-            return machine.name;
-        }
-        
+        // Return default name
         return 'Unknown Machine';
     }
 
@@ -89,8 +81,8 @@ class BusinessLogicService {
             return String(machine.status).toUpperCase() === 'ACTIVE';
         }
         
-        // Legacy: any named machine is considered active
-        return !!(machine.machine_name || machine.nominazione || machine.name);
+        // Any named machine is considered active
+        return !!machine.machine_name;
     }
 
     // ===== ODP BUSINESS LOGIC =====

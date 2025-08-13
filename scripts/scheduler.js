@@ -211,7 +211,7 @@ class Scheduler {
     }
     
     /**
-     * Get display name for machine (with fallback to legacy fields)
+     * Get display name for machine
      * @param {Object} machine - Machine object
      * @returns {string} - Display name
      */
@@ -261,10 +261,10 @@ class Scheduler {
         machineName.textContent = displayName;
         machineLabel.appendChild(machineName);
         
-        if (machine.work_center || machine.site) {
+        if (machine.work_center) {
             const machineCity = document.createElement('div');
             machineCity.className = 'machine-city';
-            machineCity.textContent = machine.work_center || machine.site;
+            machineCity.textContent = machine.work_center;
             machineLabel.appendChild(machineCity);
         }
         
