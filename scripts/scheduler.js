@@ -4,6 +4,8 @@
  */
 class Scheduler {
     constructor() {
+        const globalDebug = (typeof window !== 'undefined' && window.DEBUG === true);
+        this.DEBUG = !!globalDebug;
         this.storageService = window.storageService;
         this.currentDate = new Date();
         this.currentDate.setHours(0, 0, 0, 0);
@@ -57,6 +59,11 @@ class Scheduler {
         
         // Setup task pool drop zone
         this.setupTaskPoolDropZone();
+        
+        // Listen for machine availability changes
+        window.addEventListener('machineAvailabilityChanged', () => {
+            this.refreshCalendar();
+        });
     }
     
     setupTaskPoolDropZone() {
@@ -152,16 +159,16 @@ class Scheduler {
     renderCalendar() {
         // Get only active machines for scheduling
         const allMachines = this.storageService.getMachines();
-        console.log('🔍 Scheduler Debug - All machines:', allMachines);
+        if (this.DEBUG) console.log('🔍 Scheduler Debug - All machines:', allMachines);
         
         const activeMachines = this.getActiveMachines(allMachines);
-        console.log('🔍 Scheduler Debug - Active machines:', activeMachines);
+        if (this.DEBUG) console.log('🔍 Scheduler Debug - Active machines:', activeMachines);
         
         const calendarContainer = this.elements.calendarContainer;
         calendarContainer.innerHTML = '';
         
         if (activeMachines.length === 0) {
-            console.warn('⚠️ No active machines found for scheduling. All machines:', allMachines);
+            if (this.DEBUG) console.warn('⚠️ No active machines found for scheduling. All machines:', allMachines);
             calendarContainer.innerHTML = '<div class="empty-state">No active machines available for scheduling</div>';
             return;
         }
@@ -177,6 +184,13 @@ class Scheduler {
         // Render scheduled events
         this.renderScheduledEvents();
     }
+    
+    /**
+     * Refresh calendar to reflect machine availability changes
+     */
+    refreshCalendar() {
+        this.renderCalendar();
+    }
 
     /**
      * Get machines that are available for production scheduling
@@ -191,7 +205,7 @@ class Scheduler {
             }
             
             // Fallback: machines with names are considered active
-            return machine.machine_name || machine.name || machine.nominazione;
+            return machine.machine_name;
         });
     }
     
@@ -201,7 +215,7 @@ class Scheduler {
      * @returns {string} - Display name
      */
     getMachineDisplayName(machine) {
-        return machine.machine_name || machine.name || machine.nominazione || 'Unknown Machine';
+        return Utils.getMachineDisplayName(machine);
     }
     
     createCalendarHeader(container) {
@@ -246,10 +260,10 @@ class Scheduler {
         machineName.textContent = displayName;
         machineLabel.appendChild(machineName);
         
-        if (machine.site) {
+        if (machine.work_center || machine.site) {
             const machineCity = document.createElement('div');
             machineCity.className = 'machine-city';
-            machineCity.textContent = machine.site;
+            machineCity.textContent = machine.work_center || machine.site;
             machineLabel.appendChild(machineCity);
         }
         
@@ -274,6 +288,16 @@ class Scheduler {
             timeSlot.className = 'time-slot';
             timeSlot.dataset.hour = hour;
             timeSlot.dataset.machine = this.getMachineDisplayName(machine);
+            
+            // Check if this hour is unavailable for the machine
+            const dateStr = this.formatDate(this.currentDate);
+            const machineName = this.getMachineDisplayName(machine);
+            const unavailableHours = this.storageService.getMachineAvailabilityForDate(machineName, dateStr);
+            if (unavailableHours.includes(hour)) {
+                timeSlot.classList.add('unavailable');
+                timeSlot.style.pointerEvents = 'none'; // Disable drop zone for unavailable slots
+                if (this.DEBUG) console.log(`🔍 Machine ${machineName} unavailable at ${hour}:00 on ${dateStr}`);
+            }
             
             // Setup drop zone
             this.setupSlotDropZone(timeSlot);

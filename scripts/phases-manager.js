@@ -17,13 +17,10 @@ class PhasesManager extends BaseManager {
             
             // Initialize edit functionality
             if (this.editManager) {
-                this.editManager.initTableEdit('.modern-table');
-                // Override saveEdit method
-                this.editManager.saveEdit = (row) => this.saveEdit(row);
-                
-                // Handle delete events
                 const table = document.querySelector('.modern-table');
                 if (table) {
+                    this.editManager.initTableEdit(table);
+                    this.editManager.registerSaveHandler(table, (row) => this.saveEdit(row));
                     table.addEventListener('deleteRow', (e) => {
                         const row = e.detail.row;
                         const phaseId = row.dataset.phaseId;
@@ -41,15 +38,18 @@ class PhasesManager extends BaseManager {
             // Phase Management elements
             phaseName: document.getElementById('phaseName'),
             phaseType: document.getElementById('phaseType'),
+            numeroPersone: document.getElementById('numeroPersone'),
             addPhaseBtn: document.getElementById('addPhaseBtn'),
             printingParams: document.getElementById('printingParams'),
             packagingParams: document.getElementById('packagingParams'),
+            phaseContent: document.getElementById('phaseContent'),
             vStampa: document.getElementById('vStampa'),
             tSetupStampa: document.getElementById('tSetupStampa'),
             costoHStampa: document.getElementById('costoHStampa'),
             vConf: document.getElementById('vConf'),
             tSetupConf: document.getElementById('tSetupConf'),
             costoHConf: document.getElementById('costoHConf'),
+            contenutoFase: document.getElementById('contenutoFase'),
             phasesTableBody: document.getElementById('phases-table-body')
         };
     }
@@ -60,14 +60,14 @@ class PhasesManager extends BaseManager {
             this.elements.addPhaseBtn.addEventListener('click', () => this.handleAddPhase());
         }
 
-        if (this.elements.phaseType) {
-            this.elements.phaseType.addEventListener('change', () => this.handlePhaseTypeChange());
-        }
+        // Department change is handled in setupFormValidation to avoid duplicates
 
         // Phase form validation
         const phaseInputs = [
-            this.elements.phaseName, this.elements.vStampa, this.elements.tSetupStampa, this.elements.costoHStampa,
-            this.elements.vConf, this.elements.tSetupConf, this.elements.costoHConf
+            this.elements.phaseName, this.elements.phaseType, this.elements.numeroPersone,
+            this.elements.vStampa, this.elements.tSetupStampa, this.elements.costoHStampa, 
+            this.elements.vConf, this.elements.tSetupConf, this.elements.costoHConf,
+            this.elements.contenutoFase
         ];
 
         phaseInputs.forEach(input => {
@@ -80,6 +80,16 @@ class PhasesManager extends BaseManager {
 
     setupFormValidation() {
         this.validatePhaseForm();
+        
+        // Also validate when department changes to ensure proper field visibility
+        if (this.elements.phaseType) {
+            this.elements.phaseType.addEventListener('change', () => {
+                this.handlePhaseDepartmentChange();
+                this.validatePhaseForm(); // Re-validate after department change
+            });
+        }
+        
+
     }
 
     loadPhases() {
@@ -90,13 +100,13 @@ class PhasesManager extends BaseManager {
 
     renderPhases(phases) {
         if (!phases || phases.length === 0) {
-            this.elements.phasesTableBody.innerHTML = `
-                <tr>
-                    <td colspan="12" class="text-center" style="padding: 2rem; color: #6b7280;">
-                        No phases found. Add phases to get started.
-                    </td>
-                </tr>
-            `;
+                    this.elements.phasesTableBody.innerHTML = `
+            <tr>
+                <td colspan="13" class="text-center" style="padding: 2rem; color: #6b7280;">
+                    No phases found. Add phases to get started.
+                </td>
+            </tr>
+        `;
             return;
         }
 
@@ -115,22 +125,23 @@ class PhasesManager extends BaseManager {
                     ${this.editManager ? this.editManager.createEditInput('text', phase.id) : ''}
                 </td>
                 <td class="editable-cell" data-field="name">
-                    <span class="static-value">${phase.name || '-'}</span>
+                    <span class="static-value">${Utils.escapeHtml(phase.name || '-')}</span>
                     ${this.editManager ? this.editManager.createEditInput('text', phase.name) : ''}
                 </td>
-                <td class="editable-cell" data-field="type">
+                <td class="editable-cell" data-field="department">
                     <span class="static-value">
                         <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
-                            ${phase.type || '-'}
+                            ${Utils.escapeHtml(phase.department || phase.type || '-')}
                         </span>
                     </span>
-                    ${this.editManager ? this.editManager.createEditInput('select', phase.type, {
+                    ${this.editManager ? this.editManager.createEditInput('select', phase.department || phase.type, {
                         options: [
-                            { value: 'printing', label: 'Printing' },
-                            { value: 'packaging', label: 'Packaging' }
+                            { value: 'STAMPA', label: 'STAMPA' },
+                            { value: 'CONFEZIONAMENTO', label: 'CONFEZIONAMENTO' }
                         ]
                     }) : ''}
                 </td>
+
                 
                 <!-- PRINTING PARAMETERS -->
                 <td class="editable-cell" data-field="V_STAMPA">
@@ -160,6 +171,18 @@ class PhasesManager extends BaseManager {
                     ${this.editManager ? this.editManager.createEditInput('number', phase.COSTO_H_CONF || 0, { min: 0, step: 0.01 }) : ''}
                 </td>
                 
+                <!-- PHASE CONTENT -->
+                <td class="editable-cell" data-field="contenuto_fase">
+                    <span class="static-value">${Utils.escapeHtml(phase.contenuto_fase || '-')}</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', phase.contenuto_fase) : ''}
+                </td>
+                
+                <!-- PEOPLE -->
+                <td class="editable-cell" data-field="numero_persone">
+                    <span class="static-value">${phase.numero_persone || '-'}</span>
+                    ${this.editManager ? this.editManager.createEditInput('number', phase.numero_persone || 1, { min: 1 }) : ''}
+                </td>
+                
                 <!-- TIMESTAMPS -->
                 <td class="editable-cell" data-field="created_at">
                     <span class="static-value">${createdDate}</span>
@@ -178,33 +201,47 @@ class PhasesManager extends BaseManager {
         `;
     }
 
-    handlePhaseTypeChange() {
-        const phaseType = this.elements.phaseType.value;
+    handlePhaseDepartmentChange() {
+        const phaseDepartment = this.elements.phaseType.value;
         
         // Hide all parameter sections
         this.elements.printingParams.style.display = 'none';
         this.elements.packagingParams.style.display = 'none';
+        this.elements.phaseContent.style.display = 'none';
         
         // Show relevant parameter section
-        if (phaseType === 'printing') {
+        if (phaseDepartment === 'STAMPA') {
             this.elements.printingParams.style.display = 'block';
-        } else if (phaseType === 'packaging') {
+        } else if (phaseDepartment === 'CONFEZIONAMENTO') {
             this.elements.packagingParams.style.display = 'block';
+            this.elements.phaseContent.style.display = 'block';
         }
         
         this.validatePhaseForm();
     }
 
     validatePhaseForm() {
-        const baseFields = ['phaseName', 'phaseType'];
+        const baseFields = ['phaseName', 'phaseType', 'numeroPersone'];
         const baseData = {
             phaseName: this.elements.phaseName.value.trim(),
-            phaseType: this.elements.phaseType.value
+            phaseType: this.elements.phaseType.value,
+            numeroPersone: this.elements.numeroPersone.value
         };
+        
+        // Check if numeroPersone is a valid number >= 1
+        const numeroPersoneValid = this.elements.numeroPersone.value && 
+            parseInt(this.elements.numeroPersone.value) >= 1;
+        
+        // Show validation error for numeroPersone if invalid
+        if (!numeroPersoneValid && this.elements.numeroPersone.value) {
+            this.showValidationError('numeroPersone', 'Number of people must be at least 1');
+        } else {
+            this.showValidationError('numeroPersone', '');
+        }
         
         const baseValid = Utils.hasRequiredFields(baseData, baseFields);
         
-        if (this.elements.phaseType.value === 'printing') {
+        if (this.elements.phaseType.value === 'STAMPA') {
             const printingFields = ['vStampa', 'tSetupStampa', 'costoHStampa'];
             const printingData = {
                 vStampa: this.elements.vStampa.value,
@@ -212,8 +249,8 @@ class PhasesManager extends BaseManager {
                 costoHStampa: this.elements.costoHStampa.value
             };
             const printingValid = Utils.hasRequiredFields(printingData, printingFields);
-            this.elements.addPhaseBtn.disabled = !(baseValid && printingValid);
-        } else if (this.elements.phaseType.value === 'packaging') {
+            this.elements.addPhaseBtn.disabled = !(baseValid && printingValid && numeroPersoneValid);
+        } else if (this.elements.phaseType.value === 'CONFEZIONAMENTO') {
             const packagingFields = ['vConf', 'tSetupConf', 'costoHConf'];
             const packagingData = {
                 vConf: this.elements.vConf.value,
@@ -221,7 +258,7 @@ class PhasesManager extends BaseManager {
                 costoHConf: this.elements.costoHConf.value
             };
             const packagingValid = Utils.hasRequiredFields(packagingData, packagingFields);
-            this.elements.addPhaseBtn.disabled = !(baseValid && packagingValid);
+            this.elements.addPhaseBtn.disabled = !(baseValid && packagingValid && numeroPersoneValid);
         } else {
             this.elements.addPhaseBtn.disabled = true;
         }
@@ -271,22 +308,20 @@ class PhasesManager extends BaseManager {
         
         if (!phaseData) {
             this.showValidationError('phaseName', 'Phase name is required');
-            this.showValidationError('phaseType', 'Phase type is required');
+            this.showValidationError('phaseType', 'Department is required');
             return;
         }
 
         // Use consolidated validation for numeric fields
         const validationConfig = {
-            numericFields: phaseData.type === 'printing' ? 
-                ['V_STAMPA', 'T_SETUP_STAMPA', 'COSTO_H_STAMPA'] : 
-                ['V_CONF', 'T_SETUP_CONF', 'COSTO_H_CONF'],
+            numericFields: ['V_STAMPA', 'T_SETUP_STAMPA', 'COSTO_H_STAMPA', 'V_CONF', 'T_SETUP_CONF', 'COSTO_H_CONF'],
             fieldLabels: {
-                            V_STAMPA: 'Printing speed (mt/h)',
-            T_SETUP_STAMPA: 'Printing setup time (h)',
-            COSTO_H_STAMPA: 'Printing hourly cost',
-            V_CONF: 'Packaging speed (pz/h)',
-            T_SETUP_CONF: 'Packaging setup time (h)',
-            COSTO_H_CONF: 'Packaging hourly cost'
+                V_STAMPA: 'Printing speed (mt/h)',
+                T_SETUP_STAMPA: 'Printing setup time (h)',
+                COSTO_H_STAMPA: 'Printing hourly cost',
+                V_CONF: 'Packaging speed (pz/h)',
+                T_SETUP_CONF: 'Packaging setup time (h)',
+                COSTO_H_CONF: 'Packaging hourly cost'
             }
         };
         
@@ -322,26 +357,35 @@ class PhasesManager extends BaseManager {
     }
 
     collectPhaseData() {
-        const phaseType = this.elements.phaseType.value;
+        const phaseDepartment = this.elements.phaseType.value;
         
         const baseData = {
             name: this.elements.phaseName.value.trim(),
-            type: phaseType
+            department: phaseDepartment,
+            numero_persone: parseInt(this.elements.numeroPersone.value) || 1
         };
 
-        if (phaseType === 'printing') {
+        if (phaseDepartment === 'STAMPA') {
             return {
                 ...baseData,
-                V_STAMPA: parseInt(this.elements.vStampa.value),
-                T_SETUP_STAMPA: parseFloat(this.elements.tSetupStampa.value),
-                COSTO_H_STAMPA: parseFloat(this.elements.costoHStampa.value)
+                V_STAMPA: parseFloat(this.elements.vStampa.value) || 0,
+                T_SETUP_STAMPA: parseFloat(this.elements.tSetupStampa.value) || 0,
+                COSTO_H_STAMPA: parseFloat(this.elements.costoHStampa.value) || 0,
+                V_CONF: 0,
+                T_SETUP_CONF: 0,
+                COSTO_H_CONF: 0,
+                contenuto_fase: null
             };
-        } else if (phaseType === 'packaging') {
+        } else if (phaseDepartment === 'CONFEZIONAMENTO') {
             return {
                 ...baseData,
-                V_CONF: parseInt(this.elements.vConf.value),
-                T_SETUP_CONF: parseFloat(this.elements.tSetupConf.value),
-                COSTO_H_CONF: parseFloat(this.elements.costoHConf.value)
+                V_STAMPA: 0,
+                T_SETUP_STAMPA: 0,
+                COSTO_H_STAMPA: 0,
+                V_CONF: parseFloat(this.elements.vConf.value) || 0,
+                T_SETUP_CONF: parseFloat(this.elements.tSetupConf.value) || 0,
+                COSTO_H_CONF: parseFloat(this.elements.costoHConf.value) || 0,
+                contenuto_fase: this.elements.contenutoFase.value.trim()
             };
         }
 
@@ -355,8 +399,10 @@ class PhasesManager extends BaseManager {
         // Reset specific display states
         this.elements.printingParams.style.display = 'none';
         this.elements.packagingParams.style.display = 'none';
+        this.elements.phaseContent.style.display = 'none';
         
         // Set default values for new phases
+        if (this.elements.numeroPersone) this.elements.numeroPersone.value = '1'; // Default people required
         if (this.elements.vStampa) this.elements.vStampa.value = '6000'; // Default printing speed mt/h
         if (this.elements.tSetupStampa) this.elements.tSetupStampa.value = '0.5'; // Default setup time h
         if (this.elements.costoHStampa) this.elements.costoHStampa.value = '50'; // Default hourly cost
@@ -405,7 +451,8 @@ class PhasesManager extends BaseManager {
             const updatedPhase = {
                 ...phase,
                 name: updatedData.name || phase.name,
-                type: updatedData.type || phase.type,
+                department: updatedData.department || phase.department || phase.type,
+                numero_persone: parseInt(updatedData.numero_persone) || phase.numero_persone || 1,
                 V_STAMPA: parseInt(updatedData.V_STAMPA) || phase.V_STAMPA,
                 T_SETUP_STAMPA: parseFloat(updatedData.T_SETUP_STAMPA) || phase.T_SETUP_STAMPA,
                 COSTO_H_STAMPA: parseFloat(updatedData.COSTO_H_STAMPA) || phase.COSTO_H_STAMPA,

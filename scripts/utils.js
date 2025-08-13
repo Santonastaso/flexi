@@ -173,10 +173,39 @@ class Utils {
      */
     static getValidationPatterns() {
         return {
-            articleCode: /^(P0|P9|ISP|BLKC)\w+$/,
+            articleCode: /^(P0|ISP0)\w+$/,
             productionLot: /^AAPU\d{3}$/,
-            odpNumber: /^ODP\d{6}$/
+            // Align with StorageService.generateODPNumber() which returns OP######
+            odpNumber: /^OP\d{6}$/
         };
+    }
+
+    /**
+     * Normalizers for consistent data
+     */
+    static normalizeId(value) {
+        if (value === null || value === undefined) return '';
+        return String(value).trim();
+    }
+
+    static normalizeCode(value) {
+        if (value === null || value === undefined) return '';
+        return String(value).trim().toUpperCase().replace(/\s+/g, '_');
+    }
+
+    static normalizeStatus(value, fallback = 'ACTIVE') {
+        const v = value === undefined || value === null ? fallback : value;
+        return String(v).trim().toUpperCase();
+    }
+
+    static normalizeEnumLower(value) {
+        if (value === null || value === undefined) return '';
+        return String(value).trim().toLowerCase();
+    }
+
+    static normalizeName(value) {
+        if (value === null || value === undefined) return '';
+        return String(value).trim();
     }
 
     /**
@@ -242,6 +271,20 @@ class Utils {
     }
 
     /**
+     * Machine helpers (centralized)
+     */
+    static getMachineDisplayName(machine) {
+        return (machine && machine.machine_name) || 'Unknown Machine';
+    }
+
+    static isActiveMachine(machine) {
+        if (!machine) return false;
+        if (machine.status) return String(machine.status).toUpperCase() === 'ACTIVE';
+        // Legacy: any named machine is considered active
+        return !!machine.machine_name;
+    }
+
+    /**
      * Machine-ODP Compatibility Checker
      * Verifies if a machine is compatible with an ODP order
      */
@@ -287,7 +330,7 @@ class Utils {
         }
 
         // 4. Check machine type vs processing type compatibility
-        const machineType = machine.machine_type || machine.type;
+        const machineType = machine.machine_type;
         const tipoLavorazione = odp.tipo_lavorazione;
         
         if (machineType && tipoLavorazione) {

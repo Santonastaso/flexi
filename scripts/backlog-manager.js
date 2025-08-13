@@ -19,9 +19,10 @@ class BacklogManager extends BaseManager {
         // Initialize edit functionality
         if (this.editManager) {
             // Only initialize edit functionality on the actual data table, not the form
-            this.editManager.initTableEdit('#backlog-table-body');
-            // Override saveEdit method
-            this.editManager.saveEdit = (row) => this.saveEdit(row);
+            const tableBody = document.querySelector('#backlog-table-body');
+            this.editManager.initTableEdit(tableBody);
+            // Register scoped save handler for this table
+            this.editManager.registerSaveHandler(tableBody, (row) => this.saveEdit(row));
             
             // Handle delete events
             const table = document.querySelector('#backlog-table-body');
@@ -47,6 +48,66 @@ class BacklogManager extends BaseManager {
         
         // Set up a periodic check to ensure form fields are always visible
         this.setupFormFieldVisibilityProtection();
+        
+        // Initial status check
+        this.refreshStatusFromGantt();
+        
+        // Listen for Gantt changes to automatically update status
+        window.addEventListener('storage', (e) => {
+            if (e.key && e.key.includes('scheduledEvents')) {
+                // Gantt data changed, refresh status
+                if (window.DEBUG) {
+                    console.log('🔄 Gantt data changed, refreshing statuses...');
+                }
+                setTimeout(() => {
+                    this.refreshStatusFromGantt();
+                    this.autoDetermineStatus(); // Also refresh current form status
+                }, 100);
+            }
+        });
+        
+        // Also listen for custom events from the scheduler
+        window.addEventListener('taskScheduled', () => {
+            if (window.DEBUG) {
+                console.log('🔄 Task scheduled event received, refreshing statuses...');
+            }
+            setTimeout(() => {
+                this.refreshStatusFromGantt();
+                this.autoDetermineStatus();
+            }, 100);
+        });
+        
+        window.addEventListener('taskUnscheduled', () => {
+            if (window.DEBUG) {
+                console.log('🔄 Task unscheduled event received, refreshing statuses...');
+            }
+            setTimeout(() => {
+                this.refreshStatusFromGantt();
+                this.autoDetermineStatus();
+            }, 100);
+        });
+        
+        // Add test button for debugging (remove in production)
+        if (window.DEBUG) {
+            const testBtn = document.createElement('button');
+            testBtn.textContent = 'Test Status';
+            testBtn.onclick = () => this.testStatusAutomation();
+            testBtn.style.position = 'fixed';
+            testBtn.style.top = '10px';
+            testBtn.style.right = '10px';
+            testBtn.style.zIndex = '10000';
+            document.body.appendChild(testBtn);
+            
+            // Add status refresh button
+            const refreshBtn = document.createElement('button');
+            refreshBtn.textContent = 'Refresh Status';
+            refreshBtn.onclick = () => this.refreshAllStatuses();
+            refreshBtn.style.position = 'fixed';
+            refreshBtn.style.top = '50px';
+            refreshBtn.style.right = '10px';
+            refreshBtn.style.zIndex = '10000';
+            document.body.appendChild(refreshBtn);
+        }
     }
 
     getElementMap() {
@@ -56,6 +117,8 @@ class BacklogManager extends BaseManager {
             articleCode: document.getElementById('articleCode'),
             productionLot: document.getElementById('productionLot'),
             workCenter: document.getElementById('workCenter'),
+            nomeCliente: document.getElementById('nomeCliente'),
+            description: document.getElementById('description'),
             
             // SPECIFICHE TECNICHE fields
             bagHeight: document.getElementById('bagHeight'),
@@ -66,8 +129,9 @@ class BacklogManager extends BaseManager {
             quantity: document.getElementById('quantity'),
             
             // PIANIFICAZIONE fields
-            productionStart: document.getElementById('productionStart'),
             deliveryDate: document.getElementById('deliveryDate'),
+            status: document.getElementById('status'),
+            refreshStatusBtn: document.getElementById('refreshStatusBtn'),
             
             // DATI COMMERCIALI fields
             internalCustomerCode: document.getElementById('internalCustomerCode'),
@@ -153,10 +217,26 @@ class BacklogManager extends BaseManager {
             });
         }
         
-        // Auto-generate ODP number on article code change
+        // Auto-generate ODP number and work center on article code change
         if (this.elements.articleCode) {
             this.elements.articleCode.addEventListener('input', () => {
                 this.generateODPNumber();
+                this.autoDetermineWorkCenter();
+            });
+        }
+
+        // Auto-determine status when ODP number changes
+        if (this.elements.odpNumber) {
+            this.elements.odpNumber.addEventListener('input', () => {
+                this.autoDetermineStatus();
+            });
+        }
+
+        // Manual refresh status button
+        if (this.elements.refreshStatusBtn) {
+            this.elements.refreshStatusBtn.addEventListener('click', () => {
+                this.refreshStatusFromGantt();
+                this.autoDetermineStatus(); // Also refresh current form status
             });
         }
         
@@ -219,21 +299,257 @@ class BacklogManager extends BaseManager {
         }
     }
 
+    autoDetermineWorkCenter() {
+        const articleCode = this.elements.articleCode.value.trim().toUpperCase();
+        let workCenter = '';
+        
+        // Auto-determine work center based on article code pattern
+        if (articleCode.startsWith('P05') || articleCode.startsWith('ISP05')) {
+            workCenter = 'BUSTO_GAROLFO';
+        } else {
+            workCenter = 'ZANICA';
+        }
+        
+        // Update the hidden work center field
+        this.elements.workCenter.value = workCenter;
+    }
+
+
+
+    autoDetermineStatus() {
+        const odpNumber = this.elements.odpNumber.value.trim();
+        if (!odpNumber) {
+            this.elements.status.value = '';
+            return;
+        }
+
+        // Debug logging
+        if (window.DEBUG) {
+            console.log('🔍 Auto-determining status for ODP:', odpNumber);
+        }
+
+        // Check if this ODP is scheduled in the Gantt
+        const scheduledEvents = this.storageService.getScheduledEvents();
+        
+        if (window.DEBUG) {
+            console.log('📅 All scheduled events:', scheduledEvents);
+            console.log('🔍 Looking for ODP number:', odpNumber);
+        }
+        
+        // Look for scheduled event by ODP number
+        // Check multiple possible fields where the ODP number might be stored
+        const scheduledEvent = scheduledEvents.find(event => {
+            // Check taskId first (primary field)
+            if (String(event.taskId) === String(odpNumber)) {
+                if (window.DEBUG) console.log('✅ Found by taskId:', event);
+                return true;
+            }
+            
+            // Check if taskTitle contains the ODP number
+            if (event.taskTitle && String(event.taskTitle).includes(odpNumber)) {
+                if (window.DEBUG) console.log('✅ Found by taskTitle:', event);
+                return true;
+            }
+            
+            // Check if there's an odp_number field
+            if (event.odp_number && String(event.odp_number) === String(odpNumber)) {
+                if (window.DEBUG) console.log('✅ Found by odp_number:', event);
+                return true;
+            }
+            
+            return false;
+        });
+        
+        if (scheduledEvent) {
+            this.elements.status.value = 'Scheduled';
+            
+            if (window.DEBUG) {
+                console.log('✅ Status set to: Scheduled for ODP:', odpNumber);
+            }
+        } else {
+            this.elements.status.value = 'Not Scheduled';
+            
+            if (window.DEBUG) {
+                console.log('❌ Status set to: Not Scheduled for ODP:', odpNumber);
+            }
+        }
+    }
+
+    refreshStatusFromGantt() {
+        // Refresh status for all ODP numbers in the backlog
+        const odpOrders = this.storageService.getODPOrders();
+        
+        odpOrders.forEach(order => {
+            // Check if this ODP is scheduled using the same logic as autoDetermineStatus
+            const scheduledEvents = this.storageService.getScheduledEvents();
+            const isScheduled = scheduledEvents.some(event => {
+                // Check taskId first (primary field)
+                if (String(event.taskId) === String(order.odp_number)) return true;
+                
+                // Check if taskTitle contains the ODP number
+                if (event.taskTitle && String(event.taskTitle).includes(order.odp_number)) return true;
+                
+                // Check if there's an odp_number field
+                if (event.odp_number && String(event.odp_number) === String(order.odp_number)) return true;
+                
+                return false;
+            });
+            
+            // Update the order status and production start in storage
+            if (isScheduled && order.status !== 'Scheduled') {
+                order.status = 'Scheduled';
+                
+                // Find the scheduled event to get production start
+                const scheduledEvent = scheduledEvents.find(event => {
+                    if (String(event.taskId) === String(order.odp_number)) return true;
+                    if (event.taskTitle && String(event.taskTitle).includes(order.odp_number)) return true;
+                    if (event.odp_number && String(event.odp_number) === String(order.odp_number)) return true;
+                    return false;
+                });
+                
+                if (scheduledEvent) {
+                    const startDate = new Date(scheduledEvent.date);
+                    const startHour = scheduledEvent.startHour || 0;
+                    startDate.setHours(startHour, 0, 0, 0);
+                    order.production_start = startDate.toISOString();
+                }
+                
+                this.storageService.updateODPOrder(order.id, order);
+                if (window.DEBUG) console.log(`✅ Updated ODP ${order.odp_number} status to: Scheduled and production start to:`, order.production_start);
+            } else if (!isScheduled && order.status !== 'Not Scheduled') {
+                order.status = 'Not Scheduled';
+                order.production_start = null;
+                this.storageService.updateODPOrder(order.id, order);
+                if (window.DEBUG) console.log(`❌ Updated ODP ${order.odp_number} status to: Not Scheduled and production start to: null`);
+            }
+        });
+        
+        // Refresh the backlog display
+        this.loadBacklog();
+    }
+
+    refreshAllStatuses() {
+        // Refresh current form status
+        if (this.elements.odpNumber && this.elements.odpNumber.value.trim()) {
+            this.autoDetermineStatus();
+        }
+        
+        // Refresh all backlog statuses
+        this.refreshStatusFromGantt();
+        
+        if (window.DEBUG) {
+            console.log('🔄 All statuses refreshed');
+        }
+    }
+
+    getProductionStartTimestamp() {
+        const odpNumber = this.elements.odpNumber.value.trim();
+        if (!odpNumber) {
+            return null;
+        }
+
+        // Check if this ODP is scheduled in the Gantt
+        const scheduledEvents = this.storageService.getScheduledEvents();
+        
+        // Look for scheduled event by ODP number
+        const scheduledEvent = scheduledEvents.find(event => {
+            // Check taskId first (primary field)
+            if (String(event.taskId) === String(odpNumber)) return true;
+            
+            // Check if taskTitle contains the ODP number
+            if (event.taskTitle && String(event.taskTitle).includes(odpNumber)) return true;
+            
+            // Check if there's an odp_number field
+            if (event.odp_number && String(event.odp_number) === String(odpNumber)) return true;
+            
+            return false;
+        });
+        
+        if (scheduledEvent) {
+            // Task is scheduled, return the timestamp
+            const startDate = new Date(scheduledEvent.date);
+            const startHour = scheduledEvent.startHour || 0;
+            startDate.setHours(startHour, 0, 0, 0);
+            return startDate.toISOString();
+        } else {
+            // Task is not scheduled
+            return null;
+        }
+    }
+
+    testStatusAutomation() {
+        console.log('🧪 Testing Status Automation...');
+        
+        const odpNumber = this.elements.odpNumber.value.trim();
+        console.log('📝 Current ODP Number:', odpNumber);
+        
+        const scheduledEvents = this.storageService.getScheduledEvents();
+        console.log('📅 All Scheduled Events:', scheduledEvents);
+        
+        if (odpNumber) {
+            // Test the same logic as autoDetermineStatus
+            const scheduledEvent = scheduledEvents.find(event => {
+                // Check taskId first (primary field)
+                if (String(event.taskId) === String(odpNumber)) {
+                    console.log('✅ Found by taskId:', event);
+                    return true;
+                }
+                
+                // Check if taskTitle contains the ODP number
+                if (event.taskTitle && String(event.taskTitle).includes(odpNumber)) {
+                    console.log('✅ Found by taskTitle:', event);
+                    return true;
+                }
+                
+                // Check if there's an odp_number field
+                if (event.odp_number && String(event.odp_number) === String(odpNumber)) {
+                    console.log('✅ Found by odp_number:', event);
+                    return true;
+                }
+                
+                return false;
+            });
+            
+            console.log('🔍 Found Scheduled Event:', scheduledEvent);
+            
+            if (scheduledEvent) {
+                console.log('✅ ODP is scheduled in Gantt');
+            } else {
+                console.log('❌ ODP is NOT scheduled in Gantt');
+            }
+        }
+        
+        // Test with a known ODP number
+        const testODP = 'OP123456';
+        const testEvent = scheduledEvents.find(event => {
+            if (String(event.taskId) === String(testODP)) return true;
+            if (event.taskTitle && String(event.taskTitle).includes(testODP)) return true;
+            if (event.odp_number && String(event.odp_number) === String(testODP)) return true;
+            return false;
+        });
+        console.log(`🧪 Test with ${testODP}:`, testEvent ? 'Found' : 'Not Found');
+        
+        // Test current status
+        if (this.elements.status) {
+            console.log('📊 Current Status Field Value:', this.elements.status.value);
+        }
+    }
+
     updateFaseOptions() {
-        const tipoLavorazione = this.elements.tipoLavorazione.value;
+        const selectedDepartment = this.elements.tipoLavorazione.value;
         const faseSelect = this.elements.fase;
         
         // Clear existing options
         faseSelect.innerHTML = '<option value="">Select fase</option>';
         
-        if (tipoLavorazione) {
-            // Get phases for the selected type
-            const phases = this.storageService.getPhasesByType(tipoLavorazione);
+        if (selectedDepartment) {
+            // Get phases for the selected department
+            const phases = this.storageService.getPhasesByDepartment(selectedDepartment);
             
             phases.forEach(phase => {
                 const option = document.createElement('option');
                 option.value = phase.id;
-                option.textContent = phase.name || `${phase.type} - ${phase.id}`;
+                option.textContent = phase.name || `${phase.department || phase.type} - ${phase.id}`;
                 faseSelect.appendChild(option);
             });
         }
@@ -251,24 +567,26 @@ class BacklogManager extends BaseManager {
     }
 
     validateDates() {
-        const productionStart = this.elements.productionStart.value;
         const deliveryDate = this.elements.deliveryDate.value;
         
         // Clear previous date validation errors
-        this.showValidationError('productionStart', '');
         this.showValidationError('deliveryDate', '');
         
-        // Use utility function for date validation
-        const dateValidation = Utils.validateDateRange(productionStart, deliveryDate);
+        // Only validate delivery date since production start is automatic
+        if (!deliveryDate) {
+            this.showValidationError('deliveryDate', 'Delivery date is required');
+            return false;
+        }
         
-        if (!dateValidation.isValid) {
-            this.elements.productionStart.setCustomValidity('Production start must be before delivery date');
-            this.elements.deliveryDate.setCustomValidity('Delivery date must be after production start');
-            this.showValidationError('productionStart', 'Production start must be before delivery date');
-            this.showValidationError('deliveryDate', 'Delivery date must be after production start');
+        // Validate delivery date is in the future
+        const deliveryDateObj = new Date(deliveryDate);
+        const now = new Date();
+        
+        if (deliveryDateObj <= now) {
+            this.elements.deliveryDate.setCustomValidity('Delivery date must be in the future');
+            this.showValidationError('deliveryDate', 'Delivery date must be in the future');
             return false;
         } else {
-            this.elements.productionStart.setCustomValidity('');
             this.elements.deliveryDate.setCustomValidity('');
         }
         
@@ -309,7 +627,7 @@ class BacklogManager extends BaseManager {
             work_center: workCenter,
             bag_width: bagWidth,
             bag_height: bagHeight,
-            tipo_lavorazione: tipoLavorazione
+            department: tipoLavorazione
         };
         
         // Get machines and check compatibility
@@ -346,8 +664,8 @@ class BacklogManager extends BaseManager {
             
             item.innerHTML = `
                 <div>
-                    <div class="machine-name">${result.machine.machine_name || result.machine.name || result.machine.id}</div>
-                    <div class="machine-type">${result.machine.machine_type || result.machine.type || 'Unknown'}</div>
+                                    <div class="machine-name">${result.machine.machine_name || result.machine.id}</div>
+                <div class="machine-type">${result.machine.machine_type || 'Unknown'}</div>
                     ${result.compatibility.reasons.length > 0 ? 
                         `<div class="compatibility-reasons">${result.compatibility.reasons.join(', ')}</div>` : 
                         ''}
@@ -499,9 +817,11 @@ class BacklogManager extends BaseManager {
         const errorElement = document.getElementById(`${fieldId}-error`);
         const inputElement = this.elements[fieldId];
         
-        console.log(`showValidationError called for ${fieldId} with message: "${message}"`);
-        console.log(`Error element found:`, !!errorElement);
-        console.log(`Input element found:`, !!inputElement);
+        if (window.DEBUG) {
+            console.log(`showValidationError called for ${fieldId} with message: "${message}"`);
+            console.log(`Error element found:`, !!errorElement);
+            console.log(`Input element found:`, !!inputElement);
+        }
         
         if (errorElement) {
             errorElement.textContent = message;
@@ -521,8 +841,10 @@ class BacklogManager extends BaseManager {
                 inputElement.classList.remove('validation-success');
             }
             
-            console.log(`Input element ${fieldId} display style:`, inputElement.style.display);
-            console.log(`Input element ${fieldId} visibility:`, inputElement.style.visibility);
+            if (window.DEBUG) {
+                console.log(`Input element ${fieldId} display style:`, inputElement.style.display);
+                console.log(`Input element ${fieldId} visibility:`, inputElement.style.visibility);
+            }
         }
     }
 
@@ -552,24 +874,19 @@ class BacklogManager extends BaseManager {
             input.style.opacity = '1';
         });
         
-        console.log('ensureFormFieldsVisible called - all form fields should now be visible');
+        if (window.DEBUG) console.log('ensureFormFieldsVisible called - all form fields should now be visible');
     }
     
     setupFormFieldVisibilityProtection() {
-        // Check every 100ms to ensure form fields are always visible
-        setInterval(() => {
-            const formInputs = document.querySelectorAll('.form-group input, .form-group select');
-            formInputs.forEach(input => {
-                if (input.style.display === 'none' || input.style.visibility === 'hidden') {
-                    console.log(`Form field ${input.id} was hidden, restoring visibility`);
-                    input.style.display = 'block';
-                    input.style.visibility = 'visible';
-                    input.style.opacity = '1';
-                }
-            });
-        }, 100);
-        
-        console.log('Form field visibility protection activated');
+        // One-time sanity pass; ongoing enforcement is handled in CSS
+        const formInputs = document.querySelectorAll('.form-group input, .form-group select');
+        formInputs.forEach(input => {
+            if (input.style.display === 'none' || input.style.visibility === 'hidden') {
+                input.style.display = 'block';
+                input.style.visibility = 'visible';
+                input.style.opacity = '1';
+            }
+        });
     }
 
     validateFieldFormats() {
@@ -623,6 +940,8 @@ class BacklogManager extends BaseManager {
             article_code: this.elements.articleCode.value.trim(),
             production_lot: this.elements.productionLot.value.trim(),
             work_center: this.elements.workCenter.value,
+            nome_cliente: this.elements.nomeCliente.value.trim(),
+            description: this.elements.description.value.trim(),
             
             // SPECIFICHE TECNICHE
             bag_height: parseInt(this.elements.bagHeight.value) || 0,
@@ -633,7 +952,7 @@ class BacklogManager extends BaseManager {
             quantity: parseInt(this.elements.quantity.value) || 0,
             
             // PIANIFICAZIONE
-            production_start: this.elements.productionStart.value,
+            production_start: this.getProductionStartTimestamp(),
             delivery_date: this.elements.deliveryDate.value,
             
             // DATI COMMERCIALI
@@ -642,7 +961,7 @@ class BacklogManager extends BaseManager {
             customer_order_ref: this.elements.customerOrderRef.value.trim(),
             
             // DATI LAVORAZIONE
-            tipo_lavorazione: this.elements.tipoLavorazione.value,
+            department: this.elements.tipoLavorazione.value,
             fase: this.elements.fase.value
         };
     }
@@ -651,13 +970,13 @@ class BacklogManager extends BaseManager {
 
         
         // For calculation, we only need the essential fields, not all fields
-        const essentialFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'tipo_lavorazione', 'fase'];
+        const essentialFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'department', 'fase'];
         const essentialData = {
             bag_height: odpData.bag_height,
             bag_width: odpData.bag_width,
             bag_step: odpData.bag_step,
             quantity: odpData.quantity,
-            tipo_lavorazione: odpData.tipo_lavorazione,
+            department: odpData.department,
             fase: odpData.fase
         };
         
@@ -749,7 +1068,7 @@ class BacklogManager extends BaseManager {
         };
 
         // Calculate based on processing type
-        if (odpData.tipo_lavorazione === 'printing') {
+        if (odpData.department === 'STAMPA') {
             // ODP di Stampa calculations
             const vStampa = selectedPhase.V_STAMPA || 0; // mt/h
             const tSetupStampa = selectedPhase.T_SETUP_STAMPA || 0; // hours
@@ -773,7 +1092,7 @@ class BacklogManager extends BaseManager {
                 // costo_ODP_stampa = tempo_ODP_totale_Stampa * costo_orario_fase
                 result.printing.cost = Utils.calculatePrintingCost(tempoODPTotaleStampa, costoHStampa);
                 
-                console.log('Printing ODP Calculation:', {
+                if (window.DEBUG) console.log('Printing ODP Calculation:', {
                     bagStep: odpData.bag_step,
                     quantity: odpData.quantity,
                     mtDaStampare: mtDaStampare,
@@ -784,7 +1103,7 @@ class BacklogManager extends BaseManager {
                     cost: result.printing.cost
                 });
             }
-        } else if (odpData.tipo_lavorazione === 'packaging') {
+        } else if (odpData.department === 'CONFEZIONAMENTO') {
             // ODP di Confezionamento calculations
             const vConf = selectedPhase.V_CONF || 0; // pz/h
             const tSetupConf = selectedPhase.T_SETUP_CONF || 0; // hours
@@ -805,7 +1124,7 @@ class BacklogManager extends BaseManager {
                 // costo_ODP_confezionamento = tempo_ODP_totale * costo_orario_fase
                 result.packaging.cost = Utils.calculatePackagingCost(tempoODPTotale, costoHConf);
                 
-                console.log('Packaging ODP Calculation:', {
+                if (window.DEBUG) console.log('Packaging ODP Calculation:', {
                     quantity: odpData.quantity,
                     vConf: vConf,
                     tempoConfezionamento: tempoConfezionamento,
@@ -820,7 +1139,7 @@ class BacklogManager extends BaseManager {
         result.total.duration = result.printing.totalTime + result.packaging.totalTime;
         result.total.cost = result.printing.cost + result.packaging.cost;
         
-        console.log('Total ODP Calculation:', {
+        if (window.DEBUG) console.log('Total ODP Calculation:', {
             printingProcessingTime: result.printing.processingTime,
             printingSetupTime: result.printing.setupTime,
             printingTotalTime: result.printing.totalTime,
@@ -877,15 +1196,32 @@ class BacklogManager extends BaseManager {
         }
 
         const odpData = this.collectODPFormData();
+        // Normalize key fields so the UI and storage are consistent
+        const normalizedArticle = Utils.normalizeCode(odpData.article_code);
+        const normalizedLot = Utils.normalizeCode(odpData.production_lot);
+        const normalizedWorkCenter = Utils.normalizeCode(odpData.work_center);
+        const normalizedDepartment = Utils.normalizeEnumLower(odpData.department);
+        const normalizedFase = Utils.normalizeId(odpData.fase);
+
+        // Update inputs to reflect normalized values immediately
+        if (this.elements.articleCode) this.elements.articleCode.value = normalizedArticle;
+        if (this.elements.productionLot) this.elements.productionLot.value = normalizedLot;
+        if (this.elements.workCenter) this.elements.workCenter.value = normalizedWorkCenter;
+        if (this.elements.tipoLavorazione) this.elements.tipoLavorazione.value = normalizedDepartment;
+        if (this.elements.fase) this.elements.fase.value = normalizedFase;
         
         // Create ODP order with calculated values
         const odpOrder = {
             ...odpData,
+            article_code: normalizedArticle,
+            production_lot: normalizedLot,
+            work_center: normalizedWorkCenter,
+            department: normalizedDepartment,
+            fase: normalizedFase,
             duration: this.currentCalculation.total.duration,
             cost: this.currentCalculation.total.cost,
-            status: 'DRAFT',
-            title: `${odpData.article_code} - ${odpData.production_lot}`,
-            description: `${odpData.tipo_lavorazione} production order`,
+            status: this.elements.status.value || 'Not Scheduled',
+            production_start: null, // Will be set automatically when scheduled on Gantt
             priority: 'medium'
         };
 
@@ -910,6 +1246,34 @@ class BacklogManager extends BaseManager {
         this.updatePreview(); // Reset preview
     }
 
+    clearFormFields() {
+        // Clear all form fields
+        Object.values(this.elements).forEach(element => {
+            if (element && (element.tagName === 'INPUT' || element.tagName === 'SELECT' || element.tagName === 'TEXTAREA')) {
+                if (element.type === 'checkbox' || element.type === 'radio') {
+                    element.checked = false;
+                } else {
+                    element.value = '';
+                }
+            }
+        });
+        
+        // Reset work center automation
+        this.resetWorkCenterAutomation();
+    }
+
+    resetWorkCenterAutomation() {
+        // Reset work center to empty
+        if (this.elements.workCenter) {
+            this.elements.workCenter.value = '';
+        }
+        
+        // Reset status
+        if (this.elements.status) {
+            this.elements.status.value = '';
+        }
+    }
+
     loadBacklog() {
         const odpOrders = this.storageService.getODPOrders();
         this.renderBacklog(odpOrders);
@@ -924,11 +1288,11 @@ class BacklogManager extends BaseManager {
         
         if (!orders || orders.length === 0) {
             tableBody.innerHTML = `
-                <tr>
-                    <td colspan="32" class="text-center" style="padding: 2rem; color: #6b7280;">
-                        No ODP orders found. Create production orders to get started.
-                    </td>
-                </tr>
+                            <tr>
+                <td colspan="26" class="text-center" style="padding: 2rem; color: #6b7280;">
+                    No ODP orders found. Create production orders to get started.
+                </td>
+            </tr>
             `;
             return;
         }
@@ -1024,11 +1388,11 @@ class BacklogManager extends BaseManager {
                     ${this.editManager.createEditInput('text', order.odp_number)}
                 </td>
                 <td class="editable-cell" data-field="article_code">
-                    <span class="static-value">${order.article_code || '-'}</span>
+                    <span class="static-value">${Utils.escapeHtml(order.article_code || '-')}</span>
                     ${this.editManager.createEditInput('text', order.article_code)}
                 </td>
                 <td class="editable-cell" data-field="production_lot">
-                    <span class="static-value">${order.production_lot || '-'}</span>
+                    <span class="static-value">${Utils.escapeHtml(order.production_lot || '-')}</span>
                     ${this.editManager.createEditInput('text', order.production_lot)}
                 </td>
                 <td class="editable-cell" data-field="work_center">
@@ -1040,13 +1404,13 @@ class BacklogManager extends BaseManager {
                         ]
                     })}
                 </td>
-                <td class="editable-cell" data-field="created_at">
-                    <span class="static-value">${createdDate}</span>
-                    ${this.editManager.createEditInput('datetime-local', order.created_at)}
+                <td class="editable-cell" data-field="nome_cliente">
+                    <span class="static-value">${Utils.escapeHtml(order.nome_cliente || '-')}</span>
+                    ${this.editManager.createEditInput('text', order.nome_cliente)}
                 </td>
-                <td class="editable-cell" data-field="updated_at">
-                    <span class="static-value">${updatedDate}</span>
-                    ${this.editManager.createEditInput('datetime-local', order.updated_at)}
+                <td class="editable-cell" data-field="description">
+                    <span class="static-value">${Utils.escapeHtml(order.description || '-')}</span>
+                    ${this.editManager.createEditInput('text', order.description)}
                 </td>
                 
                 <!-- SPECIFICHE TECNICHE (Technical Specifications) -->
@@ -1094,36 +1458,33 @@ class BacklogManager extends BaseManager {
                     <span class="static-value">${deliveryDate}</span>
                     ${this.editManager.createEditInput('date', order.delivery_date)}
                 </td>
-                <td class="editable-cell" data-field="assigned_phase">
-                    <span class="static-value">${order.assigned_phase || '-'}</span>
-                    ${this.editManager.createEditInput('text', order.assigned_phase)}
-                </td>
+
                 
                 <!-- DATI COMMERCIALI (Commercial Data) -->
                 <td class="editable-cell" data-field="internal_customer_code">
-                    <span class="static-value">${order.internal_customer_code || '-'}</span>
+                    <span class="static-value">${Utils.escapeHtml(order.internal_customer_code || '-')}</span>
                     ${this.editManager.createEditInput('text', order.internal_customer_code)}
                 </td>
                 <td class="editable-cell" data-field="external_customer_code">
-                    <span class="static-value">${order.external_customer_code || '-'}</span>
+                    <span class="static-value">${Utils.escapeHtml(order.external_customer_code || '-')}</span>
                     ${this.editManager.createEditInput('text', order.external_customer_code)}
                 </td>
                 <td class="editable-cell" data-field="customer_order_ref">
-                    <span class="static-value">${order.customer_order_ref || '-'}</span>
+                    <span class="static-value">${Utils.escapeHtml(order.customer_order_ref || '-')}</span>
                     ${this.editManager.createEditInput('text', order.customer_order_ref)}
                 </td>
                 
                 <!-- DATI LAVORAZIONE (Processing Data) -->
-                <td class="editable-cell" data-field="tipo_lavorazione">
+                <td class="editable-cell" data-field="department">
                     <span class="static-value">
                         <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
-                            ${order.tipo_lavorazione || '-'}
+                            ${order.department || order.tipo_lavorazione || '-'}
                         </span>
                     </span>
-                    ${this.editManager.createEditInput('select', order.tipo_lavorazione, {
+                    ${this.editManager.createEditInput('select', order.department || order.tipo_lavorazione, {
                         options: [
-                            { value: 'printing', label: 'Printing' },
-                            { value: 'packaging', label: 'Packaging' }
+                            { value: 'STAMPA', label: 'STAMPA' },
+                            { value: 'CONFEZIONAMENTO', label: 'CONFEZIONAMENTO' }
                         ]
                     })}
                 </td>
@@ -1142,15 +1503,7 @@ class BacklogManager extends BaseManager {
                     ${this.editManager.createEditInput('number', order.cost, { min: 0, step: 0.01 })}
                 </td>
                 
-                <!-- Additional fields for compatibility -->
-                <td class="editable-cell" data-field="title">
-                    <span class="static-value">${order.title || '-'}</span>
-                    ${this.editManager.createEditInput('text', order.title)}
-                </td>
-                <td class="editable-cell" data-field="description">
-                    <span class="static-value">${order.description || '-'}</span>
-                    ${this.editManager.createEditInput('text', order.description)}
-                </td>
+
                 <td class="editable-cell" data-field="priority">
                     <span class="static-value">${order.priority || '-'}</span>
                     ${this.editManager.createEditInput('select', order.priority, {
@@ -1304,25 +1657,27 @@ class BacklogManager extends BaseManager {
             const updatedOrder = {
                 ...task,
                 odp_number: updatedData.odp_number?.trim() || task.odp_number,
-                article_code: updatedData.article_code?.trim() || task.article_code,
-                production_lot: updatedData.production_lot?.trim() || task.production_lot,
-                work_center: updatedData.work_center || task.work_center,
+                article_code: updatedData.article_code ? Utils.normalizeCode(updatedData.article_code) : task.article_code,
+                production_lot: updatedData.production_lot ? Utils.normalizeCode(updatedData.production_lot) : task.production_lot,
+                work_center: updatedData.work_center ? Utils.normalizeCode(updatedData.work_center) : task.work_center,
+                nome_cliente: updatedData.nome_cliente?.trim() || task.nome_cliente,
+                description: updatedData.description?.trim() || task.description,
                 bag_height: parseFloat(updatedData.bag_height) || task.bag_height,
                 bag_width: parseFloat(updatedData.bag_width) || task.bag_width,
                 bag_step: parseFloat(updatedData.bag_step) || task.bag_step,
                 seal_sides: updatedData.seal_sides || task.seal_sides,
-                product_type: updatedData.product_type || task.product_type,
+                product_type: updatedData.product_type ? Utils.normalizeEnumLower(updatedData.product_type) : task.product_type,
                 quantity: parseFloat(updatedData.quantity) || task.quantity,
                 production_start: updatedData.production_start || task.production_start,
                 delivery_date: updatedData.delivery_date || task.delivery_date,
-                internal_customer_code: updatedData.internal_customer_code?.trim() || task.internal_customer_code,
-                external_customer_code: updatedData.external_customer_code?.trim() || task.external_customer_code,
-                customer_order_ref: updatedData.customer_order_ref?.trim() || task.customer_order_ref,
-                tipo_lavorazione: updatedData.tipo_lavorazione || task.tipo_lavorazione,
-                fase: updatedData.fase || task.fase,
+                internal_customer_code: updatedData.internal_customer_code ? Utils.normalizeCode(updatedData.internal_customer_code) : task.internal_customer_code,
+                external_customer_code: updatedData.external_customer_code ? Utils.normalizeCode(updatedData.external_customer_code) : task.external_customer_code,
+                customer_order_ref: updatedData.customer_order_ref ? Utils.normalizeCode(updatedData.customer_order_ref) : task.customer_order_ref,
+                department: updatedData.department ? Utils.normalizeEnumLower(updatedData.department) : task.department || task.tipo_lavorazione,
+                fase: updatedData.fase ? Utils.normalizeId(updatedData.fase) : task.fase,
                 duration: parseFloat(updatedData.duration) || task.duration,
                 cost: parseFloat(updatedData.cost) || task.cost,
-                status: updatedData.status || task.status
+                status: updatedData.status ? Utils.normalizeStatus(updatedData.status) : task.status
             };
 
             // Validate required fields for ODP orders

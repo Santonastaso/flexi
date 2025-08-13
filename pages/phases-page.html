@@ -7,7 +7,7 @@
     
     <!-- External CSS -->
     <link rel="stylesheet" href="../styles/consolidated.css">
-    <link rel="stylesheet" href="../styles/page-specific.css">
+    
 </head>
 <body>
     <div class="page-container">
@@ -28,20 +28,28 @@
                             <span class="validation-error" id="phaseName-error" style="display: none;"></span>
                         </div>
                         <div class="form-group">
-                            <label for="phaseType">Phase Type</label>
+                            <label for="phaseType">Department</label>
                             <select id="phaseType" required>
-                                <option value="">Select type</option>
-                                <option value="printing">Printing</option>
-                                <option value="packaging">Packaging</option>
+                                <option value="">Select department</option>
+                                <option value="STAMPA">STAMPA</option>
+                                <option value="CONFEZIONAMENTO">CONFEZIONAMENTO</option>
                             </select>
                             <span class="validation-error" id="phaseType-error" style="display: none;"></span>
                         </div>
+
+                        <div class="form-group">
+                            <label for="numeroPersone"># People</label>
+                            <input type="number" id="numeroPersone" placeholder="e.g., 2" min="1" required>
+                            <span class="validation-error" id="numeroPersone-error" style="display: none;"></span>
+                        </div>
+
                         <div class="form-group">
                             <label for="addPhaseBtn">Action</label>
                             <button id="addPhaseBtn" class="btn btn-primary" disabled>Add Phase</button>
                         </div>
                     </div>
                     
+
                     <!-- Printing Parameters -->
                     <div id="printingParams" class="form-section" style="display: none;">
                         <h4>Printing Parameters</h4>
@@ -85,6 +93,22 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Phase Content (conditional) -->
+                    <div id="phaseContent" class="form-section" style="display: none;">
+                        <h4>Phase Content</h4>
+                        <div class="form-grid form-grid--3-cols">
+                            <div class="form-group">
+                                <label for="contenutoFase">Phase Content</label>
+                                <textarea id="contenutoFase" placeholder="Describe the phase content..." rows="3"></textarea>
+                                <span class="validation-error" id="contenutoFase-error" style="display: none;"></span>
+                            </div>
+                            <div class="form-group">
+                            </div>
+                            <div class="form-group">
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Phases Table -->
@@ -95,7 +119,7 @@
                                 <!-- IDENTIFICAZIONE (Identification) -->
                                 <th>ID</th>
                                 <th>Phase Name</th>
-                                <th>Type</th>
+                                <th>Department</th>
                                 
                                 <!-- PRINTING PARAMETERS -->
                                 <th>Printing Speed (mt/h)</th>
@@ -106,6 +130,12 @@
                                 <th>Packaging Speed (pz/h)</th>
                                 <th>Packaging Setup (h)</th>
                                 <th>Packaging Cost (€/h)</th>
+                                
+                                <!-- PHASE CONTENT -->
+                                <th>Phase Content</th>
+                                
+                                <!-- PEOPLE -->
+                                <th># People</th>
                                 
                                 <!-- TIMESTAMPS -->
                                 <th>Created At</th>

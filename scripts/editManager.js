@@ -4,6 +4,7 @@
 class EditManager {
     constructor() {
         this.currentEditingRow = null;
+        this.tableSaveHandlers = new WeakMap();
     }
 
     /**
@@ -23,7 +24,12 @@ class EditManager {
             } else if (e.target.classList.contains('btn-save')) {
                 const row = e.target.closest('tr');
                 if (row) {
-                    this.saveEdit(row);
+                    const handler = this.tableSaveHandlers.get(table);
+                    if (typeof handler === 'function') {
+                        handler(row);
+                    } else {
+                        this.saveEdit(row);
+                    }
                 }
             } else if (e.target.classList.contains('btn-cancel')) {
                 const row = e.target.closest('tr');
@@ -41,6 +47,16 @@ class EditManager {
                 }
             }
         });
+    }
+
+    /**
+     * Register a per-table save handler to avoid global overrides
+     */
+    registerSaveHandler(tableOrSelector, handler) {
+        const table = typeof tableOrSelector === 'string' ? document.querySelector(tableOrSelector) : tableOrSelector;
+        if (table && typeof handler === 'function') {
+            this.tableSaveHandlers.set(table, handler);
+        }
     }
 
     /**

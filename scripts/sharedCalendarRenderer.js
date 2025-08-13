@@ -118,13 +118,13 @@ class SharedCalendarRenderer {
      */
     renderMachineRows() {
         return this.machines.map(machine => `
-            <div class="machine-row" data-machine="${machine.name}">
+            <div class="machine-row" data-machine="${machine.machine_name}">
                 <div class="machine-label">
-                    <span class="machine-name">${machine.name}</span>
+                    <span class="machine-name">${machine.machine_name}</span>
                     <small class="machine-city">${machine.city}</small>
                 </div>
                 <div class="machine-slots">
-                    ${this.renderTimeSlots(machine.name)}
+                    ${this.renderTimeSlots(machine.machine_name)}
                 </div>
             </div>
         `).join('');

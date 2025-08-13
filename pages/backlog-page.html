@@ -7,7 +7,7 @@
     
     <!-- External CSS -->
     <link rel="stylesheet" href="../styles/consolidated.css">
-    <link rel="stylesheet" href="../styles/page-specific.css">
+    
 </head>
 <body>
     <div class="page-container">
@@ -27,7 +27,8 @@
                                 <div class="form-grid form-grid--3-cols">
                                     <div class="form-group">
                                         <label for="odpNumber">ODP Number</label>
-                                        <input type="text" id="odpNumber" placeholder="Auto-generated" readonly>
+                                        <input type="text" id="odpNumber" placeholder="e.g., OP123456" required>
+                                        <span class="validation-error" id="odpNumber-error" style="display: none;"></span>
                                     </div>
                                     <div class="form-group">
                                         <label for="articleCode">Article Code</label>
@@ -36,16 +37,22 @@
                                     </div>
                                     <div class="form-group">
                                         <label for="productionLot">Production Lot</label>
-                                        <input type="text" id="productionLot" placeholder="AAPU###" required>
+                                        <input type="text" id="productionLot" placeholder="e.g., AAPU001" required>
                                         <span class="validation-error" id="productionLot-error" style="display: none;"></span>
                                     </div>
-                                    <div class="form-group">
+                                    <div class="form-group" style="display: none;">
                                         <label for="workCenter">Work Center</label>
-                                        <select id="workCenter" required>
-                                            <option value="">Select work center</option>
-                                            <option value="ZANICA">ZANICA</option>
-                                            <option value="BUSTO_GAROLFO">BUSTO GAROLFO</option>
-                                        </select>
+                                        <input type="text" id="workCenter" readonly required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="nomeCliente">Nome Cliente</label>
+                                        <input type="text" id="nomeCliente" placeholder="e.g., Client Name" required>
+                                        <span class="validation-error" id="nomeCliente-error" style="display: none;"></span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="description">Description</label>
+                                        <textarea id="description" placeholder="Describe the order..." rows="2"></textarea>
+                                        <span class="validation-error" id="description-error" style="display: none;"></span>
                                     </div>
                                 </div>
                             </div>
@@ -53,11 +60,14 @@
                             <!-- PIANIFICAZIONE Section -->
                              <div class="form-section">
                                 <h3 class="section-title">📅 Pianificazione</h3>
-                                <div class="form-grid form-grid--2-cols">
+                                <div class="form-grid form-grid--1-col">
                                     <div class="form-group">
-                                        <label for="productionStart">Production Start</label>
-                                        <input type="datetime-local" id="productionStart">
-                                        <span class="validation-error" id="productionStart-error" style="display: none;"></span>
+                                        <label for="status">Status</label>
+                                        <div style="display: flex; gap: 8px; align-items: center;">
+                                            <input type="text" id="status" readonly style="flex: 1;">
+                                            <button type="button" id="refreshStatusBtn" class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">🔄</button>
+                                        </div>
+                                        <small class="form-help">Auto-determined: Scheduled (if in Gantt) or Not Scheduled</small>
                                     </div>
                                     <div class="form-group">
                                         <label for="deliveryDate">Delivery Date</label>
@@ -100,8 +110,9 @@
                                         <label for="productType">Product Type</label>
                                         <select id="productType" required>
                                             <option value="">Select product type</option>
-                                            <option value="LIQUID">Liquid</option>
-                                            <option value="POWDER">Powder</option>
+                                            <option value="crema">Crema</option>
+                                            <option value="liquido">Liquido</option>
+                                            <option value="polveri">Polveri</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
@@ -167,11 +178,11 @@
                                 <h3 class="section-title">⚙️ Dati Lavorazione</h3>
                                 <div class="form-grid form-grid--2-cols">
                                     <div class="form-group">
-                                        <label for="tipoLavorazione">Tipo Lavorazione</label>
+                                        <label for="tipoLavorazione">Department</label>
                                         <select id="tipoLavorazione" required>
-                                            <option value="">Select processing type</option>
-                                            <option value="printing">Printing</option>
-                                            <option value="packaging">Packaging</option>
+                                            <option value="">Select department</option>
+                                            <option value="STAMPA">STAMPA</option>
+                                            <option value="CONFEZIONAMENTO">CONFEZIONAMENTO</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
@@ -235,8 +246,8 @@
                                 <th>Article Code</th>
                                 <th>Production Lot</th>
                                 <th>Work Center</th>
-                                <th>Created At</th>
-                                <th>Updated At</th>
+                                <th>Nome Cliente</th>
+                                <th>Description</th>
                                 
                                 <!-- SPECIFICHE TECNICHE (Technical Specifications) -->
                                 <th>Bag Height (mm)</th>
@@ -249,7 +260,6 @@
                                 <!-- PIANIFICAZIONE (Planning) -->
                                 <th>Production Start</th>
                                 <th>Delivery Date</th>
-                                <th>Assigned Phase</th>
                                 
                                 <!-- DATI COMMERCIALI (Commercial Data) -->
                                 <th>Internal Customer Code</th>
@@ -257,16 +267,14 @@
                                 <th>Customer Order Ref</th>
                                 
                                 <!-- DATI LAVORAZIONE (Processing Data) -->
-                                <th>Tipo Lavorazione</th>
+                                <th>Department</th>
                                 <th>Fase</th>
                                 
                                 <!-- COLONNE DA CALCOLARE (Calculated Columns) -->
                                 <th>Duration (h)</th>
                                 <th>Cost (€)</th>
                                 
-                                <!-- Additional fields for compatibility -->
-                                <th>Title</th>
-                                <th>Description</th>
+                                <!-- Additional fields -->
                                 <th>Priority</th>
                                 <th>Status</th>
                                 <th class="text-center" style="width: 150px;">Actions</th>

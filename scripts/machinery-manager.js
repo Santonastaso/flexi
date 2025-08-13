@@ -25,18 +25,14 @@ class MachineryManager extends BaseManager {
      * @param {Object} machine - Machine object
      * @returns {boolean} - True if machine is available
      */
-    static isActiveMachine(machine) {
-        return machine && machine.status && machine.status.toUpperCase() === 'ACTIVE';
-    }
+    static isActiveMachine(machine) { return Utils.isActiveMachine(machine); }
 
     /**
      * Get display name for machine (with fallback to legacy fields)
      * @param {Object} machine - Machine object
      * @returns {string} - Display name
      */
-    static getMachineDisplayName(machine) {
-        return machine.machine_name || machine.name || machine.nominazione || 'Unknown Machine';
-    }
+    static getMachineDisplayName(machine) { return Utils.getMachineDisplayName(machine); }
 
 
 
@@ -53,26 +49,49 @@ class MachineryManager extends BaseManager {
             
             // Initialize edit functionality
             if (this.editManager) {
-                const machineryTable = document.querySelector('#machinery-table-body').closest('.modern-table');
-                
+                const machineryTable = document.querySelector('#machinery-table-body')?.closest('.modern-table');
                 if (machineryTable) {
                     this.editManager.initTableEdit(machineryTable);
-                }
-                
-                // Override saveEdit method
-                this.editManager.saveEdit = (row) => this.saveEdit(row);
-                
-                // Handle delete events
-                if (machineryTable) {
+                    this.editManager.registerSaveHandler(machineryTable, (row) => this.saveEdit(row));
                     machineryTable.addEventListener('deleteRow', (e) => {
-                            const row = e.detail.row;
-                            const machineId = row.dataset.machineId;
-                            if (machineId) {
-                                this.deleteMachine(machineId);
-                            }
-                        });
-                    }
+                        const row = e.detail.row;
+                        const machineId = row.dataset.machineId;
+                        if (machineId) {
+                            this.deleteMachine(machineId);
+                        }
+                    });
+                }
             }
+            
+            // Initialize changeover field visibility
+            this.updateChangeoverFieldVisibility();
+        }
+    }
+    
+    updateChangeoverFieldVisibility() {
+        const dep = this.elements.machineDepartment?.value;
+        const depKey = (dep || '').toUpperCase();
+        const changeoverColor = document.getElementById('changeoverColor');
+        const changeoverMaterial = document.getElementById('changeoverMaterial');
+        const changeoverColorLabel = changeoverColor?.previousElementSibling;
+        const changeoverMaterialLabel = changeoverMaterial?.previousElementSibling;
+        
+        if (depKey === 'STAMPA') {
+            if (changeoverColor) changeoverColor.style.display = 'block';
+            if (changeoverColorLabel) changeoverColorLabel.style.display = 'block';
+            if (changeoverMaterial) changeoverMaterial.style.display = 'none';
+            if (changeoverMaterialLabel) changeoverMaterialLabel.style.display = 'none';
+        } else if (depKey === 'CONFEZIONAMENTO') {
+            if (changeoverColor) changeoverColor.style.display = 'none';
+            if (changeoverColorLabel) changeoverColorLabel.style.display = 'none';
+            if (changeoverMaterial) changeoverMaterial.style.display = 'block';
+            if (changeoverMaterialLabel) changeoverMaterialLabel.style.display = 'block';
+        } else {
+            // No department selected - hide both
+            if (changeoverColor) changeoverColor.style.display = 'none';
+            if (changeoverColorLabel) changeoverColorLabel.style.display = 'none';
+            if (changeoverMaterial) changeoverMaterial.style.display = 'none';
+            if (changeoverMaterialLabel) changeoverMaterialLabel.style.display = 'none';
         }
     }
 
@@ -81,7 +100,7 @@ class MachineryManager extends BaseManager {
             // IDENTIFICAZIONE elements
             machineType: document.getElementById('machineType'),
             machineName: document.getElementById('machineName'),
-            machineSite: document.getElementById('machineSite'),
+            machineWorkCenter: document.getElementById('machineSite'),
             machineDepartment: document.getElementById('machineDepartment'),
 
             // CAPACITÀ TECNICHE elements
@@ -89,19 +108,15 @@ class MachineryManager extends BaseManager {
             maxWebWidth: document.getElementById('maxWebWidth'),
             minBagHeight: document.getElementById('minBagHeight'),
             maxBagHeight: document.getElementById('maxBagHeight'),
-            maxColors: document.getElementById('maxColors'),
-            supportedMaterials: document.getElementById('supportedMaterials'),
 
             // PERFORMANCE elements
             standardSpeed: document.getElementById('standardSpeed'),
-            efficiencyFactor: document.getElementById('efficiencyFactor'),
             setupTimeStandard: document.getElementById('setupTimeStandard'),
             changeoverColor: document.getElementById('changeoverColor'),
             changeoverMaterial: document.getElementById('changeoverMaterial'),
 
             // DISPONIBILITÀ elements
             activeShifts: document.querySelectorAll('input[type="checkbox"][value^="T"]'),
-            hoursPerShift: document.getElementById('hoursPerShift'),
 
             // Machine Button
             addBtn: document.getElementById('addMachine'),
@@ -116,14 +131,31 @@ class MachineryManager extends BaseManager {
     attachEventListeners() {
         // Add machine button
         this.elements.addBtn.addEventListener('click', () => this.handleAddMachine());
+        // Dynamic machineType options based on department
+        if (this.elements.machineDepartment && this.elements.machineType) {
+            const updateMachineTypes = () => {
+                const dep = this.elements.machineDepartment.value;
+                const typeSelect = this.elements.machineType;
+                const depKey = (dep || '').toUpperCase();
+                const optionsByDep = {
+                    'STAMPA': ['DIGITAL_PRINT', 'FLEXO_PRINT', 'ROTOGRAVURE'],
+                    'CONFEZIONAMENTO': ['DOYPACK', 'PLURI_PIU', 'MONO_PIU']
+                };
+                const list = optionsByDep[depKey] || [];
+                typeSelect.innerHTML = '<option value="">Select machine type</option>' + list.map(value => `<option value="${value}">${value}</option>`).join('');
+                
+                // Show/hide changeover fields based on department
+                this.updateChangeoverFieldVisibility();
+            };
+            this.elements.machineDepartment.addEventListener('change', updateMachineTypes);
+            updateMachineTypes();
+        }
 
         // Form validation for all inputs
         const allInputs = [
             this.elements.machineType, this.elements.machineName, this.elements.machineSite, this.elements.machineDepartment,
             this.elements.minWebWidth, this.elements.maxWebWidth, this.elements.minBagHeight, this.elements.maxBagHeight,
-            this.elements.maxColors, this.elements.standardSpeed, this.elements.efficiencyFactor,
-            this.elements.setupTimeStandard, this.elements.changeoverColor, this.elements.changeoverMaterial,
-            this.elements.hoursPerShift
+            this.elements.standardSpeed, this.elements.setupTimeStandard, this.elements.changeoverColor, this.elements.changeoverMaterial
         ];
 
         allInputs.forEach(input => {
@@ -132,11 +164,6 @@ class MachineryManager extends BaseManager {
             input.addEventListener('change', () => this.validateFormFields());
             }
         });
-
-        // Multi-select validation
-                if (this.elements.supportedMaterials) {
-            this.elements.supportedMaterials.addEventListener('change', () => this.validateFormFields());
-        }
         
         // Checkbox validation for shifts
         this.elements.activeShifts.forEach(checkbox => {
@@ -154,56 +181,28 @@ class MachineryManager extends BaseManager {
 
     validateFormFields() {
         // Check required identification fields
-        const requiredFields = ['machineType', 'machineName', 'machineSite', 'machineDepartment', 'minWebWidth', 'maxWebWidth', 'minBagHeight', 'maxBagHeight', 'maxColors', 'standardSpeed', 'efficiencyFactor', 'setupTimeStandard', 'changeoverColor', 'changeoverMaterial', 'hoursPerShift'];
+        const requiredFields = ['machineType', 'machineName', 'machineWorkCenter', 'machineDepartment', 'maxWebWidth', 'maxBagHeight'];
         
         const fieldData = {
             machineType: this.elements.machineType.value,
             machineName: this.elements.machineName.value.trim(),
-            machineSite: this.elements.machineSite.value,
+            machineWorkCenter: this.elements.machineWorkCenter.value,
             machineDepartment: this.elements.machineDepartment.value,
             minWebWidth: this.elements.minWebWidth.value,
             maxWebWidth: this.elements.maxWebWidth.value,
             minBagHeight: this.elements.minBagHeight.value,
             maxBagHeight: this.elements.maxBagHeight.value,
-            maxColors: this.elements.maxColors.value,
             standardSpeed: this.elements.standardSpeed.value,
-            efficiencyFactor: this.elements.efficiencyFactor.value,
             setupTimeStandard: this.elements.setupTimeStandard.value,
             changeoverColor: this.elements.changeoverColor.value,
-            changeoverMaterial: this.elements.changeoverMaterial.value,
-            hoursPerShift: this.elements.hoursPerShift.value
+            changeoverMaterial: this.elements.changeoverMaterial.value
         };
         
         const hasRequiredFields = Utils.hasRequiredFields(fieldData, requiredFields);
         
         // Check that at least one shift is selected
         const hasShifts = Array.from(this.elements.activeShifts).some(checkbox => checkbox.checked);
-        
         this.elements.addBtn.disabled = !(hasRequiredFields && hasShifts);
-    }
-
-    validateMachineNumericFields(machineData) {
-        const fieldLabels = {
-            min_web_width: 'Minimum web width',
-            max_web_width: 'Maximum web width',
-            min_bag_height: 'Minimum bag height',
-            max_bag_height: 'Maximum bag height',
-            max_colors: 'Maximum colors',
-            standard_speed: 'Standard speed',
-            efficiency_factor: 'Efficiency factor',
-            setup_time_standard: 'Setup time',
-            changeover_color: 'Color changeover time',
-            changeover_material: 'Material changeover time',
-            hours_per_shift: 'Hours per shift'
-        };
-
-        const numericFields = [
-            'min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height', 'max_colors',
-            'standard_speed', 'efficiency_factor', 'setup_time_standard', 'changeover_color',
-            'changeover_material', 'hours_per_shift'
-        ];
-
-        return Utils.validateNumericFields(numericFields, machineData, fieldLabels);
     }
 
     handleAddMachine() {
@@ -216,11 +215,9 @@ class MachineryManager extends BaseManager {
 
         // Use consolidated validation
         const validationConfig = {
-            numericFields: ['maxColors', 'standardSpeed', 'hoursPerShift', 'min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height'],
+            numericFields: ['standardSpeed', 'min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height'],
             fieldLabels: {
-                maxColors: 'Max colors',
                 standardSpeed: 'Standard speed',
-                hoursPerShift: 'Hours per shift',
                 min_web_width: 'Min web width',
                 max_web_width: 'Max web width',
                 min_bag_height: 'Min bag height',
@@ -266,9 +263,6 @@ class MachineryManager extends BaseManager {
     }
 
     collectMachineData() {
-        // Get selected materials
-        const selectedMaterials = Array.from(this.elements.supportedMaterials.selectedOptions).map(option => option.value);
-        
         // Get selected shifts
         const selectedShifts = Array.from(this.elements.activeShifts)
             .filter(checkbox => checkbox.checked)
@@ -276,32 +270,27 @@ class MachineryManager extends BaseManager {
 
         const machineData = {
             // IDENTIFICAZIONE
-            machine_type: this.elements.machineType.value,
-            machine_name: this.elements.machineName.value.trim(),
-            site: this.elements.machineSite.value,
-            department: this.elements.machineDepartment.value,
-            status: 'ACTIVE', // Default to active for new machines
+            machine_type: Utils.normalizeCode(this.elements.machineType.value),
+            machine_name: Utils.normalizeName(this.elements.machineName.value),
+            work_center: Utils.normalizeCode(this.elements.machineWorkCenter.value),
+            department: Utils.normalizeCode(this.elements.machineDepartment.value),
+            status: 'ACTIVE',
             
             // CAPACITÀ TECNICHE
-            min_web_width: parseInt(this.elements.minWebWidth.value),
+            min_web_width: parseInt(this.elements.minWebWidth.value) || null,
             max_web_width: parseInt(this.elements.maxWebWidth.value),
-            min_bag_height: parseInt(this.elements.minBagHeight.value),
+            min_bag_height: parseInt(this.elements.minBagHeight.value) || null,
             max_bag_height: parseInt(this.elements.maxBagHeight.value),
-            max_colors: parseInt(this.elements.maxColors.value),
-            supported_materials: selectedMaterials,
+            // removed fields: max_colors, supported_materials
             
             // PERFORMANCE
-            standard_speed: parseInt(this.elements.standardSpeed.value),
-            efficiency_factor: parseFloat(this.elements.efficiencyFactor.value),
-            setup_time_standard: parseFloat(this.elements.setupTimeStandard.value),
-            changeover_color: parseFloat(this.elements.changeoverColor.value),
-            changeover_material: parseFloat(this.elements.changeoverMaterial.value),
+            standard_speed: parseInt(this.elements.standardSpeed.value) || null,
+            setup_time_standard: parseFloat(this.elements.setupTimeStandard.value) || null,
+            changeover_color: this.elements.machineDepartment.value === 'STAMPA' ? (parseFloat(this.elements.changeoverColor.value) || null) : null,
+            changeover_material: this.elements.machineDepartment.value === 'CONFEZIONAMENTO' ? (parseFloat(this.elements.changeoverMaterial.value) || null) : null,
             
             // DISPONIBILITÀ
-            active_shifts: selectedShifts,
-            hours_per_shift: parseFloat(this.elements.hoursPerShift.value),
-            maintenance_schedule: {},
-            availability_calendar: {}
+            active_shifts: selectedShifts
         };
 
         return machineData;
@@ -314,12 +303,9 @@ class MachineryManager extends BaseManager {
         this.clearFormFields();
 
         // Reset to default values and special cases
-        this.elements.hoursPerShift.value = '8.0';
-        this.elements.efficiencyFactor.value = '0.85';
         this.elements.setupTimeStandard.value = '0.5';
         this.elements.changeoverColor.value = '0.25';
         this.elements.changeoverMaterial.value = '0.75';
-        this.elements.supportedMaterials.selectedIndex = -1;
         
         // Reset checkboxes and set T1 as default
         this.elements.activeShifts.forEach(checkbox => checkbox.checked = false);
@@ -328,6 +314,7 @@ class MachineryManager extends BaseManager {
         }
 
         this.validateFormFields();
+        this.updateChangeoverFieldVisibility();
     }
 
     loadMachinery() {
@@ -343,7 +330,7 @@ class MachineryManager extends BaseManager {
         if (!machines || machines.length === 0) {
             this.elements.machineryTableBody.innerHTML = `
                 <tr>
-                    <td colspan="28" class="text-center" style="padding: 2rem; color: #6b7280;">
+                    <td colspan="22" class="text-center" style="padding: 2rem; color: #6b7280;">
                         No machines available. Add machines to get started.
                     </td>
                 </tr>
@@ -359,7 +346,6 @@ class MachineryManager extends BaseManager {
     createMachineRow(machine) {
         const webWidthRange = `${machine.min_web_width || 0}-${machine.max_web_width || 0}`;
         const bagHeightRange = `${machine.min_bag_height || 0}-${machine.max_bag_height || 0}`;
-        const efficiencyPercent = Math.round((machine.efficiency_factor || 0.85) * 100);
         const createdDate = machine.created_at ? new Date(machine.created_at).toLocaleDateString() : '-';
         const updatedDate = machine.updated_at ? new Date(machine.updated_at).toLocaleDateString() : '-';
         
@@ -377,10 +363,10 @@ class MachineryManager extends BaseManager {
                 <td class="editable-cell" data-field="machine_type">
                     <span class="static-value">
                         <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
-                            ${machine.machine_type || machine.type || '-'}
+                            ${machine.machine_type || '-'}
                         </span>
                     </span>
-                    ${this.editManager ? this.editManager.createEditInput('select', machine.machine_type || machine.type, {
+                    ${this.editManager ? this.editManager.createEditInput('select', machine.machine_type, {
                         options: [
                             { value: 'DIGITAL_PRINT', label: 'Digital Print' },
                             { value: 'FLEXO_PRINT', label: 'Flexo Print' },
@@ -394,9 +380,9 @@ class MachineryManager extends BaseManager {
                     <span class="static-value">${displayName || '-'}</span>
                     ${this.editManager ? this.editManager.createEditInput('text', displayName) : ''}
                 </td>
-                <td class="editable-cell" data-field="site">
-                    <span class="static-value">${machine.site || '-'}</span>
-                    ${this.editManager ? this.editManager.createEditInput('select', machine.site, {
+                <td class="editable-cell" data-field="work_center">
+                    <span class="static-value">${machine.work_center || machine.site || '-'}</span>
+                    ${this.editManager ? this.editManager.createEditInput('select', machine.work_center || machine.site, {
                         options: [
                             { value: 'ZANICA', label: 'ZANICA' },
                             { value: 'BUSTO_GAROLFO', label: 'BUSTO GAROLFO' }
@@ -442,24 +428,14 @@ class MachineryManager extends BaseManager {
                     <span class="static-value">${machine.max_bag_height || 0}</span>
                     ${this.editManager ? this.editManager.createEditInput('number', machine.max_bag_height || 0, { min: 0 }) : ''}
                 </td>
-                <td class="editable-cell" data-field="supported_materials">
-                    <span class="static-value">${Array.isArray(machine.supported_materials) ? machine.supported_materials.join(', ') : machine.supported_materials || '-'}</span>
-                    ${this.editManager ? this.editManager.createEditInput('text', Array.isArray(machine.supported_materials) ? machine.supported_materials.join(', ') : machine.supported_materials) : ''}
-                </td>
-                <td class="editable-cell" data-field="max_colors">
-                    <span class="static-value">${machine.max_colors || 0}</span>
-                    ${this.editManager ? this.editManager.createEditInput('number', machine.max_colors || 0, { min: 1, max: 12 }) : ''}
-                </td>
+
                 
                 <!-- PERFORMANCE -->
                 <td class="editable-cell" data-field="standard_speed">
                     <span class="static-value">${machine.standard_speed || 0}</span>
                     ${this.editManager ? this.editManager.createEditInput('number', machine.standard_speed || 0, { min: 1 }) : ''}
                 </td>
-                <td class="editable-cell" data-field="efficiency_factor">
-                    <span class="static-value">${efficiencyPercent}%</span>
-                    ${this.editManager ? this.editManager.createEditInput('number', machine.efficiency_factor || 0.85, { min: 0, max: 1, step: 0.01 }) : ''}
-                </td>
+
                 <td class="editable-cell" data-field="setup_time_standard">
                     <span class="static-value">${machine.setup_time_standard || 0} h</span>
                     ${this.editManager ? this.editManager.createEditInput('number', machine.setup_time_standard || 0, { min: 0, step: 0.1 }) : ''}
@@ -478,24 +454,9 @@ class MachineryManager extends BaseManager {
                     <span class="static-value">${Array.isArray(machine.active_shifts) ? machine.active_shifts.join(', ') : machine.active_shifts || '-'}</span>
                     ${this.editManager ? this.editManager.createEditInput('text', Array.isArray(machine.active_shifts) ? machine.active_shifts.join(', ') : machine.active_shifts) : ''}
                 </td>
-                <td class="editable-cell" data-field="hours_per_shift">
-                    <span class="static-value">${machine.hours_per_shift || 8.0}h</span>
-                    ${this.editManager ? this.editManager.createEditInput('number', machine.hours_per_shift || 8.0, { min: 1, max: 24, step: 0.5 }) : ''}
-                </td>
+
                 
-                <!-- Additional fields for compatibility -->
-                <td class="editable-cell" data-field="name">
-                    <span class="static-value">${machine.name || '-'}</span>
-                    ${this.editManager ? this.editManager.createEditInput('text', machine.name) : ''}
-                </td>
-                <td class="editable-cell" data-field="nominazione">
-                    <span class="static-value">${machine.nominazione || '-'}</span>
-                    ${this.editManager ? this.editManager.createEditInput('text', machine.nominazione) : ''}
-                </td>
-                <td class="editable-cell" data-field="type">
-                    <span class="static-value">${machine.type || '-'}</span>
-                    ${this.editManager ? this.editManager.createEditInput('text', machine.type) : ''}
-                </td>
+
                 <td class="editable-cell" data-field="created_at">
                     <span class="static-value">${createdDate}</span>
                     ${this.editManager ? this.editManager.createEditInput('datetime-local', machine.created_at) : ''}
@@ -507,8 +468,8 @@ class MachineryManager extends BaseManager {
                 
                 <!-- Actions -->
                 <td class="text-center">
-                    <a href="machine-settings-page.html?machine=${encodeURIComponent(machine.machine_name || machine.name)}" 
-                       class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
+                                           <a href="machine-settings-page.html?machine=${encodeURIComponent(machine.machine_name)}" 
+                       class="btn btn-secondary btn-small">
                         📅
                     </a>
                 </td>
@@ -554,7 +515,7 @@ class MachineryManager extends BaseManager {
     }
 
     createPrintingMachineRow(machine) {
-        const encodedName = encodeURIComponent(machine.name || machine.nominazione);
+        const encodedName = encodeURIComponent(machine.machine_name);
         
         return `
             <tr data-machine-id="${machine.id}">
@@ -562,12 +523,12 @@ class MachineryManager extends BaseManager {
                     <span class="static-value"><strong>${machine.numeroMacchina}</strong></span>
                     ${this.editManager ? this.editManager.createEditInput('text', machine.numeroMacchina) : ''}
                 </td>
-                <td class="editable-cell" data-field="nominazione">
-                    <span class="static-value">${machine.nominazione}</span>
-                    ${this.editManager ? this.editManager.createEditInput('text', machine.nominazione) : ''}
+                <td class="editable-cell" data-field="machine_name">
+                    <span class="static-value">${Utils.escapeHtml(machine.machine_name || machine.nominazione || '')}</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', machine.machine_name || machine.nominazione) : ''}
                 </td>
                 <td class="editable-cell" data-field="city">
-                    <span class="static-value">${machine.city}</span>
+                    <span class="static-value">${Utils.escapeHtml(machine.city || '')}</span>
                     ${this.editManager ? this.editManager.createEditInput('select', machine.city, {
                         options: [
                             { value: 'Milan', label: 'Milan' },
@@ -585,7 +546,7 @@ class MachineryManager extends BaseManager {
                 </td>
                 <td class="editable-cell" data-field="live">
                     <span class="static-value">
-                        <span class="btn ${machine.live ? 'btn-primary' : 'btn-secondary'}" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
+                        <span class="btn ${machine.live ? 'btn-primary' : 'btn-secondary'} btn-small">
                             ${machine.live ? 'Yes' : 'No'}
                         </span>
                     </span>
@@ -609,7 +570,7 @@ class MachineryManager extends BaseManager {
     }
 
     createPackagingMachineRow(machine) {
-        const encodedName = encodeURIComponent(machine.name || machine.nominazione);
+        const encodedName = encodeURIComponent(machine.machine_name);
         
         return `
             <tr data-machine-id="${machine.id}">
@@ -617,9 +578,9 @@ class MachineryManager extends BaseManager {
                     <span class="static-value"><strong>${machine.numeroMacchina}</strong></span>
                     ${this.editManager ? this.editManager.createEditInput('text', machine.numeroMacchina) : ''}
                 </td>
-                <td class="editable-cell" data-field="nominazione">
-                    <span class="static-value">${machine.nominazione}</span>
-                    ${this.editManager ? this.editManager.createEditInput('text', machine.nominazione) : ''}
+                <td class="editable-cell" data-field="machine_name">
+                    <span class="static-value">${machine.machine_name || machine.nominazione || ''}</span>
+                    ${this.editManager ? this.editManager.createEditInput('text', machine.machine_name || machine.nominazione) : ''}
                 </td>
                 <td class="editable-cell" data-field="city">
                     <span class="static-value">${machine.city}</span>
@@ -631,11 +592,11 @@ class MachineryManager extends BaseManager {
                     }) : ''}
                 </td>
                 <td class="editable-cell" data-field="tipologiaMateriale">
-                    <span class="static-value">${machine.tipologiaMateriale}</span>
+                    <span class="static-value">${Utils.escapeHtml(machine.tipologiaMateriale || '')}</span>
                     ${this.editManager ? this.editManager.createEditInput('text', machine.tipologiaMateriale) : ''}
                 </td>
                 <td class="editable-cell" data-field="erogazione">
-                    <span class="static-value">${machine.erogazione}</span>
+                    <span class="static-value">${Utils.escapeHtml(machine.erogazione || '')}</span>
                     ${this.editManager ? this.editManager.createEditInput('text', machine.erogazione) : ''}
                 </td>
                 <td class="editable-cell" data-field="passo">
@@ -648,7 +609,7 @@ class MachineryManager extends BaseManager {
                 </td>
                 <td class="editable-cell" data-field="produzioneGemellare">
                     <span class="static-value">
-                        <span class="btn ${machine.produzioneGemellare ? 'btn-primary' : 'btn-secondary'}" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
+                        <span class="btn ${machine.produzioneGemellare ? 'btn-primary' : 'btn-secondary'} btn-small">
                             ${machine.produzioneGemellare ? 'Yes' : 'No'}
                         </span>
                     </span>
@@ -661,7 +622,7 @@ class MachineryManager extends BaseManager {
                 </td>
                 <td class="editable-cell" data-field="live">
                     <span class="static-value">
-                        <span class="btn ${machine.live ? 'btn-primary' : 'btn-secondary'}" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
+                        <span class="btn ${machine.live ? 'btn-primary' : 'btn-secondary'} btn-small">
                             ${machine.live ? 'Yes' : 'No'}
                         </span>
                     </span>
@@ -691,7 +652,7 @@ class MachineryManager extends BaseManager {
 
     deleteMachine(machineId) {
         const machine = this.storageService.getMachines().find(m => m.id === machineId);
-        const machineName = machine ? (machine.name || machine.nominazione) : 'this machine';
+        const machineName = machine ? machine.machine_name : 'this machine';
         
         try {
             // Check if machine can be deleted (not scheduled)
@@ -716,7 +677,7 @@ class MachineryManager extends BaseManager {
     }
 
     saveEdit(row) {
-        console.log('saveEdit called with row:', row);
+        if (window.DEBUG) console.log('saveEdit called with row:', row);
         const machineId = row.dataset.machineId;
         if (!machineId) {
             console.error('No machine ID found in row');
@@ -724,36 +685,29 @@ class MachineryManager extends BaseManager {
         }
 
         // Use consolidated validation for edit row
-        console.log('About to call validateEditRow with:', {
+        if (window.DEBUG) console.log('About to call validateEditRow with:', {
             row,
             requiredFields: ['machine_name'],
-            numericFields: ['machine_id', 'max_colors', 'standard_speed', 'efficiency_factor', 'setup_time_standard', 'changeover_color', 'changeover_material', 'hours_per_shift'],
+            numericFields: ['standard_speed', 'setup_time_standard', 'changeover_color', 'changeover_material'],
             fieldLabels: {
                 machine_name: 'Machine name',
-                machine_id: 'Machine ID',
-                max_colors: 'Max colors',
                 standard_speed: 'Standard speed',
-                efficiency_factor: 'Efficiency factor',
                 setup_time_standard: 'Setup time standard',
                 changeover_color: 'Color changeover time',
-                changeover_material: 'Material changeover time',
-                hours_per_shift: 'Hours per shift'
+                changeover_material: 'Material changeover time'
             }
         });
         
         const updatedData = this.validateEditRow(
             row,
             ['machine_name'], // Required fields
-            ['max_colors', 'standard_speed', 'efficiency_factor', 'setup_time_standard', 'changeover_color', 'changeover_material', 'hours_per_shift'], // Numeric fields
+            ['standard_speed', 'setup_time_standard', 'changeover_color', 'changeover_material'], // Numeric fields
             {
                 machine_name: 'Machine name',
-                max_colors: 'Max colors',
                 standard_speed: 'Standard speed',
-                efficiency_factor: 'Efficiency factor',
                 setup_time_standard: 'Setup time standard',
                 changeover_color: 'Color changeover time',
-                changeover_material: 'Material changeover time',
-                hours_per_shift: 'Hours per shift'
+                changeover_material: 'Material changeover time'
             }
         );
         
@@ -770,7 +724,7 @@ class MachineryManager extends BaseManager {
                 return;
             }
             
-            console.log('Processing machine update:', {
+            if (window.DEBUG) console.log('Processing machine update:', {
                 machineId,
                 currentMachine: machine,
                 updatedData: updatedData
@@ -781,20 +735,18 @@ class MachineryManager extends BaseManager {
                 ...machine,
                 // New field names
                 machine_name: updatedData.machine_name ? updatedData.machine_name.trim() : machine.machine_name,
-                machine_type: updatedData.machine_type || machine.machine_type || machine.type, // Prevent null
-                site: updatedData.site || machine.site,
+                machine_type: updatedData.machine_type || machine.machine_type, // Prevent null
+                work_center: updatedData.work_center || machine.work_center || machine.site,
                 department: updatedData.department || machine.department,
-                max_colors: updatedData.max_colors ? parseInt(updatedData.max_colors) || machine.max_colors : machine.max_colors,
                 standard_speed: updatedData.standard_speed ? parseInt(updatedData.standard_speed) || machine.standard_speed : machine.standard_speed,
-                efficiency_factor: updatedData.efficiency_factor ? parseFloat(updatedData.efficiency_factor) || machine.efficiency_factor : machine.efficiency_factor,
                 status: updatedData.status || machine.status,
                 
                 // Legacy field names for backward compatibility
                 name: updatedData.machine_name ? updatedData.machine_name.trim() : machine.machine_name,
                 nominazione: updatedData.machine_name ? updatedData.machine_name.trim() : machine.machine_name,
-                type: updatedData.machine_type || machine.machine_type || machine.type, // Prevent null
+                type: updatedData.machine_type || machine.machine_type, // Prevent null
                 numeroMacchina: updatedData.machine_id || machine.machine_id || machine.numeroMacchina,
-                city: updatedData.site || machine.site || machine.city,
+                work_center: updatedData.work_center || machine.work_center || machine.site || machine.city,
                 live: updatedData.status === 'active' ? true : (updatedData.status === 'inactive' ? false : machine.live)
             };
 
@@ -811,7 +763,7 @@ class MachineryManager extends BaseManager {
                 if (!isNaN(maxHeight)) updatedMachine.max_bag_height = maxHeight;
             }
             
-            console.log('Final updated machine object:', updatedMachine);
+            if (window.DEBUG) console.log('Final updated machine object:', updatedMachine);
 
 
 

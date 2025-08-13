@@ -48,7 +48,7 @@ class Navigation {
                 </div>
             </div>
             
-            <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+            <button class="mobile-menu-toggle" type="button" aria-label="Toggle navigation" onclick="toggleSidebar()">
                 <span style="font-size: 20px;">☰</span>
             </button>
         `;

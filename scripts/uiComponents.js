@@ -47,30 +47,7 @@ class UIComponents {
         }
     }
 
-    /**
-     * Create action buttons
-     */
-    static createActionButtons(editCallback, deleteCallback, saveCallback = null, cancelCallback = null) {
-        const buttons = [];
-        
-        if (editCallback) {
-            buttons.push(`<button class="btn-edit" onclick="${editCallback}">Edit</button>`);
-        }
-        
-        if (deleteCallback) {
-            buttons.push(`<button class="btn-delete" onclick="${deleteCallback}">Delete</button>`);
-        }
-        
-        if (saveCallback) {
-            buttons.push(`<button class="btn-save" onclick="${saveCallback}">Save</button>`);
-        }
-        
-        if (cancelCallback) {
-            buttons.push(`<button class="btn-cancel" onclick="${cancelCallback}">Cancel</button>`);
-        }
-        
-        return `<div class="action-buttons">${buttons.join('')}</div>`;
-    }
+    // Note: Action buttons are provided by EditManager.createActionButtons()
 
     /**
      * Create form field

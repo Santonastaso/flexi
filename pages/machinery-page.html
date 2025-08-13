@@ -7,7 +7,7 @@
     
     <!-- External CSS -->
     <link rel="stylesheet" href="../styles/consolidated.css">
-    <link rel="stylesheet" href="../styles/page-specific.css">
+    
 </head>
 <body>
     <div class="page-container">
@@ -21,16 +21,20 @@
                 <!-- IDENTIFICAZIONE Section -->
                 <div class="form-section">
                     <h3 class="section-title">🏷️ Identificazione</h3>
-                    <div class="form-grid form-grid--3-cols">
+                    <div class="form-grid form-grid--4-cols">
+                        <div class="form-group">
+                            <label for="machineDepartment">Department</label>
+                            <select id="machineDepartment" required>
+                                <option value="">Select department</option>
+                                <option value="STAMPA">STAMPA</option>
+                                <option value="CONFEZIONAMENTO">CONFEZIONAMENTO</option>
+                            </select>
+                            <span class="validation-error" id="machineDepartment-error" style="display: none;"></span>
+                        </div>
                         <div class="form-group">
                             <label for="machineType">Machine Type</label>
                             <select id="machineType" required>
                                 <option value="">Select machine type</option>
-                                <option value="DIGITAL_PRINT">Digital Print</option>
-                                <option value="FLEXO_PRINT">Flexo Print</option>
-                                <option value="ROTOGRAVURE">Rotogravure</option>
-                                <option value="PACKAGING">Packaging</option>
-                                <option value="DOYPACK">Doypack</option>
                             </select>
                             <span class="validation-error" id="machineType-error" style="display: none;"></span>
                         </div>
@@ -40,22 +44,13 @@
                             <span class="validation-error" id="machineName-error" style="display: none;"></span>
                         </div>
                         <div class="form-group">
-                            <label for="machineSite">Site</label>
+                            <label for="machineSite">Work Center</label>
                             <select id="machineSite" required>
-                                <option value="">Select site</option>
+                                <option value="">Select work center</option>
                                 <option value="ZANICA">ZANICA</option>
                                 <option value="BUSTO_GAROLFO">BUSTO GAROLFO</option>
                             </select>
                             <span class="validation-error" id="machineSite-error" style="display: none;"></span>
-                        </div>
-                        <div class="form-group">
-                            <label for="machineDepartment">Department</label>
-                            <select id="machineDepartment" required>
-                                <option value="">Select department</option>
-                                <option value="STAMPA">STAMPA</option>
-                                <option value="CONFEZIONAMENTO">CONFEZIONAMENTO</option>
-                            </select>
-                            <span class="validation-error" id="machineDepartment-error" style="display: none;"></span>
                         </div>
                     </div>
                 </div>
@@ -66,7 +61,7 @@
                     <div class="form-grid form-grid--3-cols">
                         <div class="form-group">
                             <label for="minWebWidth">Min Web Width (mm)</label>
-                            <input type="number" id="minWebWidth" placeholder="e.g., 100" min="0" required>
+                            <input type="number" id="minWebWidth" placeholder="e.g., 100" min="0">
                             <span class="validation-error" id="minWebWidth-error" style="display: none;"></span>
                         </div>
                         <div class="form-group">
@@ -85,20 +80,6 @@
                             <span class="validation-error" id="maxBagHeight-error" style="display: none;"></span>
                         </div>
                         <div class="form-group">
-                            <label for="maxColors">Max Colors</label>
-                            <input type="number" id="maxColors" placeholder="e.g., 4" min="0" max="12" required>
-                            <span class="validation-error" id="maxColors-error" style="display: none;"></span>
-                        </div>
-                        <div class="form-group">
-                            <label for="supportedMaterials">Supported Materials</label>
-                            <select id="supportedMaterials" multiple>
-                                <option value="DUPLEX">DUPLEX</option>
-                                <option value="TRIPLEX">TRIPLEX</option>
-                                <option value="ALU">ALU</option>
-                                <option value="MONO">MONO</option>
-                                <option value="PAPER">PAPER</option>
-                                <option value="PLASTIC">PLASTIC</option>
-                            </select>
                         </div>
                     </div>
                 </div>
@@ -109,27 +90,22 @@
                     <div class="form-grid form-grid--3-cols">
                         <div class="form-group">
                             <label for="standardSpeed">Standard Speed</label>
-                            <input type="number" id="standardSpeed" placeholder="pz/h or mt/h" min="0" required>
+                            <input type="number" id="standardSpeed" placeholder="pz/h or mt/h" min="0">
                             <span class="validation-error" id="standardSpeed-error" style="display: none;"></span>
                         </div>
                         <div class="form-group">
-                            <label for="efficiencyFactor">Efficiency Factor</label>
-                            <input type="number" id="efficiencyFactor" placeholder="e.g., 0.85" min="0" max="1" step="0.01" required>
-                            <span class="validation-error" id="efficiencyFactor-error" style="display: none;"></span>
-                        </div>
-                        <div class="form-group">
                             <label for="setupTimeStandard">Setup Time Standard (h)</label>
-                            <input type="number" id="setupTimeStandard" placeholder="e.g., 0.5" min="0" step="0.1" required>
+                            <input type="number" id="setupTimeStandard" placeholder="e.g., 0.5" min="0" step="0.1">
                             <span class="validation-error" id="setupTimeStandard-error" style="display: none;"></span>
                         </div>
                         <div class="form-group">
                             <label for="changeoverColor">Color Changeover (h)</label>
-                            <input type="number" id="changeoverColor" placeholder="e.g., 0.25" min="0" step="0.1" required>
+                            <input type="number" id="changeoverColor" placeholder="e.g., 0.25" min="0" step="0.1" style="display: none;">
                             <span class="validation-error" id="changeoverColor-error" style="display: none;"></span>
                         </div>
                         <div class="form-group">
                             <label for="changeoverMaterial">Material Changeover (h)</label>
-                            <input type="number" id="changeoverMaterial" placeholder="e.g., 0.75" min="0" step="0.1" required>
+                            <input type="number" id="changeoverMaterial" placeholder="e.g., 0.75" min="0" step="0.1" style="display: none;">
                             <span class="validation-error" id="changeoverMaterial-error" style="display: none;"></span>
                         </div>
                     </div>
@@ -148,9 +124,6 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="hoursPerShift">Hours per Shift</label>
-                            <input type="number" id="hoursPerShift" placeholder="e.g., 8.0" min="0" max="24" step="0.5" value="8.0" required>
-                            <span class="validation-error" id="hoursPerShift-error" style="display: none;"></span>
                         </div>
                     </div>
                 </div>
@@ -171,7 +144,7 @@
                                 <th>Machine ID</th>
                                 <th>Machine Type</th>
                                 <th>Machine Name</th>
-                                <th>Site</th>
+                                <th>Work Center</th>
                                 <th>Department</th>
                                 <th>Status</th>
                                 
@@ -180,24 +153,17 @@
                                 <th>Max Web Width (mm)</th>
                                 <th>Min Bag Height (mm)</th>
                                 <th>Max Bag Height (mm)</th>
-                                <th>Supported Materials</th>
-                                <th>Max Colors</th>
                                 
                                 <!-- PERFORMANCE -->
                                 <th>Standard Speed</th>
-                                <th>Efficiency Factor</th>
                                 <th>Setup Time Standard (h)</th>
                                 <th>Color Changeover (h)</th>
                                 <th>Material Changeover (h)</th>
                                 
                                 <!-- DISPONIBILITÀ (Availability) -->
                                 <th>Active Shifts</th>
-                                <th>Hours per Shift</th>
                                 
                                 <!-- Additional fields for compatibility -->
-                                <th>Name</th>
-                                <th>Nominazione</th>
-                                <th>Type</th>
                                 <th>Created At</th>
                                 <th>Updated At</th>
                                 <th class="text-center" style="width: 80px;">Calendar</th>

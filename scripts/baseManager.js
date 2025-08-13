@@ -14,7 +14,7 @@ class BaseManager {
      */
     init(elementMap) {
         if (this.bindElements(elementMap)) {
-            this.attachEventListeners();
+            this.attachEventListeners(); // idempotent expectation
             this.renderData();
             return true;
         }
@@ -172,78 +172,9 @@ class BaseManager {
         });
     }
 
-    /**
-     * Create action buttons for tables
-     */
-    createActionButtons(editCallback, deleteCallback, saveCallback = null, cancelCallback = null) {
-        const editBtn = `<button class="btn-edit" onclick="${editCallback}">Edit</button>`;
-        const deleteBtn = `<button class="btn-delete" onclick="${deleteCallback}">Delete</button>`;
-        
-        let buttons = `${editBtn} ${deleteBtn}`;
-        
-        if (saveCallback && cancelCallback) {
-            const saveBtn = `<button class="btn-save" onclick="${saveCallback}">Save</button>`;
-            const cancelBtn = `<button class="btn-cancel" onclick="${cancelCallback}">Cancel</button>`;
-            buttons += ` ${saveBtn} ${cancelBtn}`;
-        }
-        
-        return `<div class="action-buttons">${buttons}</div>`;
-    }
+    // Note: Action buttons are provided by EditManager.createActionButtons()
 
-    /**
-     * Handle table click events with delegation
-     */
-    handleTableClick(e, tableBody) {
-        if (e.target.classList.contains('btn-edit')) {
-            const row = e.target.closest('tr');
-            if (row) {
-                this.handleEdit(row);
-            }
-        } else if (e.target.classList.contains('btn-delete')) {
-            const row = e.target.closest('tr');
-            if (row) {
-                this.handleDelete(row);
-            }
-        } else if (e.target.classList.contains('btn-save')) {
-            const row = e.target.closest('tr');
-            if (row) {
-                this.handleSave(row);
-            }
-        } else if (e.target.classList.contains('btn-cancel')) {
-            const row = e.target.closest('tr');
-            if (row) {
-                this.handleCancel(row);
-            }
-        }
-    }
-
-    /**
-     * Handle edit action - to be overridden
-     */
-    handleEdit(row) {
-        // Override in subclasses
-    }
-
-    /**
-     * Handle delete action - to be overridden
-     */
-    handleDelete(row) {
-        // Override in subclasses
-    }
-
-    /**
-     * Handle save action - to be overridden
-     */
-    handleSave(row) {
-        // Override in subclasses
-    }
-
-    /**
-     * Handle cancel action - to be overridden
-     */
-    handleCancel(row) {
-        // Override in subclasses
-    }
+    // Note: table click/edit handling is provided by EditManager
 
     /**
      * Consolidated validation for forms with required fields, numeric validation, and relationships
