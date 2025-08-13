@@ -255,7 +255,7 @@ class ViewManager {
         
         const current = new Date(start_date);
         while (current <= end_date) {
-            const date_str = this.format_date(current);
+            const date_str = Utils.format_date(current);
             
             // Set specific time range as unavailable
             for (let hour = start_hour; hour <= end_hour; hour++) {
@@ -281,10 +281,10 @@ class ViewManager {
     }
 
     set_hour_unavailable(machine_name, date_str, hour) {
-        const unavailable_hours = window.storageService.getMachineAvailabilityForDate(machine_name, date_str);
+        const unavailable_hours = window.storageService.get_machine_availability_for_date(machine_name, date_str);
         if (!unavailable_hours.includes(hour)) {
             unavailable_hours.push(hour);
-            window.storageService.setMachineAvailability(machine_name, date_str, unavailable_hours);
+            window.storageService.set_machine_availability(machine_name, date_str, unavailable_hours);
         }
     }
     
@@ -335,9 +335,7 @@ class ViewManager {
         return date;
     }
     
-    format_date(date) {
-        return Utils.format_date(date);
-    }
+
     
     format_display_date(date) {
         const day = String(date.getDate()).padStart(2, '0');

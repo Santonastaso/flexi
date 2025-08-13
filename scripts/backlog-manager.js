@@ -95,10 +95,7 @@ class BacklogManager extends BaseManager {
         // Create task button
         if (this.elements.create_task) {
             this.elements.create_task.addEventListener('click', () => {
-                // Temporary debugging - remove this later
-                if (window.DEBUG) {
-                    console.log('Create task button clicked');
-                }
+
                 this.handle_create_task();
             });
         }
@@ -106,9 +103,7 @@ class BacklogManager extends BaseManager {
         // Update statuses button
         if (this.elements.update_statuses_btn) {
             this.elements.update_statuses_btn.addEventListener('click', () => {
-                if (window.DEBUG) {
-                    console.log('Sync with Gantt button clicked');
-                }
+
                 this.sync_all_odp_with_gantt();
             });
         }
@@ -162,10 +157,7 @@ class BacklogManager extends BaseManager {
             // Auto-determine work center based on article code
             const workCenter = this.businessLogic.auto_determine_work_center(articleCode);
             
-            // Temporary debugging - remove this later
-        if (window.DEBUG) {
-                console.log(`Article code: ${articleCode}, Department: ${department}, Work Center: ${workCenter}`);
-            }
+
             
             // Update the work center field (readonly, so it will be populated automatically)
             if (this.elements.work_center) {

@@ -124,7 +124,7 @@ class SharedCalendarRenderer {
                     <div class="time-label">${this.format_hour(hour)}</div>
                     <div class="time-slot ${this.get_slot_classes('', hour)}" 
                          data-hour="${hour}" 
-                         data-date="${this.format_date(this.current_date)}">
+                         data-date="${Utils.format_date(this.current_date)}">
                     </div>
                 </div>
             `;
@@ -144,7 +144,7 @@ class SharedCalendarRenderer {
                      id="${slot_id}"
                      data-machine="${machine_name}" 
                      data-hour="${hour}" 
-                     data-date="${this.format_date(this.current_date)}"
+                     data-date="${Utils.format_date(this.current_date)}"
                      ${this.options.interactive ? 'data-droppable="true"' : ''}>
                 </div>
             `;
@@ -156,7 +156,7 @@ class SharedCalendarRenderer {
      */
     get_slot_classes(machine_name, hour) {
         const classes = ['slot'];
-        const date_str = this.format_date(this.current_date);
+        const date_str = Utils.format_date(this.current_date);
         // Add state-based classes
         if (this.is_slot_occupied(machine_name, hour)) {
             classes.push('occupied');
@@ -174,8 +174,8 @@ class SharedCalendarRenderer {
      */
     is_slot_occupied(machine_name, hour) {
         if (!window.storageService || !machine_name) return false;
-        const date_str = this.format_date(this.current_date);
-        const events = window.storageService.getEventsByDate(date_str);
+        const date_str = Utils.format_date(this.current_date);
+        const events = window.storageService.get_events_by_date(date_str);
         return events.some(event => 
             event.machine === machine_name &&
             hour >= event.startHour && 
@@ -187,7 +187,7 @@ class SharedCalendarRenderer {
      */
     is_slot_unavailable(machine_name, hour) {
         if (!window.storageService || !machine_name) return false;
-        const date_str = this.format_date(this.current_date);
+        const date_str = Utils.format_date(this.current_date);
         const unavailable_hours = window.storageService.getMachineAvailabilityForDate(machine_name, date_str);
         return unavailable_hours.includes(hour);
     }
@@ -399,9 +399,7 @@ class SharedCalendarRenderer {
     format_hour(hour) {
         return Utils.format_hour(hour);
     }
-    format_date(date) {
-        return Utils.format_date(date);
-    }
+
     /**
      * Get slot element by machine and hour
      */

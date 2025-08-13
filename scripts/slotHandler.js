@@ -309,7 +309,7 @@ class SlotHandler {
     is_slot_occupied(slot_data) {
         if (!slot_data.machine || !slot_data.date) return false;
         
-        const events = this.storage_service.getEventsByDate(slot_data.date);
+        const events = this.storage_service.get_events_by_date(slot_data.date);
         
         return events.some(event => 
             event.machine === slot_data.machine &&
@@ -339,7 +339,7 @@ class SlotHandler {
         if (!slot_data.machine || !slot_data.date) return false;
         if (!task || !task.duration || task.duration <= 0) return false;
         
-        const events = this.storage_service.getEventsByDate(slot_data.date);
+        const events = this.storage_service.get_events_by_date(slot_data.date);
         const unavailable_hours = this.storage_service.getMachineAvailabilityForDate(
             slot_data.machine, 
             slot_data.date

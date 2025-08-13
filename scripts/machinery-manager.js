@@ -541,7 +541,7 @@ class MachineryManager extends BaseManager {
         save_edit(row) {
         // Prevent double execution
         if (row.dataset.saving === 'true') {
-            console.log('🔧 Save already in progress, ignoring duplicate call');
+
             return;
         }
         
@@ -668,22 +668,6 @@ class MachineryManager extends BaseManager {
 
 }
 
-// Try immediate initialization if services are already available
-if (window.storageService && 
-    typeof ValidationService !== 'undefined' && 
-    typeof BusinessLogicService !== 'undefined' &&
-    typeof BaseManager !== 'undefined') {
-    
-
-    window.machineryManager = new MachineryManager();
-    const elementMap = window.machineryManager.get_element_map();
-    if (elementMap) {
-        const initSuccess = window.machineryManager.init(elementMap);
-                    if (initSuccess) {
-                // MachineryManager initialized successfully
-            }
-    }
-}
 
 // Initialize when all resources are loaded and storage service is available
 window.addEventListener('load', () => {

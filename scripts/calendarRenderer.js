@@ -19,13 +19,7 @@ class CalendarRenderer {
     }
     
     init() {
-        this.get_machine_from_url();
         this.setup_event_listeners();
-    }
-    
-    get_machine_from_url() {
-        const url_params = new URLSearchParams(window.location.search);
-        this.machine_name = url_params.get('machine');
     }
     
     setup_event_listeners() {
@@ -125,11 +119,11 @@ class CalendarRenderer {
             for (let day = 0; day < 7; day++) {
                 const is_current_month = current.getMonth() === month;
                 const is_today = current.toDateString() === today.toDateString();
-                const date_str = this.format_date(current);
-                const events = this.storage_service.getEventsByDate(date_str).filter(e => e.machine === this.machine_name);
+                const date_str = Utils.format_date(current);
+                const events = this.storage_service.get_events_by_date(date_str).filter(e => e.machine === this.machine_name);
                 
                 // Check if day is unavailable
-                const unavailable_hours = this.storage_service.getMachineAvailabilityForDate(this.machine_name, date_str);
+                const unavailable_hours = this.storage_service.get_machine_availability_for_date(this.machine_name, date_str);
                 const is_unavailable = unavailable_hours.length >= 24; // Full day unavailable
                 const is_partially_unavailable = unavailable_hours.length > 0 && unavailable_hours.length < 24;
                 
@@ -205,10 +199,10 @@ class CalendarRenderer {
                 <div class="time-row" data-hour="${hour}">
                     <div class="time-label">${this.format_hour(hour)}</div>
                     ${days.map(day => {
-                        const date_str = this.format_date(day);
-                        const events = this.storage_service.getEventsByDate(date_str).filter(e => 
+                        const date_str = Utils.format_date(day);
+                        const events = this.storage_service.get_events_by_date(date_str).filter(e => 
                             e.machine === this.machine_name && hour >= e.startHour && hour < e.endHour);
-                        const unavailable_hours = this.storage_service.getMachineAvailabilityForDate(this.machine_name, date_str);
+                        const unavailable_hours = this.storage_service.get_machine_availability_for_date(this.machine_name, date_str);
                         const is_unavailable = unavailable_hours.includes(hour);
                         
                         return `
@@ -238,7 +232,7 @@ class CalendarRenderer {
         for (let week = 0; week < 6; week++) {
             for (let day = 0; day < 7; day++) {
                 const isCurrentMonth = current.getMonth() === month;
-                const has_events = this.storage_service.getEventsByDate(this.format_date(current))
+                const has_events = this.storage_service.get_events_by_date(Utils.format_date(current))
                     .filter(e => e.machine === this.machine_name).length > 0;
                 
                 html += `
@@ -301,7 +295,7 @@ class CalendarRenderer {
     handle_time_slot_click(date_str, hour) {
         if (!this.machine_name) return;
         
-        const scheduled_events = this.storage_service.getEventsByDate(date_str)
+        const scheduled_events = this.storage_service.get_events_by_date(date_str)
             .filter(e => e.machine === this.machine_name && hour >= e.startHour && hour < e.endHour);
         const has_scheduled_events = scheduled_events.length > 0;
             
@@ -310,7 +304,7 @@ class CalendarRenderer {
             return;
         }
         
-        this.storage_service.toggleMachineHourAvailability(this.machine_name, date_str, hour);
+        this.storage_service.toggle_machine_hour_availability(this.machine_name, date_str, hour);
         this.render(); // Re-render current view
     }
     
@@ -328,9 +322,7 @@ class CalendarRenderer {
             }).length;
     }
     
-    format_date(date) {
-        return Utils.format_date(date);
-    }
+
     
     format_hour(hour) {
         return Utils.format_hour(hour);

@@ -287,7 +287,7 @@ class Scheduler {
             timeSlot.dataset.machine = this.get_machine_display_name(machine);
             
             // Check if this hour is unavailable for the machine
-            const dateStr = this.format_date(this.currentDate);
+            const dateStr = Utils.format_date(this.currentDate);
             const machineName = this.get_machine_display_name(machine);
             const unavailableHours = this.storageService.get_machine_availability_for_date(machineName, dateStr);
             if (unavailableHours.includes(hour)) {
@@ -361,7 +361,7 @@ class Scheduler {
             taskId: taskId,
             taskTitle: taskData.odp_number || taskData.name || 'Unknown Task',
             machine: machine,
-            date: this.format_date(this.currentDate),
+            date: Utils.format_date(this.currentDate),
             startHour: hour,
             endHour: hour + duration,
             color: this.get_task_color(taskData),
@@ -455,7 +455,7 @@ class Scheduler {
             const newEvent = {
                 ...existingEvent,
                 machine: newMachine,
-                date: this.format_date(this.currentDate),
+                date: Utils.format_date(this.currentDate),
                 startHour: newHour,
                 endHour: newHour + duration
             };
@@ -466,13 +466,13 @@ class Scheduler {
             // Dispatch custom event for status update with new start time info
             if (existingEvent.taskId) {
                 // Calculate the new start timestamp
-                const newStartDate = new Date(this.format_date(this.currentDate));
+                const newStartDate = new Date(Utils.format_date(this.currentDate));
                 newStartDate.setHours(newHour, 0, 0, 0);
                 
                 if (window.DEBUG) {
                     console.log('Reschedule calculation details:');
                     console.log('- Current date:', this.currentDate);
-                    console.log('- Formatted date:', this.format_date(this.currentDate));
+                    console.log('- Formatted date:', Utils.format_date(this.currentDate));
                     console.log('- New hour:', newHour);
                     console.log('- Calculated start date:', newStartDate);
                     console.log('- ISO string:', newStartDate.toISOString());
@@ -512,7 +512,7 @@ class Scheduler {
         }
         
         // Check for conflicts with existing events
-        const dateKey = this.format_date(this.currentDate);
+        const dateKey = Utils.format_date(this.currentDate);
         const existingEvents = this.storageService.get_events_by_date(dateKey);
         
         for (const event of existingEvents) {
@@ -545,7 +545,7 @@ class Scheduler {
         // Clear existing events
         this.elements.calendar_container.querySelectorAll('.scheduled-event').forEach(el => el.remove());
         
-        const dateKey = this.format_date(this.currentDate);
+        const dateKey = Utils.format_date(this.currentDate);
         const events = this.storageService.get_events_by_date(dateKey);
         
         events.forEach(event => {
@@ -601,9 +601,7 @@ class Scheduler {
         slots.appendChild(eventElement);
     }
     
-    format_date(date) {
-        return Utils.format_date(date);
-    }
+
     
     show_message(message, type) {
         const messageEl = this.elements.message_container;

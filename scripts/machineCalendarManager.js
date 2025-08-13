@@ -16,16 +16,16 @@ class MachineCalendarManager {
      */
     init() {
         if (!this.get_machine_from_url()) {
-            this.showError('No machine specified in URL. Please select a machine first.');
+            this.show_error('No machine specified in URL. Please select a machine first.');
             return;
         }
         if (!this.bind_elements()) {
-            this.showError('Failed to initialize calendar components.');
+            this.show_error('Failed to initialize calendar components.');
             return;
         }
         this.initialize_components();
         this.setup_page_title();
-        this.setup_body_class();
+
     }
     /**
      * Get machine name from URL parameters
@@ -77,14 +77,14 @@ class MachineCalendarManager {
                 this.elements.controls_container
             );
             // Set up circular reference
-            this.calendarRenderer.viewManager = this.viewManager;
+            this.calendarRenderer.view_manager = this.viewManager;
             // Set machine name in renderer
-            this.calendarRenderer.machineName = this.machineName;
+            this.calendarRenderer.machine_name = this.machineName;
             // Initial render
-            this.viewManager.setView('month', new Date());
+            this.viewManager.set_view('month', new Date());
         } catch (error) {
             console.error('Error initializing calendar components:', error);
-            this.showError('Failed to initialize calendar. Please refresh the page.');
+            this.show_error('Failed to initialize calendar. Please refresh the page.');
         }
     }
     /**
@@ -97,16 +97,11 @@ class MachineCalendarManager {
         // Update browser title
         document.title = `Flexi - ${this.machineName} Availability`;
     }
-    /**
-     * Set up body class for styling
-     */
-    setup_body_class() {
-        // No special body class needed - using standard content-section styling
-    }
+
     /**
      * Show error message
      */
-    showError(message) {
+    show_error(message) {
         if (this.elements.machine_title) {
             this.elements.machine_title.textContent = 'Error';
         }
@@ -128,18 +123,11 @@ class MachineCalendarManager {
             this.calendarRenderer.render();
         }
     }
-    /**
-     * Public method to navigate to a specific view and date
-     */
-    navigateTo(view, date) {
-        if (this.viewManager) {
-            this.viewManager.setView(view, date);
-        }
-    }
+
     /**
      * Public method to get machine availability summary
      */
-    getMachineSummary(start_date, end_date) {
+    get_machine_summary(start_date, end_date) {
         if (this.storageService && this.machineName) {
             // Calculate summary directly from storage service data
             const summary = {
@@ -153,8 +141,8 @@ class MachineCalendarManager {
             const current = new Date(start_date);
             while (current <= end_date) {
                 const dateStr = Utils.format_date(current);
-                const unavailableHours = this.storageService.getMachineAvailabilityForDate(this.machineName, dateStr);
-                const events = this.storageService.getEventsByDate(dateStr).filter(e => e.machine === this.machineName);
+                const unavailableHours = this.storageService.get_machine_availability_for_date(this.machineName, dateStr);
+                const events = this.storageService.get_events_by_date(dateStr).filter(e => e.machine === this.machineName);
                 summary.totalDays++;
                 summary.totalOffTimeHours += unavailableHours.length;
                 summary.totalScheduledHours += events.reduce((total, e) => total + (e.endHour - e.startHour), 0);
@@ -199,45 +187,8 @@ class MachineCalendarManager {
             this.refresh();
         }
     }
-    /**
-     * Public method to export calendar data
-     */
-    exportCalendarData(format = 'json') {
-        if (!this.eventStorage || !this.machineName) return null;
-        const start_date = new Date();
-        start_date.setMonth(start_date.getMonth() - 1); // 1 month ago
-        const end_date = new Date();
-        end_date.setMonth(end_date.getMonth() + 2); // 2 months ahead
-        const events = this.storageService.getEventsByMachine(this.machineName);
-        const summary = this.getMachineSummary(start_date, end_date);
-        const data = {
-            machineName: this.machineName,
-            exportDate: new Date().toISOString(),
-            dateRange: {
-                start: start_date.toISOString(),
-                end: end_date.toISOString()
-            },
-            events: events,
-            summary: summary
-        };
-        if (format === 'json') {
-            return JSON.stringify(data, null, 2);
-        }
-        return data;
-    }
-    /**
-     * Public method to get current view state
-     */
-    get_current_view_state() {
-        if (this.viewManager) {
-            return {
-                view: this.viewManager.currentView,
-                date: this.viewManager.currentDate,
-                machineName: this.machineName
-            };
-        }
-        return null;
-    }
+
+
 }
 // Auto-initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -259,30 +210,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     break;
                 case 'ArrowLeft':
                     // Previous period
-                    manager.viewManager.navigatePrevious();
+                    manager.viewManager.navigate_previous();
                     e.preventDefault();
                     break;
                 case 'ArrowRight':
                     // Next period
-                    manager.viewManager.navigateNext();
+                    manager.viewManager.navigate_next();
                     e.preventDefault();
                     break;
                 case 'm':
                 case 'M':
                     // Month view
-                    manager.viewManager.setView('month');
+                    manager.viewManager.set_view('month');
                     e.preventDefault();
                     break;
                 case 'w':
                 case 'W':
                     // Week view
-                    manager.viewManager.setView('week');
+                    manager.viewManager.set_view('week');
                     e.preventDefault();
                     break;
                 case 'y':
                 case 'Y':
                     // Year view
-                    manager.viewManager.setView('year');
+                    manager.viewManager.set_view('year');
                     e.preventDefault();
                     break;
             }
