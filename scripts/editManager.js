@@ -132,10 +132,17 @@ class EditManager {
     }
 
     /**
-     * Save edits for a row (to be implemented by specific managers)
+     * Save edits for a row by calling the registered save handler
      */
     save_edit(row) {
-        // This should be overridden by specific managers
+        // Find the table this row belongs to
+        const table = row.closest('table');
+        if (table && this.table_save_handlers.has(table)) {
+            const save_handler = this.table_save_handlers.get(table);
+            if (typeof save_handler === 'function') {
+                save_handler(row);
+            }
+        }
     }
 
     /**

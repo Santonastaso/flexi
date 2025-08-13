@@ -55,11 +55,11 @@ class MachineryManager extends BaseManager {
             
             // Initialize edit functionality
             if (this.editManager) {
-                const machineryTable = document.querySelector('#machinery-table-body')?.closest('.modern-table');
-                if (machineryTable) {
-                    this.editManager.init_table_edit(machineryTable);
-                    this.editManager.register_save_handler(machineryTable, (row) => this.save_edit(row));
-                    machineryTable.addEventListener('deleteRow', (e) => {
+                const table = document.querySelector('.modern-table');
+                if (table) {
+                    this.editManager.init_table_edit(table);
+                    this.editManager.register_save_handler(table, (row) => this.save_edit(row));
+                    table.addEventListener('deleteRow', (e) => {
                         const row = e.detail.row;
                         const machineId = row.dataset.machineId;
                         if (machineId) {
@@ -79,27 +79,23 @@ class MachineryManager extends BaseManager {
     update_changeover_field_visibility() {
         const dep = this.elements.machine_department?.value;
         const dep_key = (dep || '').toUpperCase();
-        const changeover_color = document.getElementById('changeover_color');
-        const changeover_material = document.getElementById('changeover_material');
-        const changeover_color_label = changeover_color?.previousElementSibling;
-        const changeover_material_label = changeover_material?.previousElementSibling;
+        
+        // Get the form groups (which contain both label and input)
+        const changeover_color_group = document.querySelector('label[for="changeover_color"]')?.closest('.form-group');
+        const changeover_material_group = document.querySelector('label[for="changeover_material"]')?.closest('.form-group');
         
         if (dep_key === 'STAMPA') {
-            if (changeover_color) changeover_color.style.display = 'block';
-            if (changeover_color_label) changeover_color_label.style.display = 'block';
-            if (changeover_material) changeover_material.style.display = 'none';
-            if (changeover_material_label) changeover_material_label.style.display = 'none';
+            // Show color changeover, hide material changeover
+            if (changeover_color_group) changeover_color_group.style.display = 'block';
+            if (changeover_material_group) changeover_material_group.style.display = 'none';
         } else if (dep_key === 'CONFEZIONAMENTO') {
-            if (changeover_color) changeover_color.style.display = 'none';
-            if (changeover_color_label) changeover_color_label.style.display = 'none';
-            if (changeover_material) changeover_material.style.display = 'block';
-            if (changeover_material_label) changeover_material_label.style.display = 'block';
+            // Hide color changeover, show material changeover
+            if (changeover_color_group) changeover_color_group.style.display = 'none';
+            if (changeover_material_group) changeover_material_group.style.display = 'block';
         } else {
             // No department selected - hide both
-            if (changeover_color) changeover_color.style.display = 'none';
-            if (changeover_color_label) changeover_color_label.style.display = 'none';
-            if (changeover_material) changeover_material.style.display = 'none';
-            if (changeover_material_label) changeover_material_label.style.display = 'none';
+            if (changeover_color_group) changeover_color_group.style.display = 'none';
+            if (changeover_material_group) changeover_material_group.style.display = 'none';
         }
     }
 
@@ -269,10 +265,10 @@ class MachineryManager extends BaseManager {
             // Reload the machinery list
             this.load_machinery();
             
-            this.showMessage(`Machine "${newMachine.machine_name}" added successfully!`, 'success');
+            this.show_success_message(`Machine "${newMachine.machine_name}" added successfully!`);
         } catch (error) {
             console.error('Error adding machine:', error);
-            this.showMessage('Error adding machine: ' + error.message, 'error');
+            this.show_error_message('adding machine', error);
         }
     }
 
@@ -375,11 +371,7 @@ class MachineryManager extends BaseManager {
                     ${this.editManager ? this.editManager.create_edit_input('text', machine.machine_id || machine.id) : ''}
                 </td>
                 <td class="editable-cell" data-field="machine_type">
-                    <span class="static-value">
-                        <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
-                            ${machine.machine_type || '-'}
-                        </span>
-                    </span>
+                    <span class="static-value">${machine.machine_type || '-'}</span>
                     ${this.editManager ? this.editManager.create_edit_input('select', machine.machine_type, {
                         options: [
                             { value: 'DIGITAL_PRINT', label: 'Digital Print' },
@@ -404,7 +396,11 @@ class MachineryManager extends BaseManager {
                     }) : ''}
                 </td>
                 <td class="editable-cell" data-field="department">
-                    <span class="static-value">${machine.department || '-'}</span>
+                    <span class="static-value">
+                        <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
+                            ${machine.department || '-'}
+                        </span>
+                    </span>
                     ${this.editManager ? this.editManager.create_edit_input('select', machine.department, {
                         options: [
                             { value: 'STAMPA', label: 'STAMPA' },
@@ -507,57 +503,100 @@ class MachineryManager extends BaseManager {
             const encodedName = encodeURIComponent(machine.machine_name);
             window.location.href = `machine-settings-page.html?machine=${encodedName}`;
         } else {
-            this.showMessage('Machine not found', 'error');
+            this.show_error_message('finding machine', new Error('Machine not found'));
         }
     }
 
     delete_machine(machineId) {
-        const machine = this.storageService.getMachines().find(m => m.id === machineId);
+        const machine = this.storageService.get_machines().find(m => m.id === machineId);
         const machine_name = machine ? machine.machine_name : 'this machine';
         
         try {
             // Check if machine can be deleted (not scheduled)
-            this.storageService.validate_machineCanBeDeleted(machine_name);
+            this.storageService.validate_machine_can_be_deleted(machine_name);
             
             const message = `Are you sure you want to delete "${machine_name}"? This action cannot be undone.`;
             
-            show_delete_confirmation(message, () => {
-                try {
-                    const machines = this.storageService.get_machines();
-                    const filteredMachines = machines.filter(m => m.id !== machineId);
-                    this.storageService.saveMachinesWithSync(filteredMachines);
-                    this.load_machinery();
-                    this.showMessage('Machine deleted successfully', 'success');
-                } catch (error) {
-                    this.showMessage('Error deleting machine: ' + error.message, 'error');
-                }
-            });
+            if (typeof window.show_delete_confirmation === 'function') {
+                window.show_delete_confirmation(message, () => {
+                    try {
+                        const machines = this.storageService.get_machines();
+                        const filteredMachines = machines.filter(m => m.id !== machineId);
+                        this.storageService.save_machines_with_sync(filteredMachines);
+                        this.load_machinery();
+                        this.show_success_message('Machine deleted successfully');
+                    } catch (error) {
+                        this.show_error_message('deleting machine', error);
+                    }
+                });
+            } else {
+                console.error('show_delete_confirmation function not available');
+                this.show_error_message('deleting machine', new Error('Delete confirmation dialog not available'));
+            }
         } catch (error) {
-            this.showMessage(error.message, 'error');
+            this.show_error_message('deleting machine', error);
         }
     }
 
-    save_edit(row) {
+        save_edit(row) {
+        // Prevent double execution
+        if (row.dataset.saving === 'true') {
+            console.log('🔧 Save already in progress, ignoring duplicate call');
+            return;
+        }
+        
         const machine_id = row.dataset.machineId;
         if (!machine_id) {
             console.error('No machine ID found in row');
             return;
         }
-
+        
+        // Mark as saving to prevent duplicate calls
+        row.dataset.saving = 'true';
+        
         // Use consolidated validation for edit row
+        // Only validate the relevant changeover field based on department
+        const currentMachineId = row.dataset.machineId;
+        const machines = this.storageService.get_machines();
+        const currentMachine = machines.find(m => String(m.id) === String(currentMachineId));
+        const department = currentMachine?.department || 'STAMPA';
+        
+        // Determine which changeover field to validate based on department
+        const numericFields = ['standard_speed', 'setup_time_standard'];
+        if (department === 'STAMPA') {
+            numericFields.push('changeover_color');
+        } else if (department === 'CONFEZIONAMENTO') {
+            numericFields.push('changeover_material');
+        }
         
         const updatedData = this.validate_edit_row(
             row,
             ['machine_name'], // Required fields
-            ['standard_speed', 'setup_time_standard', 'changeover_color', 'changeover_material'], // Numeric fields
+            numericFields, // Numeric fields (conditional)
             {
                 machine_name: 'Machine name',
                 standard_speed: 'Standard speed',
                 setup_time_standard: 'Setup time standard',
-                changeover_color: 'Color changeover time',
-                changeover_material: 'Material changeover time'
+                ...(department === 'STAMPA' && { changeover_color: 'Color changeover time' }),
+                ...(department === 'CONFEZIONAMENTO' && { changeover_material: 'Material changeover time' })
             }
         );
+        
+        // Check if any values actually changed
+        const originalData = JSON.parse(row.dataset.originalData || '{}');
+        
+        let hasChanges = false;
+        Object.keys(updatedData).forEach(key => {
+            if (originalData[key] !== updatedData[key]) {
+                hasChanges = true;
+            }
+        });
+        
+        if (!hasChanges) {
+            this.show_success_message('No changes to save');
+            this.editManager.cancel_edit(row);
+            return;
+        }
         
         if (!updatedData) {
             return; // Validation failed, error already shown
@@ -568,44 +607,33 @@ class MachineryManager extends BaseManager {
             const machines = this.storageService.get_machines();
             const machine = machines.find(m => String(m.id) === String(machine_id));
             if (!machine) {
-                this.showMessage('Machine not found', 'error');
+                this.show_error_message('finding machine', new Error('Machine not found'));
                 return;
             }
             
 
 
-            // Update machine with new values
+            // Update machine with new values (simplified approach like other tables)
             const updated_machine = {
                 ...machine,
-                // New field names
-                machine_name: updatedData.machine_name ? updatedData.machine_name.trim() : machine.machine_name,
-                machine_type: updatedData.machine_type || machine.machine_type, // Prevent null
-                work_center: updatedData.work_center || machine.work_center,
-                department: updatedData.department || machine.department,
-                standard_speed: updatedData.standard_speed ? parseInt(updatedData.standard_speed) || machine.standard_speed : machine.standard_speed,
-                status: updatedData.status || machine.status,
-                
-                // Field names for compatibility
-                name: updatedData.machine_name ? updatedData.machine_name.trim() : machine.machine_name,
-                machine_name: updatedData.machine_name ? updatedData.machine_name.trim() : machine.machine_name,
-                type: updatedData.machine_type || machine.machine_type, // Prevent null
-                numero_macchina: updatedData.machine_id || machine.machine_id || machine.numero_macchina,
-                work_center: updatedData.work_center || machine.work_center,
-                live: updatedData.status === 'active' ? true : (updatedData.status === 'inactive' ? false : machine.live)
+                ...updatedData,
+                // Apply proper data types for numeric fields
+                min_web_width: updatedData.min_web_width ? parseInt(updatedData.min_web_width) : machine.min_web_width,
+                max_web_width: updatedData.max_web_width ? parseInt(updatedData.max_web_width) : machine.max_web_width,
+                min_bag_height: updatedData.min_bag_height ? parseInt(updatedData.min_bag_height) : machine.min_bag_height,
+                max_bag_height: updatedData.max_bag_height ? parseInt(updatedData.max_bag_height) : machine.max_bag_height,
+                standard_speed: updatedData.standard_speed ? parseInt(updatedData.standard_speed) : machine.standard_speed,
+                setup_time_standard: updatedData.setup_time_standard ? parseFloat(updatedData.setup_time_standard) : machine.setup_time_standard,
+                changeover_color: updatedData.changeover_color ? parseFloat(updatedData.changeover_color) : machine.changeover_color,
+                changeover_material: updatedData.changeover_material ? parseFloat(updatedData.changeover_material) : machine.changeover_material,
+                // Maintain compatibility fields
+                name: updatedData.machine_name || machine.machine_name || machine.name,
+                type: updatedData.machine_type || machine.machine_type || machine.type,
+                live: updatedData.status === 'active' ? true : (updatedData.status === 'inactive' ? false : machine.live),
+                updated_at: new Date().toISOString()
             };
+            
 
-            // Handle web width and bag height ranges if provided
-            if (updatedData.web_width) {
-                const [min_width, max_width] = updatedData.web_width.split('-').map(w => parseInt(w));
-                if (!isNaN(min_width)) updated_machine.min_web_width = min_width;
-                if (!isNaN(max_width)) updated_machine.max_web_width = max_width;
-            }
-
-            if (updatedData.bag_height) {
-                const [min_height, max_height] = updatedData.bag_height.split('-').map(h => parseInt(h));
-                if (!isNaN(min_height)) updated_machine.min_bag_height = min_height;
-                if (!isNaN(max_height)) updated_machine.max_bag_height = max_height;
-            }
             
 
 
@@ -617,17 +645,23 @@ class MachineryManager extends BaseManager {
             const updated_machines = machines.map(m => 
                 String(m.id) === String(machine_id) ? updated_machine : m
             );
-            this.storageService.saveMachinesWithSync(updated_machines);
+            this.storageService.save_machines_with_sync(updated_machines);
 
             // Exit edit mode
             this.editManager.cancel_edit(row);
 
             // Update display
             this.load_machinery();
-            this.showMessage('Machine updated successfully', 'success');
+
+            this.show_success_message('Machine updated successfully');
 
         } catch (error) {
-            this.showMessage('Error updating machine: ' + error.message, 'error');
+            this.show_error_message('updating machine', error);
+        } finally {
+            // Clear the saving flag
+            if (row.dataset.saving) {
+                delete row.dataset.saving;
+            }
         }
     }
 

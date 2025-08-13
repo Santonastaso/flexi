@@ -162,7 +162,7 @@ class PhasesManager extends BaseManager {
                             ${Utils.escape_html(phase.department || '-')}
                         </span>
                     </span>
-                                            ${this.editManager ? this.editManager.create_edit_input('select', phase.department, {
+                    ${this.editManager ? this.editManager.create_edit_input('select', phase.department, {
                         options: [
                             { value: 'STAMPA', label: 'STAMPA' },
                             { value: 'CONFEZIONAMENTO', label: 'CONFEZIONAMENTO' }

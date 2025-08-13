@@ -163,7 +163,7 @@ class BacklogManager extends BaseManager {
             const workCenter = this.businessLogic.auto_determine_work_center(articleCode);
             
             // Temporary debugging - remove this later
-            if (window.DEBUG) {
+        if (window.DEBUG) {
                 console.log(`Article code: ${articleCode}, Department: ${department}, Work Center: ${workCenter}`);
             }
             
@@ -181,7 +181,7 @@ class BacklogManager extends BaseManager {
             if (this.elements.department) {
                 this.elements.department.value = department;
                 // Temporary debugging - remove this later
-                if (window.DEBUG) {
+        if (window.DEBUG) {
                     console.log(`Set department to: ${department}`);
                 }
             }
@@ -210,7 +210,7 @@ class BacklogManager extends BaseManager {
             if (field && !field.value.trim()) {
                 isValid = false;
                 // Temporary debugging - remove this later
-                if (window.DEBUG) {
+        if (window.DEBUG) {
                     console.log(`Field ${fieldId} is empty: "${field.value}"`);
                 }
             }
@@ -222,7 +222,7 @@ class BacklogManager extends BaseManager {
         }
         
         // Temporary debugging - remove this later
-        if (window.DEBUG) {
+            if (window.DEBUG) {
             console.log(`Form validation result: ${isValid}`);
         }
         
@@ -363,7 +363,7 @@ class BacklogManager extends BaseManager {
         if (this.elements.create_task) {
             this.elements.create_task.disabled = false;
             // Temporary debugging - remove this later
-            if (window.DEBUG) {
+        if (window.DEBUG) {
                 console.log('Add to Backlog button enabled');
             }
         }
@@ -398,8 +398,8 @@ class BacklogManager extends BaseManager {
             // Validate form again before creating
             if (!this.validate_form_fields()) {
                 this.show_error_message('Please fill in all required fields before creating the task');
-                return;
-            }
+            return;
+        }
 
             // Debug: Check if we have calculation results
             if (window.DEBUG) {
@@ -408,24 +408,24 @@ class BacklogManager extends BaseManager {
             
             // Collect form data
             const orderData = {
-                odp_number: this.elements.odp_number.value.trim(),
+            odp_number: this.elements.odp_number.value.trim(),
                 article_code: this.elements.article_code.value.trim(),
-                production_lot: this.elements.production_lot.value.trim(),
+            production_lot: this.elements.production_lot.value.trim(),
                 work_center: this.elements.work_center.value.trim(),
-                nome_cliente: this.elements.nome_cliente.value.trim(),
-                description: this.elements.description.value.trim(),
+            nome_cliente: this.elements.nome_cliente.value.trim(),
+            description: this.elements.description.value.trim(),
                 delivery_date: this.elements.delivery_date.value,
-                bag_height: parseInt(this.elements.bag_height.value) || 0,
-                bag_width: parseInt(this.elements.bag_width.value) || 0,
-                bag_step: parseInt(this.elements.bag_step.value) || 0,
+            bag_height: parseInt(this.elements.bag_height.value) || 0,
+            bag_width: parseInt(this.elements.bag_width.value) || 0,
+            bag_step: parseInt(this.elements.bag_step.value) || 0,
                 seal_sides: this.elements.seal_sides.value,
-                product_type: this.elements.product_type.value,
-                quantity: parseInt(this.elements.quantity.value) || 0,
+            product_type: this.elements.product_type.value,
+            quantity: parseInt(this.elements.quantity.value) || 0,
                 department: this.elements.department.value,
                 fase: this.elements.fase.value,
                 internal_customer_code: this.elements.internal_customer_code.value.trim(),
-                external_customer_code: this.elements.external_customer_code.value.trim(),
-                customer_order_ref: this.elements.customer_order_ref.value.trim(),
+            external_customer_code: this.elements.external_customer_code.value.trim(),
+            customer_order_ref: this.elements.customer_order_ref.value.trim(),
                 // Add calculated duration and cost from the calculation results
                 duration: this.current_calculation_results ? this.current_calculation_results.totals.duration : 0,
                 cost: this.current_calculation_results ? this.current_calculation_results.totals.cost : 0,
@@ -439,15 +439,15 @@ class BacklogManager extends BaseManager {
             };
 
             // Add the order to storage
-            if (window.DEBUG) {
+        if (window.DEBUG) {
                 console.log('About to add order to storage:', orderData);
                 console.log('Duration being sent:', orderData.duration);
                 console.log('Cost being sent:', orderData.cost);
             }
             
             const newOrder = this.storageService.add_odp_order(orderData);
-            
-            if (window.DEBUG) {
+        
+        if (window.DEBUG) {
                 console.log('Order added to storage:', newOrder);
             }
             
@@ -499,7 +499,7 @@ class BacklogManager extends BaseManager {
             }
             return;
         }
-        
+
         if (!items || items.length === 0) {
             if (window.DEBUG) {
                 console.log('No items to render, showing empty state');
@@ -617,7 +617,11 @@ class BacklogManager extends BaseManager {
                 
                 <!-- DATI LAVORAZIONE (Processing Data) -->
                 <td class="editable-cell" data-field="department">
-                    <span class="static-value">${Utils.escape_html(item.department || '-')}</span>
+                    <span class="static-value">
+                        <span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">
+                            ${Utils.escape_html(item.department || '-')}
+                        </span>
+                    </span>
                     ${this.editManager ? this.editManager.create_edit_input('text', item.department) : ''}
                 </td>
                 <td class="editable-cell" data-field="fase">
@@ -706,7 +710,7 @@ class BacklogManager extends BaseManager {
             this.load_backlog();
             this.show_success_message('ODP order updated');
 
-        } catch (error) {
+            } catch (error) {
             this.show_error_message('updating ODP order', error);
         }
     }
@@ -990,7 +994,7 @@ class BacklogManager extends BaseManager {
             allOrders.forEach(order => {
                 console.log(`Order ${order.odp_number} (${order.id}): status=${order.status}, production_start=${order.production_start}, production_end=${order.production_end}, progress=${order.progress}%`);
             });
-            
+
         } catch (error) {
             console.error('Error in debug method:', error);
         }
