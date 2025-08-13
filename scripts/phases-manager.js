@@ -5,6 +5,11 @@ class PhasesManager extends BaseManager {
     constructor() {
         super(window.storageService);
         this.editManager = window.editManager;
+        
+        // Initialize centralized services
+        this.validationService = new ValidationService();
+        this.businessLogic = new BusinessLogicService();
+        
         this.init();
     }
 
@@ -221,46 +226,21 @@ class PhasesManager extends BaseManager {
     }
 
     validatePhaseForm() {
-        const baseFields = ['phaseName', 'phaseType', 'numeroPersone'];
-        const baseData = {
-            phaseName: this.elements.phaseName.value.trim(),
-            phaseType: this.elements.phaseType.value,
-            numeroPersone: this.elements.numeroPersone.value
-        };
-        
-        // Check if numeroPersone is a valid number >= 1
-        const numeroPersoneValid = this.elements.numeroPersone.value && 
-            parseInt(this.elements.numeroPersone.value) >= 1;
-        
-        // Show validation error for numeroPersone if invalid
-        if (!numeroPersoneValid && this.elements.numeroPersone.value) {
-            this.showValidationError('numeroPersone', 'Number of people must be at least 1');
-        } else {
-            this.showValidationError('numeroPersone', '');
+        // Use centralized validation service
+        const phaseData = this.collectPhaseData();
+        if (!phaseData) {
+            this.elements.addPhaseBtn.disabled = true;
+            return;
         }
         
-        const baseValid = Utils.hasRequiredFields(baseData, baseFields);
+        const validation = this.validationService.validatePhase(phaseData);
+        this.elements.addPhaseBtn.disabled = !validation.isValid;
         
-        if (this.elements.phaseType.value === 'STAMPA') {
-            const printingFields = ['vStampa', 'tSetupStampa', 'costoHStampa'];
-            const printingData = {
-                vStampa: this.elements.vStampa.value,
-                tSetupStampa: this.elements.tSetupStampa.value,
-                costoHStampa: this.elements.costoHStampa.value
-            };
-            const printingValid = Utils.hasRequiredFields(printingData, printingFields);
-            this.elements.addPhaseBtn.disabled = !(baseValid && printingValid && numeroPersoneValid);
-        } else if (this.elements.phaseType.value === 'CONFEZIONAMENTO') {
-            const packagingFields = ['vConf', 'tSetupConf', 'costoHConf'];
-            const packagingData = {
-                vConf: this.elements.vConf.value,
-                tSetupConf: this.elements.tSetupConf.value,
-                costoHConf: this.elements.costoHConf.value
-            };
-            const packagingValid = Utils.hasRequiredFields(packagingData, packagingFields);
-            this.elements.addPhaseBtn.disabled = !(baseValid && packagingValid && numeroPersoneValid);
-        } else {
-            this.elements.addPhaseBtn.disabled = true;
+        // Show validation errors if any
+        if (!validation.isValid) {
+            validation.errors.forEach(error => {
+                console.warn('Validation error:', error);
+            });
         }
     }
 

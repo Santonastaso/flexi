@@ -7,6 +7,7 @@ class Scheduler {
         const globalDebug = (typeof window !== 'undefined' && window.DEBUG === true);
         this.DEBUG = !!globalDebug;
         this.storageService = window.storageService;
+        this.businessLogic = new BusinessLogicService();
         this.currentDate = new Date();
         this.currentDate.setHours(0, 0, 0, 0);
         
@@ -215,7 +216,7 @@ class Scheduler {
      * @returns {string} - Display name
      */
     getMachineDisplayName(machine) {
-        return Utils.getMachineDisplayName(machine);
+        return this.businessLogic.getMachineDisplayName(machine);
     }
     
     createCalendarHeader(container) {

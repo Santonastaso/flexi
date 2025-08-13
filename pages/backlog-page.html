@@ -62,14 +62,6 @@
                                 <h3 class="section-title">📅 Pianificazione</h3>
                                 <div class="form-grid form-grid--1-col">
                                     <div class="form-group">
-                                        <label for="status">Status</label>
-                                        <div style="display: flex; gap: 8px; align-items: center;">
-                                            <input type="text" id="status" readonly style="flex: 1;">
-                                            <button type="button" id="refreshStatusBtn" class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;">🔄</button>
-                                        </div>
-                                        <small class="form-help">Auto-determined: Scheduled (if in Gantt) or Not Scheduled</small>
-                                    </div>
-                                    <div class="form-group">
                                         <label for="deliveryDate">Delivery Date</label>
                                         <input type="datetime-local" id="deliveryDate" required>
                                         <span class="validation-error" id="deliveryDate-error" style="display: none;"></span>
@@ -179,11 +171,8 @@
                                 <div class="form-grid form-grid--2-cols">
                                     <div class="form-group">
                                         <label for="tipoLavorazione">Department</label>
-                                        <select id="tipoLavorazione" required>
-                                            <option value="">Select department</option>
-                                            <option value="STAMPA">STAMPA</option>
-                                            <option value="CONFEZIONAMENTO">CONFEZIONAMENTO</option>
-                                        </select>
+                                        <input type="text" id="tipoLavorazione" readonly style="background-color: #f3f4f6; cursor: not-allowed;">
+                                        <small class="form-help">Auto-determined from article code</small>
                                     </div>
                                     <div class="form-group">
                                         <label for="fase">Fase</label>
@@ -290,6 +279,8 @@
 
     <!-- External JavaScript -->
     <script src="../scripts/utils.js"></script>
+    <script src="../scripts/validationService.js"></script>
+    <script src="../scripts/businessLogicService.js"></script>
     <script src="../scripts/storageService.js"></script>
     <script src="../scripts/baseManager.js"></script>
     <script src="../scripts/uiComponents.js"></script>
@@ -298,6 +289,11 @@
     <script src="../scripts/backlog-manager.js"></script>
     <script src="../components/navigation.js"></script>
     
+    <script>
+        // Enable debug mode for troubleshooting
+        window.DEBUG = true;
+        console.log('🔍 Debug mode enabled');
+    </script>
 
 </body>
 </html>

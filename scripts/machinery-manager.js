@@ -15,24 +15,17 @@ class MachineryManager extends BaseManager {
         this.editManager = window.editManager;
         this.currentEditingType = null;
         this.currentEditingId = null;
+        
+        // Initialize centralized services
+        this.validationService = new ValidationService();
+        this.businessLogic = new BusinessLogicService();
+        
         this.init(this.getElementMap());
     }
 
 
 
-    /**
-     * Check if a machine is available for production
-     * @param {Object} machine - Machine object
-     * @returns {boolean} - True if machine is available
-     */
-    static isActiveMachine(machine) { return Utils.isActiveMachine(machine); }
-
-    /**
-     * Get display name for machine (with fallback to legacy fields)
-     * @param {Object} machine - Machine object
-     * @returns {string} - Display name
-     */
-    static getMachineDisplayName(machine) { return Utils.getMachineDisplayName(machine); }
+    // Machine helper methods moved to BusinessLogicService
 
 
 
@@ -136,13 +129,10 @@ class MachineryManager extends BaseManager {
             const updateMachineTypes = () => {
                 const dep = this.elements.machineDepartment.value;
                 const typeSelect = this.elements.machineType;
-                const depKey = (dep || '').toUpperCase();
-                const optionsByDep = {
-                    'STAMPA': ['DIGITAL_PRINT', 'FLEXO_PRINT', 'ROTOGRAVURE'],
-                    'CONFEZIONAMENTO': ['DOYPACK', 'PLURI_PIU', 'MONO_PIU']
-                };
-                const list = optionsByDep[depKey] || [];
-                typeSelect.innerHTML = '<option value="">Select machine type</option>' + list.map(value => `<option value="${value}">${value}</option>`).join('');
+                const validTypes = this.businessLogic.getValidMachineTypes(dep);
+                
+                typeSelect.innerHTML = '<option value="">Select machine type</option>' + 
+                    validTypes.map(value => `<option value="${value}">${value}</option>`).join('');
                 
                 // Show/hide changeover fields based on department
                 this.updateChangeoverFieldVisibility();
@@ -180,29 +170,21 @@ class MachineryManager extends BaseManager {
 
 
     validateFormFields() {
-        // Check required identification fields
-        const requiredFields = ['machineType', 'machineName', 'machineWorkCenter', 'machineDepartment', 'maxWebWidth', 'maxBagHeight'];
-        
-        const fieldData = {
-            machineType: this.elements.machineType.value,
-            machineName: this.elements.machineName.value.trim(),
-            machineWorkCenter: this.elements.machineWorkCenter.value,
-            machineDepartment: this.elements.machineDepartment.value,
-            minWebWidth: this.elements.minWebWidth.value,
-            maxWebWidth: this.elements.maxWebWidth.value,
-            minBagHeight: this.elements.minBagHeight.value,
-            maxBagHeight: this.elements.maxBagHeight.value,
-            standardSpeed: this.elements.standardSpeed.value,
-            setupTimeStandard: this.elements.setupTimeStandard.value,
-            changeoverColor: this.elements.changeoverColor.value,
-            changeoverMaterial: this.elements.changeoverMaterial.value
-        };
-        
-        const hasRequiredFields = Utils.hasRequiredFields(fieldData, requiredFields);
+        // Use centralized validation service
+        const machineData = this.collectMachineData();
+        const validation = this.validationService.validateMachine(machineData);
         
         // Check that at least one shift is selected
         const hasShifts = Array.from(this.elements.activeShifts).some(checkbox => checkbox.checked);
-        this.elements.addBtn.disabled = !(hasRequiredFields && hasShifts);
+        
+        this.elements.addBtn.disabled = !(validation.isValid && hasShifts);
+        
+        // Show validation errors if any
+        if (!validation.isValid) {
+            validation.errors.forEach(error => {
+                console.warn('Validation error:', error);
+            });
+        }
     }
 
     handleAddMachine() {
@@ -238,15 +220,20 @@ class MachineryManager extends BaseManager {
             const existingMachines = this.storageService.getMachines();
             const isDuplicate = existingMachines.some(machine => 
                 machine.machine_name === machineData.machine_name && 
-                machine.site === machineData.site
+                machine.work_center === machineData.work_center
             );
             
             if (isDuplicate) {
-                this.showErrorMessage('adding machine', new Error('A machine with this name already exists at this site'));
+                this.showErrorMessage('adding machine', new Error('A machine with this name already exists at this work center'));
                 return;
             }
 
-            // Add machine using the new storage service method
+            // Generate machine ID using business logic service
+            if (!machineData.machine_id) {
+                machineData.machine_id = this.businessLogic.generateMachineId(machineData.machine_type, machineData.work_center);
+            }
+
+            // Add machine using the storage service
             const newMachine = this.storageService.addMachine(machineData);
 
             
@@ -350,8 +337,8 @@ class MachineryManager extends BaseManager {
         const updatedDate = machine.updated_at ? new Date(machine.updated_at).toLocaleDateString() : '-';
         
         // Use unified model helper for display name
-        const displayName = MachineryManager.getMachineDisplayName(machine);
-        const isActive = MachineryManager.isActiveMachine(machine);
+        const displayName = this.businessLogic.getMachineDisplayName(machine);
+        const isActive = this.businessLogic.isActiveMachine(machine);
         
         return `
             <tr data-machine-id="${machine.id}" class="${!isActive ? 'machine-inactive' : ''}">

@@ -7,6 +7,11 @@ class BacklogManager extends BaseManager {
         super(window.storageService);
         this.editManager = window.editManager;
         this.currentCalculation = null;
+        
+        // Initialize centralized services
+        this.validationService = new ValidationService();
+        this.businessLogic = new BusinessLogicService();
+        
         this.init();
     }
 
@@ -130,8 +135,6 @@ class BacklogManager extends BaseManager {
             
             // PIANIFICAZIONE fields
             deliveryDate: document.getElementById('deliveryDate'),
-            status: document.getElementById('status'),
-            refreshStatusBtn: document.getElementById('refreshStatusBtn'),
             
             // DATI COMMERCIALI fields
             internalCustomerCode: document.getElementById('internalCustomerCode'),
@@ -176,9 +179,13 @@ class BacklogManager extends BaseManager {
     attachEventListeners() {
         if (this.elements.calculateBtn) {
             this.elements.calculateBtn.addEventListener('click', () => {
+                console.log('🔍 Calculate button clicked');
                 this.validateForm();
                 if (!this.elements.calculateBtn.disabled) {
+                    console.log('🔍 Starting calculation...');
                     this.calculateProduction();
+                } else {
+                    console.log('🔍 Calculate button is disabled');
                 }
             });
         }
@@ -202,7 +209,14 @@ class BacklogManager extends BaseManager {
             }
         });
         
-        // Handle tipo_lavorazione change to update fase options
+        // Handle article code change to auto-determine department and update fase options
+        if (this.elements.articleCode) {
+            this.elements.articleCode.addEventListener('input', () => {
+                this.autoDetermineDepartment();
+            });
+        }
+        
+        // Handle tipo_lavorazione change to update fase options (for manual override if needed)
         if (this.elements.tipoLavorazione) {
             this.elements.tipoLavorazione.addEventListener('change', () => {
                 this.updateFaseOptions();
@@ -232,13 +246,7 @@ class BacklogManager extends BaseManager {
             });
         }
 
-        // Manual refresh status button
-        if (this.elements.refreshStatusBtn) {
-            this.elements.refreshStatusBtn.addEventListener('click', () => {
-                this.refreshStatusFromGantt();
-                this.autoDetermineStatus(); // Also refresh current form status
-            });
-        }
+        // Status is auto-determined, no manual refresh needed
         
         // Real-time compatibility checking
         const compatibilityFields = [this.elements.workCenter, this.elements.bagWidth, this.elements.bagHeight, this.elements.tipoLavorazione];
@@ -286,6 +294,7 @@ class BacklogManager extends BaseManager {
 
     setupFormValidation() {
         this.loadPhases();
+        this.autoDetermineDepartment(); // Auto-determine department on page load
         this.updateButtonStates();
         this.updatePreview();
         this.generateODPNumber();
@@ -293,8 +302,12 @@ class BacklogManager extends BaseManager {
 
     generateODPNumber() {
         if (!this.elements.odpNumber.value) {
-            // Generate ODP number using the storage service
-            const odpNumber = this.storageService.generateODPNumber();
+            // Get existing ODP numbers from storage
+            const existingODPs = this.storageService.getODPOrders();
+            const existingNumbers = existingODPs.map(odp => odp.odp_number);
+            
+            // Generate ODP number using the business logic service
+            const odpNumber = this.businessLogic.generateODPNumber(existingNumbers);
             this.elements.odpNumber.value = odpNumber;
         }
     }
@@ -314,12 +327,37 @@ class BacklogManager extends BaseManager {
         this.elements.workCenter.value = workCenter;
     }
 
+    autoDetermineDepartment() {
+        const articleCode = this.elements.articleCode.value.trim().toUpperCase();
+        let department = '';
+        
+        // Auto-determine department based on article code pattern
+        if (articleCode.startsWith('P0')) {
+            department = 'CONFEZIONAMENTO';
+        } else {
+            department = 'STAMPA';
+        }
+        
+        // Update the department field
+        if (this.elements.tipoLavorazione) {
+            this.elements.tipoLavorazione.value = department;
+            // Update fase options when department changes
+            this.updateFaseOptions();
+        }
+        
+        if (window.DEBUG) {
+            console.log('🔍 Auto-determined department:', {
+                articleCode: articleCode,
+                department: department
+            });
+        }
+    }
+
 
 
     autoDetermineStatus() {
         const odpNumber = this.elements.odpNumber.value.trim();
         if (!odpNumber) {
-            this.elements.status.value = '';
             return;
         }
 
@@ -328,50 +366,12 @@ class BacklogManager extends BaseManager {
             console.log('🔍 Auto-determining status for ODP:', odpNumber);
         }
 
-        // Check if this ODP is scheduled in the Gantt
+        // Use centralized business logic service for status determination
         const scheduledEvents = this.storageService.getScheduledEvents();
+        const status = this.businessLogic.determineODPStatus(odpNumber, scheduledEvents);
         
         if (window.DEBUG) {
-            console.log('📅 All scheduled events:', scheduledEvents);
-            console.log('🔍 Looking for ODP number:', odpNumber);
-        }
-        
-        // Look for scheduled event by ODP number
-        // Check multiple possible fields where the ODP number might be stored
-        const scheduledEvent = scheduledEvents.find(event => {
-            // Check taskId first (primary field)
-            if (String(event.taskId) === String(odpNumber)) {
-                if (window.DEBUG) console.log('✅ Found by taskId:', event);
-                return true;
-            }
-            
-            // Check if taskTitle contains the ODP number
-            if (event.taskTitle && String(event.taskTitle).includes(odpNumber)) {
-                if (window.DEBUG) console.log('✅ Found by taskTitle:', event);
-                return true;
-            }
-            
-            // Check if there's an odp_number field
-            if (event.odp_number && String(event.odp_number) === String(odpNumber)) {
-                if (window.DEBUG) console.log('✅ Found by odp_number:', event);
-                return true;
-            }
-            
-            return false;
-        });
-        
-        if (scheduledEvent) {
-            this.elements.status.value = 'Scheduled';
-            
-            if (window.DEBUG) {
-                console.log('✅ Status set to: Scheduled for ODP:', odpNumber);
-            }
-        } else {
-            this.elements.status.value = 'Not Scheduled';
-            
-            if (window.DEBUG) {
-                console.log('❌ Status set to: Not Scheduled for ODP:', odpNumber);
-            }
+            console.log(`✅ Status determined: ${status} for ODP:`, odpNumber);
         }
     }
 
@@ -448,33 +448,9 @@ class BacklogManager extends BaseManager {
             return null;
         }
 
-        // Check if this ODP is scheduled in the Gantt
+        // Use centralized business logic service for timestamp determination
         const scheduledEvents = this.storageService.getScheduledEvents();
-        
-        // Look for scheduled event by ODP number
-        const scheduledEvent = scheduledEvents.find(event => {
-            // Check taskId first (primary field)
-            if (String(event.taskId) === String(odpNumber)) return true;
-            
-            // Check if taskTitle contains the ODP number
-            if (event.taskTitle && String(event.taskTitle).includes(odpNumber)) return true;
-            
-            // Check if there's an odp_number field
-            if (event.odp_number && String(event.odp_number) === String(odpNumber)) return true;
-            
-            return false;
-        });
-        
-        if (scheduledEvent) {
-            // Task is scheduled, return the timestamp
-            const startDate = new Date(scheduledEvent.date);
-            const startHour = scheduledEvent.startHour || 0;
-            startDate.setHours(startHour, 0, 0, 0);
-            return startDate.toISOString();
-        } else {
-            // Task is not scheduled
-            return null;
-        }
+        return this.businessLogic.getProductionStartTimestamp(odpNumber, scheduledEvents);
     }
 
     testStatusAutomation() {
@@ -529,10 +505,8 @@ class BacklogManager extends BaseManager {
         });
         console.log(`🧪 Test with ${testODP}:`, testEvent ? 'Found' : 'Not Found');
         
-        // Test current status
-        if (this.elements.status) {
-            console.log('📊 Current Status Field Value:', this.elements.status.value);
-        }
+        // Status is auto-determined, no field to test
+        console.log('📊 Status is auto-determined based on Gantt schedule');
     }
 
     updateFaseOptions() {
@@ -546,18 +520,69 @@ class BacklogManager extends BaseManager {
             // Get phases for the selected department
             const phases = this.storageService.getPhasesByDepartment(selectedDepartment);
             
+            if (window.DEBUG) {
+                console.log('🔍 Available phases for department:', selectedDepartment, phases);
+            }
+            
             phases.forEach(phase => {
                 const option = document.createElement('option');
                 option.value = phase.id;
                 option.textContent = phase.name || `${phase.department || phase.type} - ${phase.id}`;
                 faseSelect.appendChild(option);
             });
+        } else {
+            if (window.DEBUG) {
+                console.log('🔍 No department selected, cannot populate phases');
+            }
         }
     }
 
     loadPhases() {
         // Load existing phases from storage
-        this.storageService.getPhases();
+        const existingPhases = this.storageService.getPhases();
+        
+        // If no phases exist, create some default ones
+        if (existingPhases.length === 0) {
+            if (window.DEBUG) {
+                console.log('🔍 No phases found, creating default phases...');
+            }
+            
+            // Create default STAMPA phase
+            const defaultStampaPhase = {
+                name: 'Default STAMPA Phase',
+                department: 'STAMPA',
+                numero_persone: 2,
+                V_STAMPA: 6000,        // 6000 mt/h
+                T_SETUP_STAMPA: 0.5,   // 0.5 hours
+                COSTO_H_STAMPA: 50,    // 50 €/h
+                V_CONF: 0,
+                T_SETUP_CONF: 0,
+                COSTO_H_CONF: 0,
+                contenuto_fase: null
+            };
+            
+            // Create default CONFEZIONAMENTO phase
+            const defaultConfPhase = {
+                name: 'Default CONFEZIONAMENTO Phase',
+                department: 'CONFEZIONAMENTO',
+                numero_persone: 3,
+                V_STAMPA: 0,
+                T_SETUP_STAMPA: 0,
+                COSTO_H_STAMPA: 0,
+                V_CONF: 1000,          // 1000 pz/h
+                T_SETUP_CONF: 0.25,    // 0.25 hours
+                COSTO_H_CONF: 40,      // 40 €/h
+                contenuto_fase: 'Default packaging phase'
+            };
+            
+            // Add default phases to storage
+            this.storageService.addPhase(defaultStampaPhase);
+            this.storageService.addPhase(defaultConfPhase);
+            
+            if (window.DEBUG) {
+                console.log('✅ Default phases created');
+            }
+        }
     }
 
     getPhaseName(phaseId) {
@@ -634,13 +659,15 @@ class BacklogManager extends BaseManager {
         const machines = this.storageService.getMachines();
         const compatibilityResults = [];
         
+        const businessLogic = new BusinessLogicService();
+        
         machines.forEach(machine => {
-            const compatibility = Utils.isCompatible(machine, mockODP);
-            const status = Utils.getCompatibilityStatus(machine, mockODP);
+            const compatibility = businessLogic.isMachineCompatible(machine, mockODP);
+            const status = businessLogic.getMachineCompatibilityStatus(machine, mockODP);
             
             compatibilityResults.push({
                 machine: machine,
-                compatibility: compatibility,
+                compatibility: { isCompatible: compatibility, reasons: status.reasons },
                 status: status
             });
         });
@@ -916,14 +943,20 @@ class BacklogManager extends BaseManager {
 
 
     calculateProduction() {
+        console.log('🔍 calculateProduction() called');
+        
         const odpData = this.collectODPFormData();
+        console.log('🔍 Collected form data:', odpData);
         
         if (!this.validateODPData(odpData)) {
+            console.log('🔍 Validation failed');
             return;
         }
 
+        console.log('🔍 Validation passed, performing calculations...');
         try {
             const calculation = this.performODPCalculations(odpData);
+            console.log('🔍 Calculation result:', calculation);
             this.displayODPResults(calculation);
             this.currentCalculation = calculation;
             this.elements.createTaskBtn.disabled = false;
@@ -934,12 +967,14 @@ class BacklogManager extends BaseManager {
     }
 
     collectODPFormData() {
-        return {
+        const articleCode = this.elements.articleCode.value.trim();
+        
+        const formData = {
             // IDENTIFICAZIONE
             odp_number: this.elements.odpNumber.value.trim(),
-            article_code: this.elements.articleCode.value.trim(),
+            article_code: articleCode,
             production_lot: this.elements.productionLot.value.trim(),
-            work_center: this.elements.workCenter.value,
+            work_center: this.businessLogic.autoDetermineWorkCenter(articleCode),
             nome_cliente: this.elements.nomeCliente.value.trim(),
             description: this.elements.description.value.trim(),
             
@@ -956,18 +991,30 @@ class BacklogManager extends BaseManager {
             delivery_date: this.elements.deliveryDate.value,
             
             // DATI COMMERCIALI
-            internal_customer_code: this.elements.internalCustomerCode.value.trim(),
+            internal_customer_code: this.businessLogic.autoSetInternalCustomerCode(articleCode),
             external_customer_code: this.elements.externalCustomerCode.value.trim(),
             customer_order_ref: this.elements.customerOrderRef.value.trim(),
             
             // DATI LAVORAZIONE
-            department: this.elements.tipoLavorazione.value,
+            department: this.elements.tipoLavorazione.value, // Use the auto-determined department field
             fase: this.elements.fase.value
         };
+        
+        console.log('🔍 Form field values:', {
+            articleCode: this.elements.articleCode.value,
+            bagHeight: this.elements.bagHeight.value,
+            bagWidth: this.elements.bagWidth.value,
+            bagStep: this.elements.bagStep.value,
+            quantity: this.elements.quantity.value,
+            department: formData.department,
+            fase: this.elements.fase.value
+        });
+        
+        return formData;
     }
 
     validateODPData(odpData) {
-
+        console.log('🔍 validateODPData() called with:', odpData);
         
         // For calculation, we only need the essential fields, not all fields
         const essentialFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'department', 'fase'];
@@ -980,8 +1027,13 @@ class BacklogManager extends BaseManager {
             fase: odpData.fase
         };
         
+        console.log('🔍 Essential data for validation:', essentialData);
+        
         const essentialValidation = Utils.validateRequiredFields(essentialData, essentialFields);
+        console.log('🔍 Essential validation result:', essentialValidation);
+        
         if (!essentialValidation.isValid) {
+            console.log('🔍 Essential validation failed:', essentialValidation.errors);
             this.showErrorMessage('validating form', new Error('Please fill in all technical specifications (bag height, width, step, quantity, processing type, and phase)'));
             return false;
         }
@@ -1050,6 +1102,27 @@ class BacklogManager extends BaseManager {
         if (!selectedPhase) {
             throw new Error('Selected phase not found');
         }
+        
+        // Check if there are any phases available
+        const allPhases = this.storageService.getPhases();
+        if (window.DEBUG) {
+            console.log('🔍 All available phases:', allPhases);
+            console.log('🔍 Phase data for calculations:', {
+                phaseId: odpData.fase,
+                selectedPhase: selectedPhase,
+                department: odpData.department,
+                bag_step: odpData.bag_step,
+                quantity: odpData.quantity
+            });
+            console.log('🔍 Selected phase details:', {
+                V_STAMPA: selectedPhase.V_STAMPA,
+                T_SETUP_STAMPA: selectedPhase.T_SETUP_STAMPA,
+                COSTO_H_STAMPA: selectedPhase.COSTO_H_STAMPA,
+                V_CONF: selectedPhase.V_CONF,
+                T_SETUP_CONF: selectedPhase.T_SETUP_CONF,
+                COSTO_H_CONF: selectedPhase.COSTO_H_CONF
+            });
+        }
 
         const result = {
             printing: { 
@@ -1067,12 +1140,32 @@ class BacklogManager extends BaseManager {
             total: { duration: 0, cost: 0 }
         };
 
-        // Calculate based on processing type
-        if (odpData.department === 'STAMPA') {
+        // Calculate based on the phase's department/type, not the form's auto-determined department
+        // This ensures we use the correct calculation method for the selected phase
+        const phaseDepartment = selectedPhase.department || selectedPhase.type;
+        
+        if (window.DEBUG) {
+            console.log('🔍 Phase department/type:', {
+                odpDepartment: odpData.department,
+                phaseDepartment: phaseDepartment,
+                selectedPhase: selectedPhase,
+                note: 'Using phase department for calculations, not form department'
+            });
+        }
+        
+        if (phaseDepartment === 'STAMPA') {
             // ODP di Stampa calculations
             const vStampa = selectedPhase.V_STAMPA || 0; // mt/h
             const tSetupStampa = selectedPhase.T_SETUP_STAMPA || 0; // hours
             const costoHStampa = selectedPhase.COSTO_H_STAMPA || 0; // €/h
+            
+            if (window.DEBUG) {
+                console.log('🔍 STAMPA calculation values:', {
+                    vStampa: vStampa,
+                    tSetupStampa: tSetupStampa,
+                    costoHStampa: costoHStampa
+                });
+            }
 
             if (vStampa > 0) {
                 // mt_da_stampare = (Passo * Quantità)/1000
@@ -1103,11 +1196,19 @@ class BacklogManager extends BaseManager {
                     cost: result.printing.cost
                 });
             }
-        } else if (odpData.department === 'CONFEZIONAMENTO') {
+        } else if (phaseDepartment === 'CONFEZIONAMENTO') {
             // ODP di Confezionamento calculations
             const vConf = selectedPhase.V_CONF || 0; // pz/h
             const tSetupConf = selectedPhase.T_SETUP_CONF || 0; // hours
             const costoHConf = selectedPhase.COSTO_H_CONF || 0; // €/h
+            
+            if (window.DEBUG) {
+                console.log('🔍 CONFEZIONAMENTO calculation values:', {
+                    vConf: vConf,
+                    tSetupConf: tSetupConf,
+                    costoHConf: costoHConf
+                });
+            }
 
             if (vConf > 0) {
                 // tempo_confezionamento = pezzi_ODP / velocità_fase_confezionamento
@@ -1132,6 +1233,10 @@ class BacklogManager extends BaseManager {
                     tempoODPTotale: tempoODPTotale,
                     cost: result.packaging.cost
                 });
+            }
+        } else {
+            if (window.DEBUG) {
+                console.log('🔍 Unknown department/type:', phaseDepartment);
             }
         }
 
@@ -1220,7 +1325,7 @@ class BacklogManager extends BaseManager {
             fase: normalizedFase,
             duration: this.currentCalculation.total.duration,
             cost: this.currentCalculation.total.cost,
-            status: this.elements.status.value || 'Not Scheduled',
+            status: 'Not Scheduled', // Status is auto-determined, default to Not Scheduled
             production_start: null, // Will be set automatically when scheduled on Gantt
             priority: 'medium'
         };
@@ -1260,6 +1365,9 @@ class BacklogManager extends BaseManager {
         
         // Reset work center automation
         this.resetWorkCenterAutomation();
+        
+        // Re-determine department after clearing (since article code is cleared)
+        this.autoDetermineDepartment();
     }
 
     resetWorkCenterAutomation() {
@@ -1268,10 +1376,7 @@ class BacklogManager extends BaseManager {
             this.elements.workCenter.value = '';
         }
         
-        // Reset status
-        if (this.elements.status) {
-            this.elements.status.value = '';
-        }
+        // Status is auto-determined, no need to reset
     }
 
     loadBacklog() {

@@ -273,100 +273,11 @@ class Utils {
     /**
      * Machine helpers (centralized)
      */
-    static getMachineDisplayName(machine) {
-        return (machine && machine.machine_name) || 'Unknown Machine';
-    }
+    // Machine helper methods moved to BusinessLogicService
 
-    static isActiveMachine(machine) {
-        if (!machine) return false;
-        if (machine.status) return String(machine.status).toUpperCase() === 'ACTIVE';
-        // Legacy: any named machine is considered active
-        return !!machine.machine_name;
-    }
+    // Machine compatibility methods moved to BusinessLogicService
 
-    /**
-     * Machine-ODP Compatibility Checker
-     * Verifies if a machine is compatible with an ODP order
-     */
-    static isCompatible(machine, odp) {
-        // Check if both machine and ODP have required fields
-        if (!machine || !odp) {
-            return { compatible: false, reasons: ['Missing machine or ODP data'] };
-        }
-
-        const reasons = [];
-
-        // 1. Check work center compatibility
-        if (machine.site && odp.work_center && machine.site !== odp.work_center) {
-            reasons.push(`Work center mismatch: Machine is at ${machine.site}, ODP requires ${odp.work_center}`);
-        }
-
-        // 2. Check web width compatibility (bag_width vs machine web width)
-        const bagWidth = parseInt(odp.bag_width) || 0;
-        const minWebWidth = parseInt(machine.min_web_width) || 0;
-        const maxWebWidth = parseInt(machine.max_web_width) || 0;
-        
-        if (bagWidth > 0 && maxWebWidth > 0) {
-            if (bagWidth < minWebWidth) {
-                reasons.push(`Bag width too small: ${bagWidth}mm < minimum ${minWebWidth}mm`);
-            }
-            if (bagWidth > maxWebWidth) {
-                reasons.push(`Bag width too large: ${bagWidth}mm > maximum ${maxWebWidth}mm`);
-            }
-        }
-
-        // 3. Check bag height compatibility
-        const bagHeight = parseInt(odp.bag_height) || 0;
-        const minBagHeight = parseInt(machine.min_bag_height) || 0;
-        const maxBagHeight = parseInt(machine.max_bag_height) || 0;
-        
-        if (bagHeight > 0 && maxBagHeight > 0) {
-            if (bagHeight < minBagHeight) {
-                reasons.push(`Bag height too small: ${bagHeight}mm < minimum ${minBagHeight}mm`);
-            }
-            if (bagHeight > maxBagHeight) {
-                reasons.push(`Bag height too large: ${bagHeight}mm > maximum ${maxBagHeight}mm`);
-            }
-        }
-
-        // 4. Check machine type vs processing type compatibility
-        const machineType = machine.machine_type;
-        const tipoLavorazione = odp.tipo_lavorazione;
-        
-        if (machineType && tipoLavorazione) {
-            const printingMachines = ['DIGITAL_PRINT', 'FLEXO_PRINT', 'ROTOGRAVURE', 'printing'];
-            const packagingMachines = ['PACKAGING', 'DOYPACK', 'packaging'];
-            
-            if (tipoLavorazione === 'printing' && !printingMachines.includes(machineType)) {
-                reasons.push(`Machine type incompatible: ${machineType} cannot perform printing operations`);
-            }
-            
-            if (tipoLavorazione === 'packaging' && !packagingMachines.includes(machineType)) {
-                reasons.push(`Machine type incompatible: ${machineType} cannot perform packaging operations`);
-            }
-        }
-
-        return {
-            compatible: reasons.length === 0,
-            reasons: reasons,
-            score: reasons.length === 0 ? 100 : Math.max(0, 100 - (reasons.length * 25))
-        };
-    }
-
-    /**
-     * Get compatibility status for display
-     */
-    static getCompatibilityStatus(machine, odp) {
-        const result = Utils.isCompatible(machine, odp);
-        
-        if (result.compatible) {
-            return { status: 'compatible', icon: '✅', message: 'Compatible' };
-        } else if (result.score > 50) {
-            return { status: 'warning', icon: '⚠️', message: 'Partially compatible' };
-        } else {
-            return { status: 'incompatible', icon: '❌', message: 'Incompatible' };
-        }
-    }
+    // Compatibility status method moved to BusinessLogicService
 
 
 
