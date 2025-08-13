@@ -60,7 +60,7 @@ const autoInternalCustomerCode = normalizedArticle;
 ```javascript
 // ❌ REMOVED: generateODPNumber()
 generateODPNumber() {
-    const orders = this.getODPOrders();
+    const orders = this.get_odp_orders();
     const existingNumbers = orders
         .map(o => o.odp_number)
         .filter(num => num && num.startsWith('OP'))

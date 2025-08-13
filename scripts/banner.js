@@ -1,5 +1,5 @@
 // Banner and confirmation logic for destructive actions
-function showBanner(message, type) {
+function show_banner(message, type) {
     let banner = document.getElementById('banner');
     if (!banner) {
         banner = document.createElement('div');
@@ -10,12 +10,10 @@ function showBanner(message, type) {
     banner.textContent = message;
     banner.className = 'banner ' + type;
     banner.style.display = 'flex';
-    
     // Trigger animation by adding show class
     setTimeout(() => {
         banner.classList.add('show');
     }, 10);
-    
     setTimeout(() => { 
         banner.classList.remove('show');
         setTimeout(() => {
@@ -23,140 +21,113 @@ function showBanner(message, type) {
         }, 300);
     }, 3000);
 }
-
 // Standardized delete confirmation - this is the approved standard
-function showDeleteConfirmation(message, onConfirm) {
-    return showConfirmBanner(message, onConfirm);
+function show_delete_confirmation(message, on_confirm) {
+    return show_confirm_banner(message, on_confirm);
 }
-
-function showConfirmBanner(message, onConfirm) {
-    console.log('showConfirmBanner called with message:', message);
-    
+function show_confirm_banner(message, on_confirm) {
     // Remove any existing modal first
-    const existingModal = document.getElementById('confirmModal');
-    if (existingModal) {
-        existingModal.remove();
+    const existing_modal = document.getElementById('confirmModal');
+    if (existing_modal) {
+        existing_modal.remove();
     }
-    
     // Create modal overlay
-    const modalOverlay = document.createElement('div');
-    modalOverlay.className = 'modal-overlay';
-    modalOverlay.id = 'confirmModal';
-    modalOverlay.style.zIndex = '10000'; // Ensure it's on top
-    
+    const modal_overlay = document.createElement('div');
+    modal_overlay.className = 'modal-overlay';
+    modal_overlay.id = 'confirmModal';
+    modal_overlay.style.zIndex = '10000'; // Ensure it's on top
     // Create modal content
-    const modalContent = document.createElement('div');
-    modalContent.className = 'modal-content';
-    
+    const modal_content = document.createElement('div');
+    modal_content.className = 'modal-content';
     // Create modal header
-    const modalHeader = document.createElement('div');
-    modalHeader.className = 'modal-header';
-    modalHeader.innerHTML = `
+    const modal_header = document.createElement('div');
+    modal_header.className = 'modal-header';
+    modal_header.innerHTML = `
         <svg class="modal-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <h3>Confirm Action</h3>
     `;
-    
     // Create modal body
-    const modalBody = document.createElement('div');
-    modalBody.className = 'modal-body';
-    modalBody.innerHTML = `<p>${message}</p>`;
-    
+    const modal_body = document.createElement('div');
+    modal_body.className = 'modal-body';
+    modal_body.innerHTML = `<p>${message}</p>`;
     // Create modal footer
-    const modalFooter = document.createElement('div');
-    modalFooter.className = 'modal-footer';
-    modalFooter.innerHTML = `
+    const modal_footer = document.createElement('div');
+    modal_footer.className = 'modal-footer';
+    modal_footer.innerHTML = `
         <button class="btn btn-secondary" id="confirmNo">Cancel</button>
         <button class="btn btn-danger" id="confirmYes">Delete</button>
     `;
-    
     // Assemble modal
-    modalContent.appendChild(modalHeader);
-    modalContent.appendChild(modalBody);
-    modalContent.appendChild(modalFooter);
-    modalOverlay.appendChild(modalContent);
-    
+    modal_content.appendChild(modal_header);
+    modal_content.appendChild(modal_body);
+    modal_content.appendChild(modal_footer);
+    modal_overlay.appendChild(modal_content);
     // Add to DOM
-    document.body.appendChild(modalOverlay);
-    console.log('Modal added to DOM');
-    
+    document.body.appendChild(modal_overlay);
     // Force modal to be visible
     setTimeout(() => {
-        modalOverlay.style.opacity = '1';
-        modalOverlay.style.visibility = 'visible';
-        modalContent.style.transform = 'translateY(0)';
-        console.log('Modal should be visible now');
+        modal_overlay.style.opacity = '1';
+        modal_overlay.style.visibility = 'visible';
+        modal_content.style.transform = 'translateY(0)';
     }, 10);
-    
     // Add event listeners
-    const confirmYes = document.getElementById('confirmYes');
-    const confirmNo = document.getElementById('confirmNo');
-    
-    let isClosing = false;
-    
-    const closeModal = () => {
-        if (isClosing) return; // Prevent multiple calls
-        isClosing = true;
-        
+    const confirm_yes = document.getElementById('confirmYes');
+    const confirm_no = document.getElementById('confirmNo');
+    let is_closing = false;
+    const close_modal = () => {
+        if (is_closing) return; // Prevent multiple calls
+        is_closing = true;
         // Fade out animation
-        modalOverlay.style.opacity = '0';
-        modalContent.style.transform = 'translateY(-20px)';
-        
+        modal_overlay.style.opacity = '0';
+        modal_content.style.transform = 'translateY(-20px)';
         setTimeout(() => {
-            if (modalOverlay.parentNode) {
-                modalOverlay.remove();
+            if (modal_overlay.parentNode) {
+                modal_overlay.remove();
             }
         }, 300);
     };
-    
-    confirmYes.addEventListener('click', (e) => {
+    confirm_yes.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        closeModal();
-        setTimeout(() => onConfirm(), 300);
+        close_modal();
+        setTimeout(() => on_confirm(), 300);
     });
-    
-    confirmNo.addEventListener('click', (e) => {
+    confirm_no.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        closeModal();
+        close_modal();
     });
-    
     // Close on overlay click
-    modalOverlay.addEventListener('click', (e) => {
-        if (e.target === modalOverlay) {
-            closeModal();
+    modal_overlay.addEventListener('click', (e) => {
+        if (e.target === modal_overlay) {
+            close_modal();
         }
     });
-    
     // Close on Escape key
-    const handleEscape = (e) => {
+    const handle_escape = (e) => {
         if (e.key === 'Escape') {
             e.preventDefault();
-            closeModal();
-            document.removeEventListener('keydown', handleEscape);
+            close_modal();
+            document.removeEventListener('keydown', handle_escape);
         }
     };
-    document.addEventListener('keydown', handleEscape);
-    
+    document.addEventListener('keydown', handle_escape);
     // Focus the cancel button for accessibility
     setTimeout(() => {
-        if (confirmNo) confirmNo.focus();
+        if (confirm_no) confirm_no.focus();
     }, 100);
-    
     // Prevent any other code from removing this modal
-    const originalRemoveChild = document.body.removeChild;
+    const original_remove_child = document.body.removeChild;
     document.body.removeChild = function(child) {
-        if (child === modalOverlay && !isClosing) {
-            console.warn('Attempted to remove confirmation modal - prevented');
+        if (child === modal_overlay && !is_closing) {
             return;
         }
-        return originalRemoveChild.call(this, child);
+        return original_remove_child.call(this, child);
     };
-    
     // Restore original removeChild after modal is closed
     setTimeout(() => {
-        document.body.removeChild = originalRemoveChild;
+        document.body.removeChild = original_remove_child;
     }, 5000); // Safety timeout
 }

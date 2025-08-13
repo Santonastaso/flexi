@@ -3,86 +3,86 @@
  * Implements Google Calendar-style layout and behavior
  */
 class CalendarRenderer {
-    constructor(container, viewManager, storageService) {
+    constructor(container, view_manager, storage_service) {
         this.container = container;
-        this.viewManager = viewManager;
-        this.storageService = storageService;
-        this.currentView = 'month';
-        this.currentDate = new Date();
-        this.machineName = null;
+        this.view_manager = view_manager;
+        this.storage_service = storage_service;
+        this.current_view = 'month';
+        this.current_date = new Date();
+        this.machine_name = null;
         
         // Time range for week view
-        this.startHour = 0;
-        this.endHour = 24;
+        this.start_hour = 0;
+        this.end_hour = 24;
         
         this.init();
     }
     
     init() {
-        this.getMachineFromURL();
-        this.setupEventListeners();
+        this.get_machine_from_url();
+        this.setup_event_listeners();
     }
     
-    getMachineFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
-        this.machineName = urlParams.get('machine');
+    get_machine_from_url() {
+        const url_params = new URLSearchParams(window.location.search);
+        this.machine_name = url_params.get('machine');
     }
     
-    setupEventListeners() {
-        this.container.addEventListener('click', (e) => this.handleCalendarClick(e));
+    setup_event_listeners() {
+        this.container.addEventListener('click', (e) => this.handle_calendar_click(e));
     }
     
     /**
      * Main render method - delegates to specific view renderers
      */
-    render(view = this.currentView, date = this.currentDate) {
-        this.currentView = view;
-        this.currentDate = date;
+    render(view = this.current_view, date = this.current_date) {
+        this.current_view = view;
+        this.current_date = date;
         
         switch (view) {
             case 'year':
-                this.renderYearView(date);
+                this.render_year_view(date);
                 break;
             case 'month':
-                this.renderMonthView(date);
+                this.render_month_view(date);
                 break;
             case 'week':
-                this.renderWeekView(date);
+                this.render_week_view(date);
                 break;
             default:
-                this.renderMonthView(date);
+                this.render_month_view(date);
         }
     }
     
     /**
      * Year View - Grid of 12 months (3x4)
      */
-    renderYearView(date) {
+    render_year_view(date) {
         const year = date.getFullYear();
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
+        const current_month = new Date().getMonth();
+        const current_year = new Date().getFullYear();
         
         let html = `
             <div class="calendar-year-grid">
         `;
         
-        const monthNames = [
+        const month_names = [
             'January', 'February', 'March', 'April', 'May', 'June',
             'July', 'August', 'September', 'October', 'November', 'December'
         ];
         
         for (let month = 0; month < 12; month++) {
-            const isCurrentMonth = year === currentYear && month === currentMonth;
-            const monthEvents = this.getMonthEventCount(year, month);
+            const is_current_month = year === current_year && month === current_month;
+            const month_events = this.get_month_event_count(year, month);
             
             html += `
-                <div class="month-cell ${isCurrentMonth ? 'current-month' : ''}" 
+                <div class="month-cell ${is_current_month ? 'current-month' : ''}" 
                      data-year="${year}" data-month="${month}">
-                    <div class="month-header">${monthNames[month]}</div>
+                    <div class="month-header">${month_names[month]}</div>
                     <div class="month-mini-calendar">
-                        ${this.renderMiniMonth(year, month)}
+                        ${this.render_mini_month(year, month)}
                     </div>
-                    ${monthEvents > 0 ? `<div class="event-indicator">${monthEvents} events</div>` : ''}
+                    ${month_events > 0 ? `<div class="event-indicator">${month_events} events</div>` : ''}
                 </div>
             `;
         }
@@ -94,13 +94,13 @@ class CalendarRenderer {
     /**
      * Month View - Traditional calendar grid
      */
-    renderMonthView(date) {
+    render_month_view(date) {
         const year = date.getFullYear();
         const month = date.getMonth();
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        const startDate = new Date(firstDay);
-        startDate.setDate(startDate.getDate() - firstDay.getDay()); // Start from Sunday
+        const first_day = new Date(year, month, 1);
+        const last_day = new Date(year, month + 1, 0);
+        const start_date = new Date(first_day);
+        start_date.setDate(start_date.getDate() - first_day.getDay()); // Start from Sunday
         
         let html = `
             <div class="calendar-month-grid">
@@ -116,33 +116,33 @@ class CalendarRenderer {
                 <div class="month-days">
         `;
         
-        const current = new Date(startDate);
+        const current = new Date(start_date);
         const today = new Date();
         
         for (let week = 0; week < 6; week++) {
             html += `<div class="week-row" data-week="${week}">`;
             
             for (let day = 0; day < 7; day++) {
-                const isCurrentMonth = current.getMonth() === month;
-                const isToday = current.toDateString() === today.toDateString();
-                const dateStr = this.formatDate(current);
-                const events = this.storageService.getEventsByDate(dateStr).filter(e => e.machine === this.machineName);
+                const is_current_month = current.getMonth() === month;
+                const is_today = current.toDateString() === today.toDateString();
+                const date_str = this.format_date(current);
+                const events = this.storage_service.getEventsByDate(date_str).filter(e => e.machine === this.machine_name);
                 
                 // Check if day is unavailable
-                const unavailableHours = this.storageService.getMachineAvailabilityForDate(this.machineName, dateStr);
-                const isUnavailable = unavailableHours.length >= 24; // Full day unavailable
-                const isPartiallyUnavailable = unavailableHours.length > 0 && unavailableHours.length < 24;
+                const unavailable_hours = this.storage_service.getMachineAvailabilityForDate(this.machine_name, date_str);
+                const is_unavailable = unavailable_hours.length >= 24; // Full day unavailable
+                const is_partially_unavailable = unavailable_hours.length > 0 && unavailable_hours.length < 24;
                 
                 html += `
-                    <div class="day-cell ${isCurrentMonth ? 'current-month' : 'other-month'} ${isToday ? 'today' : ''} ${isUnavailable ? 'unavailable' : ''} ${isPartiallyUnavailable ? 'partially-unavailable' : ''}"
-                         data-date="${dateStr}">
+                    <div class="day-cell ${is_current_month ? 'current-month' : 'other-month'} ${is_today ? 'today' : ''} ${is_unavailable ? 'unavailable' : ''} ${is_partially_unavailable ? 'partially-unavailable' : ''}"
+                         data-date="${date_str}">
                         <div class="day-number">
                             ${current.getDate()}
-                            ${isUnavailable ? '<span class="unavailable-indicator">✕</span>' : ''}
-                            ${isPartiallyUnavailable ? '<span class="partially-unavailable-indicator">⚠</span>' : ''}
+                            ${is_unavailable ? '<span class="unavailable-indicator">✕</span>' : ''}
+                            ${is_partially_unavailable ? '<span class="partially-unavailable-indicator">⚠</span>' : ''}
                         </div>
                         <div class="day-events">
-                            ${this.renderDayEvents(events)}
+                            ${this.render_day_events(events)}
                         </div>
                     </div>
                 `;
@@ -167,12 +167,12 @@ class CalendarRenderer {
     /**
      * Week View - Vertical timeline with 7 day columns
      */
-    renderWeekView(date) {
-        const startOfWeek = this.getStartOfWeek(date);
+    render_week_view(date) {
+        const start_of_week = this.get_start_of_week(date);
         const days = [];
         
         for (let i = 0; i < 7; i++) {
-            const day = new Date(startOfWeek);
+            const day = new Date(start_of_week);
             day.setDate(day.getDate() + i);
             days.push(day);
         }
@@ -183,13 +183,13 @@ class CalendarRenderer {
                     <div class="time-column-header"></div>
                     ${days.map(day => `
                         <div class="day-column-header">
-                            <div class="day-name">${this.getDayName(day.getDay(), true)}</div>
-                            <div class="day-number ${this.isToday(day) ? 'today' : ''}">${day.getDate()}</div>
+                            <div class="day-name">${this.get_day_name(day.getDay(), true)}</div>
+                            <div class="day-number ${this.is_today(day) ? 'today' : ''}">${day.getDate()}</div>
                         </div>
                     `).join('')}
                 </div>
                 <div class="week-body">
-                    ${this.renderWeekTimeSlots(days)}
+                    ${this.render_week_time_slots(days)}
                 </div>
             </div>
         `;
@@ -197,25 +197,25 @@ class CalendarRenderer {
         this.container.innerHTML = html;
     }
     
-    renderWeekTimeSlots(days) {
+    render_week_time_slots(days) {
         let html = '';
         
-        for (let hour = this.startHour; hour < this.endHour; hour++) {
+        for (let hour = this.start_hour; hour < this.end_hour; hour++) {
             html += `
                 <div class="time-row" data-hour="${hour}">
-                    <div class="time-label">${this.formatHour(hour)}</div>
+                    <div class="time-label">${this.format_hour(hour)}</div>
                     ${days.map(day => {
-                        const dateStr = this.formatDate(day);
-                        const events = this.storageService.getEventsByDate(dateStr).filter(e => 
-                            e.machine === this.machineName && hour >= e.startHour && hour < e.endHour);
-                        const unavailableHours = this.storageService.getMachineAvailabilityForDate(this.machineName, dateStr);
-                        const isUnavailable = unavailableHours.includes(hour);
+                        const date_str = this.format_date(day);
+                        const events = this.storage_service.getEventsByDate(date_str).filter(e => 
+                            e.machine === this.machine_name && hour >= e.startHour && hour < e.endHour);
+                        const unavailable_hours = this.storage_service.getMachineAvailabilityForDate(this.machine_name, date_str);
+                        const is_unavailable = unavailable_hours.includes(hour);
                         
                         return `
-                            <div class="time-slot ${isUnavailable ? 'unavailable' : ''} ${events.length > 0 ? 'has-events' : ''}"
-                                 data-date="${dateStr}" data-hour="${hour}">
-                                ${isUnavailable ? '<span class="unavailable-indicator">✕</span>' : ''}
-                                ${this.renderTimeSlotEvents(events)}
+                            <div class="time-slot ${is_unavailable ? 'unavailable' : ''} ${events.length > 0 ? 'has-events' : ''}"
+                                 data-date="${date_str}" data-hour="${hour}">
+                                ${is_unavailable ? '<span class="unavailable-indicator">✕</span>' : ''}
+                                ${this.render_time_slot_events(events)}
                             </div>
                         `;
                     }).join('')}
@@ -226,23 +226,23 @@ class CalendarRenderer {
         return html;
     }
     
-    renderMiniMonth(year, month) {
+    render_mini_month(year, month) {
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
-        const startDate = new Date(firstDay);
-        startDate.setDate(startDate.getDate() - firstDay.getDay());
+        const start_date = new Date(firstDay);
+        start_date.setDate(start_date.getDate() - firstDay.getDay());
         
         let html = '<div class="mini-month-grid">';
-        const current = new Date(startDate);
+        const current = new Date(start_date);
         
         for (let week = 0; week < 6; week++) {
             for (let day = 0; day < 7; day++) {
                 const isCurrentMonth = current.getMonth() === month;
-                const hasEvents = this.storageService.getEventsByDate(this.formatDate(current))
-                    .filter(e => e.machine === this.machineName).length > 0;
+                const has_events = this.storage_service.getEventsByDate(this.format_date(current))
+                    .filter(e => e.machine === this.machine_name).length > 0;
                 
                 html += `
-                    <div class="mini-day ${isCurrentMonth ? 'current-month' : ''} ${hasEvents ? 'has-events' : ''}">
+                    <div class="mini-day ${is_current_month ? 'current-month' : ''} ${has_events ? 'has-events' : ''}">
                         ${current.getDate()}
                     </div>
                 `;
@@ -256,7 +256,7 @@ class CalendarRenderer {
         return html;
     }
     
-    renderDayEvents(events) {
+    render_day_events(events) {
         return events.slice(0, 3).map(event => `
             <div class="day-event ${event.type}" title="${event.title}">
                 ${event.title}
@@ -264,7 +264,7 @@ class CalendarRenderer {
         `).join('') + (events.length > 3 ? `<div class="more-events">+${events.length - 3} more</div>` : '');
     }
     
-    renderTimeSlotEvents(events) {
+    render_time_slot_events(events) {
         return events.map(event => `
             <div class="time-slot-event ${event.type}" title="${event.title}">
                 ${event.title}
@@ -272,7 +272,7 @@ class CalendarRenderer {
         `).join('');
     }
     
-    handleCalendarClick(e) {
+    handle_calendar_click(e) {
         const target = e.target.closest('[data-year][data-month]') || 
                       e.target.closest('[data-week]') ||
                       e.target.closest('[data-date]');
@@ -283,65 +283,65 @@ class CalendarRenderer {
             // Year view - zoom to month
             const year = parseInt(target.dataset.year);
             const month = parseInt(target.dataset.month);
-            this.viewManager.setView('month', new Date(year, month, 1));
-        } else if (target.dataset.week && this.currentView === 'month') {
+            this.view_manager.set_view('month', new Date(year, month, 1));
+        } else if (target.dataset.week && this.current_view === 'month') {
             // Month view - zoom to week
-            const weekElement = target.closest('.week-row');
-            const firstDay = weekElement.querySelector('.day-cell[data-date]');
-            if (firstDay) {
-                const date = new Date(firstDay.dataset.date);
-                this.viewManager.setView('week', date);
+            const week_element = target.closest('.week-row');
+            const first_day = week_element.querySelector('.day-cell[data-date]');
+            if (first_day) {
+                const date = new Date(first_day.dataset.date);
+                this.view_manager.set_view('week', date);
             }
         } else if (target.dataset.date && target.dataset.hour) {
             // Time slot click - toggle availability
-            this.handleTimeSlotClick(target.dataset.date, parseInt(target.dataset.hour));
+            this.handle_time_slot_click(target.dataset.date, parseInt(target.dataset.hour));
         }
     }
     
-    handleTimeSlotClick(dateStr, hour) {
-        if (!this.machineName) return;
+    handle_time_slot_click(date_str, hour) {
+        if (!this.machine_name) return;
         
-        const scheduledEvents = this.storageService.getEventsByDate(dateStr)
-            .filter(e => e.machine === this.machineName && hour >= e.startHour && hour < e.endHour);
-        const hasScheduledEvents = scheduledEvents.length > 0;
+        const scheduled_events = this.storage_service.getEventsByDate(date_str)
+            .filter(e => e.machine === this.machine_name && hour >= e.startHour && hour < e.endHour);
+        const has_scheduled_events = scheduled_events.length > 0;
             
-        if (hasScheduledEvents) {
+        if (has_scheduled_events) {
             alert('This slot is occupied by a scheduled task. You cannot mark it as unavailable.');
             return;
         }
         
-        this.storageService.toggleMachineHourAvailability(this.machineName, dateStr, hour);
+        this.storage_service.toggleMachineHourAvailability(this.machine_name, date_str, hour);
         this.render(); // Re-render current view
     }
     
     // Utility methods
-    getStartOfWeek(date) {
-        return Utils.getStartOfWeek(date);
+    get_start_of_week(date) {
+        return Utils.get_week_start_date(date);
     }
     
-    getMonthEventCount(year, month) {
-        if (!this.machineName) return 0;
-        return this.storageService.getEventsByMachine(this.machineName)
+    get_month_event_count(year, month) {
+        if (!this.machine_name) return 0;
+        return this.storage_service.getEventsByMachine(this.machine_name)
             .filter(e => {
-                const eventDate = new Date(e.date);
-                return eventDate.getFullYear() === year && eventDate.getMonth() === month;
+                const event_date = new Date(e.date);
+                return event_date.getFullYear() === year && event_date.getMonth() === month;
             }).length;
     }
     
-    formatDate(date) {
-        return Utils.formatDate(date);
+    format_date(date) {
+        return Utils.format_date(date);
     }
     
-    formatHour(hour) {
-        return Utils.formatHour(hour);
+    format_hour(hour) {
+        return Utils.format_hour(hour);
     }
     
-    getDayName(dayIndex, short = false) {
-        return Utils.getDayName(dayIndex, short);
+    get_day_name(day_index, short = false) {
+        return Utils.get_day_of_week_name(day_index, short);
     }
     
-    isToday(date) {
-        return Utils.isToday(date);
+    is_today(date) {
+        return Utils.is_date_today(date);
     }
 }
 

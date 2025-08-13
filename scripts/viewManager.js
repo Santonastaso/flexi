@@ -3,21 +3,21 @@
  * Implements Google Calendar-style navigation controls
  */
 class ViewManager {
-    constructor(calendarRenderer, controlsContainer) {
-        this.calendarRenderer = calendarRenderer;
-        this.controlsContainer = controlsContainer;
-        this.currentView = 'month';
-        this.currentDate = new Date();
+    constructor(calendar_renderer, controls_container) {
+        this.calendar_renderer = calendar_renderer;
+        this.controls_container = controls_container;
+        this.current_view = 'month';
+        this.current_date = new Date();
         
         this.init();
     }
     
     init() {
-        this.renderControls();
-        this.setupEventListeners();
+        this.render_controls();
+        this.setup_event_listeners();
     }
     
-    renderControls() {
+    render_controls() {
         const html = `
             <div class="calendar-controls-container">
                 <div class="calendar-navigation">
@@ -32,13 +32,13 @@ class ViewManager {
                             <polyline points="9,18 15,12 9,6"></polyline>
                         </svg>
                     </button>
-                    <h2 class="current-period" id="current-period">${this.getCurrentPeriodText()}</h2>
+                    <h2 class="current-period" id="current-period">${this.get_current_period_text()}</h2>
                 </div>
                 
                 <div class="view-controls">
                     <div class="view-dropdown-container">
                         <button class="view-dropdown-btn" id="view-dropdown-btn">
-                            ${this.getViewDisplayName(this.currentView)}
+                            ${this.get_view_display_name(this.current_view)}
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="6,9 12,15 18,9"></polyline>
                             </svg>
@@ -78,122 +78,122 @@ class ViewManager {
             </div>
         `;
         
-        this.controlsContainer.innerHTML = html;
+        this.controls_container.innerHTML = html;
     }
     
-    setupEventListeners() {
+    setup_event_listeners() {
         // Navigation buttons
-        document.getElementById('today-btn').addEventListener('click', () => this.goToToday());
-        document.getElementById('prev-btn').addEventListener('click', () => this.navigatePrevious());
-        document.getElementById('next-btn').addEventListener('click', () => this.navigateNext());
+        document.getElementById('today-btn').addEventListener('click', () => this.go_to_today());
+        document.getElementById('prev-btn').addEventListener('click', () => this.navigate_previous());
+        document.getElementById('next-btn').addEventListener('click', () => this.navigate_next());
         
         // View dropdown
-        const dropdownBtn = document.getElementById('view-dropdown-btn');
-        const dropdownMenu = document.getElementById('view-dropdown-menu');
+        const dropdown_btn = document.getElementById('view-dropdown-btn');
+        const dropdown_menu = document.getElementById('view-dropdown-menu');
         
-        dropdownBtn.addEventListener('click', () => {
-            dropdownMenu.classList.toggle('show');
+        dropdown_btn.addEventListener('click', () => {
+            dropdown_menu.classList.toggle('show');
         });
         
-        dropdownMenu.addEventListener('click', (e) => {
+        dropdown_menu.addEventListener('click', (e) => {
             if (e.target.classList.contains('view-option')) {
                 const view = e.target.dataset.view;
-                this.setView(view);
-                dropdownMenu.classList.remove('show');
+                this.set_view(view);
+                dropdown_menu.classList.remove('show');
             }
         });
         
         // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.view-dropdown-container')) {
-                dropdownMenu.classList.remove('show');
+                dropdown_menu.classList.remove('show');
             }
         });
         
         // Off-time controls
-        document.getElementById('set-off-time-btn').addEventListener('click', () => this.handleSetOffTime());
+        document.getElementById('set-off-time-btn').addEventListener('click', () => this.handle_set_off_time());
         
         // Date input formatting
-        const dateInputs = document.querySelectorAll('.date-input');
-        dateInputs.forEach(input => {
-            input.addEventListener('input', (e) => this.formatDateInput(e.target));
-            input.addEventListener('blur', (e) => this.validateDateInput(e.target));
+        const date_inputs = document.querySelectorAll('.date-input');
+        date_inputs.forEach(input => {
+            input.addEventListener('input', (e) => this.format_date_input(e.target));
+            input.addEventListener('blur', (e) => this.validate_date_input(e.target));
         });
     }
     
-    setView(view, date = this.currentDate) {
-        this.currentView = view;
-        this.currentDate = date;
+    set_view(view, date = this.current_date) {
+        this.current_view = view;
+        this.current_date = date;
         
         // Update dropdown button text
         document.getElementById('view-dropdown-btn').innerHTML = `
-            ${this.getViewDisplayName(view)}
+            ${this.get_view_display_name(view)}
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="6,9 12,15 18,9"></polyline>
             </svg>
         `;
         
         // Update period text
-        document.getElementById('current-period').textContent = this.getCurrentPeriodText();
+        document.getElementById('current-period').textContent = this.get_current_period_text();
         
         // Render the calendar
-        this.calendarRenderer.render(view, date);
+        this.calendar_renderer.render(view, date);
     }
     
-    goToToday() {
-        this.setView(this.currentView, new Date());
+    go_to_today() {
+        this.set_view(this.current_view, new Date());
     }
     
-    navigatePrevious() {
-        const newDate = this.getNavigationDate(-1);
-        this.setView(this.currentView, newDate);
+    navigate_previous() {
+        const new_date = this.get_navigation_date(-1);
+        this.set_view(this.current_view, new_date);
     }
     
-    navigateNext() {
-        const newDate = this.getNavigationDate(1);
-        this.setView(this.currentView, newDate);
+    navigate_next() {
+        const new_date = this.get_navigation_date(1);
+        this.set_view(this.current_view, new_date);
     }
     
-    getNavigationDate(direction) {
-        const newDate = new Date(this.currentDate);
+    get_navigation_date(direction) {
+        const new_date = new Date(this.current_date);
         
-        switch (this.currentView) {
+        switch (this.current_view) {
             case 'year':
-                newDate.setFullYear(newDate.getFullYear() + direction);
+                new_date.setFullYear(new_date.getFullYear() + direction);
                 break;
             case 'month':
-                newDate.setMonth(newDate.getMonth() + direction);
+                new_date.setMonth(new_date.getMonth() + direction);
                 break;
             case 'week':
-                newDate.setDate(newDate.getDate() + (direction * 7));
+                new_date.setDate(new_date.getDate() + (direction * 7));
                 break;
         }
         
-        return newDate;
+        return new_date;
     }
     
-    getCurrentPeriodText() {
-        switch (this.currentView) {
+    get_current_period_text() {
+        switch (this.current_view) {
             case 'year':
-                return this.currentDate.getFullYear().toString();
+                return this.current_date.getFullYear().toString();
             case 'month':
-                return this.currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+                return this.current_date.toLocaleString('default', { month: 'long', year: 'numeric' });
             case 'week':
-                const startOfWeek = this.getStartOfWeek(this.currentDate);
-                const endOfWeek = new Date(startOfWeek);
-                endOfWeek.setDate(endOfWeek.getDate() + 6);
+                const start_of_week = this.get_start_of_week(this.current_date);
+                const end_of_week = new Date(start_of_week);
+                end_of_week.setDate(end_of_week.getDate() + 6);
                 
-                if (startOfWeek.getMonth() === endOfWeek.getMonth()) {
-                    return `${startOfWeek.toLocaleString('default', { month: 'long' })} ${startOfWeek.getDate()} – ${endOfWeek.getDate()}, ${startOfWeek.getFullYear()}`;
+                if (start_of_week.getMonth() === end_of_week.getMonth()) {
+                    return `${start_of_week.toLocaleString('default', { month: 'long' })} ${start_of_week.getDate()} – ${end_of_week.getDate()}, ${start_of_week.getFullYear()}`;
                 } else {
-                    return `${startOfWeek.toLocaleString('default', { month: 'short' })} ${startOfWeek.getDate()} – ${endOfWeek.toLocaleString('default', { month: 'short' })} ${endOfWeek.getDate()}, ${startOfWeek.getFullYear()}`;
+                    return `${start_of_week.toLocaleString('default', { month: 'short' })} ${start_of_week.getDate()} – ${end_of_week.toLocaleString('default', { month: 'short' })} ${end_of_week.getDate()}, ${start_of_week.getFullYear()}`;
                 }
             default:
                 return '';
         }
     }
     
-    getViewDisplayName(view) {
+    get_view_display_name(view) {
         const names = {
             'year': 'Year',
             'month': 'Month',
@@ -202,77 +202,77 @@ class ViewManager {
         return names[view] || 'Month';
     }
     
-    handleSetOffTime() {
-        const startDateInput = document.getElementById('start-date');
-        const startTimeInput = document.getElementById('start-time');
-        const endDateInput = document.getElementById('end-date');
-        const endTimeInput = document.getElementById('end-time');
+    handle_set_off_time() {
+        const start_date_input = document.getElementById('start-date');
+        const start_time_input = document.getElementById('start-time');
+        const end_date_input = document.getElementById('end-date');
+        const end_time_input = document.getElementById('end-time');
         
-        const startDate = this.parseDateInput(startDateInput.value);
-        const endDate = this.parseDateInput(endDateInput.value);
+        const start_date = this.parse_date_input(start_date_input.value);
+        const end_date = this.parse_date_input(end_date_input.value);
         
-        if (!startDate || !endDate) {
+        if (!start_date || !end_date) {
             alert('Please enter valid dates in dd/mm/yyyy format.');
             return;
         }
         
-        if (startDate > endDate) {
+        if (start_date > end_date) {
             alert('Start date must be before or equal to end date.');
             return;
         }
         
         // Parse time inputs
-        const startTime = startTimeInput.value;
-        const endTime = endTimeInput.value;
+        const start_time = start_time_input.value;
+        const end_time = end_time_input.value;
         
-        if (!startTime || !endTime) {
+        if (!start_time || !end_time) {
             alert('Please enter both start and end times.');
             return;
         }
         
         // Set off-time for the specific time range
-        this.setOffTimeRange(startDate, endDate, startTime, endTime);
+        this.set_off_time_range(start_date, end_date, start_time, end_time);
         
         // Clear inputs
-        startDateInput.value = '';
-        startTimeInput.value = '';
-        endDateInput.value = '';
-        endTimeInput.value = '';
+        start_date_input.value = '';
+        start_time_input.value = '';
+        end_date_input.value = '';
+        end_time_input.value = '';
         
         // Refresh calendar
-        this.calendarRenderer.render();
+        this.calendar_renderer.render();
         
-        alert(`Off-time period set from ${this.formatDisplayDate(startDate)} ${startTime} to ${this.formatDisplayDate(endDate)} ${endTime}`);
+        alert(`Off-time period set from ${this.format_display_date(start_date)} ${start_time} to ${this.format_display_date(end_date)} ${end_time}`);
     }
     
-    setOffTimeRange(startDate, endDate, startTime, endTime) {
-        const machineName = this.calendarRenderer.machineName;
-        if (!machineName) return;
+    set_off_time_range(start_date, end_date, start_time, end_time) {
+        const machine_name = this.calendar_renderer.machineName;
+        if (!machine_name) return;
         
         // Parse time strings to hours and minutes
-        const [startHour, startMinute] = startTime.split(':').map(Number);
-        const [endHour, endMinute] = endTime.split(':').map(Number);
+        const [start_hour, start_minute] = start_time.split(':').map(Number);
+        const [end_hour, end_minute] = end_time.split(':').map(Number);
         
-        const current = new Date(startDate);
-        while (current <= endDate) {
-            const dateStr = this.formatDate(current);
+        const current = new Date(start_date);
+        while (current <= end_date) {
+            const date_str = this.format_date(current);
             
             // Set specific time range as unavailable
-            for (let hour = startHour; hour <= endHour; hour++) {
-                if (hour === startHour && hour === endHour) {
+            for (let hour = start_hour; hour <= end_hour; hour++) {
+                if (hour === start_hour && hour === end_hour) {
                     // Same hour, check minutes
-                    if (startMinute <= endMinute) {
-                        this.setHourUnavailable(machineName, dateStr, hour);
+                    if (start_minute <= end_minute) {
+                        this.set_hour_unavailable(machine_name, date_str, hour);
                     }
-                } else if (hour === startHour) {
+                } else if (hour === start_hour) {
                     // Start hour, set from start minute to end of hour
-                    this.setHourUnavailable(machineName, dateStr, hour);
-                } else if (hour === endHour) {
+                    this.set_hour_unavailable(machine_name, date_str, hour);
+                } else if (hour === end_hour) {
                     // End hour, set from start of hour to end minute
-                    this.setHourUnavailable(machineName, dateStr, hour);
+                    this.set_hour_unavailable(machine_name, date_str, hour);
                 } else {
                     // Full hour in between
-                    this.setHourUnavailable(machineName, dateStr, hour);
+                    this.set_hour_unavailable(machine_name, date_str, hour);
                 }
             }
             
@@ -280,15 +280,15 @@ class ViewManager {
         }
     }
 
-    setHourUnavailable(machineName, dateStr, hour) {
-        const unavailableHours = window.storageService.getMachineAvailabilityForDate(machineName, dateStr);
-        if (!unavailableHours.includes(hour)) {
-            unavailableHours.push(hour);
-            window.storageService.setMachineAvailability(machineName, dateStr, unavailableHours);
+    set_hour_unavailable(machine_name, date_str, hour) {
+        const unavailable_hours = window.storageService.getMachineAvailabilityForDate(machine_name, date_str);
+        if (!unavailable_hours.includes(hour)) {
+            unavailable_hours.push(hour);
+            window.storageService.setMachineAvailability(machine_name, date_str, unavailable_hours);
         }
     }
     
-    formatDateInput(input) {
+    format_date_input(input) {
         let value = input.value.replace(/\D/g, ''); // Remove non-digits
         
         if (value.length >= 2) {
@@ -301,8 +301,8 @@ class ViewManager {
         input.value = value;
     }
     
-    validateDateInput(input) {
-        const date = this.parseDateInput(input.value);
+    validate_date_input(input) {
+        const date = this.parse_date_input(input.value);
         if (input.value && !date) {
             input.classList.add('invalid');
             input.title = 'Invalid date format. Please use dd/mm/yyyy';
@@ -312,8 +312,8 @@ class ViewManager {
         }
     }
     
-    parseDateInput(dateStr) {
-        const parts = dateStr.split('/');
+    parse_date_input(date_str) {
+        const parts = date_str.split('/');
         if (parts.length !== 3) return null;
         
         const day = parseInt(parts[0], 10);
@@ -335,19 +335,19 @@ class ViewManager {
         return date;
     }
     
-    formatDate(date) {
-        return Utils.formatDate(date);
+    format_date(date) {
+        return Utils.format_date(date);
     }
     
-    formatDisplayDate(date) {
+    format_display_date(date) {
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
         return `${day}/${month}/${year}`;
     }
     
-    getStartOfWeek(date) {
-        return Utils.getStartOfWeek(date);
+    get_start_of_week(date) {
+        return Utils.get_week_start_date(date);
     }
 }
 

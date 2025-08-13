@@ -6,77 +6,63 @@ class UIComponents {
     /**
      * Create a standardized table row
      */
-    static createTableRow(data, columns, actions = null) {
+    static create_table_row(data, columns, actions = null) {
         const cells = columns.map(col => {
             const value = data[col.key] || '';
             return `<td class="editable-cell" data-field="${col.key}">
-                <span class="static-value">${this.escapeHtml(value)}</span>
-                ${col.editable ? this.createEditInput(col.type, value, col.options) : ''}
+                <span class="static-value">${this.escape_html(value)}</span>
+                ${col.editable ? this.create_edit_input(col.type, value, col.options) : ''}
             </td>`;
         }).join('');
-
-        const actionButtons = actions ? `<td>${actions}</td>` : '';
-        
-        return `<tr data-id="${data.id || ''}">${cells}${actionButtons}</tr>`;
+        const action_buttons = actions ? `<td>${actions}</td>` : '';
+        return `<tr data-id="${data.id || ''}">${cells}${action_buttons}</tr>`;
     }
-
     /**
      * Create edit input based on type
      */
-    static createEditInput(type, value, options = {}) {
+    static create_edit_input(type, value, options = {}) {
         switch (type) {
             case 'text':
-                return `<input type="text" class="edit-input" value="${this.escapeHtml(value)}" style="display: none;">`;
-            
+                return `<input type="text" class="edit-input" value="${this.escape_html(value)}" style="display: none;">`;
             case 'number':
-                return `<input type="number" class="edit-input" value="${this.escapeHtml(value)}" style="display: none;">`;
-            
+                return `<input type="number" class="edit-input" value="${this.escape_html(value)}" style="display: none;">`;
             case 'select':
-                const optionsHtml = options.options ? options.options.map(opt => 
+                const options_html = options.options ? options.options.map(opt => 
                     `<option value="${opt.value}" ${opt.value === value ? 'selected' : ''}>${opt.label}</option>`
                 ).join('') : '';
-                return `<select class="edit-select" style="display: none;">${optionsHtml}</select>`;
-            
+                return `<select class="edit-select" style="display: none;">${options_html}</select>`;
             case 'color':
                 return `<div class="edit-color-container" style="display: none;">
-                    <input type="color" class="edit-input" value="${this.escapeHtml(value)}">
+                    <input type="color" class="edit-input" value="${this.escape_html(value)}">
                 </div>`;
-            
             default:
-                return `<input type="text" class="edit-input" value="${this.escapeHtml(value)}" style="display: none;">`;
+                return `<input type="text" class="edit-input" value="${this.escape_html(value)}" style="display: none;">`;
         }
     }
-
-    // Note: Action buttons are provided by EditManager.createActionButtons()
-
+    // Note: Action buttons are provided by EditManager.create_action_buttons()
     /**
      * Create form field
      */
-    static createFormField(id, label, type = 'text', required = false, placeholder = '', options = {}) {
-        const requiredAttr = required ? 'required' : '';
-        const placeholderAttr = placeholder ? `placeholder="${placeholder}"` : '';
-        
+    static create_form_field(id, label, type = 'text', required = false, placeholder = '', options = {}) {
+        const required_attr = required ? 'required' : '';
+        const placeholder_attr = placeholder ? `placeholder="${placeholder}"` : '';
         let input = '';
         switch (type) {
             case 'textarea':
-                input = `<textarea id="${id}" ${requiredAttr} ${placeholderAttr}></textarea>`;
+                input = `<textarea id="${id}" ${required_attr} ${placeholder_attr}></textarea>`;
                 break;
-            
             case 'select':
-                const optionsHtml = options.options ? options.options.map(opt => 
+                const options_html = options.options ? options.options.map(opt => 
                     `<option value="${opt.value}">${opt.label}</option>`
                 ).join('') : '';
-                input = `<select id="${id}" ${requiredAttr}>${optionsHtml}</select>`;
+                input = `<select id="${id}" ${required_attr}>${options_html}</select>`;
                 break;
-            
             case 'checkbox':
-                input = `<input type="checkbox" id="${id}" ${requiredAttr}>`;
+                input = `<input type="checkbox" id="${id}" ${required_attr}>`;
                 break;
-            
             default:
-                input = `<input type="${type}" id="${id}" ${requiredAttr} ${placeholderAttr}>`;
+                input = `<input type="${type}" id="${id}" ${required_attr} ${placeholder_attr}>`;
         }
-        
         return `
             <div class="form-group">
                 <label for="${id}">${label}</label>
@@ -84,21 +70,19 @@ class UIComponents {
             </div>
         `;
     }
-
     /**
      * Create modal dialog
      */
-    static createModal(id, title, content, buttons = []) {
-        const buttonHtml = buttons.map(btn => 
+    static create_modal(id, title, content, buttons = []) {
+        const button_html = buttons.map(btn => 
             `<button class="btn ${btn.class || 'btn-secondary'}" onclick="${btn.onclick}">${btn.text}</button>`
         ).join('');
-        
         return `
             <div id="${id}" class="modal-overlay" style="display: none;">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h3>${title}</h3>
-                        <button class="btn-close" onclick="UIComponents.closeModal('${id}')">&times;</button>
+                        <button class="btn-close" onclick="UIComponents.close_modal('${id}')">&times;</button>
                     </div>
                     <div class="modal-body">
                         ${content}
@@ -110,22 +94,20 @@ class UIComponents {
             </div>
         `;
     }
-
     /**
      * Show modal
      */
-    static showModal(id) {
+    static show_modal(id) {
         const modal = document.getElementById(id);
         if (modal) {
             modal.style.display = 'flex';
             modal.classList.add('modal-fade-in');
         }
     }
-
     /**
      * Close modal
      */
-    static closeModal(id) {
+    static close_modal(id) {
         const modal = document.getElementById(id);
         if (modal) {
             modal.classList.remove('modal-fade-in');
@@ -136,147 +118,124 @@ class UIComponents {
             }, 300);
         }
     }
-
-
-
     /**
      * Create loading spinner
      */
-    static createSpinner(size = 'medium') {
+    static create_spinner(size = 'medium') {
         const sizeClass = `spinner-${size}`;
         return `<div class="spinner ${sizeClass}"></div>`;
     }
-
     /**
      * Show loading state
      */
-    static showLoading(element, text = 'Loading...') {
+    static show_loading(element, text = 'Loading...') {
         if (element) {
             element.disabled = true;
-            element.innerHTML = this.createSpinner('small') + ' ' + text;
+            element.innerHTML = this.create_spinner('small') + ' ' + text;
         }
     }
-
     /**
      * Hide loading state
      */
-    static hideLoading(element, originalText) {
+    static hide_loading(element, original_text) {
         if (element) {
             element.disabled = false;
-            element.innerHTML = originalText;
+            element.innerHTML = original_text;
         }
     }
-
     /**
      * Create confirmation dialog
      */
-    static confirm(message, onConfirm, onCancel = null) {
+    static confirm(message, on_confirm, on_cancel = null) {
         const modalId = 'confirm-modal-' + Date.now();
-        const modal = this.createModal(modalId, 'Confirm', 
-            `<p>${this.escapeHtml(message)}</p>`,
+        const modal = this.create_modal(modalId, 'Confirm', 
+            `<p>${this.escape_html(message)}</p>`,
             [
                 {
                     text: 'Cancel',
                     class: 'btn-secondary',
-                    onclick: `UIComponents.closeModal('${modalId}'); ${onCancel ? onCancel() : ''}`
+                    onclick: `UIComponents.close_modal('${modalId}'); ${on_cancel ? on_cancel() : ''}`
                 },
                 {
                     text: 'Confirm',
                     class: 'btn-danger',
-                    onclick: `UIComponents.closeModal('${modalId}'); ${onConfirm()}`
+                    onclick: `UIComponents.close_modal('${modalId}'); ${on_confirm()}`
                 }
             ]
         );
-        
         document.body.insertAdjacentHTML('beforeend', modal);
-        this.showModal(modalId);
+        this.show_modal(modalId);
     }
-
     /**
      * Validate form fields
      */
-    static validateForm(formElement, rules) {
+    static validate_form(form_element, rules) {
         const errors = [];
-        
-        Object.entries(rules).forEach(([fieldName, rule]) => {
-            const field = formElement.querySelector(`[name="${fieldName}"], #${fieldName}`);
+        Object.entries(rules).forEach(([field_name, rule]) => {
+            const field = form_element.querySelector(`[name="${field_name}"], #${field_name}`);
             if (!field) return;
-            
             const value = field.value.trim();
-            
             if (rule.required && !value) {
-                errors.push(`${rule.label || fieldName} is required`);
+                errors.push(`${rule.label || field_name} is required`);
             } else if (value) {
-                if (rule.minLength && value.length < rule.minLength) {
-                    errors.push(`${rule.label || fieldName} must be at least ${rule.minLength} characters`);
+                if (rule.min_length && value.length < rule.min_length) {
+                    errors.push(`${rule.label || field_name} must be at least ${rule.min_length} characters`);
                 }
-                
-                if (rule.maxLength && value.length > rule.maxLength) {
-                    errors.push(`${rule.label || fieldName} must be no more than ${rule.maxLength} characters`);
+                if (rule.max_length && value.length > rule.max_length) {
+                    errors.push(`${rule.label || field_name} must be no more than ${rule.max_length} characters`);
                 }
-                
                 if (rule.pattern && !rule.pattern.test(value)) {
-                    errors.push(`${rule.label || fieldName} format is invalid`);
+                    errors.push(`${rule.label || field_name} format is invalid`);
                 }
-                
                 if (rule.min && parseFloat(value) < rule.min) {
-                    errors.push(`${rule.label || fieldName} must be at least ${rule.min}`);
+                    errors.push(`${rule.label || field_name} must be at least ${rule.min}`);
                 }
-                
                 if (rule.max && parseFloat(value) > rule.max) {
-                    errors.push(`${rule.label || fieldName} must be no more than ${rule.max}`);
+                    errors.push(`${rule.label || field_name} must be no more than ${rule.max}`);
                 }
             }
         });
-        
         return {
             isValid: errors.length === 0,
             errors: errors
         };
     }
-
     /**
      * Escape HTML to prevent XSS
      */
-    static escapeHtml(text) {
-        return Utils.escapeHtml(text);
+    static escape_html(text) {
+        return Utils.escape_html(text);
     }
-
     /**
      * Format date for display
      */
-    static formatDate(date, format = 'YYYY-MM-DD') {
-        // Use Utils.formatDate for consistency, but handle custom format if needed
+    static format_date(date, format = 'YYYY-MM-DD') {
+        // Use Utils.format_date for consistency, but handle custom format if needed
         if (format === 'YYYY-MM-DD') {
-            return Utils.formatDate(date);
+            return Utils.format_date(date);
         }
-        
         // For custom formats, use the original implementation
         const d = new Date(date);
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
-        
         return format
             .replace('YYYY', year)
             .replace('MM', month)
             .replace('DD', day);
     }
-
     /**
      * Format time for display
      */
-    static formatTime(date, format = 'HH:mm') {
+    static format_time(date, format = 'HH:mm') {
         const d = new Date(date);
         const hours = String(d.getHours()).padStart(2, '0');
         const minutes = String(d.getMinutes()).padStart(2, '0');
-        
         return format
             .replace('HH', hours)
             .replace('mm', minutes);
     }
 }
-
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = UIComponents;

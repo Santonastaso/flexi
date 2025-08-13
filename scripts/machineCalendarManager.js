@@ -9,135 +9,109 @@ class MachineCalendarManager {
         this.calendarRenderer = null;
         this.viewManager = null;
         this.elements = {};
-        
         this.init();
     }
-    
     /**
      * Initialize the calendar system
      */
     init() {
-        if (!this.getMachineFromURL()) {
+        if (!this.get_machine_from_url()) {
             this.showError('No machine specified in URL. Please select a machine first.');
             return;
         }
-        
-        if (!this.bindElements()) {
+        if (!this.bind_elements()) {
             this.showError('Failed to initialize calendar components.');
             return;
         }
-        
-        this.initializeComponents();
-        this.setupPageTitle();
-        this.setupBodyClass();
+        this.initialize_components();
+        this.setup_page_title();
+        this.setup_body_class();
     }
-    
     /**
      * Get machine name from URL parameters
      */
-    getMachineFromURL() {
+    get_machine_from_url() {
         const urlParams = new URLSearchParams(window.location.search);
         this.machineName = urlParams.get('machine');
-        
         if (!this.machineName) {
             console.error('No machine specified in URL');
             return false;
         }
-        
-        console.log(`Initializing calendar for machine: ${this.machineName}`);
         return true;
     }
-    
     /**
      * Bind DOM elements
      */
-    bindElements() {
+    bind_elements() {
         this.elements = {
-            machineTitle: document.getElementById('machine-title'),
-            controlsContainer: document.getElementById('calendar-controls-container'),
-            calendarContainer: document.getElementById('calendar-container')
+            machine_title: document.getElementById('machine_title'),
+            controls_container: document.getElementById('calendar_controls_container'),
+            calendar_container: document.getElementById('calendar_container')
         };
-        
         // Validate required elements
         const missingElements = Object.entries(this.elements)
             .filter(([key, element]) => !element)
             .map(([key]) => key);
-            
         if (missingElements.length > 0) {
             console.error('Missing required elements:', missingElements);
             return false;
         }
-        
         return true;
     }
-    
     /**
      * Initialize all components
      */
-    initializeComponents() {
+    initialize_components() {
         try {
             // Use storage service directly instead of eventStorage wrapper
             this.storageService = window.storageService;
-            
             // Initialize calendar renderer
             this.calendarRenderer = new CalendarRenderer(
-                this.elements.calendarContainer,
+                this.elements.calendar_container,
                 null, // ViewManager will be set later
                 this.storageService
             );
-            
             // Initialize view manager
             this.viewManager = new ViewManager(
                 this.calendarRenderer,
-                this.elements.controlsContainer
+                this.elements.controls_container
             );
-            
             // Set up circular reference
             this.calendarRenderer.viewManager = this.viewManager;
-            
             // Set machine name in renderer
             this.calendarRenderer.machineName = this.machineName;
-            
             // Initial render
             this.viewManager.setView('month', new Date());
-            
-            console.log('Calendar system initialized successfully');
-            
         } catch (error) {
             console.error('Error initializing calendar components:', error);
             this.showError('Failed to initialize calendar. Please refresh the page.');
         }
     }
-    
     /**
      * Set up page title
      */
-    setupPageTitle() {
-        if (this.elements.machineTitle) {
-            this.elements.machineTitle.textContent = `Availability for: ${this.machineName}`;
+    setup_page_title() {
+        if (this.elements.machine_title) {
+            this.elements.machine_title.textContent = `Availability for: ${this.machineName}`;
         }
-        
         // Update browser title
         document.title = `Flexi - ${this.machineName} Availability`;
     }
-    
     /**
      * Set up body class for styling
      */
-    setupBodyClass() {
+    setup_body_class() {
         // No special body class needed - using standard content-section styling
     }
-    
     /**
      * Show error message
      */
     showError(message) {
-        if (this.elements.machineTitle) {
-            this.elements.machineTitle.textContent = 'Error';
+        if (this.elements.machine_title) {
+            this.elements.machine_title.textContent = 'Error';
         }
-        
-        if (this.elements.calendarContainer) {
-            this.elements.calendarContainer.innerHTML = `
+        if (this.elements.calendar_container) {
+            this.elements.calendar_container.innerHTML = `
                 <div style="padding: 40px; text-align: center; color: var(--gc-text-secondary);">
                     <h3>Unable to Load Calendar</h3>
                     <p>${message}</p>
@@ -146,7 +120,6 @@ class MachineCalendarManager {
             `;
         }
     }
-    
     /**
      * Public method to refresh the calendar
      */
@@ -155,7 +128,6 @@ class MachineCalendarManager {
             this.calendarRenderer.render();
         }
     }
-    
     /**
      * Public method to navigate to a specific view and date
      */
@@ -164,11 +136,10 @@ class MachineCalendarManager {
             this.viewManager.setView(view, date);
         }
     }
-    
     /**
      * Public method to get machine availability summary
      */
-    getMachineSummary(startDate, endDate) {
+    getMachineSummary(start_date, end_date) {
         if (this.storageService && this.machineName) {
             // Calculate summary directly from storage service data
             const summary = {
@@ -179,38 +150,32 @@ class MachineCalendarManager {
                 totalOffTimeHours: 0,
                 totalScheduledHours: 0
             };
-            
-            const current = new Date(startDate);
-            while (current <= endDate) {
-                const dateStr = Utils.formatDate(current);
+            const current = new Date(start_date);
+            while (current <= end_date) {
+                const dateStr = Utils.format_date(current);
                 const unavailableHours = this.storageService.getMachineAvailabilityForDate(this.machineName, dateStr);
                 const events = this.storageService.getEventsByDate(dateStr).filter(e => e.machine === this.machineName);
-                
                 summary.totalDays++;
                 summary.totalOffTimeHours += unavailableHours.length;
                 summary.totalScheduledHours += events.reduce((total, e) => total + (e.endHour - e.startHour), 0);
-                
                 if (unavailableHours.length > 0) summary.offTimeDays++;
                 if (events.length > 0) summary.scheduledDays++;
                 if (unavailableHours.length === 0 && events.length === 0) summary.availableDays++;
-                
                 current.setDate(current.getDate() + 1);
             }
-            
             return summary;
         }
         return null;
     }
-    
     /**
      * Public method to set off-time for a date range
      */
-    setOffTimeRange(startDate, endDate) {
+    setOffTimeRange(start_date, end_date) {
         if (this.storageService && this.machineName) {
             // Set hours as unavailable directly using storage service
-            const current = new Date(startDate);
-            while (current <= endDate) {
-                const dateStr = Utils.formatDate(current);
+            const current = new Date(start_date);
+            while (current <= end_date) {
+                const dateStr = Utils.format_date(current);
                 for (let hour = 7; hour < 19; hour++) {
                     this.storageService.setMachineAvailability(this.machineName, dateStr, [hour]);
                 }
@@ -219,61 +184,51 @@ class MachineCalendarManager {
             this.refresh();
         }
     }
-    
     /**
      * Public method to remove off-time for a date range
      */
-    removeOffTimeRange(startDate, endDate) {
+    removeOffTimeRange(start_date, end_date) {
         if (this.storageService && this.machineName) {
             // Clear unavailable hours directly using storage service
-            const current = new Date(startDate);
-            while (current <= endDate) {
-                const dateStr = Utils.formatDate(current);
+            const current = new Date(start_date);
+            while (current <= end_date) {
+                const dateStr = Utils.format_date(current);
                 this.storageService.setMachineAvailability(this.machineName, dateStr, []);
                 current.setDate(current.getDate() + 1);
             }
             this.refresh();
         }
     }
-    
     /**
      * Public method to export calendar data
      */
     exportCalendarData(format = 'json') {
         if (!this.eventStorage || !this.machineName) return null;
-        
-        const startDate = new Date();
-        startDate.setMonth(startDate.getMonth() - 1); // 1 month ago
-        
-        const endDate = new Date();
-        endDate.setMonth(endDate.getMonth() + 2); // 2 months ahead
-        
+        const start_date = new Date();
+        start_date.setMonth(start_date.getMonth() - 1); // 1 month ago
+        const end_date = new Date();
+        end_date.setMonth(end_date.getMonth() + 2); // 2 months ahead
         const events = this.storageService.getEventsByMachine(this.machineName);
-        
-        const summary = this.getMachineSummary(startDate, endDate);
-        
+        const summary = this.getMachineSummary(start_date, end_date);
         const data = {
             machineName: this.machineName,
             exportDate: new Date().toISOString(),
             dateRange: {
-                start: startDate.toISOString(),
-                end: endDate.toISOString()
+                start: start_date.toISOString(),
+                end: end_date.toISOString()
             },
             events: events,
             summary: summary
         };
-        
         if (format === 'json') {
             return JSON.stringify(data, null, 2);
         }
-        
         return data;
     }
-    
     /**
      * Public method to get current view state
      */
-    getCurrentViewState() {
+    get_current_view_state() {
         if (this.viewManager) {
             return {
                 view: this.viewManager.currentView,
@@ -284,26 +239,22 @@ class MachineCalendarManager {
         return null;
     }
 }
-
 // Auto-initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     // Only initialize if we're on the machine calendar page
-    if (document.getElementById('calendar-container')) {
+            if (document.getElementById('calendar_container')) {
         window.machineCalendarManager = new MachineCalendarManager();
-        
         // Add global keyboard shortcuts (Google Calendar style)
         document.addEventListener('keydown', (e) => {
             const manager = window.machineCalendarManager;
             if (!manager || !manager.viewManager) return;
-            
             // Don't trigger shortcuts when typing in inputs
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-            
             switch (e.key) {
                 case 't':
                 case 'T':
                     // Go to today
-                    manager.viewManager.goToToday();
+                    manager.viewManager.go_to_today();
                     e.preventDefault();
                     break;
                 case 'ArrowLeft':
@@ -336,7 +287,5 @@ document.addEventListener('DOMContentLoaded', () => {
                     break;
             }
         });
-        
-        console.log('Machine Calendar Manager initialized with keyboard shortcuts');
     }
 });

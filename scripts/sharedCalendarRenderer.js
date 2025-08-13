@@ -6,117 +6,101 @@ class SharedCalendarRenderer {
     constructor(container, options = {}) {
         this.container = container;
         this.options = {
-                    startHour: options.startHour || 0,
-        endHour: options.endHour || 24,
-            showMachines: options.showMachines !== undefined ? options.showMachines : true,
+                    start_hour: options.startHour || 0,
+        end_hour: options.endHour || 24,
+            show_machines: options.showMachines !== undefined ? options.showMachines : true,
             interactive: options.interactive !== undefined ? options.interactive : true,
-            slotHeight: options.slotHeight || 48,
-            labelWidth: options.labelWidth || 150,
+            slot_height: options.slotHeight || 48,
+            label_width: options.labelWidth || 150,
             ...options
         };
-        
-        this.currentDate = options.currentDate || new Date();
+        this.current_date = options.currentDate || new Date();
         this.machines = options.machines || [];
-        
-        this.eventHandlers = {
-            onSlotClick: options.onSlotClick || null,
-            onSlotDrop: options.onSlotDrop || null,
-            onSlotHover: options.onSlotHover || null
+        this.event_handlers = {
+            on_slot_click: options.onSlotClick || null,
+            on_slot_drop: options.onSlotDrop || null,
+            on_slot_hover: options.onSlotHover || null
         };
     }
-    
     /**
      * Render the complete calendar grid
      */
     render() {
         if (!this.container) return;
-        
         this.container.innerHTML = '';
         this.container.className = 'shared-calendar-container';
-        
-        if (this.options.showMachines) {
-            this.renderMachineGrid();
+        if (this.options.show_machines) {
+            this.render_machine_grid();
         } else {
-            this.renderSimpleGrid();
+            this.render_simple_grid();
         }
     }
-    
     /**
      * Render calendar grid with machine rows (for scheduler)
      */
-    renderMachineGrid() {
+    render_machine_grid() {
         const html = `
             <div class="calendar-grid">
                 <div class="calendar-header">
-                    ${this.renderHeader()}
+                    ${this.render_header()}
                 </div>
                 <div class="calendar-body">
-                    ${this.renderMachineRows()}
+                    ${this.render_machine_rows()}
                 </div>
             </div>
         `;
-        
         this.container.innerHTML = html;
-        this.attachEventListeners();
+        this.attach_event_listeners();
     }
-    
     /**
      * Render simple time grid (for machinery settings week view)
      */
-    renderSimpleGrid() {
+    render_simple_grid() {
         const html = `
             <div class="calendar-grid simple">
                 <div class="calendar-header">
-                    ${this.renderSimpleHeader()}
+                    ${this.render_simple_header()}
                 </div>
                 <div class="calendar-body">
-                    ${this.renderTimeRows()}
+                    ${this.render_time_rows()}
                 </div>
             </div>
         `;
-        
         this.container.innerHTML = html;
-        this.attachEventListeners();
+        this.attach_event_listeners();
     }
-    
     /**
      * Render header with time slots
      */
-    renderHeader() {
+    render_header() {
         let html = `<div class="header-label-spacer">Machines</div>`;
-        
-        for (let hour = this.options.startHour; hour < this.options.endHour; hour++) {
+        for (let hour = this.options.start_hour; hour < this.options.end_hour; hour++) {
             html += `
                 <div class="time-header-slot" data-hour="${hour}">
-                    ${this.formatHour(hour)}
+                    ${this.format_hour(hour)}
                 </div>
             `;
         }
-        
         return html;
     }
-    
     /**
      * Render simple header for single-day view
      */
-    renderSimpleHeader() {
+    render_simple_header() {
         let html = `<div class="header-label-spacer"></div>`;
-        
-        for (let hour = this.options.startHour; hour < this.options.endHour; hour++) {
+        for (let hour = this.options.start_hour; hour < this.options.end_hour; hour++) {
             html += `
                 <div class="time-header-slot" data-hour="${hour}">
-                    ${this.formatHour(hour)}
+                    ${this.format_hour(hour)}
                 </div>
             `;
         }
-        
         return html;
     }
-    
     /**
      * Render machine rows with time slots
      */
-    renderMachineRows() {
+    render_machine_rows() {
         return this.machines.map(machine => `
             <div class="machine-row" data-machine="${machine.machine_name}">
                 <div class="machine-label">
@@ -124,192 +108,157 @@ class SharedCalendarRenderer {
                     <small class="machine-city">${machine.city}</small>
                 </div>
                 <div class="machine-slots">
-                    ${this.renderTimeSlots(machine.machine_name)}
+                    ${this.render_time_slots(machine.machine_name)}
                 </div>
             </div>
         `).join('');
     }
-    
     /**
      * Render time rows for simple grid
      */
-    renderTimeRows() {
+    render_time_rows() {
         let html = '';
-        
-        for (let hour = this.options.startHour; hour < this.options.endHour; hour++) {
+        for (let hour = this.options.start_hour; hour < this.options.end_hour; hour++) {
             html += `
                 <div class="time-row" data-hour="${hour}">
-                    <div class="time-label">${this.formatHour(hour)}</div>
-                    <div class="time-slot ${this.getSlotClasses('', hour)}" 
+                    <div class="time-label">${this.format_hour(hour)}</div>
+                    <div class="time-slot ${this.get_slot_classes('', hour)}" 
                          data-hour="${hour}" 
-                         data-date="${this.formatDate(this.currentDate)}">
+                         data-date="${this.format_date(this.current_date)}">
                     </div>
                 </div>
             `;
         }
-        
         return html;
     }
-    
     /**
      * Render time slots for a machine
      */
-    renderTimeSlots(machineName) {
+    render_time_slots(machine_name) {
         let html = '';
-        
-        for (let hour = this.options.startHour; hour < this.options.endHour; hour++) {
-            const classes = this.getSlotClasses(machineName, hour);
-            const slotId = `slot-${machineName}-${hour}`;
-            
+        for (let hour = this.options.start_hour; hour < this.options.end_hour; hour++) {
+            const classes = this.get_slot_classes(machine_name, hour);
+            const slot_id = `slot-${machine_name}-${hour}`;
             html += `
                 <div class="time-slot ${classes}" 
-                     id="${slotId}"
-                     data-machine="${machineName}" 
+                     id="${slot_id}"
+                     data-machine="${machine_name}" 
                      data-hour="${hour}" 
-                     data-date="${this.formatDate(this.currentDate)}"
+                     data-date="${this.format_date(this.current_date)}"
                      ${this.options.interactive ? 'data-droppable="true"' : ''}>
                 </div>
             `;
         }
-        
         return html;
     }
-    
     /**
      * Get CSS classes for a time slot based on its state
      */
-    getSlotClasses(machineName, hour) {
+    get_slot_classes(machine_name, hour) {
         const classes = ['slot'];
-        const dateStr = this.formatDate(this.currentDate);
-        
+        const date_str = this.format_date(this.current_date);
         // Add state-based classes
-        if (this.isSlotOccupied(machineName, hour)) {
+        if (this.is_slot_occupied(machine_name, hour)) {
             classes.push('occupied');
         }
-        
-        if (this.isSlotUnavailable(machineName, hour)) {
+        if (this.is_slot_unavailable(machine_name, hour)) {
             classes.push('unavailable');
         }
-        
         if (this.options.interactive) {
             classes.push('interactive');
         }
-        
         return classes.join(' ');
     }
-    
     /**
      * Check if slot is occupied by scheduled events
      */
-    isSlotOccupied(machineName, hour) {
-        if (!window.storageService || !machineName) return false;
-        
-        const dateStr = this.formatDate(this.currentDate);
-        const events = window.storageService.getEventsByDate(dateStr);
-        
+    is_slot_occupied(machine_name, hour) {
+        if (!window.storageService || !machine_name) return false;
+        const date_str = this.format_date(this.current_date);
+        const events = window.storageService.getEventsByDate(date_str);
         return events.some(event => 
-            event.machine === machineName &&
+            event.machine === machine_name &&
             hour >= event.startHour && 
             hour < event.endHour
         );
     }
-    
     /**
      * Check if slot is unavailable due to machine settings
      */
-    isSlotUnavailable(machineName, hour) {
-        if (!window.storageService || !machineName) return false;
-        
-        const dateStr = this.formatDate(this.currentDate);
-        const unavailableHours = window.storageService.getMachineAvailabilityForDate(machineName, dateStr);
-        
-        return unavailableHours.includes(hour);
+    is_slot_unavailable(machine_name, hour) {
+        if (!window.storageService || !machine_name) return false;
+        const date_str = this.format_date(this.current_date);
+        const unavailable_hours = window.storageService.getMachineAvailabilityForDate(machine_name, date_str);
+        return unavailable_hours.includes(hour);
     }
-    
     /**
      * Attach event listeners to calendar elements
      */
-    attachEventListeners() {
+    attach_event_listeners() {
         if (!this.options.interactive) return;
-        
         const slots = this.container.querySelectorAll('.time-slot.interactive');
-        
         slots.forEach(slot => {
             // Click events
-            if (this.eventHandlers.onSlotClick) {
+            if (this.event_handlers.on_slot_click) {
                 slot.addEventListener('click', (e) => {
                     const machine = slot.dataset.machine;
                     const hour = parseInt(slot.dataset.hour);
                     const date = slot.dataset.date;
-                    
-                    this.eventHandlers.onSlotClick(e, { machine, hour, date, slot });
+                    this.event_handlers.on_slot_click(e, { machine, hour, date, slot });
                 });
             }
-            
             // Hover events
-            if (this.eventHandlers.onSlotHover) {
+            if (this.event_handlers.on_slot_hover) {
                 slot.addEventListener('mouseenter', (e) => {
                     const machine = slot.dataset.machine;
                     const hour = parseInt(slot.dataset.hour);
                     const date = slot.dataset.date;
-                    
-                    this.eventHandlers.onSlotHover(e, { machine, hour, date, slot }, 'enter');
+                    this.event_handlers.on_slot_hover(e, { machine, hour, date, slot }, 'enter');
                 });
-                
                 slot.addEventListener('mouseleave', (e) => {
                     const machine = slot.dataset.machine;
                     const hour = parseInt(slot.dataset.hour);
                     const date = slot.dataset.date;
-                    
-                    this.eventHandlers.onSlotHover(e, { machine, hour, date, slot }, 'leave');
+                    this.event_handlers.on_slot_hover(e, { machine, hour, date, slot }, 'leave');
                 });
             }
-            
             // Drag and drop events
-            if (this.eventHandlers.onSlotDrop) {
+            if (this.event_handlers.on_slot_drop) {
                 slot.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     slot.classList.add('drag-over');
                 });
-                
                 slot.addEventListener('dragleave', (e) => {
                     slot.classList.remove('drag-over');
                 });
-                
                 slot.addEventListener('drop', (e) => {
                     e.preventDefault();
                     slot.classList.remove('drag-over');
-                    
                     const machine = slot.dataset.machine;
                     const hour = parseInt(slot.dataset.hour);
                     const date = slot.dataset.date;
-                    const taskId = e.dataTransfer.getData('text/plain');
-                    
-                    this.eventHandlers.onSlotDrop(e, { machine, hour, date, slot, taskId });
+                    const task_id = e.dataTransfer.getData('text/plain');
+                    this.event_handlers.on_slot_drop(e, { machine, hour, date, slot, task_id });
                 });
             }
         });
     }
-    
     /**
      * Render scheduled events on the calendar
      */
     renderEvents(events) {
         // Clear existing events
         this.container.querySelectorAll('.event-block').forEach(el => el.remove());
-        
         events.forEach(event => {
-            this.renderEvent(event);
+            this.render_event(event);
         });
     }
-    
     /**
      * Render a single event block
      */
     renderEvent(event) {
         const startSlot = this.container.querySelector(`[data-machine="${event.machine}"][data-hour="${event.startHour}"]`);
         if (!startSlot) return;
-        
         const eventElement = document.createElement('div');
         eventElement.className = 'event-block';
         eventElement.style.backgroundColor = event.color || '#2563eb';
@@ -331,7 +280,6 @@ class SharedCalendarRenderer {
         eventElement.style.whiteSpace = 'nowrap';
         eventElement.style.cursor = 'move';
         eventElement.style.zIndex = '10';
-        
         // Create title element
         const titleElement = document.createElement('span');
         titleElement.textContent = event.taskTitle || event.name || 'Scheduled Task';
@@ -339,7 +287,6 @@ class SharedCalendarRenderer {
         titleElement.style.overflow = 'hidden';
         titleElement.style.textOverflow = 'ellipsis';
         titleElement.style.whiteSpace = 'nowrap';
-        
         // Create delete button
         const deleteButton = document.createElement('button');
         deleteButton.className = 'event-delete-btn';
@@ -362,40 +309,33 @@ class SharedCalendarRenderer {
             opacity: 0.7;
             transition: opacity 0.2s ease;
         `;
-        
         deleteButton.addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
             this.handleEventDelete(event);
         });
-        
         deleteButton.addEventListener('mouseenter', () => {
             deleteButton.style.opacity = '1';
             deleteButton.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
         });
-        
         deleteButton.addEventListener('mouseleave', () => {
             deleteButton.style.opacity = '0.7';
             deleteButton.style.backgroundColor = 'transparent';
         });
-        
         // Assemble event element
         eventElement.appendChild(titleElement);
         eventElement.appendChild(deleteButton);
         eventElement.draggable = true;
         eventElement.dataset.eventId = event.id;
-        
         // Add drag event
         eventElement.addEventListener('dragstart', (e) => {
             e.dataTransfer.setData('text/plain', event.id);
             e.dataTransfer.setData('application/json', JSON.stringify(event));
         });
-        
         // Position relative to parent slot
         startSlot.style.position = 'relative';
         startSlot.appendChild(eventElement);
     }
-    
     /**
      * Handle event deletion with confirmation
      */
@@ -406,18 +346,15 @@ class SharedCalendarRenderer {
                 if (window.storageService) {
                     window.storageService.removeScheduledEvent(event.id);
                 }
-                
                 // Remove from DOM
                 const eventElement = this.container.querySelector(`[data-event-id="${event.id}"]`);
                 if (eventElement) {
                     eventElement.remove();
                 }
-                
                 // Show success message
                 if (typeof showBanner === 'function') {
                     showBanner('Task removed from schedule', 'success');
                 }
-                
                 // Trigger refresh if callback exists
                 if (this.options.onEventDelete) {
                     this.options.onEventDelete(event);
@@ -425,11 +362,10 @@ class SharedCalendarRenderer {
             });
         } else {
             // Fallback if banner system not available
-            showDeleteConfirmation(`Delete "${event.taskTitle || event.name}" from the schedule?`, () => {
+            show_delete_confirmation(`Delete "${event.taskTitle || event.name}" from the schedule?`, () => {
                 if (window.storageService) {
                     window.storageService.removeScheduledEvent(event.id);
                 }
-                
                 const eventElement = this.container.querySelector(`[data-event-id="${event.id}"]`);
                 if (eventElement) {
                     eventElement.remove();
@@ -437,7 +373,6 @@ class SharedCalendarRenderer {
             });
         }
     }
-    
     /**
      * Update calendar date and re-render
      */
@@ -445,40 +380,34 @@ class SharedCalendarRenderer {
         this.currentDate = newDate;
         this.render();
     }
-    
     /**
      * Update machines list and re-render
      */
-    updateMachines(machines) {
+    update_machines(machines) {
         this.machines = machines;
         this.render();
     }
-    
     /**
      * Refresh calendar with current data
      */
     refresh() {
         this.render();
     }
-    
     /**
      * Utility methods
      */
-    formatHour(hour) {
-        return Utils.formatHour(hour);
+    format_hour(hour) {
+        return Utils.format_hour(hour);
     }
-    
-    formatDate(date) {
-        return Utils.formatDate(date);
+    format_date(date) {
+        return Utils.format_date(date);
     }
-    
     /**
      * Get slot element by machine and hour
      */
     getSlot(machine, hour) {
         return this.container.querySelector(`[data-machine="${machine}"][data-hour="${hour}"]`);
     }
-    
     /**
      * Highlight slot (for feedback)
      */
@@ -488,7 +417,6 @@ class SharedCalendarRenderer {
             slot.classList.add(className);
         }
     }
-    
     /**
      * Remove highlight from slot
      */
@@ -498,7 +426,6 @@ class SharedCalendarRenderer {
             slot.classList.remove(className);
         }
     }
-    
     /**
      * Clear all highlights
      */
@@ -508,7 +435,6 @@ class SharedCalendarRenderer {
         });
     }
 }
-
 // Export for module usage
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = SharedCalendarRenderer;

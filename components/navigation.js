@@ -3,9 +3,9 @@
  * Generates consistent navigation across all pages
  */
 class Navigation {
-    constructor(currentPage = '') {
-        this.currentPage = currentPage;
-        this.navigationData = {
+    constructor(current_page = '') {
+        this.current_page = current_page;
+        this.navigation_data = {
             logo: {
                 href: 'index.html'
             },
@@ -18,26 +18,24 @@ class Navigation {
         }
         };
     }
-    
     /**
      * Generate sidebar navigation HTML
      */
-    generateNavHTML() {
+    generate_nav_html() {
         return `
             <div class="sidebar">
                 <div class="sidebar-logo">
-                    <a href="${this.navigationData.logo.href}">
+                    <a href="${this.navigation_data.logo.href}">
                         <img src="../assets/logo.svg" alt="Flexi">
                     </a>
                 </div>
-                
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Navigation</div>
                     <nav class="sidebar-nav">
                         <ul>
-                            ${Object.entries(this.navigationData.pages).map(([key, page]) => `
+                            ${Object.entries(this.navigation_data.pages).map(([key, page]) => `
                                 <li>
-                                    <a href="${page.href}" class="${key === this.currentPage ? 'active' : ''}">
+                                    <a href="${page.href}" class="${key === this.current_page ? 'active' : ''}">
                                         <span class="nav-icon">${page.icon}</span>
                                         <span>${page.label}</span>
                                     </a>
@@ -47,57 +45,49 @@ class Navigation {
                     </nav>
                 </div>
             </div>
-            
-            <button class="mobile-menu-toggle" type="button" aria-label="Toggle navigation" onclick="toggleSidebar()">
+            <button class="mobile-menu-toggle" type="button" aria-label="Toggle navigation" onclick="toggle_sidebar()">
                 <span style="font-size: 20px;">☰</span>
             </button>
         `;
     }
-    
     /**
      * Get appropriate navigation links based on current page
      */
-    getNavigationLinks() {
-        switch (this.currentPage) {
+    get_navigation_links() {
+        switch (this.current_page) {
             case 'home':
                 return [
-                    { href: this.navigationData.pages.machinery.href, label: 'Log in' }
+                    { href: this.navigation_data.pages.machinery.href, label: 'Log in' }
                 ];
-            
             case 'machinery':
                 return [
-                    this.navigationData.pages.phases,
-                    this.navigationData.pages.backlog,
-                    this.navigationData.pages.scheduler
+                    this.navigation_data.pages.phases,
+                    this.navigation_data.pages.backlog,
+                    this.navigation_data.pages.scheduler
                 ];
-            
             case 'phases':
                 return [
-                    this.navigationData.pages.machinery,
-                    this.navigationData.pages.backlog,
-                    this.navigationData.pages.scheduler
+                    this.navigation_data.pages.machinery,
+                    this.navigation_data.pages.backlog,
+                    this.navigation_data.pages.scheduler
                 ];
-            
             case 'backlog':
                 return [
-                    this.navigationData.pages.machinery,
-                    this.navigationData.pages.phases,
-                    this.navigationData.pages.scheduler
+                    this.navigation_data.pages.machinery,
+                    this.navigation_data.pages.phases,
+                    this.navigation_data.pages.scheduler
                 ];
-            
             case 'scheduler':
                 return [
-                    this.navigationData.pages.machinery,
-                    this.navigationData.pages.phases,
-                    this.navigationData.pages.backlog
+                    this.navigation_data.pages.machinery,
+                    this.navigation_data.pages.phases,
+                    this.navigation_data.pages.backlog
                 ];
-            
             case 'machine-settings':
                 return [
-                    { href: this.navigationData.pages.machinery.href, label: 'Back to Machinery' },
-                    this.navigationData.pages.scheduler
+                    { href: this.navigation_data.pages.machinery.href, label: 'Back to Machinery' },
+                    this.navigation_data.pages.scheduler
                 ];
-            
             default:
                 return [
                     this.navigationData.pages.machinery,
@@ -106,54 +96,48 @@ class Navigation {
                 ];
         }
     }
-    
     /**
      * Inject navigation into a container element
      */
-    injectInto(containerSelector) {
+    inject_into(containerSelector) {
         const container = document.querySelector(containerSelector);
         if (container) {
-            container.innerHTML = this.generateNavHTML();
+            container.innerHTML = this.generate_nav_html();
         } else {
-            console.warn(`Navigation container "${containerSelector}" not found`);
         }
     }
-    
     /**
      * Replace an existing header element
      */
-    replaceHeader() {
+    replace_header() {
         const existingHeader = document.querySelector('header');
         if (existingHeader && existingHeader.parentNode) {
             const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = this.generateNavHTML();
+            tempDiv.innerHTML = this.generate_nav_html();
             const newHeader = tempDiv.firstElementChild;
             existingHeader.parentNode.replaceChild(newHeader, existingHeader);
         }
     }
-    
     /**
      * Insert navigation at the beginning of page container
      */
-    prependToPageContainer() {
+    prepend_to_page_container() {
         const pageContainer = document.querySelector('.page-container');
         if (pageContainer) {
             const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = this.generateNavHTML();
+            tempDiv.innerHTML = this.generate_nav_html();
             const headerElement = tempDiv.firstElementChild;
             pageContainer.insertBefore(headerElement, pageContainer.firstChild);
         }
     }
 }
-
 /**
  * Auto-initialize navigation based on page detection
  */
-function initializeNavigation() {
+function initialize_navigation() {
     // Auto-detect current page from URL or page-specific elements
     let currentPage = '';
     const path = window.location.pathname;
-    
     if (path.includes('index.html') || path === '/' || path === '') {
         currentPage = 'home';
     } else if (path.includes('machinery-page.html')) {
@@ -167,7 +151,6 @@ function initializeNavigation() {
     } else if (path.includes('machine-settings-page.html')) {
         currentPage = 'machine-settings';
     }
-    
     // Alternative detection based on page elements
     if (!currentPage) {
         if (document.getElementById('backlog-table-body')) {
@@ -184,40 +167,33 @@ function initializeNavigation() {
             currentPage = 'home';
         }
     }
-    
     const navigation = new Navigation(currentPage);
-    
     // Inject sidebar navigation
-    document.body.insertAdjacentHTML('afterbegin', navigation.generateNavHTML());
-    
+    document.body.insertAdjacentHTML('afterbegin', navigation.generate_nav_html());
     // Wrap existing content in main-content div if not already wrapped
     const pageContainer = document.querySelector('.page-container');
     if (pageContainer && !pageContainer.closest('.main-content')) {
         const mainContent = document.createElement('div');
         mainContent.className = 'main-content';
-        
         // Move page container into main-content
         pageContainer.parentNode.insertBefore(mainContent, pageContainer);
         mainContent.appendChild(pageContainer);
     }
 }
-
 /**
  * Toggle sidebar for mobile devices
  */
-function toggleSidebar() {
+function toggle_sidebar() {
     const sidebar = document.querySelector('.sidebar');
     if (sidebar) {
         sidebar.classList.toggle('open');
     }
 }
-
 // Export for manual usage
 if (typeof window !== 'undefined') {
     window.Navigation = Navigation;
-    window.initializeNavigation = initializeNavigation;
-    window.toggleSidebar = toggleSidebar;
+    window.initialize_navigation = initialize_navigation;
+    window.toggle_sidebar = toggle_sidebar;
 }
-
 // Auto-initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', initializeNavigation);
+document.addEventListener('DOMContentLoaded', initialize_navigation);

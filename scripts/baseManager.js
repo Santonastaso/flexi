@@ -3,19 +3,19 @@
  * Consolidates repeated patterns across BacklogManager, MachineryManager, etc.
  */
 class BaseManager {
-    constructor(storageService) {
-        this.storageService = storageService;
+    constructor(storage_service) {
+        this.storage_service = storage_service;
         this.elements = {};
-        this.currentEditingId = null;
+        this.current_editing_id = null;
     }
 
     /**
      * Initialize the manager with element binding and event listeners
      */
-    init(elementMap) {
-        if (this.bindElements(elementMap)) {
-            this.attachEventListeners(); // idempotent expectation
-            this.renderData();
+    init(element_map) {
+        if (this.bind_elements(element_map)) {
+            this.attach_event_listeners(); // idempotent expectation
+            this.render_data();
             return true;
         }
         return false;
@@ -24,21 +24,21 @@ class BaseManager {
     /**
      * Bind DOM elements with validation
      */
-    bindElements(elementMap) {
-        this.elements = elementMap;
-        return this.validateElements();
+    bind_elements(element_map) {
+        this.elements = element_map;
+        return this.validate_elements();
     }
 
     /**
      * Validate that all required elements exist
      */
-    validateElements() {
-        const missingElements = Object.entries(this.elements)
+    validate_elements() {
+        const missing_elements = Object.entries(this.elements)
             .filter(([key, element]) => !element)
             .map(([key]) => key);
             
-        if (missingElements.length > 0) {
-            console.error('Missing required elements:', missingElements);
+        if (missing_elements.length > 0) {
+            console.error('Missing required elements:', missing_elements);
             return false;
         }
         return true;
@@ -47,56 +47,54 @@ class BaseManager {
     /**
      * Attach event listeners - to be overridden by subclasses
      */
-    attachEventListeners() {
+    attach_event_listeners() {
         // Override in subclasses
     }
 
     /**
      * Render data - to be overridden by subclasses
      */
-    renderData() {
+    render_data() {
         // Override in subclasses
     }
 
     /**
      * Show banner message
      */
-    showMessage(message, type = 'info') {
+    show_message(message, type = 'info') {
         if (typeof showBanner === 'function') {
             showBanner(message, type);
-        } else {
-            console.log(`${type.toUpperCase()}: ${message}`);
         }
     }
 
     /**
      * Common success message for CRUD operations
      */
-    showSuccessMessage(operation, itemName = '') {
-        const message = itemName ? 
-            `${operation} "${itemName}" completed successfully!` : 
+    show_success_message(operation, item_name = '') {
+        const message = item_name ? 
+            `${operation} "${item_name}" completed successfully!` : 
             `${operation} completed successfully!`;
-        this.showMessage(message, 'success');
+        this.show_message(message, 'success');
     }
 
     /**
      * Common error message for CRUD operations
      */
-    showErrorMessage(operation, error) {
+    show_error_message(operation, error) {
         const message = `Error ${operation}: ${error.message}`;
-        this.showMessage(message, 'error');
+        this.show_message(message, 'error');
     }
 
     /**
      * Common CRUD operation wrapper with error handling
      */
-    async executeCRUDOperation(operation, operationFn, successMessage, itemName = '') {
+    async execute_crud_operation(operation, operation_fn, success_message, item_name = '') {
         try {
-            const result = await operationFn();
-            this.showSuccessMessage(successMessage, itemName);
+            const result = await operation_fn();
+            this.show_success_message(success_message, item_name);
             return result;
         } catch (error) {
-            this.showErrorMessage(successMessage.toLowerCase(), error);
+            this.show_error_message(success_message.toLowerCase(), error);
             throw error;
         }
     }
@@ -104,21 +102,35 @@ class BaseManager {
     /**
      * Common initialization pattern for managers
      */
-    static initializeManager(ManagerClass, managerName) {
-        const initializeManager = () => {
+    static initialize_manager(ManagerClass, manager_name) {
+        const initialize_manager = () => {
             if (window.storageService) {
-                window[managerName] = new ManagerClass();
+                const manager = new ManagerClass();
+                window[manager_name] = manager;
+                
+                // Initialize the manager with its element map
+                const elementMap = manager.get_element_map();
+                if (elementMap) {
+                    const initSuccess = manager.init(elementMap);
+                                    if (initSuccess) {
+                    // Manager initialized successfully
+                } else {
+                    console.error(`❌ Failed to initialize ${manager_name}`);
+                }
+                } else {
+                    console.error(`❌ Failed to get element map for ${manager_name}`);
+                }
             } else {
-                setTimeout(initializeManager, 50);
+                setTimeout(initialize_manager, 50);
             }
         };
-        initializeManager();
+        initialize_manager();
     }
 
     /**
      * Common storage service validation
      */
-    validateStorageService() {
+    validate_storage_service() {
         if (!this.storageService) {
             console.error('StorageService not available');
             return false;
@@ -148,7 +160,7 @@ class BaseManager {
     /**
      * Clear form fields
      */
-    clearForm(fields) {
+    clear_form(fields) {
         fields.forEach(field => {
             const element = this.elements[field];
             if (element) {
@@ -160,7 +172,7 @@ class BaseManager {
     /**
      * Clear all form input fields automatically
      */
-    clearFormFields() {
+    clear_form_fields() {
         Object.values(this.elements).forEach(element => {
             if (element && (element.tagName === 'INPUT' || element.tagName === 'SELECT' || element.tagName === 'TEXTAREA')) {
                 if (element.type === 'checkbox' || element.type === 'radio') {
@@ -172,33 +184,26 @@ class BaseManager {
         });
     }
 
-    // Note: Action buttons are provided by EditManager.createActionButtons()
+    // Note: Action buttons are provided by EditManager.create_action_buttons()
 
     // Note: table click/edit handling is provided by EditManager
 
     /**
      * Consolidated validation for forms with required fields, numeric validation, and relationships
      */
-    validateForm(data, config) {
+    validate_form(data, config) {
         const errors = [];
         
-        // Debug logging
-        console.log('validateForm called with:', { data, config });
+
         
         // Required fields validation
-        if (config.requiredFields) {
+        if (config.required_fields) {
             try {
-                console.log('About to call Utils.validateRequiredFields with:', {
-                    data,
-                    requiredFields: config.requiredFields,
-                    fieldLabels: config.fieldLabels || {}
-                });
-                const requiredValidation = Utils.validateRequiredFields(
+                const requiredValidation = Utils.validate_required_fields(
                     data, 
-                    config.requiredFields, 
-                    config.fieldLabels || {}
+                    config.required_fields, 
+                    config.field_labels || {}
                 );
-                console.log('Required validation result:', requiredValidation);
                 if (!requiredValidation.isValid) {
                     errors.push(...requiredValidation.errors);
                 }
@@ -211,17 +216,11 @@ class BaseManager {
         // Numeric fields validation  
         if (config.numericFields) {
             try {
-                console.log('About to call Utils.validateNumericFields with:', {
-                    data,
-                    numericFields: config.numericFields,
-                    fieldLabels: config.fieldLabels || {}
-                });
-                const numericValidation = Utils.validateNumericFields(
+                const numericValidation = Utils.validate_numeric_fields(
                     config.numericFields, 
                     data, 
-                    config.fieldLabels || {}
+                    config.field_labels || {}
                 );
-                console.log('Numeric validation result:', numericValidation);
                 if (!numericValidation.isValid) {
                     errors.push(...numericValidation.errors);
                 }
@@ -234,10 +233,10 @@ class BaseManager {
         // Field relationship validation
         if (config.relationships) {
             config.relationships.forEach(rel => {
-                const relationshipValidation = Utils.validateFieldRelationship(
+                const relationshipValidation = Utils.validate_field_relationship(
                     rel.field1, data[rel.field1],
                     rel.field2, data[rel.field2], 
-                    rel.field1Label, rel.field2Label
+                    rel.field1_label, rel.field2_label
                 );
                 if (!relationshipValidation.isValid) {
                     errors.push(relationshipValidation.message);
@@ -245,7 +244,7 @@ class BaseManager {
             });
         }
         
-        console.log('validateForm returning:', { isValid: errors.length === 0, errors: errors });
+
         return {
             isValid: errors.length === 0,
             errors: errors
@@ -255,47 +254,44 @@ class BaseManager {
     /**
      * Standard edit row validation and error handling
      */
-    validateEditRow(row, requiredFields, numericFields, fieldLabels = {}) {
-        const updatedData = this.editManager.collectEditedValues(row);
-        console.log('collectEditedValues returned:', updatedData);
+    validate_edit_row(row, required_fields, numericFields, field_labels = {}) {
+        const updatedData = this.editManager.collect_edited_values(row);
         
         // Check if updatedData is valid
         if (!updatedData || typeof updatedData !== 'object') {
             console.error('Invalid updatedData:', updatedData);
-            this.showErrorMessage('validating data', new Error('Failed to collect edited values'));
+            this.show_error_message('validating data', new Error('Failed to collect edited values'));
             return null;
         }
         
         const validationConfig = {
-            requiredFields: requiredFields,
+            required_fields: required_fields,
             numericFields: numericFields,
-            fieldLabels: fieldLabels
+            field_labels: field_labels
         };
         
-        console.log('About to call this.validateForm with:', { updatedData, validationConfig });
-        console.log('this.validateForm exists:', typeof this.validateForm);
-        console.log('this.validateForm is function:', typeof this.validateForm === 'function');
+
         
         // Test if we can call the method at all
         let validation;
         try {
-            validation = this.validateForm(updatedData, validationConfig);
-            console.log('validateForm call completed, result:', validation);
+            validation = this.validate_form(updatedData, validationConfig);
+
         } catch (error) {
-            console.error('Error calling validateForm:', error);
-            this.showErrorMessage('validating data', new Error('Validation method error: ' + error.message));
+            console.error('Error calling validate_form:', error);
+            this.show_error_message('validating data', new Error('Validation method error: ' + error.message));
             return null;
         }
         
         // Check if validation result is valid
         if (!validation || typeof validation !== 'object' || validation.isValid === undefined) {
             console.error('Invalid validation result:', validation);
-            this.showErrorMessage('validating data', new Error('Validation failed'));
+            this.show_error_message('validating data', new Error('Validation failed'));
             return null;
         }
         
         if (!validation.isValid) {
-            this.showErrorMessage('validating data', new Error(validation.errors.join(', ')));
+            this.show_error_message('validating data', new Error(validation.errors.join(', ')));
             return null;
         }
         
@@ -305,7 +301,7 @@ class BaseManager {
     /**
      * Element binding helper with error handling
      */
-    bindElementsById(elementIds) {
+    bind_elementsById(elementIds) {
         const elements = {};
         const missing = [];
         

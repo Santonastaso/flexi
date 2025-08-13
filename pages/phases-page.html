@@ -23,90 +23,78 @@
                     <h3 class="section-title">➕ Add New Phase</h3>
                     <div class="form-grid form-grid--3-cols">
                         <div class="form-group">
-                            <label for="phaseName">Phase Name</label>
-                            <input type="text" id="phaseName" placeholder="e.g., High-Speed Printing" required>
-                            <span class="validation-error" id="phaseName-error" style="display: none;"></span>
+                            <label for="phase_name">Phase Name</label>
+                            <input type="text" id="phase_name" placeholder="e.g., High-Speed Printing" required>
+                            <span class="validation_error" id="phase_name_error" style="display: none;"></span>
                         </div>
                         <div class="form-group">
-                            <label for="phaseType">Department</label>
-                            <select id="phaseType" required>
-                                <option value="">Select department</option>
+                            <label for="phase_type">Phase Type *</label>
+                            <select id="phase_type" required>
+                                <option value="">Select phase type</option>
                                 <option value="STAMPA">STAMPA</option>
                                 <option value="CONFEZIONAMENTO">CONFEZIONAMENTO</option>
                             </select>
-                            <span class="validation-error" id="phaseType-error" style="display: none;"></span>
+                            <span class="validation_error" id="phase_type_error" style="display: none;"></span>
                         </div>
-
                         <div class="form-group">
-                            <label for="numeroPersone"># People</label>
-                            <input type="number" id="numeroPersone" placeholder="e.g., 2" min="1" required>
-                            <span class="validation-error" id="numeroPersone-error" style="display: none;"></span>
+                            <label for="numero_persone">Number of People Required *</label>
+                            <input type="number" id="numero_persone" placeholder="e.g., 2" min="1" required>
+                            <span class="validation_error" id="numero_persone_error" style="display: none;"></span>
                         </div>
-
+                        <button id="add_phase_btn" class="btn btn-primary" disabled>Add Phase</button>
+                    </div>
+                    
+                    <!-- Printing Parameters Section -->
+                    <div id="printing_params" class="form-section" style="display: none;">
+                        <h3>Printing Parameters</h3>
                         <div class="form-group">
-                            <label for="addPhaseBtn">Action</label>
-                            <button id="addPhaseBtn" class="btn btn-primary" disabled>Add Phase</button>
+                            <label for="v_stampa">Printing Speed (mt/h)</label>
+                            <input type="number" id="v_stampa" placeholder="e.g., 6000" min="0">
+                            <span class="validation_error" id="v_stampa_error" style="display: none;"></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="t_setup_stampa">Setup Time (hours)</label>
+                            <input type="number" id="t_setup_stampa" placeholder="e.g., 0.5" min="0" step="0.1">
+                            <span class="validation_error" id="t_setup_stampa_error" style="display: none;"></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="costo_h_stampa">Hourly Cost (€/h)</label>
+                            <input type="number" id="costo_h_stampa" placeholder="e.g., 50" min="0" step="0.01">
+                            <span class="validation_error" id="costo_h_stampa_error" style="display: none;"></span>
                         </div>
                     </div>
                     
-
-                    <!-- Printing Parameters -->
-                    <div id="printingParams" class="form-section" style="display: none;">
-                        <h4>Printing Parameters</h4>
-                        <div class="form-grid form-grid--3-cols">
-                            <div class="form-group">
-                                <label for="vStampa">Printing Speed (mt/h)</label>
-                                <input type="number" id="vStampa" placeholder="e.g., 6000" min="0">
-                                <span class="validation-error" id="vStampa-error" style="display: none;"></span>
-                            </div>
-                            <div class="form-group">
-                                <label for="tSetupStampa">Setup Time (h)</label>
-                                <input type="number" id="tSetupStampa" placeholder="e.g., 0.5" min="0" step="0.1">
-                                <span class="validation-error" id="tSetupStampa-error" style="display: none;"></span>
-                            </div>
-                            <div class="form-group">
-                                <label for="costoHStampa">Hourly Cost (€/h)</label>
-                                <input type="number" id="costoHStampa" placeholder="e.g., 50" min="0" step="0.01">
-                                <span class="validation-error" id="costoHStampa-error" style="display: none;"></span>
-                            </div>
+                    <!-- Packaging Parameters Section -->
+                    <div id="packaging_params" class="form-section" style="display: none;">
+                        <h3>Packaging Parameters</h3>
+                        <div class="form-group">
+                            <label for="v_conf">Packaging Speed (pz/h)</label>
+                            <input type="number" id="v_conf" placeholder="e.g., 1000" min="0">
+                            <span class="validation_error" id="v_conf_error" style="display: none;"></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="t_setup_conf">Setup Time (hours)</label>
+                            <input type="number" id="t_setup_conf" placeholder="e.g., 0.25" min="0" step="0.1">
+                            <span class="validation_error" id="t_setup_conf_error" style="display: none;"></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="costo_h_conf">Hourly Cost (€/h)</label>
+                            <input type="number" id="costo_h_conf" placeholder="e.g., 40" min="0" step="0.01">
+                            <span class="validation_error" id="costo_h_conf_error" style="display: none;"></span>
                         </div>
                     </div>
                     
-                    <!-- Packaging Parameters -->
-                    <div id="packagingParams" class="form-section" style="display: none;">
-                        <h4>Packaging Parameters</h4>
-                        <div class="form-grid form-grid--3-cols">
-                            <div class="form-group">
-                                <label for="vConf">Packaging Speed (pz/h)</label>
-                                <input type="number" id="vConf" placeholder="e.g., 1000" min="0">
-                                <span class="validation-error" id="vConf-error" style="display: none;"></span>
-                            </div>
-                            <div class="form-group">
-                                <label for="tSetupConf">Setup Time (h)</label>
-                                <input type="number" id="tSetupConf" placeholder="e.g., 0.25" min="0" step="0.1">
-                                <span class="validation-error" id="tSetupConf-error" style="display: none;"></span>
-                            </div>
-                            <div class="form-group">
-                                <label for="costoHConf">Hourly Cost (€/h)</label>
-                                <input type="number" id="costoHConf" placeholder="e.g., 40" min="0" step="0.01">
-                                <span class="validation-error" id="costoHConf-error" style="display: none;"></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Phase Content (conditional) -->
-                    <div id="phaseContent" class="form-section" style="display: none;">
-                        <h4>Phase Content</h4>
-                        <div class="form-grid form-grid--3-cols">
-                            <div class="form-group">
-                                <label for="contenutoFase">Phase Content</label>
-                                <textarea id="contenutoFase" placeholder="Describe the phase content..." rows="3"></textarea>
-                                <span class="validation-error" id="contenutoFase-error" style="display: none;"></span>
-                            </div>
-                            <div class="form-group">
-                            </div>
-                            <div class="form-group">
-                            </div>
+                    <!-- Phase Content Section -->
+                    <div id="phase_content" class="form-section" style="display: none;">
+                        <h3>Phase Content</h3>
+                        <div class="form-group">
+                            <label for="contenuto_fase">Phase Content Description</label>
+                            <textarea id="contenuto_fase" placeholder="Describe the phase content..." rows="3"></textarea>
+                            <span class="validation_error" id="contenuto_fase_error" style="display: none;"></span>
                         </div>
                     </div>
                 </div>
@@ -144,7 +132,7 @@
                                 <th class="text-center" style="width: 150px;">Action</th>
                             </tr>
                         </thead>
-                        <tbody id="phases-table-body">
+                        <tbody id="phases_table_body">
                         </tbody>
                     </table>
                 </div>

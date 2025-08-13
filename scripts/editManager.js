@@ -3,15 +3,15 @@
  */
 class EditManager {
     constructor() {
-        this.currentEditingRow = null;
-        this.tableSaveHandlers = new WeakMap();
+        this.current_editing_row = null;
+        this.table_save_handlers = new WeakMap();
     }
 
     /**
      * Initialize edit functionality for a table
      */
-    initTableEdit(tableSelector) {
-        const table = typeof tableSelector === 'string' ? document.querySelector(tableSelector) : tableSelector;
+    init_table_edit(table_selector) {
+        const table = typeof table_selector === 'string' ? document.querySelector(table_selector) : table_selector;
         if (!table) return;
 
         // Add event delegation for edit buttons
@@ -19,31 +19,31 @@ class EditManager {
             if (e.target.classList.contains('btn-edit')) {
                 const row = e.target.closest('tr');
                 if (row) {
-                    this.startEdit(row);
+                    this.start_edit(row);
                 }
             } else if (e.target.classList.contains('btn-save')) {
                 const row = e.target.closest('tr');
                 if (row) {
-                    const handler = this.tableSaveHandlers.get(table);
+                    const handler = this.table_save_handlers.get(table);
                     if (typeof handler === 'function') {
                         handler(row);
                     } else {
-                        this.saveEdit(row);
+                        this.save_edit(row);
                     }
                 }
             } else if (e.target.classList.contains('btn-cancel')) {
                 const row = e.target.closest('tr');
                 if (row) {
-                    this.cancelEdit(row);
+                    this.cancel_edit(row);
                 }
             } else if (e.target.classList.contains('btn-delete')) {
                 const row = e.target.closest('tr');
                 if (row) {
                     // Trigger custom delete event
-                    const deleteEvent = new CustomEvent('deleteRow', {
+                    const delete_event = new CustomEvent('deleteRow', {
                         detail: { row: row }
                     });
-                    table.dispatchEvent(deleteEvent);
+                    table.dispatchEvent(delete_event);
                 }
             }
         });
@@ -52,33 +52,33 @@ class EditManager {
     /**
      * Register a per-table save handler to avoid global overrides
      */
-    registerSaveHandler(tableOrSelector, handler) {
-        const table = typeof tableOrSelector === 'string' ? document.querySelector(tableOrSelector) : tableOrSelector;
+    register_save_handler(table_or_selector, handler) {
+        const table = typeof table_or_selector === 'string' ? document.querySelector(table_or_selector) : table_or_selector;
         if (table && typeof handler === 'function') {
-            this.tableSaveHandlers.set(table, handler);
+            this.table_save_handlers.set(table, handler);
         }
     }
 
     /**
      * Start editing a row
      */
-    startEdit(row) {
-        if (this.currentEditingRow && this.currentEditingRow !== row) {
-            this.cancelEdit(this.currentEditingRow);
+    start_edit(row) {
+        if (this.current_editing_row && this.current_editing_row !== row) {
+            this.cancel_edit(this.current_editing_row);
         }
 
-        this.currentEditingRow = row;
+        this.current_editing_row = row;
 
         // Store original values
-        const originalData = {};
+        const original_data = {};
         row.querySelectorAll('.editable-cell').forEach(cell => {
             const field = cell.dataset.field;
-            const staticValue = cell.querySelector('.static-value');
-            if (staticValue) {
-                originalData[field] = staticValue.textContent.trim();
+            const static_value = cell.querySelector('.static-value');
+            if (static_value) {
+                original_data[field] = static_value.textContent.trim();
             }
         });
-        row.dataset.originalData = JSON.stringify(originalData);
+        row.dataset.originalData = JSON.stringify(original_data);
 
         // Show edit mode
         row.classList.add('editing');
@@ -89,18 +89,18 @@ class EditManager {
         row.querySelector('.save-cancel-buttons').style.display = 'flex';
 
         // Focus first input
-        const firstInput = row.querySelector('.edit-input, .edit-select');
-        if (firstInput) firstInput.focus();
+        const first_input = row.querySelector('.edit-input, .edit-select');
+        if (first_input) first_input.focus();
 
         // Add keyboard event listeners
         row.querySelectorAll('.edit-input, .edit-select').forEach(input => {
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    this.saveEdit(row);
+                    this.save_edit(row);
                 } else if (e.key === 'Escape') {
                     e.preventDefault();
-                    this.cancelEdit(row);
+                    this.cancel_edit(row);
                 }
             });
         });
@@ -109,14 +109,14 @@ class EditManager {
     /**
      * Cancel editing a row
      */
-    cancelEdit(row) {
+    cancel_edit(row) {
         // Restore original values
-        const originalData = JSON.parse(row.dataset.originalData || '{}');
+        const original_data = JSON.parse(row.dataset.originalData || '{}');
         row.querySelectorAll('.editable-cell').forEach(cell => {
             const field = cell.dataset.field;
-            const staticValue = cell.querySelector('.static-value');
-            if (staticValue && originalData[field]) {
-                staticValue.textContent = originalData[field];
+            const static_value = cell.querySelector('.static-value');
+            if (static_value && original_data[field]) {
+                static_value.textContent = original_data[field];
             }
         });
 
@@ -128,54 +128,53 @@ class EditManager {
         row.querySelector('.action-buttons').style.display = 'flex';
         row.querySelector('.save-cancel-buttons').style.display = 'none';
 
-        this.currentEditingRow = null;
+        this.current_editing_row = null;
     }
 
     /**
      * Save edits for a row (to be implemented by specific managers)
      */
-    saveEdit(row) {
+    save_edit(row) {
         // This should be overridden by specific managers
-        console.warn('saveEdit should be implemented by specific managers');
     }
 
     /**
      * Collect edited values from a row
      */
-    collectEditedValues(row) {
-        const updatedData = {};
+    collect_edited_values(row) {
+        const updated_data = {};
         row.querySelectorAll('.editable-cell').forEach(cell => {
             const field = cell.dataset.field;
             const input = cell.querySelector('.edit-input, .edit-select');
             if (input) {
                 if (field === 'color') {
                     // For color, get the value from the select element
-                    const colorSelect = cell.querySelector('.edit-select');
-                    updatedData[field] = colorSelect ? colorSelect.value : input.value;
+                    const color_select = cell.querySelector('.edit-select');
+                    updated_data[field] = color_select ? color_select.value : input.value;
                 } else {
-                    updatedData[field] = input.value;
+                    updated_data[field] = input.value;
                 }
             }
         });
-        return updatedData;
+        return updated_data;
     }
 
     /**
      * Create edit input field
      */
-    createEditInput(type, value, options = {}) {
+    create_edit_input(type, value, options = {}) {
         switch (type) {
             case 'text':
                 return `<input type="text" class="edit-input" value="${value || ''}" style="display: none;">`;
             case 'number':
                 return `<input type="number" class="edit-input" value="${value || ''}" min="0" step="${options.step || 1}" style="display: none;">`;
             case 'select':
-                const optionsHtml = options.options.map(opt => 
+                const options_html = options.options.map(opt => 
                     `<option value="${opt.value}" ${opt.value === value ? 'selected' : ''}>${opt.label}</option>`
                 ).join('');
-                return `<select class="edit-select" style="display: none;">${optionsHtml}</select>`;
+                return `<select class="edit-select" style="display: none;">${options_html}</select>`;
             case 'color':
-                const colorOptions = [
+                const color_options = [
                     { value: '#1a73e8', label: 'Blue' },
                     { value: '#34a853', label: 'Green' },
                     { value: '#ea4335', label: 'Red' },
@@ -185,13 +184,13 @@ class EditManager {
                     { value: '#00bcd4', label: 'Cyan' },
                     { value: '#e91e63', label: 'Pink' }
                 ];
-                const colorOptionsHtml = colorOptions.map(opt => 
+                const color_options_html = color_options.map(opt => 
                     `<option value="${opt.value}" ${opt.value === value ? 'selected' : ''}>${opt.label}</option>`
                 ).join('');
                 return `
                     <div class="edit-color-container" style="display: none;">
                         <select class="edit-select" onchange="this.nextElementSibling.style.backgroundColor = this.value;">
-                            ${colorOptionsHtml}
+                            ${color_options_html}
                         </select>
                         <div class="color-preview-edit" style="background-color: ${value || '#1a73e8'}; width: 20px; height: 20px; border-radius: 50%; display: inline-block; margin-left: 8px;"></div>
                     </div>
@@ -204,7 +203,7 @@ class EditManager {
     /**
      * Create action buttons
      */
-    createActionButtons() {
+    create_action_buttons() {
         return `
             <div class="action-buttons">
                 <button class="btn-edit" title="Edit">
