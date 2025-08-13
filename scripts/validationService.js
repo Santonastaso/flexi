@@ -96,6 +96,46 @@ class ValidationService {
         };
     }
 
+    /**
+     * Validate ODP data for calculations (minimal required fields)
+     */
+    validateODPForCalculation(odpData) {
+        const errors = [];
+        const warnings = [];
+
+        // Essential fields for calculation
+        const essentialFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'department', 'fase'];
+        essentialFields.forEach(field => {
+            if (!odpData[field] || odpData[field].toString().trim() === '') {
+                errors.push(`${this.formatFieldName(field)} is required for calculations`);
+            }
+        });
+
+        // Numeric validation for calculation fields
+        const numericFields = ['bag_height', 'bag_width', 'bag_step', 'quantity'];
+        numericFields.forEach(field => {
+            if (odpData[field] !== undefined) {
+                const numValue = parseInt(odpData[field]);
+                if (isNaN(numValue) || numValue <= 0) {
+                    errors.push(`${this.formatFieldName(field)} must be a positive number for calculations`);
+                }
+            }
+        });
+
+        // Bag dimensions relationship validation
+        if (odpData.bag_width !== undefined && odpData.bag_step !== undefined) {
+            if (parseInt(odpData.bag_width) < parseInt(odpData.bag_step)) {
+                errors.push('Bag width must be greater than or equal to bag step');
+            }
+        }
+
+        return {
+            isValid: errors.length === 0,
+            errors,
+            warnings
+        };
+    }
+
     // ===== PHASE VALIDATION =====
     
     /**
@@ -193,7 +233,7 @@ class ValidationService {
 
         // Production lot format validation
         if (odpData.production_lot) {
-            const lotPattern = /^[A-Z]{3,4}[A-Z0-9]{3,4}$/;
+            const lotPattern = /^[A-Z]{2,4}\d{3,6}$/;
             if (!lotPattern.test(odpData.production_lot)) {
                 errors.push('Production lot must follow format: AAPU001');
             }
@@ -222,6 +262,15 @@ class ValidationService {
             const quantity = parseInt(odpData.quantity);
             if (quantity <= 0) {
                 errors.push('Quantity must be greater than 0');
+            }
+        }
+
+        // Date range validation
+        if (odpData.production_start && odpData.delivery_date) {
+            const startDate = new Date(odpData.production_start);
+            const deliveryDate = new Date(odpData.delivery_date);
+            if (startDate >= deliveryDate) {
+                errors.push('Production start date must be before delivery date');
             }
         }
 
@@ -407,6 +456,84 @@ class ValidationService {
         }
         
         return { isValid: true, error: null };
+    }
+
+    /**
+     * Validate ODP form data with field-specific error mapping
+     */
+    validateODPForm(formData) {
+        const errors = {};
+        const fieldErrors = {};
+
+        // Required fields validation
+        const requiredFields = ['articleCode', 'productionLot', 'bagHeight', 'bagWidth', 'bagStep', 'sealSides', 'productType', 'quantity', 'deliveryDate', 'tipoLavorazione', 'fase'];
+        requiredFields.forEach(field => {
+            if (!formData[field] || formData[field].toString().trim() === '') {
+                const errorMessage = `${this.formatFieldName(field)} is required`;
+                errors[field] = errorMessage;
+                fieldErrors[field] = errorMessage;
+            }
+        });
+
+        // Numeric field validation
+        const numericFields = ['bagHeight', 'bagWidth', 'bagStep', 'quantity'];
+        numericFields.forEach(field => {
+            if (formData[field] && formData[field].toString().trim() !== '') {
+                const numValue = parseInt(formData[field]);
+                if (isNaN(numValue) || numValue < 0) {
+                    const errorMessage = `${this.formatFieldName(field)} must be greater than or equal to 0`;
+                    errors[field] = errorMessage;
+                    fieldErrors[field] = errorMessage;
+                }
+            }
+        });
+
+        // Bag dimensions relationship validation
+        if (formData.bagWidth && formData.bagStep) {
+            const width = parseInt(formData.bagWidth);
+            const step = parseInt(formData.bagStep);
+            if (width < step) {
+                const errorMessage = 'Bag width must be greater than or equal to bag step';
+                errors.bagWidth = errorMessage;
+                fieldErrors.bagWidth = errorMessage;
+            }
+        }
+
+        // Date validation
+        if (formData.deliveryDate) {
+            const deliveryDate = new Date(formData.deliveryDate);
+            const now = new Date();
+            if (deliveryDate <= now) {
+                const errorMessage = 'Delivery date must be in the future';
+                errors.deliveryDate = errorMessage;
+                fieldErrors.deliveryDate = errorMessage;
+            }
+        }
+
+        // Format validation
+        if (formData.articleCode && formData.articleCode.trim() !== '') {
+            const articlePattern = /^(P0|ISP0)\w+$/;
+            if (!articlePattern.test(formData.articleCode)) {
+                const errorMessage = 'Article code must start with P0 or ISP0';
+                errors.articleCode = errorMessage;
+                fieldErrors.articleCode = errorMessage;
+            }
+        }
+
+        if (formData.productionLot && formData.productionLot.trim() !== '') {
+            const lotPattern = /^[A-Z]{2,4}\d{3,6}$/;
+            if (!lotPattern.test(formData.productionLot)) {
+                const errorMessage = 'Production lot must follow format: AAPU001';
+                errors.productionLot = errorMessage;
+                fieldErrors.productionLot = errorMessage;
+            }
+        }
+
+        return {
+            isValid: Object.keys(errors).length === 0,
+            errors,
+            fieldErrors
+        };
     }
 }
 

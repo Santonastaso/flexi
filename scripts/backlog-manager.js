@@ -708,8 +708,7 @@ class BacklogManager extends BaseManager {
     }
 
     updateButtonStates() {
-        // For calculation, only require essential fields
-        const calculationFields = ['bagHeight', 'bagWidth', 'bagStep', 'quantity', 'tipoLavorazione', 'fase'];
+        // For calculation, use centralized validation service
         const calculationData = {
             bagHeight: this.elements.bagHeight.value,
             bagWidth: this.elements.bagWidth.value,
@@ -718,10 +717,9 @@ class BacklogManager extends BaseManager {
             tipoLavorazione: this.elements.tipoLavorazione.value,
             fase: this.elements.fase.value
         };
-        const hasCalculationFields = Utils.hasRequiredFields(calculationData, calculationFields);
+        const calculationValidation = this.validationService.validateODPForCalculation(calculationData);
         
-        // For adding to backlog, require all fields
-        const allRequiredFields = ['articleCode', 'productionLot', 'workCenter', 'bagHeight', 'bagWidth', 'bagStep', 'sealSides', 'productType', 'quantity', 'deliveryDate', 'tipoLavorazione', 'fase'];
+        // For adding to backlog, use centralized validation service
         const allFieldsData = {
             articleCode: this.elements.articleCode.value.trim(),
             productionLot: this.elements.productionLot.value.trim(),
@@ -736,10 +734,10 @@ class BacklogManager extends BaseManager {
             tipoLavorazione: this.elements.tipoLavorazione.value,
             fase: this.elements.fase.value
         };
-        const hasAllRequiredFields = Utils.hasRequiredFields(allFieldsData, allRequiredFields);
+        const formValidation = this.validationService.validateODPForm(allFieldsData);
         
-        this.elements.calculateBtn.disabled = !hasCalculationFields;
-        this.elements.createTaskBtn.disabled = !hasAllRequiredFields || !this.currentCalculation;
+        this.elements.calculateBtn.disabled = !calculationValidation.isValid;
+        this.elements.createTaskBtn.disabled = !formValidation.isValid || !this.currentCalculation;
     }
 
     validateForm() {
@@ -752,20 +750,7 @@ class BacklogManager extends BaseManager {
         // Validate dates first
         const datesValid = this.validateDates();
         
-        // For calculation, only require essential fields
-        const calculationFields = ['bagHeight', 'bagWidth', 'bagStep', 'quantity', 'tipoLavorazione', 'fase'];
-        const calculationData = {
-            bagHeight: this.elements.bagHeight.value,
-            bagWidth: this.elements.bagWidth.value,
-            bagStep: this.elements.bagStep.value,
-            quantity: this.elements.quantity.value,
-            tipoLavorazione: this.elements.tipoLavorazione.value,
-            fase: this.elements.fase.value
-        };
-        const hasCalculationFields = Utils.hasRequiredFields(calculationData, calculationFields);
-        
-        // For adding to backlog, require all fields
-        const allRequiredFields = ['articleCode', 'productionLot', 'workCenter', 'bagHeight', 'bagWidth', 'bagStep', 'sealSides', 'productType', 'quantity', 'deliveryDate', 'tipoLavorazione', 'fase'];
+        // Use centralized validation service for comprehensive validation
         const allFieldsData = {
             articleCode: this.elements.articleCode.value.trim(),
             productionLot: this.elements.productionLot.value.trim(),
@@ -780,65 +765,19 @@ class BacklogManager extends BaseManager {
             tipoLavorazione: this.elements.tipoLavorazione.value,
             fase: this.elements.fase.value
         };
-        const hasAllRequiredFields = Utils.hasRequiredFields(allFieldsData, allRequiredFields);
+        const formValidation = this.validationService.validateODPForm(allFieldsData);
         
-        // Additional validation for numeric fields
-        const numericValidation = this.validateNumericFields();
-        
-        // Validate field formats
-        this.validateFieldFormats();
-        
-        this.elements.calculateBtn.disabled = !hasCalculationFields || !numericValidation;
-        this.elements.createTaskBtn.disabled = !hasAllRequiredFields || !this.currentCalculation || !datesValid || !numericValidation;
-    }
-
-    validateNumericFields() {
-        const fieldLabels = {
-            bagHeight: 'Bag height',
-            bagWidth: 'Bag width',
-            bagStep: 'Bag step',
-            quantity: 'Quantity'
-        };
-        
-        const numericFields = ['bagHeight', 'bagWidth', 'bagStep', 'quantity'];
-        const fieldData = {
-            bagHeight: this.elements.bagHeight.value,
-            bagWidth: this.elements.bagWidth.value,
-            bagStep: this.elements.bagStep.value,
-            quantity: this.elements.quantity.value
-        };
-        
-        // Use utility function for numeric validation
-        const numericValidation = Utils.validateNumericFields(numericFields, fieldData, fieldLabels);
-        
-        // Show validation errors for invalid fields
-        numericFields.forEach(field => {
-            const value = fieldData[field];
-            if (value) {
-                const numValue = parseInt(value) || 0;
-                if (numValue < 0) {
-                    this.showValidationError(field, fieldLabels[field] + ' must be greater than or equal to 0');
-                } else {
-                    this.showValidationError(field, '');
-                }
-            }
+        // Display validation errors
+        Object.entries(formValidation.fieldErrors).forEach(([field, error]) => {
+            this.showValidationError(field, error);
         });
         
-        // Check if bag width is greater than or equal to bag step (only if both have values)
-        if (this.elements.bagWidth.value && this.elements.bagStep.value) {
-            const relationshipValidation = Utils.validateFieldRelationship(
-                'bagWidth', this.elements.bagWidth.value,
-                'bagStep', this.elements.bagStep.value,
-                'Bag width', 'Bag step'
-            );
-            if (!relationshipValidation.isValid) {
-                this.showValidationError('bagWidth', relationshipValidation.message);
-                return false;
-            }
-        }
-        
-        return numericValidation.isValid;
+        // Enable/disable buttons based on validation
+        this.elements.calculateBtn.disabled = !formValidation.isValid;
+        this.elements.createTaskBtn.disabled = !formValidation.isValid || !this.currentCalculation || !datesValid;
     }
+
+
 
     showValidationError(fieldId, message) {
         const errorElement = document.getElementById(`${fieldId}-error`);
@@ -916,29 +855,7 @@ class BacklogManager extends BaseManager {
         });
     }
 
-    validateFieldFormats() {
-        const patterns = Utils.getValidationPatterns();
-        const fieldData = {
-            articleCode: this.elements.articleCode.value.trim(),
-            productionLot: this.elements.productionLot.value.trim()
-        };
-        
-        // Use utility function for format validation
-        const formatValidation = Utils.validateFieldFormats({
-            articleCode: patterns.articleCode,
-            productionLot: patterns.productionLot
-        }, fieldData);
-        
-        // Show validation errors for invalid fields
-        if (!formatValidation.isValid) {
-            if (fieldData.articleCode && !patterns.articleCode.test(fieldData.articleCode)) {
-                this.showValidationError('articleCode', 'Article code must follow format: P0XXXX, P9XXXX, ISPXXXXX, or BLKCXXXX');
-            }
-            if (fieldData.productionLot && !patterns.productionLot.test(fieldData.productionLot)) {
-                this.showValidationError('productionLot', 'Production lot must follow format: AAPU###');
-            }
-        }
-    }
+
 
 
 
@@ -1016,83 +933,22 @@ class BacklogManager extends BaseManager {
     validateODPData(odpData) {
         console.log('🔍 validateODPData() called with:', odpData);
         
-        // For calculation, we only need the essential fields, not all fields
-        const essentialFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'department', 'fase'];
-        const essentialData = {
-            bag_height: odpData.bag_height,
-            bag_width: odpData.bag_width,
-            bag_step: odpData.bag_step,
-            quantity: odpData.quantity,
-            department: odpData.department,
-            fase: odpData.fase
-        };
+        // Use centralized validation service for comprehensive validation
+        const validation = this.validationService.validateODP(odpData);
         
-        console.log('🔍 Essential data for validation:', essentialData);
-        
-        const essentialValidation = Utils.validateRequiredFields(essentialData, essentialFields);
-        console.log('🔍 Essential validation result:', essentialValidation);
-        
-        if (!essentialValidation.isValid) {
-            console.log('🔍 Essential validation failed:', essentialValidation.errors);
-            this.showErrorMessage('validating form', new Error('Please fill in all technical specifications (bag height, width, step, quantity, processing type, and phase)'));
+        if (!validation.isValid) {
+            console.log('🔍 Validation failed:', validation.errors);
+            this.showErrorMessage('validating form', new Error(validation.errors.join(', ')));
             return false;
         }
         
-        // Validate numeric values using utility function
-        const fieldLabels = {
-            bag_height: 'Bag height',
-            bag_width: 'Bag width',
-            bag_step: 'Bag step',
-            quantity: 'Quantity'
-        };
-        const numericFields = ['bag_height', 'bag_width', 'bag_step', 'quantity'];
-        const numericValidation = Utils.validateNumericFields(numericFields, odpData, fieldLabels);
-        if (!numericValidation.isValid) {
-            this.showErrorMessage('validating numeric data', new Error(numericValidation.errors.join(', ')));
-            return false;
+        if (validation.warnings.length > 0) {
+            console.log('🔍 Validation warnings:', validation.warnings);
+            validation.warnings.forEach(warning => {
+                this.showMessage(warning, 'warning');
+            });
         }
         
-        // Validate bag dimensions make sense
-        const relationshipValidation = Utils.validateFieldRelationship(
-            'bag_width', odpData.bag_width,
-            'bag_step', odpData.bag_step,
-            'Bag width', 'Bag step'
-        );
-        if (!relationshipValidation.isValid) {
-            this.showErrorMessage('validating field relationships', new Error(relationshipValidation.message));
-            return false;
-        }
-        
-        // Validate dates if both are provided using utility function
-        const dateValidation = Utils.validateDateRange(odpData.production_start, odpData.delivery_date);
-        if (!dateValidation.isValid) {
-            this.showMessage('Production start date must be before delivery date', 'error');
-            return false;
-        }
-        
-        // Validate field formats using utility function
-        const patterns = Utils.getValidationPatterns();
-        const formatData = {
-            articleCode: odpData.article_code,
-            productionLot: odpData.production_lot
-        };
-        const formatValidation = Utils.validateFieldFormats({
-            articleCode: patterns.articleCode,
-            productionLot: patterns.productionLot
-        }, formatData);
-        
-        if (!formatValidation.isValid) {
-            if (odpData.article_code && !patterns.articleCode.test(odpData.article_code)) {
-                this.showMessage('Article code must follow format: P0XXXX, P9XXXX, ISPXXXXX, or BLKCXXXX', 'error');
-                return false;
-            }
-            if (odpData.production_lot && !patterns.productionLot.test(odpData.production_lot)) {
-                this.showMessage('Production lot must follow format: AAPU###', 'error');
-                return false;
-            }
-        }
-        
-
         return true;
     }
 
@@ -1479,7 +1335,7 @@ class BacklogManager extends BaseManager {
         const productionStart = order.production_start ? new Date(order.production_start).toLocaleDateString() : '-';
         const createdDate = order.created_at ? new Date(order.created_at).toLocaleDateString() : '-';
         const updatedDate = order.updated_at ? new Date(order.updated_at).toLocaleDateString() : '-';
-        const statusClass = order.status === 'DRAFT' ? 'status-draft' : order.status === 'IN_PROGRESS' ? 'status-progress' : 'status-completed';
+        const statusClass = order.status === 'Scheduled' ? 'status-scheduled' : 'status-not-scheduled';
         
         return `
             <tr data-task-id="${order.id}">
@@ -1625,9 +1481,8 @@ class BacklogManager extends BaseManager {
                     </span>
                     ${this.editManager.createEditInput('select', order.status, {
                         options: [
-                            { value: 'DRAFT', label: 'Draft' },
-                            { value: 'IN_PROGRESS', label: 'In Progress' },
-                            { value: 'COMPLETED', label: 'Completed' }
+                            { value: 'Scheduled', label: 'Scheduled' },
+                            { value: 'Not Scheduled', label: 'Not Scheduled' }
                         ]
                     })}
                 </td>
@@ -1785,44 +1640,10 @@ class BacklogManager extends BaseManager {
                 status: updatedData.status ? Utils.normalizeStatus(updatedData.status) : task.status
             };
 
-            // Validate required fields for ODP orders
-            const requiredFields = ['odp_number', 'article_code'];
-            const requiredFieldLabels = {
-                odp_number: 'ODP number',
-                article_code: 'Article code'
-            };
-            const requiredValidation = Utils.validateRequiredFields(updatedOrder, requiredFields, requiredFieldLabels);
-            if (!requiredValidation.isValid) {
-                this.showMessage(requiredValidation.errors.join(', '), 'error');
-                return;
-            }
-
-
-
-            // Validate numeric fields are non-negative
-            const fieldLabels = {
-                bag_height: 'Bag height',
-                bag_width: 'Bag width',
-                bag_step: 'Bag step',
-                quantity: 'Quantity',
-                duration: 'Duration',
-                cost: 'Cost'
-            };
-            const numericFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'duration', 'cost'];
-            const numericValidation = Utils.validateNumericFields(numericFields, updatedOrder, fieldLabels);
-            if (!numericValidation.isValid) {
-                this.showErrorMessage('validating numeric data', new Error(numericValidation.errors.join(', ')));
-                return;
-            }
-
-            // Validate bag dimensions make sense
-            const relationshipValidation = Utils.validateFieldRelationship(
-                'bag_width', updatedOrder.bag_width,
-                'bag_step', updatedOrder.bag_step,
-                'Bag width', 'Bag step'
-            );
-            if (!relationshipValidation.isValid) {
-                this.showErrorMessage('validating field relationships', new Error(relationshipValidation.message));
+            // Use centralized validation service for comprehensive validation
+            const validation = this.validationService.validateODP(updatedOrder);
+            if (!validation.isValid) {
+                this.showMessage(validation.errors.join(', '), 'error');
                 return;
             }
 

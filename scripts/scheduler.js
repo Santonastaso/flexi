@@ -473,37 +473,12 @@ class Scheduler {
     }
     
     getTaskColor(task) {
-        if (task.tipo_lavorazione) {
-            if (task.tipo_lavorazione === 'printing') {
-                return 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
-            } else if (task.tipo_lavorazione === 'packaging') {
-                return 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-            }
-        }
-        
-        if (task.color) {
-            return task.color;
-        }
-        
-        return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        return task.color || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
     }
     
     getTaskDuration(task) {
-        let duration = 1;
-        
-        if (task.duration) {
-            duration = parseFloat(task.duration);
-        } else if (task.totalTime) {
-            duration = parseFloat(task.totalTime);
-        }
-        
-        if (isNaN(duration) || duration <= 0) {
-            duration = 1;
-        } else {
-            duration = Math.round(duration * 10) / 10;
-        }
-        
-        return duration;
+        const duration = parseFloat(task.duration) || 1;
+        return Math.max(0.1, Math.round(duration * 10) / 10);
     }
     
     renderScheduledEvents() {
@@ -629,12 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('calendarContainer')) {
         window.scheduler = new Scheduler();
         
-        // Listen for storage changes to refresh scheduler
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'backlogTasks' || e.key === 'scheduledEvents' || e.key === 'schedulerMachines') {
-                window.scheduler.refreshScheduler();
-            }
-        });
+
         
         // Listen for data change events for real-time updates
         window.addEventListener('dataChange', (e) => {

@@ -409,18 +409,7 @@ class StorageService {
     
     
     
-    getLiveMachines() {
-        return this.getValidMachinesForDisplay().filter(machine => {
-                    // Check if machine has 'live' property
-        if (machine.hasOwnProperty('live')) {
-            return machine.live === true;
-        }
-            
-            // New enhanced machines are considered live by default
-            // unless they have a specific status field indicating otherwise
-            return machine.status !== 'inactive' && machine.status !== 'maintenance';
-        });
-    }
+
     
 
     
@@ -528,9 +517,7 @@ class StorageService {
             if (Object.prototype.hasOwnProperty.call(updates, 'product_type')) {
                 norm.product_type = Utils.normalizeEnumLower(updates.product_type);
             }
-            if (Object.prototype.hasOwnProperty.call(updates, 'tipo_lavorazione')) {
-                norm.tipo_lavorazione = Utils.normalizeEnumLower(updates.tipo_lavorazione);
-            }
+
             if (Object.prototype.hasOwnProperty.call(updates, 'fase')) {
                 norm.fase = Utils.normalizeId(updates.fase);
             }
@@ -794,57 +781,9 @@ class StorageService {
      * Get valid machines for Gantt display (live machines that exist)
      * Now uses the same source as machinery tables for SSOT
      */
-    getValidGanttMachines() {
-        const machines = this.getValidMachinesForDisplay();
-        // Consider machines displayable if name exists and not explicitly inactive
-        return machines.filter(machine => {
-            if (machine.status) {
-                return String(machine.status).toUpperCase() !== 'INACTIVE';
-            }
-            // Default: show machine
-            return true;
-        });
-    }
-    
-    /**
-     * Get valid tasks for task pool (ODP orders not scheduled)
-     */
-    getValidTaskPoolTasks() {
-        const odpOrders = this.getODPOrders();
-        const scheduledEvents = this.getScheduledEvents();
-        const scheduledTaskIds = new Set(scheduledEvents.map(event => event.taskId));
-        
-        console.log('ODP orders found:', odpOrders.length);
-        console.log('Scheduled events found:', scheduledEvents.length);
-        console.log('Scheduled task IDs:', Array.from(scheduledTaskIds));
-        
-        // Convert ODP orders to task format for Gantt compatibility
-        const tasks = odpOrders.map(order => ({
-            id: order.id,
-            name: order.odp_number,
 
-            type: order.department,
-            duration: order.duration || 0,
-            cost: order.cost || 0,
-            machineId: null, // Will be assigned when scheduled
-            machineName: null,
-            // Additional fields for compatibility
-            numeroBuste: order.quantity || 0,
-            passoBusta: order.bag_step || 0,
-            altezzaBusta: order.bag_height || 0,
-            fasciaBusta: order.bag_width || 0,
-            color: '#3B82F6', // Default blue color
-            linearMeters: 0, // Will be calculated if needed
-            totalTime: order.duration || 0,
-            totalCost: order.cost || 0
-        }));
-        
-        const availableTasks = tasks.filter(task => !scheduledTaskIds.has(task.id));
-        console.log('Available tasks for task pool:', availableTasks.length);
-        console.log('Available tasks:', availableTasks);
-        
-        return availableTasks;
-    }
+    
+
     
     /**
      * Strict validation: Ensure all machinery in events exists in machinery list

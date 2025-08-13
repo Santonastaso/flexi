@@ -20,20 +20,20 @@ class Utils {
         return `${hour}:00`;
     }
 
-    static getStartOfWeek(date) {
+    static getWeekStartDate(date) {
         const d = new Date(date);
         const day = d.getDay();
         const diff = d.getDate() - day; // Adjust to Sunday
         return new Date(d.setDate(diff));
     }
 
-    static getDayName(dayIndex, short = false) {
+    static getDayOfWeekName(dayIndex, short = false) {
         const dayNames = short ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : 
                                    ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         return dayNames[dayIndex];
     }
 
-    static isToday(date) {
+    static isDateToday(date) {
         const today = new Date();
         return date.toDateString() === today.toDateString();
     }
@@ -161,7 +161,7 @@ class Utils {
     /**
      * Check if form has required fields for button state
      */
-    static hasRequiredFields(data, requiredFields) {
+    static hasAllRequiredFields(data, requiredFields) {
         return requiredFields.every(field => {
             const value = data[field];
             return value && (typeof value === 'string' ? value.trim() : true);
@@ -174,7 +174,7 @@ class Utils {
     static getValidationPatterns() {
         return {
             articleCode: /^(P0|ISP0)\w+$/,
-            productionLot: /^AAPU\d{3}$/,
+            productionLot: /^[A-Z]{2,4}\d{3,6}$/,
             // Align with StorageService.generateODPNumber() which returns OP######
             odpNumber: /^OP\d{6}$/
         };
