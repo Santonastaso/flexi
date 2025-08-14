@@ -23,25 +23,18 @@ function initializeSupabaseClient() {
                 }
             }
         });
+        
+        // Make client globally available after creation
+        window.supabaseClient = supabaseClient;
+        
         console.log('Supabase client initialized successfully');
     } else {
         console.error('Supabase library not loaded yet');
     }
 }
 
-// Try to initialize immediately
-initializeSupabaseClient();
-
-// Also try when DOM is ready
+// Initialize only once when DOM is ready
 document.addEventListener('DOMContentLoaded', initializeSupabaseClient);
-
-// Also try when window loads
-window.addEventListener('load', initializeSupabaseClient);
-
-// Also try after a short delay to ensure library is loaded
-setTimeout(initializeSupabaseClient, 100);
-setTimeout(initializeSupabaseClient, 500);
-setTimeout(initializeSupabaseClient, 1000);
 
 // Helper function to handle Supabase errors
 function handle_supabase_error(error, context = '') {
@@ -87,10 +80,10 @@ async function check_supabase_connection() {
     }
 }
 
-// Export for use in other modules
-window.supabaseClient = supabaseClient;
+// Export helper functions for use in other modules
 window.handle_supabase_error = handle_supabase_error;
 window.check_supabase_connection = check_supabase_connection;
+// Note: window.supabaseClient is set in initializeSupabaseClient() after client creation
 
 // NOTE: To fix RLS (Row Level Security) issues, run these SQL commands in your Supabase SQL editor:
 // 

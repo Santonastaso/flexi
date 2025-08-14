@@ -5,10 +5,10 @@
  */
 
 const ServiceConfig = {
-    // Master switch - set to 'supabase' to use Supabase, 'local' for localStorage
-    STORAGE_MODE: 'supabase', // Changed to 'supabase' for backend operations
+    // Master switch - set to 'supabase' to use Supabase only
+    STORAGE_MODE: 'supabase',
     
-    // Feature flags for gradual migration
+    // All features use Supabase
     USE_SUPABASE: {
         machines: true,
         phases: true,
@@ -19,27 +19,23 @@ const ServiceConfig = {
     
     // Development/Debug options
     LOG_SERVICE_CALLS: false,
-    ENABLE_DUAL_WRITE: false, // Write to both localStorage and Supabase
+    ENABLE_DUAL_WRITE: false, // Disabled - no localStorage fallback
     ENABLE_REALTIME: false, // Enable Supabase realtime subscriptions
     
     /**
      * Get the appropriate service based on configuration
      */
     get_service() {
-        if (this.STORAGE_MODE === 'supabase') {
-            return window.supabaseService;
-        }
-        return window.storageService;
+        // Always return Supabase service
+        return window.supabaseService;
     },
     
     /**
      * Check if a specific feature should use Supabase
      */
     should_use_supabase(feature) {
-        if (this.STORAGE_MODE === 'supabase') {
-            return true;
-        }
-        return this.USE_SUPABASE[feature] || false;
+        // Always return true - all features use Supabase
+        return true;
     },
     
     /**
@@ -50,7 +46,7 @@ const ServiceConfig = {
         Object.keys(this.USE_SUPABASE).forEach(key => {
             this.USE_SUPABASE[key] = true;
         });
-        console.log('Supabase enabled for all features');
+
     },
     
     /**
@@ -59,7 +55,7 @@ const ServiceConfig = {
     enable_supabase_feature(feature) {
         if (this.USE_SUPABASE.hasOwnProperty(feature)) {
             this.USE_SUPABASE[feature] = true;
-            console.log(`Supabase enabled for ${feature}`);
+
         } else {
             console.error(`Unknown feature: ${feature}`);
         }
@@ -73,7 +69,7 @@ const ServiceConfig = {
         Object.keys(this.USE_SUPABASE).forEach(key => {
             this.USE_SUPABASE[key] = false;
         });
-        console.log('Reverted to localStorage');
+
     }
 };
 

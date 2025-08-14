@@ -702,8 +702,9 @@ window.addEventListener('load', () => {
     // Wait for storage service to be available
     const initialize_manager = () => {
         try {
-            // Check if all required services are available
+            // Check if all required services are available and initialized
             if (window.storageService && 
+                window.storageService.initialized && 
                 typeof ValidationService !== 'undefined' && 
                 typeof BusinessLogicService !== 'undefined' &&
                 typeof BaseManager !== 'undefined') {
@@ -729,6 +730,7 @@ window.addEventListener('load', () => {
                 // Log what's missing
                 const missing = [];
                 if (!window.storageService) missing.push('StorageService');
+                else if (!window.storageService.initialized) missing.push('StorageService (not initialized)');
                 if (typeof ValidationService === 'undefined') missing.push('ValidationService');
                 if (typeof BusinessLogicService === 'undefined') missing.push('BusinessLogicService');
                 if (typeof BaseManager === 'undefined') missing.push('BaseManager');
@@ -747,4 +749,7 @@ window.addEventListener('load', () => {
     
     // Start initialization process
     initialize_manager();
+    
+    // Also listen for storage service ready event for faster initialization
+    window.addEventListener('storageServiceReady', initialize_manager);
 });

@@ -104,7 +104,7 @@ class BaseManager {
      */
     static initialize_manager(ManagerClass, manager_name) {
         const initialize_manager = () => {
-            if (window.storageService) {
+            if (window.storageService && window.storageService.initialized) {
                 const manager = new ManagerClass();
                 window[manager_name] = manager;
                 
@@ -125,6 +125,9 @@ class BaseManager {
             }
         };
         initialize_manager();
+        
+        // Also listen for storage service ready event for faster initialization
+        window.addEventListener('storageServiceReady', initialize_manager);
     }
 
     /**

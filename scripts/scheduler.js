@@ -301,17 +301,17 @@ class Scheduler {
             const dateStr = Utils.format_date(this.currentDate);
             const machineName = this.get_machine_display_name(machine);
             
-            // Note: This is a synchronous call that should be made async in the future
-            // For now, we'll handle it synchronously to avoid breaking the UI
-            try {
-                const unavailableHours = this.storageService.get_machine_availability_for_date(machineName, dateStr);
-                if (unavailableHours && unavailableHours.includes(hour)) {
-                    timeSlot.classList.add('unavailable');
-                    timeSlot.style.pointerEvents = 'none'; // Disable drop zone for unavailable slots
-                }
-            } catch (error) {
-                console.warn('Could not check machine availability:', error);
-            }
+            // Check machine availability asynchronously (non-blocking)
+            this.storageService.get_machine_availability_for_date(machineName, dateStr)
+                .then(unavailableHours => {
+                    if (unavailableHours && Array.isArray(unavailableHours) && unavailableHours.includes(hour)) {
+                        timeSlot.classList.add('unavailable');
+                        timeSlot.style.pointerEvents = 'none'; // Disable drop zone for unavailable slots
+                    }
+                })
+                .catch(() => {
+                    // Silently ignore availability check errors to prevent console spam
+                });
             
             // Setup drop zone
             this.setup_slot_drop_zone(timeSlot);
@@ -375,7 +375,7 @@ class Scheduler {
         
         // Create event
         const event = {
-            id: `${taskId}-${Date.now()}`,
+            id: crypto.randomUUID(), // Generate a proper UUID
             taskId: taskId,
             taskTitle: taskData.odp_number || 'Unknown Task',
             machine: machine,
@@ -393,9 +393,7 @@ class Scheduler {
         }
         
         try {
-            if (window.DEBUG) {
-                console.log('Scheduling task with event data:', event);
-            }
+
             
             await this.storageService.add_scheduled_event(event);
             
@@ -404,9 +402,7 @@ class Scheduler {
                 detail: { odpId: taskId, status: 'SCHEDULED' }
             }));
             
-            if (window.DEBUG) {
-                console.log(`Dispatched odpStatusChanged event for task ${taskId}`);
-            }
+
             
             this.show_message(`Task scheduled successfully on ${machine}`, 'success');
             this.refresh_scheduler().catch(error => {
@@ -423,9 +419,7 @@ class Scheduler {
             // Get the event details before removing it
             const event = await this.storageService.get_scheduled_event_by_id(eventId);
             
-            if (window.DEBUG) {
-                console.log('Unscheduling event:', event);
-            }
+
             
             await this.storageService.remove_scheduled_event(eventId);
             
@@ -435,9 +429,7 @@ class Scheduler {
                     detail: { odpId: event.taskId, status: 'NOT SCHEDULED' }
                 }));
                 
-                if (window.DEBUG) {
-                    console.log(`Dispatched odpStatusChanged event for unscheduled task ${event.taskId}`);
-                }
+
             }
             
             this.show_message('Task unscheduled successfully', 'success');
@@ -493,14 +485,7 @@ class Scheduler {
                 const newStartDate = new Date(Utils.format_date(this.currentDate));
                 newStartDate.setHours(newHour, 0, 0, 0);
                 
-                if (window.DEBUG) {
-                    console.log('Reschedule calculation details:');
-                    console.log('- Current date:', this.currentDate);
-                    console.log('- Formatted date:', Utils.format_date(this.currentDate));
-                    console.log('- New hour:', newHour);
-                    console.log('- Calculated start date:', newStartDate);
-                    console.log('- ISO string:', newStartDate.toISOString());
-                }
+
                 
                 window.dispatchEvent(new CustomEvent('odpStatusChanged', {
                     detail: { 
@@ -513,9 +498,7 @@ class Scheduler {
                     }
                 }));
                 
-                if (window.DEBUG) {
-                    console.log(`Dispatched reschedule event for task ${existingEvent.taskId} with new start time: ${newStartDate.toISOString()}`);
-                }
+
             }
             
             this.show_message(`Task rescheduled successfully to ${newMachine}`, 'success');
@@ -692,13 +675,31 @@ class Scheduler {
     }
 }
 
-// Initialize when DOM is loaded
+// Initialize when DOM is loaded and StorageService is ready
 document.addEventListener('DOMContentLoaded', () => {
     // Only initialize if we're on the scheduler page
     if (document.getElementById('calendar_container')) {
-        window.scheduler = new Scheduler();
         
-
+        const initializeScheduler = () => {
+            if (window.storageService && window.storageService.initialized) {
+                window.scheduler = new Scheduler();
+                console.log('Scheduler initialized successfully');
+            } else {
+                // Wait for StorageService to be ready
+                setTimeout(initializeScheduler, 100);
+            }
+        };
+        
+        // Start initialization
+        initializeScheduler();
+        
+        // Also listen for storage service ready event
+        window.addEventListener('storageServiceReady', () => {
+            if (!window.scheduler && document.getElementById('calendar_container')) {
+                window.scheduler = new Scheduler();
+                console.log('Scheduler initialized successfully via event');
+            }
+        });
         
         // Listen for data change events for real-time updates
         window.addEventListener('dataChange', (e) => {

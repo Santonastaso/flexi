@@ -193,8 +193,28 @@ class MachineCalendarManager {
 // Auto-initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     // Only initialize if we're on the machine calendar page
-            if (document.getElementById('calendar_container')) {
-        window.machineCalendarManager = new MachineCalendarManager();
+    if (document.getElementById('calendar_container')) {
+        
+        const initializeMachineCalendarManager = () => {
+            if (window.storageService && window.storageService.initialized) {
+                window.machineCalendarManager = new MachineCalendarManager();
+                console.log('MachineCalendarManager initialized successfully');
+            } else {
+                // Wait for StorageService to be ready
+                setTimeout(initializeMachineCalendarManager, 100);
+            }
+        };
+        
+        // Start initialization
+        initializeMachineCalendarManager();
+        
+        // Also listen for storage service ready event
+        window.addEventListener('storageServiceReady', () => {
+            if (!window.machineCalendarManager && document.getElementById('calendar_container')) {
+                window.machineCalendarManager = new MachineCalendarManager();
+                console.log('MachineCalendarManager initialized successfully via event');
+            }
+        });
         // Add global keyboard shortcuts (Google Calendar style)
         document.addEventListener('keydown', (e) => {
             const manager = window.machineCalendarManager;

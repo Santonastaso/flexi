@@ -1,659 +1,720 @@
 /**
- * Storage Service - Centralized localStorage management
- * Handles all data persistence for the Flexi Production Suite
- * Enhanced with data management capabilities
+ * Storage Service
+ * Provides data storage and retrieval using Supabase backend
  */
 class StorageService {
     constructor() {
-
-        this.STORAGE_KEYS = {
-            MACHINES: 'schedulerMachines',
-            SCHEDULED_EVENTS: 'scheduledEvents',
-            MACHINE_AVAILABILITY: 'machineAvailability',
-            ODP_ORDERS: 'odpOrders',
-            PHASES: 'productionPhases'
-        };
-        
-        // Initialize default data if not present
-        this.initialize_defaults();
-        
-
+        this.supabaseService = null;
+        this.config = null;
+        this.initialized = false;
     }
-    
 
-    
-
-    
     /**
-     * Show message to user
+     * Initialize the service
+     */
+    async init() {
+        // Wait for all required services to be available
+        await this.wait_for_services();
+        
+        // Always initialize Supabase service
+        await this.supabaseService.init();
+        this.initialized = true;
+    }
+
+    /**
+     * Wait for all required services to be available
+     */
+    async wait_for_services() {
+        let attempts = 0;
+        const maxAttempts = 50; // 5 seconds max wait
+        
+        while (attempts < maxAttempts) {
+            if (window.supabaseService && window.ServiceConfig) {
+                this.supabaseService = window.supabaseService;
+                this.config = window.ServiceConfig;
+                return;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        
+        throw new Error('Required services not available after 5 seconds');
+    }
+
+    /**
+     * Get the appropriate service for a feature
+     */
+    get_service_for_feature(feature) {
+        if (!this.initialized) {
+            throw new Error('StorageService not initialized yet');
+        }
+        
+        // Always return Supabase service
+        return this.supabaseService;
+    }
+
+    /**
+     * Get service with safety check to prevent infinite recursion
+     */
+    get_safe_service(feature) {
+        const service = this.get_service_for_feature(feature);
+        
+        // Safety check to prevent infinite recursion
+        if (service === this) {
+            throw new Error('Circular reference detected');
+        }
+        
+        return service;
+    }
+
+    /**
+     * Force refresh from Supabase and clear cache
+     */
+    async force_supabase_refresh(feature) {
+        if (!this.initialized) {
+            await this.wait_for_services();
+            await this.init();
+        }
+        
+        if (this.config && this.config.should_use_supabase(feature)) {
+            // Clear any cached data
+            if (this.supabaseService.clear_cache) {
+                this.supabaseService.clear_cache(feature);
+            }
+            console.log(`Forced refresh from Supabase for ${feature}`);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check current data source for a feature
+     */
+    get_data_source(feature) {
+        if (!this.initialized) {
+            return 'not_initialized';
+        }
+        
+        if (this.config && this.config.should_use_supabase(feature)) {
+            return 'supabase';
+        }
+        return 'localStorage';
+    }
+
+    /**
+     * Force Supabase usage for a feature
+     */
+    async force_supabase_usage(feature) {
+        if (!this.initialized) {
+            await this.wait_for_services();
+            await this.init();
+        }
+        
+        if (this.config && this.config.should_use_supabase(feature)) {
+            console.log(`Forcing Supabase usage for ${feature}`);
+            return true;
+        }
+        
+        console.warn(`Cannot force Supabase usage for ${feature} - not configured`);
+        return false;
+    }
+
+    /**
+     * Log service calls if enabled
+     */
+    log_call(method, feature, ...args) {
+        if (this.config && this.config.LOG_SERVICE_CALLS) {
+            const service = this.config.should_use_supabase(feature) ? 'Supabase' : 'LocalStorage';
+            console.log(`[${service}] ${method}`, ...args);
+        }
+    }
+
+    /**
+     * Show message (delegates to appropriate service)
      */
     show_message(message, type = 'info') {
-        // Create message element
-        const messageEl = document.createElement('div');
-        messageEl.className = `message message-${type}`;
-        messageEl.textContent = message;
-        
-        // Add styles
-        const bgColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
-        messageEl.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10000;
-            background: ${bgColor};
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            font-weight: 500;
-        `;
-        
-        document.body.appendChild(messageEl);
-        
-        // Auto-remove after 3 seconds
-        setTimeout(() => {
-            if (messageEl.parentElement) {
-                messageEl.remove();
-            }
-        }, 3000);
+        // Use Supabase service for message display
+        if (this.supabaseService && this.supabaseService.show_message) {
+            this.supabaseService.show_message(message, type);
+        } else {
+            // Fallback to basic message display
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
     }
-    
+
     /**
-     * Initialize default data for first-time users
+     * MACHINES METHODS
      */
-    initialize_defaults() {
-        // No hardcoded machines - users must add their own
-
-    }
-    
-
-
-
-
-
-    
-    /**
-     * Generic methods for localStorage operations
-     */
-    getItem(key, defaultValue = null) {
+    async get_machines() {
+        this.log_call('get_machines', 'machines');
+        const service = this.get_safe_service('machines');
+        
         try {
-            const item = localStorage.getItem(key);
-            return item ? JSON.parse(item) : defaultValue;
+            const result = await service.get_machines();
+            return result;
         } catch (error) {
-            console.error(`Error reading from localStorage (${key}):`, error);
-            return defaultValue;
+            console.error('Error in Supabase get_machines:', error);
+            throw new Error('Failed to load machines from Supabase');
         }
     }
-    
-    setItem(key, value) {
+
+    async get_active_machines() {
+        this.log_call('get_active_machines', 'machines');
+        const service = this.get_service_for_feature('machines');
+        
         try {
-            localStorage.setItem(key, JSON.stringify(value));
-            return true;
+            const result = await service.get_active_machines();
+            return result;
         } catch (error) {
-            console.error(`Error writing to localStorage (${key}):`, error);
-            return false;
+            console.error('Error getting active machines from Supabase:', error);
+            throw new Error('Failed to get active machines from Supabase');
         }
     }
     
+    async save_machines(machines) {
+        this.log_call('save_machines', 'machines', machines);
+        
+        const service = this.get_service_for_feature('machines');
+        try {
+            const result = await service.save_machines(machines);
+            console.log('Machines saved to Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error saving machines to Supabase:', error);
+            throw new Error('Failed to save machines to Supabase');
+        }
+    }
+
+    async add_machine(machine) {
+        this.log_call('add_machine', 'machines', machine);
+        
+        const service = this.get_service_for_feature('machines');
+        try {
+            const result = await service.add_machine(machine);
+            console.log('Machine added to Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error adding machine to Supabase:', error);
+            throw new Error('Failed to add machine to Supabase');
+        }
+    }
+
+    async update_machine(id, updates) {
+        this.log_call('update_machine', 'machines', id, updates);
+        const service = this.get_service_for_feature('machines');
+        
+        try {
+            const result = await service.update_machine(id, updates);
+            console.log('Machine updated in Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error updating machine in Supabase:', error);
+            throw new Error('Failed to update machine in Supabase');
+        }
+    }
+
+    async remove_machine(machine_id) {
+        this.log_call('remove_machine', 'machines', machine_id);
+        
+        const service = this.get_service_for_feature('machines');
+        try {
+            const result = await service.remove_machine(machine_id);
+            console.log('Machine removed from Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error removing machine from Supabase:', error);
+            throw new Error('Failed to remove machine from Supabase');
+        }
+    }
+
+    async add_machine_with_sync(machine) {
+        this.log_call('add_machine_with_sync', 'machines', machine);
+        const service = this.get_service_for_feature('machines');
+        
+        try {
+            const result = await service.add_machine_with_sync(machine);
+            console.log('Machine added with sync to Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error adding machine with sync to Supabase:', error);
+            throw new Error('Failed to add machine with sync to Supabase');
+        }
+    }
+
+    async save_machines_with_sync(machines) {
+        this.log_call('save_machines_with_sync', 'machines', machines);
+        const service = this.get_service_for_feature('machines');
+        
+        try {
+            const result = await service.save_machines_with_sync(machines);
+            console.log('Machines saved with sync to Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error saving machines with sync to Supabase:', error);
+            throw new Error('Failed to save machines with sync to Supabase');
+        }
+    }
+
+    async validate_machine_can_be_deleted(machineId) {
+        this.log_call('validate_machine_can_be_deleted', 'machines', machineId);
+        const service = this.get_service_for_feature('machines');
+        
+        try {
+            const result = await service.validate_machine_can_be_deleted(machineId);
+            return result;
+        } catch (error) {
+            console.error('Error validating machine deletion in Supabase:', error);
+            throw new Error('Failed to validate machine deletion in Supabase');
+        }
+    }
+
     /**
-     * Machine management
+     * ODP ORDERS METHODS
      */
-    get_machines() {
-        return this.getItem(this.STORAGE_KEYS.MACHINES, []);
+    async get_odp_orders() {
+        this.log_call('get_odp_orders', 'odp_orders');
+        const service = this.get_service_for_feature('odp_orders');
+        
+        try {
+            const result = await service.get_odp_orders();
+            console.log('ODP orders loaded from Supabase:', result.length);
+            return result;
+        } catch (error) {
+            console.error('Error loading ODP orders from Supabase:', error);
+            throw new Error('Failed to load ODP orders from Supabase');
+        }
+    }
+
+    async save_odp_orders(orders) {
+        this.log_call('save_odp_orders', 'odp_orders', orders);
+        
+        const service = this.get_service_for_feature('odp_orders');
+        try {
+            const result = await service.save_odp_orders(orders);
+            console.log('ODP orders saved to Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error saving ODP orders to Supabase:', error);
+            throw new Error('Failed to save ODP orders to Supabase');
+        }
+    }
+
+    async add_odp_order(order) {
+        this.log_call('add_odp_order', 'odp_orders', order);
+        
+        const service = this.get_service_for_feature('odp_orders');
+        try {
+            const result = await service.add_odp_order(order);
+            console.log('ODP order added to Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error adding ODP order to Supabase:', error);
+            throw new Error('Failed to add ODP order to Supabase');
+        }
+    }
+
+    async update_odp_order(id, updates) {
+        this.log_call('update_odp_order', 'odp_orders', id, updates);
+        const service = this.get_service_for_feature('odp_orders');
+        
+        try {
+            const result = await service.update_odp_order(id, updates);
+            console.log('ODP order updated in Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error updating ODP order in Supabase:', error);
+            throw new Error('Failed to update ODP order in Supabase');
+        }
+    }
+
+    async remove_odp_order(id) {
+        this.log_call('remove_odp_order', 'odp_orders', id);
+        
+        const service = this.get_service_for_feature('odp_orders');
+        try {
+            const result = await service.remove_odp_order(id);
+            console.log('ODP order removed from Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error removing ODP order from Supabase:', error);
+            throw new Error('Failed to remove ODP order from Supabase');
+        }
+    }
+
+    async get_next_odp_number() {
+        this.log_call('get_next_odp_number', 'odp_orders');
+        const service = this.get_service_for_feature('odp_orders');
+        
+        try {
+            const result = await service.get_next_odp_number();
+            return result;
+        } catch (error) {
+            console.error('Error getting next ODP number from Supabase:', error);
+            throw new Error('Failed to get next ODP number from Supabase');
+        }
+    }
+
+    async get_valid_tasks_for_display() {
+        this.log_call('get_valid_tasks_for_display', 'odp_orders');
+        const service = this.get_service_for_feature('odp_orders');
+        
+        try {
+            const result = await service.get_valid_tasks_for_display();
+            return result;
+        } catch (error) {
+            console.error('Error getting valid tasks from Supabase:', error);
+            throw new Error('Failed to get valid tasks from Supabase');
+        }
+    }
+
+    async get_odp_order_by_id(id) {
+        this.log_call('get_odp_order_by_id', 'odp_orders', id);
+        const service = this.get_service_for_feature('odp_orders');
+        
+        try {
+            const result = await service.get_odp_order_by_id(id);
+            return result;
+        } catch (error) {
+            console.error('Error getting ODP order by ID from Supabase:', error);
+            throw new Error('Failed to get ODP order by ID from Supabase');
+        }
     }
 
     /**
-     * Get only active machines for production scheduling
+     * PHASES METHODS
      */
-    get_active_machines() {
-        return this.get_machines().filter(machine => {
-            // Check status field (case-insensitive)
-            if (machine.status) {
-                return machine.status.toUpperCase() === 'ACTIVE';
-            }
-            
-            // Fallback: machines with names are considered active
-            return machine.machine_name;
-        });
-    }
-
-
-
-
-
-
-    
-    save_machines(machines) {
-        return this.setItem(this.STORAGE_KEYS.MACHINES, machines);
-    }
-    
-    add_machine(machine) {
-        const machines = this.get_machines();
-        const normalizedType = Utils.normalize_code(machine.machine_type || '');
-        const normalizedWorkCenter = Utils.normalize_code(machine.work_center || 'ZANICA');
-        const normalizedName = Utils.normalize_name(machine.machine_name || '');
-        const normalizedStatus = Utils.normalize_status(machine.status || 'ACTIVE');
+    async get_phases() {
+        this.log_call('get_phases', 'phases');
         
-        const newMachine = {
-            ...machine,
-            id: machine.id || (Date.now() + Math.random().toString(36).substr(2, 9)),
-            machine_name: normalizedName,
-            work_center: normalizedWorkCenter,
-            machine_type: normalizedType || machine.machine_type,
-            status: normalizedStatus,
-            created_at: machine.created_at || new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        };
-        
-        // Machine ID will be generated by BusinessLogicService
-        // This is now handled by the manager layer
-        
-        machines.push(newMachine);
-        this.save_machines(machines);
-        return newMachine;
-    }
-    
-
-    
-    
-    
-
-    
-
-    
-
-
-    /**
-     * ODP (Ordine di Produzione) Management
-     */
-    get_odp_orders() {
-        return this.getItem(this.STORAGE_KEYS.ODP_ORDERS, []);
-    }
-
-    save_odp_orders(orders) {
-        return this.setItem(this.STORAGE_KEYS.ODP_ORDERS, orders);
-    }
-
-    add_odp_order(order) {
-        const orders = this.get_odp_orders();
-        
-        // Check if ODP number is unique
-        if (order.odp_number) {
-            const existingOrder = orders.find(o => o.odp_number === order.odp_number);
-            if (existingOrder) {
-                throw new Error(`ODP number ${order.odp_number} already exists`);
-            }
+        // Ensure initialization
+        if (!this.initialized) {
+            await this.wait_for_services();
+            await this.init();
         }
         
-        // Normalize inputs
-        const normalizedArticle = Utils.normalize_code(order.article_code);
-        const normalizedLot = Utils.normalize_code(order.production_lot);
-        const normalizedWorkCenter = Utils.normalize_code(order.work_center || 'ZANICA');
-        const normalizedDepartment = Utils.normalize_enum_lower(order.department || 'STAMPA');
-        
-        // Business logic is now handled by BusinessLogicService
-        // These determinations are made by the manager layer
-        
-        const newOrder = {
-            id: Utils.normalize_id(order.id) || (Date.now() + Math.random().toString(36).substr(2, 9)),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            status: Utils.normalize_status(order.status || 'DRAFT'),
-            
-            // IDENTIFICAZIONE (Identification)
-            odp_number: order.odp_number,
-            article_code: normalizedArticle,
-            production_lot: normalizedLot,
-            work_center: order.work_center || normalizedWorkCenter,
-            nome_cliente: order.nome_cliente || '',
-            description: order.description || '',
-            
-            // SPECIFICHE TECNICHE (Technical Specifications)
-            bag_height: parseInt(order.bag_height) || 0,
-            bag_width: parseInt(order.bag_width) || 0,
-            bag_step: parseInt(order.bag_step) || 0,
-            seal_sides: parseInt(order.seal_sides) || 3,
-            product_type: Utils.normalize_enum_lower(order.product_type || 'crema'),
-            quantity: parseInt(order.quantity) || 1,
-            
-            // PIANIFICAZIONE (Planning)
-            production_start: order.production_start || null,
-            production_end: order.production_end || null,
-            delivery_date: order.delivery_date || null,
-            
-            // DATI COMMERCIALI (Commercial Data)
-            internal_customer_code: order.internal_customer_code || normalizedArticle,
-            external_customer_code: Utils.normalize_code(order.external_customer_code || ''),
-            customer_order_ref: Utils.normalize_code(order.customer_order_ref || ''),
-            
-            // DATI LAVORAZIONE (Processing Data)
-            department: order.department || normalizedDepartment,
-            fase: Utils.normalize_id(order.fase || ''),
-            
-            // COLONNE DA CALCOLARE (Calculated Columns)
-            duration: parseFloat(order.duration) || 0,
-            cost: parseFloat(order.cost) || 0,
-            progress: parseInt(order.progress) || 0,
-            
-            // Additional fields
-            priority: Utils.normalize_enum_lower(order.priority || 'medium')
-        };
-        
-        orders.push(newOrder);
-        this.save_odp_orders(orders);
-        return newOrder;
+        try {
+            const result = await this.supabaseService.get_phases();
+            console.log('Phases loaded from Supabase:', result.length);
+            return result;
+        } catch (error) {
+            console.error('Error loading phases from Supabase:', error);
+            throw new Error('Failed to load phases from Supabase');
+        }
     }
 
-    // ODP number generation is now handled by BusinessLogicService
-
-    update_odp_order(id, updates) {
-        const orders = this.get_odp_orders();
-        const index = orders.findIndex(order => String(order.id) === String(id));
+    async save_phases(phases) {
+        this.log_call('save_phases', 'phases', phases);
         
-        if (index !== -1) {
-            const norm = {};
-            if (Object.prototype.hasOwnProperty.call(updates, 'article_code')) {
-                norm.article_code = Utils.normalize_code(updates.article_code);
-            }
-            if (Object.prototype.hasOwnProperty.call(updates, 'production_lot')) {
-                norm.production_lot = Utils.normalize_code(updates.production_lot);
-            }
-            if (Object.prototype.hasOwnProperty.call(updates, 'work_center')) {
-                norm.work_center = Utils.normalize_code(updates.work_center);
-            }
-            if (Object.prototype.hasOwnProperty.call(updates, 'status')) {
-                norm.status = Utils.normalize_status(updates.status);
-            }
-            if (Object.prototype.hasOwnProperty.call(updates, 'product_type')) {
-                norm.product_type = Utils.normalize_enum_lower(updates.product_type);
-            }
+        // Ensure initialization
+        if (!this.initialized) {
+            await this.wait_for_services();
+            await this.init();
+        }
+        
+        try {
+            const result = await this.supabaseService.save_phases(phases);
+            console.log('Phases saved to Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error saving phases to Supabase:', error);
+            throw new Error('Failed to save phases to Supabase');
+        }
+    }
 
-            if (Object.prototype.hasOwnProperty.call(updates, 'fase')) {
-                norm.fase = Utils.normalize_id(updates.fase);
-            }
-            if (Object.prototype.hasOwnProperty.call(updates, 'priority')) {
-                norm.priority = Utils.normalize_enum_lower(updates.priority);
-            }
-            if (Object.prototype.hasOwnProperty.call(updates, 'internal_customer_code')) {
-                norm.internal_customer_code = Utils.normalize_code(updates.internal_customer_code);
-            }
-            if (Object.prototype.hasOwnProperty.call(updates, 'external_customer_code')) {
-                norm.external_customer_code = Utils.normalize_code(updates.external_customer_code);
-            }
-            if (Object.prototype.hasOwnProperty.call(updates, 'customer_order_ref')) {
-                norm.customer_order_ref = Utils.normalize_code(updates.customer_order_ref);
-            }
+    async add_phase(phase) {
+        this.log_call('add_phase', 'phases', phase);
+        
+        // Ensure initialization
+        if (!this.initialized) {
+            await this.wait_for_services();
+            await this.init();
+        }
+        
+        try {
+            const result = await this.supabaseService.add_phase(phase);
+            console.log('Phase added to Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error adding phase to Supabase:', error);
+            throw new Error('Failed to add phase to Supabase');
+        }
+    }
 
-            if (Object.prototype.hasOwnProperty.call(updates, 'description')) {
-                norm.description = String(updates.description || '').trim();
-            }
-            const merged = { ...updates, ...norm };
-            orders[index] = {
-                ...orders[index],
-                ...merged,
-                updated_at: new Date().toISOString()
-            };
-            this.save_odp_orders(orders);
-            return orders[index];
+    async update_phase(id, updates) {
+        this.log_call('update_phase', 'phases', id, updates);
+        const service = this.get_service_for_feature('phases');
+        
+        try {
+            const result = await service.update_phase(id, updates);
+            console.log('Phase updated in Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error updating phase in Supabase:', error);
+            throw new Error('Failed to update phase in Supabase');
+        }
+    }
+
+    async remove_phase(id) {
+        this.log_call('remove_phase', 'phases', id);
+        
+        const service = this.get_service_for_feature('phases');
+        try {
+            const result = await service.remove_phase(id);
+            console.log('Phase removed from Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error removing phase from Supabase:', error);
+            throw new Error('Failed to remove phase from Supabase');
+        }
+    }
+
+    async get_phase_by_id(id) {
+        this.log_call('get_phase_by_id', 'phases', id);
+        const service = this.get_service_for_feature('phases');
+        
+        try {
+            const result = await service.get_phase_by_id(id);
+            return result;
+        } catch (error) {
+            console.error('Error getting phase by ID from Supabase:', error);
+            throw new Error('Failed to get phase by ID from Supabase');
+        }
+    }
+
+    /**
+     * SCHEDULED EVENTS METHODS
+     */
+    async get_scheduled_events() {
+        this.log_call('get_scheduled_events', 'scheduled_events');
+        const service = this.get_service_for_feature('scheduled_events');
+        
+        try {
+            const result = await service.get_scheduled_events();
+            return result;
+        } catch (error) {
+            console.error('Error getting scheduled events from Supabase:', error);
+            throw new Error('Failed to get scheduled events from Supabase');
+        }
+    }
+
+    async save_scheduled_events(events) {
+        this.log_call('save_scheduled_events', 'scheduled_events', events);
+        
+        const service = this.get_service_for_feature('scheduled_events');
+        try {
+            const result = await service.save_scheduled_events(events);
+            console.log('Scheduled events saved to Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error saving scheduled events to Supabase:', error);
+            throw new Error('Failed to save scheduled events to Supabase');
+        }
+    }
+
+    async add_scheduled_event(event) {
+        this.log_call('add_scheduled_event', 'scheduled_events', event);
+        
+        const service = this.get_service_for_feature('scheduled_events');
+        try {
+            const result = await service.add_scheduled_event(event);
+            console.log('Scheduled event added to Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error adding scheduled event to Supabase:', error);
+            throw new Error('Failed to add scheduled event to Supabase');
+        }
+    }
+
+    async remove_scheduled_event(event_id) {
+        this.log_call('remove_scheduled_event', 'scheduled_events', event_id);
+        
+        const service = this.get_service_for_feature('scheduled_events');
+        try {
+            const result = await service.remove_scheduled_event(event_id);
+            console.log('Scheduled event removed from Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error removing scheduled event from Supabase:', error);
+            throw new Error('Failed to remove scheduled event from Supabase');
+        }
+    }
+
+    async is_task_scheduled(task_id) {
+        this.log_call('is_task_scheduled', 'scheduled_events', task_id);
+        const service = this.get_service_for_feature('scheduled_events');
+        
+        try {
+            const result = await service.is_task_scheduled(task_id);
+            return result;
+        } catch (error) {
+            console.error('Error checking if task is scheduled in Supabase:', error);
+            throw new Error('Failed to check if task is scheduled in Supabase');
+        }
+    }
+
+    async get_events_by_machine(machine_name) {
+        this.log_call('get_events_by_machine', 'scheduled_events', machine_name);
+        const service = this.get_service_for_feature('scheduled_events');
+        
+        try {
+            const result = await service.get_events_by_machine(machine_name);
+            return result;
+        } catch (error) {
+            console.error('Error getting events by machine from Supabase:', error);
+            throw new Error('Failed to get events by machine from Supabase');
+        }
+    }
+
+    async get_events_by_date(date) {
+        this.log_call('get_events_by_date', 'scheduled_events', date);
+        const service = this.get_service_for_feature('scheduled_events');
+        
+        try {
+            const result = await service.get_events_by_date(date);
+            return result;
+        } catch (error) {
+            console.error('Error getting events by date from Supabase:', error);
+            throw new Error('Failed to get events by date from Supabase');
+        }
+    }
+
+    async get_scheduled_event_by_id(event_id) {
+        this.log_call('get_scheduled_event_by_id', 'scheduled_events', event_id);
+        const service = this.get_service_for_feature('scheduled_events');
+        
+        try {
+            const result = await service.get_scheduled_event_by_id(event_id);
+            return result;
+        } catch (error) {
+            console.error('Error getting scheduled event by ID from Supabase:', error);
+            throw new Error('Failed to get scheduled event by ID from Supabase');
+        }
+    }
+
+    /**
+     * MACHINE AVAILABILITY METHODS
+     */
+    async get_machine_availability() {
+        this.log_call('get_machine_availability', 'machine_availability');
+        const service = this.get_service_for_feature('machine_availability');
+        
+        try {
+            const result = await service.get_machine_availability();
+            return result;
+        } catch (error) {
+            console.error('Error getting machine availability from Supabase:', error);
+            throw new Error('Failed to get machine availability from Supabase');
+        }
+    }
+
+    async save_machine_availability(availability) {
+        this.log_call('save_machine_availability', 'machine_availability', availability);
+        
+        const service = this.get_service_for_feature('machine_availability');
+        try {
+            const result = await service.save_machine_availability(availability);
+            console.log('Machine availability saved to Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error saving machine availability to Supabase:', error);
+            throw new Error('Failed to save machine availability to Supabase');
+        }
+    }
+
+    async get_machine_availability_for_date(machineName, date) {
+        this.log_call('get_machine_availability_for_date', 'machine_availability', machineName, date);
+        const service = this.get_service_for_feature('machine_availability');
+        
+        try {
+            const result = await service.get_machine_availability_for_date(machineName, date);
+            return result;
+        } catch (error) {
+            console.error('Error getting machine availability for date from Supabase:', error);
+            return []; // Return empty array on error to prevent UI issues
+        }
+    }
+
+    async set_machine_availability(machineName, date, unavailableHours) {
+        this.log_call('set_machine_availability', 'machine_availability', machineName, date, unavailableHours);
+        
+        const service = this.get_service_for_feature('machine_availability');
+        try {
+            const result = await service.set_machine_availability(machineName, date, unavailableHours);
+            console.log('Machine availability set in Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error setting machine availability in Supabase:', error);
+            throw new Error('Failed to set machine availability in Supabase');
+        }
+    }
+
+    async toggle_machine_hour_availability(machineName, date, hour) {
+        this.log_call('toggle_machine_hour_availability', 'machine_availability', machineName, date, hour);
+        const service = this.get_service_for_feature('machine_availability');
+        
+        try {
+            const result = await service.toggle_machine_hour_availability(machineName, date, hour);
+            console.log('Machine hour availability toggled in Supabase');
+            return result;
+        } catch (error) {
+            console.error('Error toggling machine hour availability in Supabase:', error);
+            throw new Error('Failed to toggle machine hour availability in Supabase');
+        }
+    }
+
+    /**
+     * DATA CHANGE NOTIFICATIONS
+     */
+    notify_data_change(type, action, data) {
+        // Both services implement this the same way
+        window.dispatchEvent(new CustomEvent('dataChanged', {
+            detail: { type, action, data }
+        }));
+    }
+
+    /**
+     * REALTIME SUBSCRIPTIONS (Supabase only)
+     */
+    subscribe_to_changes(table, callback) {
+        if (this.config && this.config.ENABLE_REALTIME && this.config.should_use_supabase(table)) {
+            return this.supabaseService.subscribe_to_changes(table, callback);
         }
         return null;
     }
 
-    remove_odp_order(id) {
-        const orders = this.get_odp_orders();
-        const filteredOrders = orders.filter(order => String(order.id) !== String(id));
-        this.save_odp_orders(filteredOrders);
-        return filteredOrders;
-    }
-
-    get_odp_order_by_id(id) {
-        return this.get_odp_orders().find(order => String(order.id) === String(id));
-    }
-
-    get_odp_order_by_number(odpNumber) {
-        return this.get_odp_orders().find(order => order.odp_number === odpNumber);
-    }
-
-    get_odp_orders_by_work_center(workCenter) {
-        return this.get_odp_orders().filter(order => order.work_center === workCenter);
-    }
-
-    get_odp_orders_by_status(status) {
-        return this.get_odp_orders().filter(order => order.status === status);
-    }
-
-    /**
-     * Phase (Fase) Management
-     */
-    get_phases() {
-        return this.getItem(this.STORAGE_KEYS.PHASES, []);
-    }
-
-    save_phases(phases) {
-        return this.setItem(this.STORAGE_KEYS.PHASES, phases);
-    }
-
-    add_phase(phase) {
-        const phases = this.get_phases();
-        const newPhase = {
-            id: phase.id || (Date.now() + Math.random().toString(36).substr(2, 9)),
-            name: phase.name || '',
-            department: phase.department || 'STAMPA', // 'STAMPA' or 'CONFEZIONAMENTO'
-            numero_persone: parseInt(phase.numero_persone) || 1, // Number of people required
-            
-            // Printing parameters
-            v_stampa: parseFloat(phase.v_stampa) || 0, // Velocità stampa in mt/h
-            t_setup_stampa: parseFloat(phase.t_setup_stampa) || 0, // Tempo attrezzaggio stampa in h
-            costo_h_stampa: parseFloat(phase.costo_h_stampa) || 0, // Costo orario stampa in €/h
-            
-            // Packaging parameters
-            v_conf: parseFloat(phase.v_conf) || 0, // Velocità confezionamento in pz/h
-            t_setup_conf: parseFloat(phase.t_setup_conf) || 0, // Tempo attrezzaggio confezionamento in h
-            costo_h_conf: parseFloat(phase.costo_h_conf) || 0, // Costo orario confezionamento in €/h
-            
-            // Phase content (only for CONFEZIONAMENTO)
-            contenuto_fase: phase.contenuto_fase || null,
-            
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        };
-        
-        phases.push(newPhase);
-        this.save_phases(phases);
-        return newPhase;
-    }
-
-    update_phase(id, updates) {
-        const phases = this.get_phases();
-        const index = phases.findIndex(phase => String(phase.id) === String(id));
-        
-        if (index !== -1) {
-            phases[index] = {
-                ...phases[index],
-                ...updates,
-                updated_at: new Date().toISOString()
-            };
-            this.save_phases(phases);
-            return phases[index];
-        }
-        return null;
-    }
-
-    remove_phase(id) {
-        const phases = this.get_phases();
-        const filteredPhases = phases.filter(phase => String(phase.id) !== String(id));
-        this.save_phases(filteredPhases);
-        return filteredPhases;
-    }
-
-    get_phase_by_id(id) {
-        return this.get_phases().find(phase => String(phase.id) === String(id));
-    }
-
-    get_phases_by_department(department) {
-        return this.get_phases().filter(phase => {
-            return phase.department === department;
-        });
-    }
-    
-    /**
-     * Scheduled events management
-     */
-    get_scheduled_events() {
-        return this.getItem(this.STORAGE_KEYS.SCHEDULED_EVENTS, []);
-    }
-    
-    save_scheduled_events(events) {
-        return this.setItem(this.STORAGE_KEYS.SCHEDULED_EVENTS, events);
-    }
-    
-    add_scheduled_event(event) {
-        const events = this.get_scheduled_events();
-        events.push(event);
-        this.save_scheduled_events(events);
-        return event;
-    }
-    
-    remove_scheduled_event(event_id) {
-        const events = this.get_scheduled_events();
-        const filtered_events = events.filter(event => event.id != event_id);
-        this.save_scheduled_events(filtered_events);
-        return filtered_events;
-    }
-    
-    is_task_scheduled(task_id) {
-        return this.get_scheduled_events().some(event => String(event.taskId) === String(task_id));
-    }
-    
-    get_events_by_machine(machine_name) {
-        return this.get_scheduled_events().filter(event => event.machine === machine_name);
-    }
-    
-    get_events_by_date(date) {
-        return this.get_scheduled_events().filter(event => event.date === date);
-    }
-    
-    get_scheduled_event_by_id(event_id) {
-        const events = this.get_scheduled_events();
-        return events.find(event => event.id === event_id) || null;
-    }
-    
-    /**
-     * Machine availability management
-     */
-    get_machine_availability() {
-        return this.getItem(this.STORAGE_KEYS.MACHINE_AVAILABILITY, {});
-    }
-    
-    save_machine_availability(availability) {
-        return this.setItem(this.STORAGE_KEYS.MACHINE_AVAILABILITY, availability);
-    }
-    
-    get_machine_availability_for_date(machineName, date) {
-        const availability = this.get_machine_availability();
-        return availability[machineName]?.[date] || [];
-    }
-    
-    set_machine_availability(machineName, date, unavailableHours) {
-        const availability = this.get_machine_availability();
-        
-        if (!availability[machineName]) {
-            availability[machineName] = {};
-        }
-        
-        availability[machineName][date] = unavailableHours;
-        this.save_machine_availability(availability);
-    }
-    
-    toggle_machine_hour_availability(machineName, date, hour) {
-        const availability = this.get_machine_availability();
-        
-        if (!availability[machineName]) {
-            availability[machineName] = {};
-        }
-        
-        if (!availability[machineName][date]) {
-            availability[machineName][date] = [];
-        }
-        
-        const hourIndex = availability[machineName][date].indexOf(hour);
-        if (hourIndex > -1) {
-            availability[machineName][date].splice(hourIndex, 1);
-        } else {
-            availability[machineName][date].push(hour);
-        }
-        
-        this.save_machine_availability(availability);
-        
-        // Dispatch custom event to notify other components
-
-        window.dispatchEvent(new CustomEvent('machineAvailabilityChanged', {
-            detail: { machineName, date, unavailableHours: availability[machineName][date] }
-        }));
-        
-        return availability[machineName][date];
-    }
-    validate_task_can_be_deleted(taskId) {
-        if (this.is_task_scheduled(taskId)) {
-            // ODP-based structure
-            const order = this.get_odp_order_by_id(taskId);
-            const name = order?.odp_number || String(taskId);
-            throw new Error(`Cannot delete "${name}". It is currently scheduled. Please remove it from the schedule first.`);
-        }
-        return true;
-    }
-    
-    validate_machine_can_be_deleted(machineName) {
-        const events = this.get_events_by_machine(machineName);
-        if (events.length > 0) {
-            throw new Error(`Cannot delete "${machineName}". It has tasks scheduled on it. Please remove tasks from the scheduler first.`);
-        }
-        return true;
-    }
-
-    /**
-     * Backward-compat wrapper: get backlog task by ID (maps to ODP orders)
-     */
-    get_backlog_task_by_id(id) {
-        return this.get_odp_order_by_id(id) || null;
-    }
-    
-    /**
-     * Get valid machines for Gantt display (live machines that exist)
-     * Now uses the same source as machinery tables for SSOT
-     */
-    get_valid_machines_for_display() {
-        // Return all machines without filtering to avoid hiding user data
-        return this.get_machines();
-    }
-    
-
-    
-    /**
-     * Remove a specific machine by name
-     */
-    remove_specific_machine(machineName) {
-
-        
-        const machines = this.get_machines();
-        const filteredMachines = machines.filter(machine => 
-            machine.machine_name !== machineName
-        );
-        
-        if (filteredMachines.length !== machines.length) {
-            this.save_machines(filteredMachines);
-    
-            
-            // Also clean up any events referencing this machine
-                            const events = this.get_scheduled_events();
-                const filteredEvents = events.filter(event => event.machine !== machineName);
-                
-                if (filteredEvents.length !== events.length) {
-                    this.save_scheduled_events(filteredEvents);
-    
-            }
-            
-            return true;
-        } else {
-    
-            return false;
+    unsubscribe_from_changes(table) {
+        if (this.config && this.config.ENABLE_REALTIME) {
+            this.supabaseService.unsubscribe_from_changes(table);
         }
     }
-    
-    /**
-     * Remove a specific machine by ID
-     */
-    remove_machine_by_id(machineId) {
 
-        
-        const machines = this.get_machines();
-        const filteredMachines = machines.filter(machine => machine.id !== machineId);
-        
-        if (filteredMachines.length !== machines.length) {
-            this.save_machines(filteredMachines);
-    
-            
-            // Also clean up any events referencing this machine
-            const machineToRemove = machines.find(m => m.id === machineId);
-            if (machineToRemove) {
-                const events = this.get_scheduled_events();
-                const filteredEvents = events.filter(event => event.machine !== machineToRemove.machine_name);
-                
-                if (filteredEvents.length !== events.length) {
-                    this.save_scheduled_events(filteredEvents);
-        
-                }
-            }
-            
-            return true;
-        } else {
-    
-            return false;
+    unsubscribe_all() {
+        if (this.config && this.config.ENABLE_REALTIME) {
+            this.supabaseService.unsubscribe_all();
         }
     }
-    
-    /**
-     * Get only valid ODP orders for display (strict filtering)
-     */
-    get_valid_tasks_for_display() {
-        const odpOrders = this.get_odp_orders();
-        return odpOrders.filter(order => {
-            // Must have required properties
-            if (!order.id || !order.odp_number) {
-        
-                return false;
-            }
-            
-            return true;
-        });
-    }
-    
-
-    
-    /**
-     * Notify all listeners of data changes
-     */
-    notifyDataChange(dataType, action, data = null) {
-        const event = new CustomEvent('dataChange', {
-            detail: { dataType, action, data }
-        });
-        window.dispatchEvent(event);
-    }
-    
-    /**
-     * Enhanced machine operations with notifications
-     */
-    add_machine_with_sync(machine) {
-        const result = this.add_machine(machine);
-        this.notifyDataChange('machines', 'add', result);
-        return result;
-    }
-    
-    save_machines_with_sync(machines) {
-        // Normalize core fields before saving
-        const normalized = machines.map(m => ({
-            ...m,
-            machine_name: Utils.normalize_name(m.machine_name || ''),
-            work_center: Utils.normalize_code(m.work_center || ''),
-            machine_type: Utils.normalize_code(m.machine_type || ''),
-            status: Utils.normalize_status(m.status || 'ACTIVE')
-        }));
-        const result = this.save_machines(normalized);
-        this.notifyDataChange('machines', 'update', machines);
-        return result;
-    }
-    
-
 }
 
-// Export as global singleton
+// Create and export storage service
 const storageService = new StorageService();
 
-// Make available globally for backward compatibility
+// Make available globally
 if (typeof window !== 'undefined') {
     window.storageService = storageService;
     
+    // Initialize the service after all scripts are loaded
+    window.addEventListener('load', async () => {
+        try {
+            await storageService.init();
+            console.log('StorageService initialized successfully');
+            
+            // Dispatch a custom event to notify other components
+            window.dispatchEvent(new CustomEvent('storageServiceReady'));
+        } catch (error) {
+            console.error('Failed to initialize StorageService:', error);
+        }
+    });
 }
 
 // ES6 module export

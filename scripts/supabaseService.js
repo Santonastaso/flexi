@@ -5,7 +5,7 @@
  */
 class SupabaseService {
     constructor() {
-        this.client = window.supabaseClient;
+        this.client = null; // Will be set in init()
         this.subscriptions = new Map();
         this.cache = new Map();
         this.cacheTimeout = 5000; // 5 seconds cache
@@ -24,12 +24,37 @@ class SupabaseService {
      * Initialize service and check connection
      */
     async init() {
+        // Wait for supabaseClient to be available
+        let attempts = 0;
+        while (!window.supabaseClient && attempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        
+        if (!window.supabaseClient) {
+            console.error('Supabase client not available after 5 seconds');
+            return false;
+        }
+        
+        this.client = window.supabaseClient;
+        console.log('SupabaseService client assigned:', !!this.client);
+        
         const connected = await window.check_supabase_connection();
         if (!connected) {
             console.error('Failed to connect to Supabase');
             this.show_message('Failed to connect to database. Some features may not work.', 'error');
         }
         return connected;
+    }
+
+    /**
+     * Ensure client is available
+     */
+    ensure_client() {
+        if (!this.client) {
+            throw new Error('SupabaseService not initialized - client is null');
+        }
+        return this.client;
     }
 
     /**
@@ -216,7 +241,8 @@ class SupabaseService {
         if (cached) return cached;
 
         try {
-            const { data, error } = await this.client
+            const client = this.ensure_client();
+            const { data, error } = await client
                 .from(this.TABLES.ODP_ORDERS)
                 .select('*')
                 .order('created_at', { ascending: false });
@@ -345,7 +371,8 @@ class SupabaseService {
         if (cached) return cached;
 
         try {
-            const { data, error } = await this.client
+            const client = this.ensure_client();
+            const { data, error } = await client
                 .from(this.TABLES.PHASES)
                 .select('*')
                 .order('name', { ascending: true });
@@ -479,7 +506,8 @@ class SupabaseService {
         if (cached) return cached;
 
         try {
-            const { data, error } = await this.client
+            const client = this.ensure_client();
+            const { data, error } = await client
                 .from(this.TABLES.SCHEDULED_EVENTS)
                 .select('*')
                 .order('date', { ascending: true });
@@ -529,9 +557,7 @@ class SupabaseService {
                     end_hour: event.endHour,
                     duration: event.duration,
                     color: event.color,
-                    odp_id: event.taskId, // Assuming taskId is the ODP ID
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
+                    created_at: new Date().toISOString()
                 }));
 
                 const { data, error } = await this.client
@@ -552,6 +578,8 @@ class SupabaseService {
 
     async add_scheduled_event(event) {
         try {
+    
+            
             const dbEvent = {
                 id: event.id || crypto.randomUUID(),
                 task_id: event.taskId,
@@ -562,10 +590,10 @@ class SupabaseService {
                 end_hour: event.endHour,
                 duration: event.duration,
                 color: event.color,
-                odp_id: event.taskId,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                created_at: new Date().toISOString()
             };
+            
+    
 
             const { data, error } = await this.client
                 .from(this.TABLES.SCHEDULED_EVENTS)
