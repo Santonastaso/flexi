@@ -253,10 +253,15 @@ class Scheduler {
         const timeHeader = document.createElement('div');
         timeHeader.className = 'time-header';
         
-        for (let hour = 0; hour < 24; hour++) {
+        // Create 15-minute interval headers (96 slots total)
+        for (let slot = 0; slot < 96; slot++) {
             const timeSlot = document.createElement('div');
             timeSlot.className = 'time-slot-header';
-            timeSlot.textContent = `${hour.toString().padStart(2, '0')}:00`;
+            const hour = Math.floor(slot / 4);
+            const minute = (slot % 4) * 15;
+            
+            // Only show hour markers, leave 15-minute slots empty for cleaner look
+            timeSlot.textContent = minute === 0 ? `${hour.toString().padStart(2, '0')}` : '';
             timeHeader.appendChild(timeSlot);
         }
         
@@ -304,13 +309,18 @@ class Scheduler {
         const machineSlots = document.createElement('div');
         machineSlots.className = 'machine-slots';
         
-        for (let hour = 0; hour < 24; hour++) {
+        // Create 15-minute interval slots (96 slots total)
+        for (let slot = 0; slot < 96; slot++) {
             const timeSlot = document.createElement('div');
             timeSlot.className = 'time-slot';
+            const hour = Math.floor(slot / 4);
+            const minute = (slot % 4) * 15;
             timeSlot.dataset.hour = hour;
+            timeSlot.dataset.minute = minute;
+            timeSlot.dataset.slot = slot;
             timeSlot.dataset.machine = this.get_machine_display_name(machine);
             
-            // Check if this hour is unavailable for the machine
+            // Check if this 15-minute slot is unavailable for the machine
             const dateStr = Utils.format_date(this.currentDate);
             const machineName = this.get_machine_display_name(machine);
             
@@ -688,12 +698,13 @@ class Scheduler {
     async schedule_task(taskId, taskData, slot) {
         const machine = slot.dataset.machine;
         const hour = parseInt(slot.dataset.hour);
+        const minute = parseInt(slot.dataset.minute) || 0;
         const duration = this.get_task_duration(taskData);
         
         // Calculate start and end times using the EXACT same approach as reschedule_event
         // Use the same date parsing method to ensure consistency
         const startDate = new Date(this.currentDate);
-        startDate.setHours(hour, 0, 0, 0);
+        startDate.setHours(hour, minute, 0, 0);
         const endDate = new Date(this.currentDate);
         
         // Handle decimal hours properly: split into whole hours and minutes
@@ -758,7 +769,7 @@ class Scheduler {
         };
         
         // Validate scheduling - use the updated conflict detection
-        if (!(await this.can_schedule_task(machine, hour, duration))) {
+        if (!(await this.can_schedule_task(machine, hour, minute, duration))) {
             this.show_message('Cannot schedule task at this time', 'error');
             return;
         }
@@ -823,6 +834,7 @@ class Scheduler {
             // Calculate new position
             const newMachine = newSlot.dataset.machine;
             const newHour = parseInt(newSlot.dataset.hour);
+            const newMinute = parseInt(newSlot.dataset.minute) || 0;
             
             // Calculate duration from datetime fields since we removed the duration field
             let duration;
@@ -836,7 +848,7 @@ class Scheduler {
             }
             
             // Check if the new position is valid
-            if (!(await this.can_schedule_task(newMachine, newHour, duration, eventId))) {
+            if (!(await this.can_schedule_task(newMachine, newHour, newMinute, duration, eventId))) {
                 this.show_message('Cannot reschedule task to this time slot', 'error');
                 return;
             }
@@ -846,7 +858,7 @@ class Scheduler {
             
             // Calculate new start and end times
             const newStartDate = new Date(this.currentDate);
-            newStartDate.setHours(newHour, 0, 0, 0);
+            newStartDate.setHours(newHour, newMinute, 0, 0);
             const newEndDate = new Date(this.currentDate);
             
             // Handle decimal hours properly: split into whole hours and minutes
@@ -1017,7 +1029,7 @@ class Scheduler {
         }
     }
     
-    async can_schedule_task(machine, startHour, duration, excludeEventId = null) {
+    async can_schedule_task(machine, startHour, startMinute = 0, duration, excludeEventId = null) {
         const endHour = startHour + duration;
         
         // Check if this is a multi-day task
@@ -1025,7 +1037,7 @@ class Scheduler {
             
             // Calculate the actual datetime range for multi-day tasks
             const startDate = new Date(this.currentDate);
-            startDate.setHours(startHour, 0, 0, 0);
+            startDate.setHours(startHour, startMinute, 0, 0);
             const endDate = new Date(this.currentDate);
             endDate.setHours(endHour, 0, 0, 0);
             
@@ -1062,7 +1074,7 @@ class Scheduler {
                 const eventStart = new Date(event.start_time);
                 const eventEnd = new Date(event.end_time);
                 const newStart = new Date(this.currentDate);
-                newStart.setHours(startHour, 0, 0, 0);
+                newStart.setHours(startHour, startMinute, 0, 0);
                 const newEnd = new Date(this.currentDate);
                 newEnd.setHours(endHour, 0, 0, 0);
                 
@@ -1106,10 +1118,21 @@ class Scheduler {
                     // Check if event overlaps with current date
                     const overlaps = Utils.datetime_ranges_overlap(eventStart, eventEnd, currentDateStart, currentDateEnd);
                     
+                    console.log(`Debug - Event visibility check:`, {
+                        event: event.taskTitle,
+                        eventStart: eventStart.toDateString(),
+                        eventEnd: eventEnd.toDateString(),
+                        currentDate: this.currentDate.toDateString(),
+                        overlaps: overlaps
+                    });
+                    
                     return overlaps;
                 }
                 // Legacy format fallback removed - all events must have datetime fields
+                return false; // Explicitly return false for events without datetime fields
             });
+            
+            console.log(`Debug - Rendering ${visibleEvents.length} events for date ${Utils.format_date(this.currentDate)}`);
             
             visibleEvents.forEach(event => {
                 // Handle multi-day events
@@ -1127,11 +1150,29 @@ class Scheduler {
     }
     
     render_event(event) {
+        console.log(`Debug - Rendering event:`, {
+            taskTitle: event.taskTitle,
+            machine: event.machine,
+            startTime: event.start_time,
+            endTime: event.end_time
+        });
+        
+        // Debug: Check what machine names are available in the DOM
+        const availableMachines = Array.from(this.elements.calendar_container.querySelectorAll('.machine-row')).map(row => row.dataset.machine);
+        console.log(`Debug - Available machines in DOM:`, availableMachines);
+        console.log(`Debug - Looking for machine: "${event.machine}"`);
+        
         const machineRow = this.elements.calendar_container.querySelector(`[data-machine="${event.machine}"]`);
-        if (!machineRow) return;
+        if (!machineRow) {
+            console.log(`Debug - Machine row not found for: ${event.machine}`);
+            return;
+        }
         
         const slots = machineRow.querySelector('.machine-slots');
-        if (!slots) return;
+        if (!slots) {
+            console.log(`Debug - Machine slots not found for: ${event.machine}`);
+            return;
+        }
         
         const eventElement = document.createElement('div');
         eventElement.className = 'scheduled-event';
@@ -1142,10 +1183,21 @@ class Scheduler {
         // Calculate positioning based on new datetime structure
         let startHour, endHour, duration;
         
+        // Always create datetime objects for positioning calculation
+        const eventStart = new Date(event.start_time);
+        const eventEnd = new Date(event.end_time);
+        
+        // Validate that we have valid dates
+        if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
+            console.error(`Debug - Invalid dates for event ${event.taskTitle}:`, {
+                startTime: event.start_time,
+                endTime: event.end_time
+            });
+            return;
+        }
+        
         if (event.start_time && event.end_time) {
             // New datetime format
-            const eventStart = new Date(event.start_time);
-            const eventEnd = new Date(event.end_time);
             const currentDateStart = new Date(this.currentDate);
             currentDateStart.setHours(0, 0, 0, 0);
             const currentDateEnd = new Date(this.currentDate);
@@ -1229,9 +1281,32 @@ class Scheduler {
         
         // All events must have datetime fields - no more legacy fallback
         
-        const slotPercentage = 100 / 24;
-        const leftPosition = startHour * slotPercentage;
-        const width = duration * slotPercentage;
+        // Calculate precise positioning using 15-minute slots for granular display
+        const totalSlots = 96; // 24 hours × 4 slots per hour
+        
+        // Calculate slots directly from datetime values for accuracy
+        const startMinutes = eventStart.getHours() * 60 + eventStart.getMinutes();
+        const endMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes();
+        
+        const startSlot = Math.floor(startMinutes / 15);
+        const endSlot = Math.ceil(endMinutes / 15);
+        const durationSlots = endSlot - startSlot;
+        
+        // Convert to percentages for precise positioning (96 slots = 100%)
+        const leftPosition = (startSlot / totalSlots) * 100;
+        const width = (durationSlots / totalSlots) * 100;
+        
+        console.log(`Debug - Precise positioning:`, {
+            startHour,
+            endHour,
+            startSlot,
+            endSlot,
+            durationSlots,
+            leftPosition: `${leftPosition.toFixed(2)}%`,
+            width: `${width.toFixed(2)}%`,
+            eventStart: eventStart.toTimeString(),
+            eventEnd: eventEnd.toTimeString()
+        });
         
         eventElement.style.position = 'absolute';
         eventElement.style.left = `${leftPosition}%`;
