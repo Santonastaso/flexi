@@ -1,0 +1,876 @@
+/**
+ * Supabase Service - Backend data management
+ * Replaces localStorage with Supabase backend
+ * Maintains API compatibility with StorageService
+ */
+class SupabaseService {
+    constructor() {
+        this.client = window.supabaseClient;
+        this.subscriptions = new Map();
+        this.cache = new Map();
+        this.cacheTimeout = 5000; // 5 seconds cache
+        
+        // Table names matching Supabase schema
+        this.TABLES = {
+            MACHINES: 'machines',
+            SCHEDULED_EVENTS: 'scheduled_events',
+            MACHINE_AVAILABILITY: 'machine_availability',
+            ODP_ORDERS: 'odp_orders',
+            PHASES: 'phases'
+        };
+    }
+
+    /**
+     * Initialize service and check connection
+     */
+    async init() {
+        const connected = await window.check_supabase_connection();
+        if (!connected) {
+            console.error('Failed to connect to Supabase');
+            this.show_message('Failed to connect to database. Some features may not work.', 'error');
+        }
+        return connected;
+    }
+
+    /**
+     * Show message to user (maintains compatibility)
+     */
+    show_message(message, type = 'info') {
+        const messageEl = document.createElement('div');
+        messageEl.className = `message message-${type}`;
+        messageEl.textContent = message;
+        
+        const container = document.querySelector('.message-container') || document.body;
+        container.appendChild(messageEl);
+        
+        setTimeout(() => {
+            if (messageEl.parentElement) {
+                messageEl.remove();
+            }
+        }, 3000);
+    }
+
+    /**
+     * Cache management
+     */
+    get_from_cache(key) {
+        const cached = this.cache.get(key);
+        if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+            return cached.data;
+        }
+        this.cache.delete(key);
+        return null;
+    }
+
+    set_cache(key, data) {
+        this.cache.set(key, {
+            data: data,
+            timestamp: Date.now()
+        });
+    }
+
+    clear_cache(prefix = '') {
+        if (prefix) {
+            for (const key of this.cache.keys()) {
+                if (key.startsWith(prefix)) {
+                    this.cache.delete(key);
+                }
+            }
+        } else {
+            this.cache.clear();
+        }
+    }
+
+    /**
+     * MACHINES CRUD OPERATIONS
+     */
+    async get_machines() {
+        const cached = this.get_from_cache('machines');
+        if (cached) return cached;
+
+        if (!this.client) {
+            console.error('Supabase client not initialized');
+            throw new Error('Supabase client not initialized');
+        }
+
+        try {
+            const { data, error } = await this.client
+                .from(this.TABLES.MACHINES)
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            
+            this.set_cache('machines', data || []);
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching machines:', error);
+            return [];
+        }
+    }
+
+    async get_active_machines() {
+        const machines = await this.get_machines();
+        return machines.filter(machine => machine.status === 'ACTIVE');
+    }
+
+    async save_machines(machines) {
+        try {
+            // Delete all existing machines and insert new ones (batch update)
+            const { error: deleteError } = await this.client
+                .from(this.TABLES.MACHINES)
+                .delete()
+                .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+            if (deleteError) throw deleteError;
+
+            if (machines.length > 0) {
+                const { data, error } = await this.client
+                    .from(this.TABLES.MACHINES)
+                    .insert(machines)
+                    .select();
+
+                if (error) throw error;
+                
+                this.clear_cache('machines');
+                return data;
+            }
+            
+            this.clear_cache('machines');
+            return [];
+        } catch (error) {
+            console.error('Error saving machines:', error);
+            throw error;
+        }
+    }
+
+    async add_machine(machine) {
+        try {
+            const newMachine = {
+                ...machine,
+                id: machine.id || crypto.randomUUID(),
+                created_at: machine.created_at || new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+
+            const { data, error } = await this.client
+                .from(this.TABLES.MACHINES)
+                .insert(newMachine)
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            this.clear_cache('machines');
+            return data;
+        } catch (error) {
+            console.error('Error adding machine:', error);
+            throw error;
+        }
+    }
+
+    async update_machine(id, updates) {
+        try {
+            const { data, error } = await this.client
+                .from(this.TABLES.MACHINES)
+                .update({
+                    ...updates,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            this.clear_cache('machines');
+            return data;
+        } catch (error) {
+            console.error('Error updating machine:', error);
+            throw error;
+        }
+    }
+
+    async remove_machine(machine_id) {
+        try {
+            const { error } = await this.client
+                .from(this.TABLES.MACHINES)
+                .delete()
+                .eq('id', machine_id);
+
+            if (error) throw error;
+            
+            this.clear_cache('machines');
+            return true;
+        } catch (error) {
+            console.error('Error removing machine:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * ODP ORDERS CRUD OPERATIONS
+     */
+    async get_odp_orders() {
+        const cached = this.get_from_cache('odp_orders');
+        if (cached) return cached;
+
+        try {
+            const { data, error } = await this.client
+                .from(this.TABLES.ODP_ORDERS)
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            
+            this.set_cache('odp_orders', data || []);
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching ODP orders:', error);
+            return [];
+        }
+    }
+
+    async save_odp_orders(orders) {
+        try {
+            // Delete all existing orders and insert new ones (batch update)
+            const { error: deleteError } = await this.client
+                .from(this.TABLES.ODP_ORDERS)
+                .delete()
+                .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+            if (deleteError) throw deleteError;
+
+            if (orders.length > 0) {
+                const { data, error } = await this.client
+                    .from(this.TABLES.ODP_ORDERS)
+                    .insert(orders)
+                    .select();
+
+                if (error) throw error;
+                
+                this.clear_cache('odp_orders');
+                return data;
+            }
+            
+            this.clear_cache('odp_orders');
+            return [];
+        } catch (error) {
+            console.error('Error saving ODP orders:', error);
+            throw error;
+        }
+    }
+
+    async add_odp_order(order) {
+        try {
+            // Check if ODP number is unique
+            const { data: existing } = await this.client
+                .from(this.TABLES.ODP_ORDERS)
+                .select('id')
+                .eq('odp_number', order.odp_number)
+                .single();
+
+            if (existing) {
+                throw new Error(`ODP number ${order.odp_number} already exists`);
+            }
+
+            const newOrder = {
+                ...order,
+                id: order.id || crypto.randomUUID(),
+                created_at: order.created_at || new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                status: order.status || 'NOT SCHEDULED'
+            };
+
+            const { data, error } = await this.client
+                .from(this.TABLES.ODP_ORDERS)
+                .insert(newOrder)
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            this.clear_cache('odp_orders');
+            return data;
+        } catch (error) {
+            console.error('Error adding ODP order:', error);
+            throw error;
+        }
+    }
+
+    async update_odp_order(id, updates) {
+        try {
+            const { data, error } = await this.client
+                .from(this.TABLES.ODP_ORDERS)
+                .update({
+                    ...updates,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            this.clear_cache('odp_orders');
+            return data;
+        } catch (error) {
+            console.error('Error updating ODP order:', error);
+            throw error;
+        }
+    }
+
+    async remove_odp_order(id) {
+        try {
+            const { error } = await this.client
+                .from(this.TABLES.ODP_ORDERS)
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            
+            this.clear_cache('odp_orders');
+            return true;
+        } catch (error) {
+            console.error('Error removing ODP order:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * PHASES CRUD OPERATIONS
+     */
+    async get_phases() {
+        const cached = this.get_from_cache('phases');
+        if (cached) return cached;
+
+        try {
+            const { data, error } = await this.client
+                .from(this.TABLES.PHASES)
+                .select('*')
+                .order('name', { ascending: true });
+
+            if (error) throw error;
+            
+            this.set_cache('phases', data || []);
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching phases:', error);
+            return [];
+        }
+    }
+
+    async save_phases(phases) {
+        try {
+            // Delete all existing phases and insert new ones (batch update)
+            const { error: deleteError } = await this.client
+                .from(this.TABLES.PHASES)
+                .delete()
+                .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+            if (deleteError) throw deleteError;
+
+            if (phases.length > 0) {
+                const { data, error } = await this.client
+                    .from(this.TABLES.PHASES)
+                    .insert(phases)
+                    .select();
+
+                if (error) throw error;
+                
+                this.clear_cache('phases');
+                return data;
+            }
+            
+            this.clear_cache('phases');
+            return [];
+        } catch (error) {
+            console.error('Error saving phases:', error);
+            throw error;
+        }
+    }
+
+    async add_phase(phase) {
+        try {
+            const newPhase = {
+                ...phase,
+                id: phase.id || crypto.randomUUID(),
+                created_at: phase.created_at || new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+
+            const { data, error } = await this.client
+                .from(this.TABLES.PHASES)
+                .insert(newPhase)
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            this.clear_cache('phases');
+            return data;
+        } catch (error) {
+            console.error('Error adding phase:', error);
+            throw error;
+        }
+    }
+
+    async update_phase(id, updates) {
+        try {
+            const { data, error } = await this.client
+                .from(this.TABLES.PHASES)
+                .update({
+                    ...updates,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            this.clear_cache('phases');
+            return data;
+        } catch (error) {
+            console.error('Error updating phase:', error);
+            throw error;
+        }
+    }
+
+    async remove_phase(id) {
+        try {
+            const { error } = await this.client
+                .from(this.TABLES.PHASES)
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            
+            this.clear_cache('phases');
+            return true;
+        } catch (error) {
+            console.error('Error removing phase:', error);
+            throw error;
+        }
+    }
+
+    async get_phase_by_id(id) {
+        try {
+            const { data, error } = await this.client
+                .from(this.TABLES.PHASES)
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (error && error.code !== 'PGRST116') throw error;
+            
+            return data || null;
+        } catch (error) {
+            console.error('Error fetching phase by id:', error);
+            return null;
+        }
+    }
+
+    /**
+     * SCHEDULED EVENTS CRUD OPERATIONS
+     */
+    async get_scheduled_events() {
+        const cached = this.get_from_cache('scheduled_events');
+        if (cached) return cached;
+
+        try {
+            const { data, error } = await this.client
+                .from(this.TABLES.SCHEDULED_EVENTS)
+                .select('*')
+                .order('date', { ascending: true });
+
+            if (error) throw error;
+            
+            // Convert database format to legacy format
+            const events = (data || []).map(event => ({
+                id: event.id,
+                taskId: event.task_id,
+                taskTitle: event.task_title,
+                machine: event.machine,
+                date: event.date,
+                startHour: event.start_hour,
+                endHour: event.end_hour,
+                duration: event.duration,
+                color: event.color
+            }));
+            
+            this.set_cache('scheduled_events', events);
+            return events;
+        } catch (error) {
+            console.error('Error fetching scheduled events:', error);
+            return [];
+        }
+    }
+
+    async save_scheduled_events(events) {
+        try {
+            // Delete all existing events and insert new ones
+            const { error: deleteError } = await this.client
+                .from(this.TABLES.SCHEDULED_EVENTS)
+                .delete()
+                .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+            if (deleteError) throw deleteError;
+
+            if (events.length > 0) {
+                // Convert legacy format to database format
+                const dbEvents = events.map(event => ({
+                    id: event.id || crypto.randomUUID(),
+                    task_id: event.taskId,
+                    task_title: event.taskTitle,
+                    machine: event.machine,
+                    date: event.date,
+                    start_hour: event.startHour,
+                    end_hour: event.endHour,
+                    duration: event.duration,
+                    color: event.color,
+                    odp_id: event.taskId, // Assuming taskId is the ODP ID
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                }));
+
+                const { data, error } = await this.client
+                    .from(this.TABLES.SCHEDULED_EVENTS)
+                    .insert(dbEvents)
+                    .select();
+
+                if (error) throw error;
+            }
+            
+            this.clear_cache('scheduled_events');
+            return events;
+        } catch (error) {
+            console.error('Error saving scheduled events:', error);
+            throw error;
+        }
+    }
+
+    async add_scheduled_event(event) {
+        try {
+            const dbEvent = {
+                id: event.id || crypto.randomUUID(),
+                task_id: event.taskId,
+                task_title: event.taskTitle,
+                machine: event.machine,
+                date: event.date,
+                start_hour: event.startHour,
+                end_hour: event.endHour,
+                duration: event.duration,
+                color: event.color,
+                odp_id: event.taskId,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+
+            const { data, error } = await this.client
+                .from(this.TABLES.SCHEDULED_EVENTS)
+                .insert(dbEvent)
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            this.clear_cache('scheduled_events');
+            return event;
+        } catch (error) {
+            console.error('Error adding scheduled event:', error);
+            throw error;
+        }
+    }
+
+    async remove_scheduled_event(event_id) {
+        try {
+            const { error } = await this.client
+                .from(this.TABLES.SCHEDULED_EVENTS)
+                .delete()
+                .eq('id', event_id);
+
+            if (error) throw error;
+            
+            this.clear_cache('scheduled_events');
+            
+            // Return remaining events
+            return await this.get_scheduled_events();
+        } catch (error) {
+            console.error('Error removing scheduled event:', error);
+            throw error;
+        }
+    }
+
+    async is_task_scheduled(task_id) {
+        const events = await this.get_scheduled_events();
+        return events.some(event => String(event.taskId) === String(task_id));
+    }
+
+    async get_events_by_machine(machine_name) {
+        const events = await this.get_scheduled_events();
+        return events.filter(event => event.machine === machine_name);
+    }
+
+    async get_events_by_date(date) {
+        const events = await this.get_scheduled_events();
+        return events.filter(event => event.date === date);
+    }
+
+    async get_scheduled_event_by_id(event_id) {
+        const events = await this.get_scheduled_events();
+        return events.find(event => event.id === event_id) || null;
+    }
+
+    /**
+     * MACHINE AVAILABILITY CRUD OPERATIONS
+     */
+    async get_machine_availability() {
+        try {
+            const { data, error } = await this.client
+                .from(this.TABLES.MACHINE_AVAILABILITY)
+                .select('*');
+
+            if (error) throw error;
+            
+            // Convert to legacy format
+            const availability = {};
+            (data || []).forEach(record => {
+                if (!availability[record.machine_name]) {
+                    availability[record.machine_name] = {};
+                }
+                availability[record.machine_name][record.date] = record.unavailable_hours || [];
+            });
+            
+            return availability;
+        } catch (error) {
+            console.error('Error fetching machine availability:', error);
+            return {};
+        }
+    }
+
+    async save_machine_availability(availability) {
+        try {
+            // Delete all existing availability
+            const { error: deleteError } = await this.client
+                .from(this.TABLES.MACHINE_AVAILABILITY)
+                .delete()
+                .neq('id', '00000000-0000-0000-0000-000000000000');
+
+            if (deleteError) throw deleteError;
+
+            // Convert legacy format to database format
+            const records = [];
+            for (const [machineName, dates] of Object.entries(availability)) {
+                for (const [date, hours] of Object.entries(dates)) {
+                    if (hours.length > 0) {
+                        records.push({
+                            machine_name: machineName,
+                            date: date,
+                            unavailable_hours: hours
+                        });
+                    }
+                }
+            }
+
+            if (records.length > 0) {
+                const { error } = await this.client
+                    .from(this.TABLES.MACHINE_AVAILABILITY)
+                    .insert(records);
+
+                if (error) throw error;
+            }
+            
+            return availability;
+        } catch (error) {
+            console.error('Error saving machine availability:', error);
+            throw error;
+        }
+    }
+
+    async get_machine_availability_for_date(machineName, date) {
+        try {
+            const { data, error } = await this.client
+                .from(this.TABLES.MACHINE_AVAILABILITY)
+                .select('unavailable_hours')
+                .eq('machine_name', machineName)
+                .eq('date', date)
+                .single();
+
+            if (error && error.code !== 'PGRST116') throw error;
+            
+            return data?.unavailable_hours || [];
+        } catch (error) {
+            console.error('Error fetching machine availability for date:', error);
+            return [];
+        }
+    }
+
+    async set_machine_availability(machineName, date, unavailableHours) {
+        try {
+            // Delete existing record
+            await this.client
+                .from(this.TABLES.MACHINE_AVAILABILITY)
+                .delete()
+                .eq('machine_name', machineName)
+                .eq('date', date);
+
+            // Insert new record if there are unavailable hours
+            if (unavailableHours.length > 0) {
+                const { error } = await this.client
+                    .from(this.TABLES.MACHINE_AVAILABILITY)
+                    .insert({
+                        machine_name: machineName,
+                        date: date,
+                        unavailable_hours: unavailableHours
+                    });
+
+                if (error) throw error;
+            }
+        } catch (error) {
+            console.error('Error setting machine availability:', error);
+            throw error;
+        }
+    }
+
+    async toggle_machine_hour_availability(machineName, date, hour) {
+        const currentHours = await this.get_machine_availability_for_date(machineName, date);
+        const hourIndex = currentHours.indexOf(hour);
+        
+        let newHours;
+        if (hourIndex === -1) {
+            newHours = [...currentHours, hour].sort((a, b) => a - b);
+        } else {
+            newHours = currentHours.filter(h => h !== hour);
+        }
+        
+        await this.set_machine_availability(machineName, date, newHours);
+        return newHours;
+    }
+
+    /**
+     * COMPATIBILITY METHODS
+     */
+    async get_valid_tasks_for_display() {
+        const odpOrders = await this.get_odp_orders();
+        return odpOrders.filter(order => {
+            return order.id && order.odp_number && order.article_code && 
+                   order.quantity > 0 && order.department && order.fase;
+        });
+    }
+
+    async get_next_odp_number() {
+        const orders = await this.get_odp_orders();
+        const numbers = orders
+            .map(order => order.odp_number)
+            .filter(num => num && num.startsWith('OP'))
+            .map(num => parseInt(num.substring(2)))
+            .filter(num => !isNaN(num));
+        
+        const maxNumber = numbers.length > 0 ? Math.max(...numbers) : 0;
+        return `OP${String(maxNumber + 1).padStart(6, '0')}`;
+    }
+
+    async get_odp_order_by_id(id) {
+        try {
+            const { data, error } = await this.client
+                .from(this.TABLES.ODP_ORDERS)
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (error && error.code !== 'PGRST116') throw error;
+            
+            return data || null;
+        } catch (error) {
+            console.error('Error fetching ODP order by id:', error);
+            return null;
+        }
+    }
+
+    async validate_machine_can_be_deleted(machineId) {
+        const events = await this.get_scheduled_events();
+        const machine = (await this.get_machines()).find(m => m.id === machineId);
+        
+        if (!machine) return { canDelete: false, reason: 'Machine not found' };
+        
+        const hasEvents = events.some(event => event.machine === machine.machine_name);
+        
+        if (hasEvents) {
+            return { 
+                canDelete: false, 
+                reason: 'Cannot delete machine with scheduled events' 
+            };
+        }
+        
+        return { canDelete: true };
+    }
+
+    /**
+     * SYNC METHODS (for compatibility)
+     */
+    async add_machine_with_sync(machine) {
+        const result = await this.add_machine(machine);
+        this.notify_data_change('machines', 'add', result);
+        return result;
+    }
+
+    async save_machines_with_sync(machines) {
+        const result = await this.save_machines(machines);
+        this.notify_data_change('machines', 'update', machines);
+        return result;
+    }
+
+    notify_data_change(type, action, data) {
+        window.dispatchEvent(new CustomEvent('dataChanged', {
+            detail: { type, action, data }
+        }));
+    }
+
+    /**
+     * REALTIME SUBSCRIPTIONS
+     */
+    subscribe_to_changes(table, callback) {
+        const subscription = this.client
+            .channel(`${table}_changes`)
+            .on('postgres_changes', 
+                { event: '*', schema: 'public', table: table },
+                (payload) => {
+                    this.clear_cache(table);
+                    callback(payload);
+                }
+            )
+            .subscribe();
+        
+        this.subscriptions.set(table, subscription);
+        return subscription;
+    }
+
+    unsubscribe_from_changes(table) {
+        const subscription = this.subscriptions.get(table);
+        if (subscription) {
+            subscription.unsubscribe();
+            this.subscriptions.delete(table);
+        }
+    }
+
+    unsubscribe_all() {
+        for (const [table, subscription] of this.subscriptions) {
+            subscription.unsubscribe();
+        }
+        this.subscriptions.clear();
+    }
+}
+
+// Export as global singleton
+const supabaseService = new SupabaseService();
+
+// Make available globally
+if (typeof window !== 'undefined') {
+    window.supabaseService = supabaseService;
+}
+
+// ES6 module export
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = supabaseService;
+}

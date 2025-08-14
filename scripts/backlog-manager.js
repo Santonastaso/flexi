@@ -17,7 +17,7 @@ class BacklogManager extends BaseManager {
         if (!this.validate_storage_service()) return false;
         
         if (super.init(elementMap)) {
-            this.load_backlog();
+            this.load_backlog(); // This is now async but we don't await to avoid blocking
             this.setup_form_validation();
             
             // Attach event listeners for form interactions
@@ -31,11 +31,11 @@ class BacklogManager extends BaseManager {
                     this.editManager.register_save_handler(tableBody, (row) => this.save_edit(row));
                     
                     // Add delete event listener
-                    tableBody.addEventListener('deleteRow', (e) => {
+                                        tableBody.addEventListener('deleteRow', async (e) => {
                     const row = e.detail.row;
                         const odpId = row.dataset.odpId;
                         if (odpId) {
-                            this.delete_odp_order(odpId);
+                            await this.delete_odp_order(odpId);
                     }
                 });
             }
@@ -134,8 +134,10 @@ class BacklogManager extends BaseManager {
             }
         });
 
-        // Populate phases dropdown
-        this.populate_phases_dropdown();
+        // Populate phases dropdown (async, but don't block initialization)
+        this.populate_phases_dropdown().catch(error => {
+            console.error('Error populating phases dropdown:', error);
+        });
         
         // Hide calculation results initially
         this.hide_calculation_results();
@@ -179,7 +181,9 @@ class BacklogManager extends BaseManager {
             }
             
             // Repopulate phases dropdown based on the new work type
-            this.populate_phases_dropdown();
+            this.populate_phases_dropdown().catch(error => {
+                console.error('Error populating phases dropdown:', error);
+            });
             
             // Re-validate form after automation
             this.validate_form_fields();
@@ -221,7 +225,7 @@ class BacklogManager extends BaseManager {
         return isValid;
     }
 
-    handle_calculate() {
+    async handle_calculate() {
         try {
             // Validate required fields first
             if (!this.validate_form_fields()) {
@@ -230,16 +234,21 @@ class BacklogManager extends BaseManager {
             }
 
             // Get the selected phase
-            const selectedPhaseName = this.elements.fase.value;
-            if (!selectedPhaseName) {
+            const selectedPhaseId = this.elements.fase.value;
+            if (!selectedPhaseId) {
                 this.show_error_message('Please select a production phase');
                 return;
             }
 
             // Get phase details from storage
-            const phases = this.storageService.get_phases();
+            const phases = await this.storageService.get_phases();
             
-            const selectedPhase = phases.find(phase => phase.name === selectedPhaseName);
+            console.log('Available phases:', phases);
+            console.log('Selected phase ID:', selectedPhaseId);
+            
+            const selectedPhase = phases.find(phase => phase.id === selectedPhaseId);
+            
+            console.log('Selected phase found:', selectedPhase);
             
             if (!selectedPhase) {
                 this.show_error_message('Selected phase not found');
@@ -252,6 +261,8 @@ class BacklogManager extends BaseManager {
 
             // Calculate results
             const results = this.calculate_production_metrics(selectedPhase, quantity, bagStep);
+            
+            console.log('Calculation results:', results);
             
             // Display results
             this.display_calculation_results(results);
@@ -380,7 +391,7 @@ class BacklogManager extends BaseManager {
         }
     }
 
-    handle_create_task() {
+    async handle_create_task() {
         // Temporary debugging - remove this later
         if (window.DEBUG) {
             console.log('handle_create_task called');
@@ -430,6 +441,11 @@ class BacklogManager extends BaseManager {
                 updated_at: new Date().toISOString()
             };
 
+            // Debug: Check the fase value
+            console.log('Fase value being sent:', orderData.fase);
+            console.log('Fase element value:', this.elements.fase.value);
+            console.log('Fase element options:', this.elements.fase.options);
+
             // Add the order to storage
         if (window.DEBUG) {
                 console.log('About to add order to storage:', orderData);
@@ -437,7 +453,7 @@ class BacklogManager extends BaseManager {
                 console.log('Cost being sent:', orderData.cost);
             }
             
-            const newOrder = this.storageService.add_odp_order(orderData);
+            const newOrder = await this.storageService.add_odp_order(orderData);
         
         if (window.DEBUG) {
                 console.log('Order added to storage:', newOrder);
@@ -468,16 +484,23 @@ class BacklogManager extends BaseManager {
         }
     }
 
-    load_backlog() {
-        // Load existing backlog items
-        const backlogItems = this.storageService.get_odp_orders() || [];
-        
-        if (window.DEBUG) {
-            console.log('Loading backlog items:', backlogItems);
+    async load_backlog() {
+        try {
+            // Load existing backlog items
+            const backlogItems = await this.storageService.get_odp_orders() || [];
+            
+            if (window.DEBUG) {
+                console.log('Loading backlog items:', backlogItems);
+            }
+            
+            // Render the backlog (status sync is now manual via button)
+            this.render_backlog(backlogItems);
+        } catch (error) {
+            console.error('Error loading backlog:', error);
+            this.show_error_message('loading backlog', error);
+            // Render empty table on error
+            this.render_backlog([]);
         }
-        
-        // Render the backlog (status sync is now manual via button)
-        this.render_backlog(backlogItems);
     }
 
     render_backlog(items) {
@@ -652,7 +675,7 @@ class BacklogManager extends BaseManager {
         `;
     }
 
-    save_edit(row) {
+    async save_edit(row) {
         const odpId = row.dataset.odpId;
         if (!odpId) {
             console.error('No ODP ID found in row');
@@ -679,7 +702,7 @@ class BacklogManager extends BaseManager {
 
         try {
             // Get current ODP order
-            const currentOrder = this.storageService.get_odp_order_by_id(odpId);
+            const currentOrder = await this.storageService.get_odp_order_by_id(odpId);
             if (!currentOrder) {
                 this.showMessage('ODP order not found', 'error');
                 return;
@@ -693,7 +716,7 @@ class BacklogManager extends BaseManager {
             };
 
             // Update ODP order
-            this.storageService.update_odp_order(odpId, updatedOrder);
+            await this.storageService.update_odp_order(odpId, updatedOrder);
 
             // Exit edit mode
             this.editManager.cancel_edit(row);
@@ -702,7 +725,7 @@ class BacklogManager extends BaseManager {
             this.load_backlog();
             this.show_success_message('ODP order updated');
 
-            } catch (error) {
+        } catch (error) {
             this.show_error_message('updating ODP order', error);
         }
     }
@@ -736,21 +759,21 @@ class BacklogManager extends BaseManager {
         this.current_calculation_results = null;
         
         // Repopulate phases dropdown with all phases when form is cleared
-        this.populate_phases_dropdown();
+        this.populate_phases_dropdown().catch(error => {
+            console.error('Error populating phases dropdown:', error);
+        });
         
         // Re-validate form
         this.validate_form_fields();
     }
 
-    populate_phases_dropdown() {
+    async populate_phases_dropdown() {
         try {
-            const phases = this.storageService.get_phases();
+            const phases = await this.storageService.get_phases();
             const faseDropdown = this.elements.fase;
             
-            // Temporary debugging - remove this later
-            if (window.DEBUG) {
-                console.log('Populating phases dropdown with phases:', phases);
-            }
+            console.log('Populating phases dropdown with phases:', phases);
+            console.log('Fase dropdown element:', faseDropdown);
             
             if (faseDropdown && phases && phases.length > 0) {
                 // Clear existing options except the first placeholder
@@ -766,16 +789,16 @@ class BacklogManager extends BaseManager {
                     
                     relevantPhases.forEach(phase => {
                         const option = document.createElement('option');
-                        option.value = phase.name;
-                        option.textContent = phase.name;
+                        option.value = phase.id;  // Use UUID as value
+                        option.textContent = phase.name;  // Use name as display text
                         faseDropdown.appendChild(option);
                     });
                 } else {
                     // If no work type determined yet, show all phases
                     phases.forEach(phase => {
                         const option = document.createElement('option');
-                        option.value = phase.name;
-                        option.textContent = phase.name;
+                        option.value = phase.id;  // Use UUID as value
+                        option.textContent = phase.name;  // Use name as display text
                         faseDropdown.appendChild(option);
                     });
                 }
@@ -785,18 +808,18 @@ class BacklogManager extends BaseManager {
         }
     }
 
-    delete_odp_order(odpId) {
+    async delete_odp_order(odpId) {
         try {
             // Get current ODP order for confirmation message
-            const currentOrder = this.storageService.get_odp_order_by_id(odpId);
+            const currentOrder = await this.storageService.get_odp_order_by_id(odpId);
             const orderName = currentOrder ? currentOrder.odp_number : 'this ODP order';
             
             const message = `Are you sure you want to delete "${orderName}"? This action cannot be undone.`;
             
-            show_delete_confirmation(message, () => {
+            show_delete_confirmation(message, async () => {
                 try {
-                    this.storageService.remove_odp_order(odpId);
-                    this.load_backlog();
+                    await this.storageService.remove_odp_order(odpId);
+                    await this.load_backlog();
                     this.show_success_message('ODP order deleted');
         } catch (error) {
                     this.show_error_message('deleting ODP order', error);
@@ -815,10 +838,10 @@ class BacklogManager extends BaseManager {
      * Sync all ODP orders with current Gantt data
      * Updates both status and production start based on what's actually scheduled
      */
-    sync_all_odp_with_gantt() {
+    async sync_all_odp_with_gantt() {
         try {
-            const allOrders = this.storageService.get_odp_orders() || [];
-            const scheduledEvents = this.storageService.get_scheduled_events() || [];
+            const allOrders = await this.storageService.get_odp_orders() || [];
+            const scheduledEvents = await this.storageService.get_scheduled_events() || [];
             
             if (window.DEBUG) {
                 console.log(`Syncing ${allOrders.length} ODP orders with ${scheduledEvents.length} scheduled events`);
@@ -826,7 +849,7 @@ class BacklogManager extends BaseManager {
             
             let updatedCount = 0;
             
-            allOrders.forEach(order => {
+            for (const order of allOrders) {
                 // Check if this order is currently scheduled
                 const scheduledEvent = scheduledEvents.find(event => 
                     event.taskId === order.id || 
@@ -852,7 +875,7 @@ class BacklogManager extends BaseManager {
                         updateData.production_start = newProductionStart;
                         updateData.production_end = newProductionEnd;
                         
-                        this.storageService.update_odp_order(order.id, updateData);
+                        await this.storageService.update_odp_order(order.id, updateData);
                         updatedCount++;
                         
                         if (window.DEBUG) {
@@ -873,7 +896,7 @@ class BacklogManager extends BaseManager {
                         updateData.production_start = newProductionStart;
                         updateData.production_end = newProductionEnd;
                         
-                        this.storageService.update_odp_order(order.id, updateData);
+                        await this.storageService.update_odp_order(order.id, updateData);
                         updatedCount++;
                         
                         if (window.DEBUG) {
@@ -881,10 +904,10 @@ class BacklogManager extends BaseManager {
                         }
                     }
                 }
-            });
+            }
             
             // Reload the backlog to show all updates
-            this.load_backlog();
+            await this.load_backlog();
             
             if (window.DEBUG) {
                 console.log(`Sync completed. Updated ${updatedCount} ODP orders`);
@@ -960,10 +983,10 @@ class BacklogManager extends BaseManager {
     /**
      * Debug method to show current scheduled events and ODP orders
      */
-    debug_scheduled_events() {
+    async debug_scheduled_events() {
         try {
-            const scheduledEvents = this.storageService.get_scheduled_events() || [];
-            const allOrders = this.storageService.get_odp_orders() || [];
+            const scheduledEvents = await this.storageService.get_scheduled_events() || [];
+            const allOrders = await this.storageService.get_odp_orders() || [];
             
             console.log('=== DEBUG: SCHEDULED EVENTS ===');
             console.log('Total scheduled events:', scheduledEvents.length);

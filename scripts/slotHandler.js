@@ -378,7 +378,7 @@ class SlotHandler {
         const event_data = {
             id: `${task_id}-${Date.now()}`,
             taskId: task_id,
-            taskTitle: task.name,
+            taskTitle: task.odp_number || 'Unknown Task',
             machine: slot_data.machine,
             date: slot_data.date,
             startHour: slot_data.hour,
@@ -389,7 +389,7 @@ class SlotHandler {
         
         try {
             this.storage_service.addScheduledEvent(event_data);
-            this.show_success(`Task "${task.name}" scheduled successfully`);
+            this.show_success(`Task "${task.odp_number || 'Unknown Task'}" scheduled successfully`);
             
             if (this.callbacks.on_success) {
                 this.callbacks.on_success('schedule', event_data, slot);

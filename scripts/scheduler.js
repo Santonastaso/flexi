@@ -91,27 +91,32 @@ class Scheduler {
         });
     }
     
-    load_tasks() {
+    async load_tasks() {
         const taskPool = this.elements.task_pool;
         
         // Clear the task pool completely
         taskPool.innerHTML = '';
         
-        // Get available tasks (ODP orders that aren't scheduled)
-        const allOrders = this.storageService.get_odp_orders();
-        const scheduledEvents = this.storageService.get_scheduled_events();
-        const scheduledTaskIds = new Set(scheduledEvents.map(event => event.taskId));
-        
-        const availableTasks = allOrders.filter(order => !scheduledTaskIds.has(order.id));
-        
-        if (availableTasks.length === 0) {
-            taskPool.innerHTML = '<div class="empty-state">No tasks available for scheduling</div>';
-            return;
+        try {
+            // Get available tasks (ODP orders that aren't scheduled)
+            const allOrders = await this.storageService.get_odp_orders();
+            const scheduledEvents = await this.storageService.get_scheduled_events();
+            const scheduledTaskIds = new Set(scheduledEvents.map(event => event.taskId));
+            
+            const availableTasks = allOrders.filter(order => !scheduledTaskIds.has(order.id));
+            
+            if (availableTasks.length === 0) {
+                taskPool.innerHTML = '<div class="empty-state">No tasks available for scheduling</div>';
+                return;
+            }
+            
+            availableTasks.forEach(task => {
+                this.create_task_element(task);
+            });
+        } catch (error) {
+            console.error('Error loading tasks:', error);
+            taskPool.innerHTML = '<div class="empty-state">Error loading tasks</div>';
         }
-        
-        availableTasks.forEach(task => {
-            this.create_task_element(task);
-        });
     }
     
     create_task_element(task) {
@@ -124,7 +129,7 @@ class Scheduler {
         const duration = this.get_task_duration(task);
         
         taskElement.innerHTML = `
-            <span>${task.odp_number || task.name || 'Unknown Task'}</span>
+            <span>${task.odp_number || 'Unknown Task'}</span>
             <span class="task-duration">${duration}h</span>
         `;
         
@@ -155,30 +160,36 @@ class Scheduler {
         this.elements.task_pool.appendChild(taskElement);
     }
     
-    render_calendar() {
-        // Get only active machines for scheduling
-        const allMachines = this.storageService.get_machines();
-        
-        const activeMachines = this.get_active_machines(allMachines);
-        
-        const calendarContainer = this.elements.calendar_container;
-        calendarContainer.innerHTML = '';
-        
-        if (activeMachines.length === 0) {
-            calendarContainer.innerHTML = '<div class="empty-state">No active machines available for scheduling</div>';
-            return;
+    async render_calendar() {
+        try {
+            // Get only active machines for scheduling
+            const allMachines = await this.storageService.get_machines();
+            
+            const activeMachines = this.get_active_machines(allMachines);
+            
+            const calendarContainer = this.elements.calendar_container;
+            calendarContainer.innerHTML = '';
+            
+            if (activeMachines.length === 0) {
+                calendarContainer.innerHTML = '<div class="empty-state">No active machines available for scheduling</div>';
+                return;
+            }
+            
+            // Create header
+            this.create_calendar_header(calendarContainer);
+            
+            // Create machine rows
+            activeMachines.forEach(machine => {
+                this.create_machine_row(machine, calendarContainer);
+            });
+            
+            // Render scheduled events
+            await this.render_scheduled_events();
+        } catch (error) {
+            console.error('Error rendering calendar:', error);
+            const calendarContainer = this.elements.calendar_container;
+            calendarContainer.innerHTML = '<div class="empty-state">Error loading calendar</div>';
         }
-        
-        // Create header
-        this.create_calendar_header(calendarContainer);
-        
-        // Create machine rows
-        activeMachines.forEach(machine => {
-            this.create_machine_row(machine, calendarContainer);
-        });
-        
-        // Render scheduled events
-        this.render_scheduled_events();
     }
     
     /**
@@ -212,7 +223,7 @@ class Scheduler {
      */
     get_machine_display_name(machine) {
         // Use machine_name if available, otherwise fall back to id
-        return machine.machine_name || machine.name || machine.id || 'Unknown Machine';
+        return machine.machine_name || machine.id || 'Unknown Machine';
     }
     
     create_calendar_header(container) {
@@ -289,10 +300,17 @@ class Scheduler {
             // Check if this hour is unavailable for the machine
             const dateStr = Utils.format_date(this.currentDate);
             const machineName = this.get_machine_display_name(machine);
-            const unavailableHours = this.storageService.get_machine_availability_for_date(machineName, dateStr);
-            if (unavailableHours.includes(hour)) {
-                timeSlot.classList.add('unavailable');
-                timeSlot.style.pointerEvents = 'none'; // Disable drop zone for unavailable slots
+            
+            // Note: This is a synchronous call that should be made async in the future
+            // For now, we'll handle it synchronously to avoid breaking the UI
+            try {
+                const unavailableHours = this.storageService.get_machine_availability_for_date(machineName, dateStr);
+                if (unavailableHours && unavailableHours.includes(hour)) {
+                    timeSlot.classList.add('unavailable');
+                    timeSlot.style.pointerEvents = 'none'; // Disable drop zone for unavailable slots
+                }
+            } catch (error) {
+                console.warn('Could not check machine availability:', error);
             }
             
             // Setup drop zone
@@ -350,7 +368,7 @@ class Scheduler {
         });
     }
     
-    schedule_task(taskId, taskData, slot) {
+    async schedule_task(taskId, taskData, slot) {
         const machine = slot.dataset.machine;
         const hour = parseInt(slot.dataset.hour);
         const duration = this.get_task_duration(taskData);
@@ -359,7 +377,7 @@ class Scheduler {
         const event = {
             id: `${taskId}-${Date.now()}`,
             taskId: taskId,
-            taskTitle: taskData.odp_number || taskData.name || 'Unknown Task',
+            taskTitle: taskData.odp_number || 'Unknown Task',
             machine: machine,
             date: Utils.format_date(this.currentDate),
             startHour: hour,
@@ -369,7 +387,7 @@ class Scheduler {
         };
         
         // Validate scheduling
-        if (!this.can_schedule_task(machine, hour, duration)) {
+        if (!(await this.can_schedule_task(machine, hour, duration))) {
             this.show_message('Cannot schedule task at this time', 'error');
             return;
         }
@@ -379,7 +397,7 @@ class Scheduler {
                 console.log('Scheduling task with event data:', event);
             }
             
-            this.storageService.add_scheduled_event(event);
+            await this.storageService.add_scheduled_event(event);
             
             // Dispatch custom event for status update
             window.dispatchEvent(new CustomEvent('odpStatusChanged', {
@@ -391,22 +409,25 @@ class Scheduler {
             }
             
             this.show_message(`Task scheduled successfully on ${machine}`, 'success');
-            this.refresh_scheduler();
+            this.refresh_scheduler().catch(error => {
+                console.error('Error refreshing scheduler:', error);
+            });
         } catch (error) {
+            console.error('Error scheduling task:', error);
             this.show_message('Failed to schedule task', 'error');
         }
     }
     
-    unschedule_event(eventId) {
+    async unschedule_event(eventId) {
         try {
             // Get the event details before removing it
-            const event = this.storageService.get_scheduled_event_by_id(eventId);
+            const event = await this.storageService.get_scheduled_event_by_id(eventId);
             
             if (window.DEBUG) {
                 console.log('Unscheduling event:', event);
             }
             
-            this.storageService.remove_scheduled_event(eventId);
+            await this.storageService.remove_scheduled_event(eventId);
             
             // Dispatch custom event for status update if we have the task ID
             if (event && event.taskId) {
@@ -420,16 +441,19 @@ class Scheduler {
             }
             
             this.show_message('Task unscheduled successfully', 'success');
-            this.refresh_scheduler();
+            this.refresh_scheduler().catch(error => {
+                console.error('Error refreshing scheduler:', error);
+            });
         } catch (error) {
+            console.error('Error unscheduling event:', error);
             this.show_message('Failed to unschedule task', 'error');
         }
     }
     
-    reschedule_event(eventId, newSlot) {
+    async reschedule_event(eventId, newSlot) {
         try {
             // Get the existing event
-            const existingEvents = this.storageService.get_scheduled_events();
+            const existingEvents = await this.storageService.get_scheduled_events();
             const existingEvent = existingEvents.find(event => event.id === eventId);
             
             if (!existingEvent) {
@@ -443,13 +467,13 @@ class Scheduler {
             const duration = existingEvent.duration || 1;
             
             // Check if the new position is valid
-            if (!this.can_schedule_task(newMachine, newHour, duration, eventId)) {
+            if (!(await this.can_schedule_task(newMachine, newHour, duration, eventId))) {
                 this.show_message('Cannot reschedule task to this time slot', 'error');
                 return;
             }
             
             // Remove the old event
-            this.storageService.remove_scheduled_event(eventId);
+            await this.storageService.remove_scheduled_event(eventId);
             
             // Create the new event with updated position
             const newEvent = {
@@ -461,7 +485,7 @@ class Scheduler {
             };
             
             // Add the rescheduled event
-            this.storageService.add_scheduled_event(newEvent);
+            await this.storageService.add_scheduled_event(newEvent);
             
             // Dispatch custom event for status update with new start time info
             if (existingEvent.taskId) {
@@ -495,7 +519,9 @@ class Scheduler {
             }
             
             this.show_message(`Task rescheduled successfully to ${newMachine}`, 'success');
-            this.refresh_scheduler();
+            this.refresh_scheduler().catch(error => {
+                console.error('Error refreshing scheduler:', error);
+            });
             
         } catch (error) {
             console.error('Error rescheduling event:', error);
@@ -503,7 +529,7 @@ class Scheduler {
         }
     }
     
-    can_schedule_task(machine, startHour, duration, excludeEventId = null) {
+    async can_schedule_task(machine, startHour, duration, excludeEventId = null) {
         const endHour = startHour + duration;
         
         // Check if within working hours (0-24)
@@ -513,7 +539,7 @@ class Scheduler {
         
         // Check for conflicts with existing events
         const dateKey = Utils.format_date(this.currentDate);
-        const existingEvents = this.storageService.get_events_by_date(dateKey);
+        const existingEvents = await this.storageService.get_events_by_date(dateKey);
         
         for (const event of existingEvents) {
             // Skip the event we're moving (for rescheduling)
@@ -541,16 +567,20 @@ class Scheduler {
         return Math.max(0.1, Math.round(duration * 10) / 10);
     }
     
-    render_scheduled_events() {
-        // Clear existing events
-        this.elements.calendar_container.querySelectorAll('.scheduled-event').forEach(el => el.remove());
-        
-        const dateKey = Utils.format_date(this.currentDate);
-        const events = this.storageService.get_events_by_date(dateKey);
-        
-        events.forEach(event => {
-            this.render_event(event);
-        });
+    async render_scheduled_events() {
+        try {
+            // Clear existing events
+            this.elements.calendar_container.querySelectorAll('.scheduled-event').forEach(el => el.remove());
+            
+            const dateKey = Utils.format_date(this.currentDate);
+            const events = await this.storageService.get_events_by_date(dateKey);
+            
+            events.forEach(event => {
+                this.render_event(event);
+            });
+        } catch (error) {
+            console.error('Error rendering scheduled events:', error);
+        }
     }
     
     render_event(event) {
@@ -619,19 +649,25 @@ class Scheduler {
         this.currentDate = new Date();
         this.currentDate.setHours(0, 0, 0, 0);
         this.update_date_display();
-        this.render_calendar();
+        this.render_calendar().catch(error => {
+            console.error('Error rendering calendar:', error);
+        });
     }
     
     previous_day() {
         this.currentDate.setDate(this.currentDate.getDate() - 1);
         this.update_date_display();
-        this.render_calendar();
+        this.render_calendar().catch(error => {
+            console.error('Error rendering calendar:', error);
+        });
     }
     
     next_day() {
         this.currentDate.setDate(this.currentDate.getDate() + 1);
         this.update_date_display();
-        this.render_calendar();
+        this.render_calendar().catch(error => {
+            console.error('Error rendering calendar:', error);
+        });
     }
     
     update_date_display() {
@@ -650,9 +686,9 @@ class Scheduler {
         }
     }
     
-    refresh_scheduler() {
-        this.load_tasks();
-        this.render_calendar();
+    async refresh_scheduler() {
+        await this.load_tasks();
+        await this.render_calendar();
     }
 }
 
@@ -670,7 +706,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (dataType === 'machines' || dataType === 'tasks') {
                 if (window.scheduler) {
-                    window.scheduler.refresh_scheduler();
+                    window.scheduler.refresh_scheduler().catch(error => {
+                        console.error('Error refreshing scheduler from data change event:', error);
+                    });
                 }
             }
         });

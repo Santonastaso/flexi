@@ -282,7 +282,7 @@ class SharedCalendarRenderer {
         eventElement.style.zIndex = '10';
         // Create title element
         const titleElement = document.createElement('span');
-        titleElement.textContent = event.taskTitle || event.name || 'Scheduled Task';
+                    titleElement.textContent = event.taskTitle || 'Scheduled Task';
         titleElement.style.flex = '1';
         titleElement.style.overflow = 'hidden';
         titleElement.style.textOverflow = 'ellipsis';
@@ -341,7 +341,7 @@ class SharedCalendarRenderer {
      */
     handleEventDelete(event) {
         if (typeof showConfirmBanner === 'function') {
-            showConfirmBanner(`Delete "${event.taskTitle || event.name}" from the schedule?`, () => {
+            showConfirmBanner(`Delete "${event.taskTitle}" from the schedule?`, () => {
                 // Remove from storage
                 if (window.storageService) {
                     window.storageService.removeScheduledEvent(event.id);
@@ -362,7 +362,7 @@ class SharedCalendarRenderer {
             });
         } else {
             // Fallback if banner system not available
-            show_delete_confirmation(`Delete "${event.taskTitle || event.name}" from the schedule?`, () => {
+            show_delete_confirmation(`Delete "${event.taskTitle}" from the schedule?`, () => {
                 if (window.storageService) {
                     window.storageService.removeScheduledEvent(event.id);
                 }

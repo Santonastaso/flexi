@@ -22,7 +22,9 @@ class PhasesManager extends BaseManager {
         if (!this.validate_storage_service()) return;
         
         if (super.init(this.get_element_map())) {
-            this.load_phases();
+            this.load_phases().catch(error => {
+                console.error('Error loading phases:', error);
+            });
             this.setup_form_validation();
             
             // Attach event listeners for form interactions
@@ -45,11 +47,11 @@ class PhasesManager extends BaseManager {
                 if (table) {
                     this.editManager.init_table_edit(table);
                     this.editManager.register_save_handler(table, (row) => this.save_edit(row));
-                    table.addEventListener('deleteRow', (e) => {
+                    table.addEventListener('deleteRow', async (e) => {
                         const row = e.detail.row;
                         const phaseId = row.dataset.phaseId;
                         if (phaseId) {
-                            this.delete_phase(phaseId);
+                            await this.delete_phase(phaseId);
                         }
                     });
                 }
@@ -88,7 +90,13 @@ class PhasesManager extends BaseManager {
             this.elements.add_phase_btn.addEventListener('click', () => this.handle_add_phase());
         }
 
-        // Department change is handled in setup_form_validation to avoid duplicates
+        // Department change event listener
+        if (this.elements.phase_type) {
+            this.elements.phase_type.addEventListener('change', () => {
+                this.handle_phase_department_change();
+                this.validate_phase_form(); // Re-validate after department change
+            });
+        }
 
         // Phase form validation
         const phaseInputs = [
@@ -109,19 +117,14 @@ class PhasesManager extends BaseManager {
     setup_form_validation() {
         this.validate_phase_form();
         
-        // Also validate when department changes to ensure proper field visibility
-        if (this.elements.phase_type) {
-            this.elements.phase_type.addEventListener('change', () => {
-                this.handle_phase_department_change();
-                this.validate_phase_form(); // Re-validate after department change
-            });
-        }
+        // Department change event listener is already handled in attach_event_listeners
+        // to avoid duplicate event binding
         
 
     }
 
-    load_phases() {
-        const phases = this.storageService.get_phases();
+    async load_phases() {
+        const phases = await this.storageService.get_phases();
 
         this.render_phases(phases);
     }
@@ -313,59 +316,75 @@ class PhasesManager extends BaseManager {
         });
     }
 
-    handle_add_phase() {
-        // Clear previous validation errors
-        this.clear_validation_errors();
+    async handle_add_phase() {
+        console.log('handle_add_phase called');
         
-        const phaseData = this.collect_phase_data();
-        
-        if (!phaseData) {
-            this.showValidationError('phase_name', 'Phase name is required');
-            this.showValidationError('phase_type', 'Department is required');
+        // Prevent double submission
+        if (this.elements.add_phase_btn.disabled) {
+            console.log('Add phase button already disabled, preventing double submission');
             return;
         }
-
-        // Use consolidated validation for numeric fields
-        const validationConfig = {
-            numericFields: ['v_stampa', 't_setup_stampa', 'costo_h_stampa', 'v_conf', 't_setup_conf', 'costo_h_conf'],
-            field_labels: {
-                v_stampa: 'Printing speed (mt/h)',
-                t_setup_stampa: 'Printing setup time (h)',
-                costo_h_stampa: 'Printing hourly cost',
-                v_conf: 'Packaging speed (pz/h)',
-                t_setup_conf: 'Packaging setup time (h)',
-                costo_h_conf: 'Packaging hourly cost'
-            }
-        };
         
-        const validation = this.validate_form(phaseData, validationConfig);
-        if (!validation.isValid) {
-            // Show inline validation errors
-            validation.errors.forEach(error => {
-                if (error.includes('Printing speed')) {
-                    this.showValidationError('v_stampa', error);
-                } else if (error.includes('Printing setup time')) {
-                    this.showValidationError('t_setup_stampa', error);
-                } else if (error.includes('Printing hourly cost')) {
-                    this.showValidationError('costo_h_stampa', error);
-                } else if (error.includes('Packaging speed')) {
-                    this.showValidationError('v_conf', error);
-                } else if (error.includes('Packaging setup time')) {
-                    this.showValidationError('t_setup_conf', error);
-                } else if (error.includes('Packaging hourly cost')) {
-                    this.showValidationError('costo_h_conf', error);
-                }
-            });
-            return;
-        }
-
+        // Disable button to prevent double submission
+        this.elements.add_phase_btn.disabled = true;
+        
         try {
-            const newPhase = this.storageService.add_phase(phaseData);
+            // Clear previous validation errors
+            this.clear_validation_errors();
+            
+            const phaseData = this.collect_phase_data();
+            
+            if (!phaseData) {
+                this.showValidationError('phase_name', 'Phase name is required');
+                this.showValidationError('phase_type', 'Department is required');
+                return;
+            }
+
+            // Use consolidated validation for numeric fields
+            const validationConfig = {
+                numericFields: ['v_stampa', 't_setup_stampa', 'costo_h_stampa', 'v_conf', 't_setup_conf', 'costo_h_conf'],
+                field_labels: {
+                    v_stampa: 'Printing speed (mt/h)',
+                    t_setup_stampa: 'Printing setup time (h)',
+                    costo_h_stampa: 'Printing hourly cost',
+                    v_conf: 'Packaging speed (pz/h)',
+                    t_setup_conf: 'Packaging setup time (h)',
+                    costo_h_conf: 'Packaging hourly cost'
+                }
+            };
+            
+            const validation = this.validate_form(phaseData, validationConfig);
+            if (!validation.isValid) {
+                // Show inline validation errors
+                validation.errors.forEach(error => {
+                    if (error.includes('Printing speed')) {
+                        this.showValidationError('v_stampa', error);
+                    } else if (error.includes('Printing setup time')) {
+                        this.showValidationError('t_setup_stampa', error);
+                    } else if (error.includes('Printing hourly cost')) {
+                        this.showValidationError('costo_h_stampa', error);
+                    } else if (error.includes('Packaging speed')) {
+                        this.showValidationError('v_conf', error);
+                    } else if (error.includes('Packaging setup time')) {
+                        this.showValidationError('t_setup_conf', error);
+                    } else if (error.includes('Packaging hourly cost')) {
+                        this.showValidationError('costo_h_conf', error);
+                    }
+                });
+                return;
+            }
+
+            const newPhase = await this.storageService.add_phase(phaseData);
             this.clear_phase_form();
-            this.load_phases();
+            this.load_phases().catch(error => {
+                console.error('Error loading phases:', error);
+            });
             this.show_success_message('Phase added', newPhase.name);
         } catch (error) {
             this.show_error_message('adding phase', error);
+        } finally {
+            // Re-enable button after operation completes
+            this.elements.add_phase_btn.disabled = false;
         }
     }
 
@@ -426,7 +445,7 @@ class PhasesManager extends BaseManager {
         this.validate_phase_form();
     }
 
-    save_edit(row) {
+    async save_edit(row) {
         const phaseId = row.dataset.phaseId;
         if (!phaseId) {
             console.error('No phase ID found in row');
@@ -454,7 +473,7 @@ class PhasesManager extends BaseManager {
 
         try {
             // Get current phase
-            const phase = this.storageService.get_phase_by_id(phaseId);
+            const phase = await this.storageService.get_phase_by_id(phaseId);
             if (!phase) {
                 this.showMessage('Phase not found', 'error');
                 return;
@@ -479,13 +498,15 @@ class PhasesManager extends BaseManager {
 
 
             // Update phase
-            this.storageService.update_phase(phaseId, updatedPhase);
+            await this.storageService.update_phase(phaseId, updatedPhase);
 
             // Exit edit mode
             this.editManager.cancel_edit(row);
 
             // Update display
-            this.load_phases();
+            this.load_phases().catch(error => {
+                console.error('Error loading phases:', error);
+            });
             this.show_success_message('Phase updated');
 
         } catch (error) {
@@ -493,16 +514,18 @@ class PhasesManager extends BaseManager {
         }
     }
 
-    delete_phase(phaseId) {
-        const phase = this.storageService.get_phase_by_id(phaseId);
+    async delete_phase(phaseId) {
+        const phase = await this.storageService.get_phase_by_id(phaseId);
         const phaseName = phase ? phase.name : 'this phase';
         
         const message = `Are you sure you want to delete "${phaseName}"? This action cannot be undone.`;
         
-        show_delete_confirmation(message, () => {
+        show_delete_confirmation(message, async () => {
             try {
-                this.storageService.remove_phase(phaseId);
-                this.load_phases();
+                await this.storageService.remove_phase(phaseId);
+                this.load_phases().catch(error => {
+                console.error('Error loading phases:', error);
+            });
                 this.show_success_message('Phase deleted');
             } catch (error) {
                 this.show_error_message('deleting phase', error);

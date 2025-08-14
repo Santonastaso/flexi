@@ -47,7 +47,9 @@ class MachineryManager extends BaseManager {
         }
         
         if (super.init(elementMap)) {
-            this.load_machinery();
+            this.load_machinery().catch(error => {
+                console.error('Error loading machinery:', error);
+            });
             this.setup_form_validation();
             
             // Attach event listeners for form interactions
@@ -63,7 +65,9 @@ class MachineryManager extends BaseManager {
                         const row = e.detail.row;
                         const machineId = row.dataset.machineId;
                         if (machineId) {
-                            this.delete_machine(machineId);
+                            this.delete_machine(machineId).catch(error => {
+                                console.error('Error deleting machine:', error);
+                            });
                         }
                     });
                 }
@@ -210,37 +214,46 @@ class MachineryManager extends BaseManager {
         }
     }
 
-    handle_add_machine() {
-        const machineData = this.collect_machine_data();
+    async handle_add_machine() {
+        console.log('handle_add_machine called');
         
-        if (!machineData) {
-            this.show_error_message('adding machine', new Error('Please fill in all required fields'));
+        // Prevent double submission
+        if (this.elements.add_btn.disabled) {
+            console.log('Add machine button already disabled, preventing double submission');
             return;
         }
-
-        // Use consolidated validation
-        const validationConfig = {
-            numericFields: ['standard_speed', 'min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height'],
-            field_labels: {
-                standard_speed: 'Standard speed',
-                min_web_width: 'Min web width',
-                max_web_width: 'Max web width',
-                min_bag_height: 'Min bag height',
-                max_bag_height: 'Max bag height'
-            }
-        };
         
-        const validation = this.validate_form(machineData, validationConfig);
-        if (!validation.isValid) {
-            this.show_error_message('validating machine data', new Error(validation.errors.join(', ')));
-            return;
-        }
-
-
-
+        // Disable button to prevent double submission
+        this.elements.add_btn.disabled = true;
+        
         try {
+            const machineData = this.collect_machine_data();
+            
+            if (!machineData) {
+                this.show_error_message('adding machine', new Error('Please fill in all required fields'));
+                return;
+            }
+
+            // Use consolidated validation
+            const validationConfig = {
+                numericFields: ['standard_speed', 'min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height'],
+                field_labels: {
+                    standard_speed: 'Standard speed',
+                    min_web_width: 'Min web width',
+                    max_web_width: 'Max web width',
+                    min_bag_height: 'Min bag height',
+                    max_bag_height: 'Max bag height'
+                }
+            };
+            
+            const validation = this.validate_form(machineData, validationConfig);
+            if (!validation.isValid) {
+                this.show_error_message('validating machine data', new Error(validation.errors.join(', ')));
+                return;
+            }
+
             // Check for duplicate machine name
-            const existingMachines = this.storageService.get_machines();
+            const existingMachines = await this.storageService.get_machines();
             const isDuplicate = existingMachines.some(machine => 
                 machine.machine_name === machineData.machine_name && 
                 machine.work_center === machineData.work_center
@@ -257,18 +270,20 @@ class MachineryManager extends BaseManager {
             }
 
             // Add machine using the storage service
-            const newMachine = this.storageService.add_machine(machineData);
+            const newMachine = await this.storageService.add_machine(machineData);
 
-            
             this.clear_form();
             
             // Reload the machinery list
-            this.load_machinery();
+            await this.load_machinery();
             
             this.show_success_message(`Machine "${newMachine.machine_name}" added successfully!`);
         } catch (error) {
             console.error('Error adding machine:', error);
             this.show_error_message('adding machine', error);
+        } finally {
+            // Re-enable button after operation completes
+            this.elements.add_btn.disabled = false;
         }
     }
 
@@ -327,17 +342,29 @@ class MachineryManager extends BaseManager {
         this.update_changeover_field_visibility();
     }
 
-    load_machinery() {
-        // Get all machines for display (don't clean up on every load)
-        const allMachines = this.storageService.get_machines();
+    async load_machinery() {
+        try {
+            console.log('MachineryManager.load_machinery - storageService:', this.storageService);
+            console.log('MachineryManager.load_machinery - storageService type:', typeof this.storageService);
+            console.log('MachineryManager.load_machinery - storageService methods:', Object.getOwnPropertyNames(this.storageService));
+            
+            // Get all machines for display (don't clean up on every load)
+            const allMachines = await this.storageService.get_machines();
+            console.log('MachineryManager.load_machinery - result:', allMachines);
 
-        this.render_machinery(allMachines);
+            this.render_machinery(allMachines);
+        } catch (error) {
+            console.error('Error loading machinery:', error);
+            this.render_machinery([]); // Show empty table on error
+        }
     }
 
     render_machinery(machines) {
-
+        console.log('MachineryManager.render_machinery - machines:', machines);
+        console.log('MachineryManager.render_machinery - machines type:', typeof machines);
+        console.log('MachineryManager.render_machinery - machines isArray:', Array.isArray(machines));
         
-        if (!machines || machines.length === 0) {
+        if (!machines || !Array.isArray(machines) || machines.length === 0) {
             this.elements.machinery_table_body.innerHTML = `
                 <tr>
                     <td colspan="22" class="text-center" style="padding: 2rem; color: #6b7280;">
@@ -359,9 +386,9 @@ class MachineryManager extends BaseManager {
         const created_date = machine.created_at ? new Date(machine.created_at).toLocaleDateString() : '-';
         const updated_date = machine.updated_at ? new Date(machine.updated_at).toLocaleDateString() : '-';
         
-        // Use unified model helper for display name
-        const display_name = machine.machine_name || machine.name || machine.id || 'Unknown Machine';
-        const is_active = machine.status === 'active' || machine.live === true || machine.status === 'ACTIVE';
+        // Use machine name for display
+        const display_name = machine.machine_name || machine.id || 'Unknown Machine';
+        const is_active = machine.status === 'ACTIVE';
         
         return `
             <tr data-machine-id="${machine.id}" class="${!is_active ? 'machine-inactive' : ''}">
@@ -496,34 +523,39 @@ class MachineryManager extends BaseManager {
 
 
 
-    editMachine(machineId) {
-        // Basic edit functionality - redirect to machine settings page
-        const machine = this.storageService.get_machines().find(m => m.id === machineId);
-        if (machine) {
-            const encodedName = encodeURIComponent(machine.machine_name);
-            window.location.href = `machine-settings-page.html?machine=${encodedName}`;
-        } else {
-            this.show_error_message('finding machine', new Error('Machine not found'));
+    async editMachine(machineId) {
+        try {
+            // Basic edit functionality - redirect to machine settings page
+            const machines = await this.storageService.get_machines();
+            const machine = machines.find(m => m.id === machineId);
+            if (machine) {
+                const encodedName = encodeURIComponent(machine.machine_name);
+                window.location.href = `machine-settings-page.html?machine=${encodedName}`;
+            } else {
+                this.show_error_message('finding machine', new Error('Machine not found'));
+            }
+        } catch (error) {
+            console.error('Error finding machine:', error);
+            this.show_error_message('finding machine', error);
         }
     }
 
-    delete_machine(machineId) {
-        const machine = this.storageService.get_machines().find(m => m.id === machineId);
-        const machine_name = machine ? machine.machine_name : 'this machine';
-        
+    async delete_machine(machineId) {
         try {
+            const machines = await this.storageService.get_machines();
+            const machine = machines.find(m => m.id === machineId);
+            const machine_name = machine ? machine.machine_name : 'this machine';
+            
             // Check if machine can be deleted (not scheduled)
-            this.storageService.validate_machine_can_be_deleted(machine_name);
+            await this.storageService.validate_machine_can_be_deleted(machineId);
             
             const message = `Are you sure you want to delete "${machine_name}"? This action cannot be undone.`;
             
             if (typeof window.show_delete_confirmation === 'function') {
-                window.show_delete_confirmation(message, () => {
+                window.show_delete_confirmation(message, async () => {
                     try {
-                        const machines = this.storageService.get_machines();
-                        const filteredMachines = machines.filter(m => m.id !== machineId);
-                        this.storageService.save_machines_with_sync(filteredMachines);
-                        this.load_machinery();
+                        await this.storageService.remove_machine(machineId);
+                        await this.load_machinery();
                         this.show_success_message('Machine deleted successfully');
                     } catch (error) {
                         this.show_error_message('deleting machine', error);
@@ -538,7 +570,7 @@ class MachineryManager extends BaseManager {
         }
     }
 
-        save_edit(row) {
+        async save_edit(row) {
         // Prevent double execution
         if (row.dataset.saving === 'true') {
 
@@ -557,7 +589,7 @@ class MachineryManager extends BaseManager {
         // Use consolidated validation for edit row
         // Only validate the relevant changeover field based on department
         const currentMachineId = row.dataset.machineId;
-        const machines = this.storageService.get_machines();
+        const machines = await this.storageService.get_machines();
         const currentMachine = machines.find(m => String(m.id) === String(currentMachineId));
         const department = currentMachine?.department || 'STAMPA';
         
@@ -604,7 +636,7 @@ class MachineryManager extends BaseManager {
 
         try {
             // Get current machine
-            const machines = this.storageService.get_machines();
+            const machines = await this.storageService.get_machines();
             const machine = machines.find(m => String(m.id) === String(machine_id));
             if (!machine) {
                 this.show_error_message('finding machine', new Error('Machine not found'));
@@ -627,9 +659,8 @@ class MachineryManager extends BaseManager {
                 changeover_color: updatedData.changeover_color ? parseFloat(updatedData.changeover_color) : machine.changeover_color,
                 changeover_material: updatedData.changeover_material ? parseFloat(updatedData.changeover_material) : machine.changeover_material,
                 // Maintain compatibility fields
-                name: updatedData.machine_name || machine.machine_name || machine.name,
-                type: updatedData.machine_type || machine.machine_type || machine.type,
-                live: updatedData.status === 'active' ? true : (updatedData.status === 'inactive' ? false : machine.live),
+                            machine_name: updatedData.machine_name || machine.machine_name,
+            machine_type: updatedData.machine_type || machine.machine_type,
                 updated_at: new Date().toISOString()
             };
             
@@ -642,16 +673,13 @@ class MachineryManager extends BaseManager {
 
 
             // Save updated machine
-            const updated_machines = machines.map(m => 
-                String(m.id) === String(machine_id) ? updated_machine : m
-            );
-            this.storageService.save_machines_with_sync(updated_machines);
+            await this.storageService.update_machine(machine_id, updated_machine);
 
             // Exit edit mode
             this.editManager.cancel_edit(row);
 
             // Update display
-            this.load_machinery();
+            await this.load_machinery();
 
             this.show_success_message('Machine updated successfully');
 
