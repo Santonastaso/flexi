@@ -391,7 +391,8 @@ class PhasesManager extends BaseManager {
             });
             this.show_success_message('Phase added', newPhase.name);
         } catch (error) {
-            this.show_error_message('adding phase', error);
+            const errorObj = error instanceof Error ? error : new Error(error?.message || error?.toString() || 'Failed to add phase');
+            this.show_error_message('adding phase', errorObj);
         } finally {
             // Re-enable button after operation completes
             this.elements.add_phase_btn.disabled = false;
@@ -522,7 +523,8 @@ class PhasesManager extends BaseManager {
             this.show_success_message('Phase updated');
 
         } catch (error) {
-            this.show_error_message('updating phase', error);
+            const errorObj = error instanceof Error ? error : new Error(error?.message || error?.toString() || 'Failed to update phase');
+            this.show_error_message('updating phase', errorObj);
         }
     }
 
@@ -540,7 +542,8 @@ class PhasesManager extends BaseManager {
             });
                 this.show_success_message('Phase deleted');
             } catch (error) {
-                this.show_error_message('deleting phase', error);
+                const errorObj = error instanceof Error ? error : new Error(error?.message || error?.toString() || 'Failed to delete phase');
+                this.show_error_message('deleting phase', errorObj);
             }
         });
     }

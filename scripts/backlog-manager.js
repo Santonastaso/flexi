@@ -225,44 +225,80 @@ class BacklogManager extends BaseManager {
         }
     }
 
-    validate_form_fields() {
-        // Basic validation logic
-        let isValid = true;
+    validate_form_fields(updateButtonState = true) {
+        // Collect form data for comprehensive validation
+        const formData = this.collect_form_data();
         
-        // Required fields validation
-        const required_fields = [
-            'odp_number', 'article_code', 'production_lot', 'work_center',
-            'nome_cliente', 'delivery_date', 'bag_height', 'bag_width', 'bag_step',
-            'seal_sides', 'product_type', 'quantity', 'fase'
-        ];
+        // Use ValidationService for comprehensive ODP validation
+        const validation = this.validationService.validateODPForm(formData);
+        const isValid = Object.keys(validation.errors).length === 0;
         
-        required_fields.forEach(fieldId => {
-            const field = this.elements[fieldId];
-            if (field && !field.value.trim()) {
-                isValid = false;
-                // Temporary debugging - remove this later
-        if (window.DEBUG) {
-                    console.log(`Field ${fieldId} is empty: "${field.value}"`);
-                }
-            }
-        });
+        // Clear previous validation errors
+        this.clear_validation_errors();
         
-        // Enable/disable both calculate and create task buttons based on validation
-        if (this.elements.calculate_btn) {
-            this.elements.calculate_btn.disabled = !isValid;
+        // Show validation errors if any
+        if (!isValid) {
+            Object.entries(validation.errors).forEach(([field, errorMessage]) => {
+                this.show_validation_error(field, errorMessage);
+            });
         }
         
-        // Create task button should also be disabled until validation passes
-        if (this.elements.create_task) {
-            this.elements.create_task.disabled = !isValid;
+        // Only update button state if requested (not during form submission)
+        if (updateButtonState) {
+            // Enable/disable both calculate and create task buttons based on validation
+            if (this.elements.calculate_btn) {
+                this.elements.calculate_btn.disabled = !isValid;
+            }
+            
+            // Create task button should also be disabled until validation passes
+            if (this.elements.create_task) {
+                this.elements.create_task.disabled = !isValid;
+            }
         }
         
         // Temporary debugging - remove this later
-            if (window.DEBUG) {
-            console.log(`Form validation result: ${isValid}`);
+        if (window.DEBUG) {
+            console.log(`Form validation result: ${isValid}`, validation.errors);
         }
         
         return isValid;
+    }
+
+    collect_form_data() {
+        return {
+            odp_number: this.elements.odp_number?.value?.trim() || '',
+            article_code: this.elements.article_code?.value?.trim() || '',
+            production_lot: this.elements.production_lot?.value?.trim() || '',
+            work_center: this.elements.work_center?.value?.trim() || '',
+            nome_cliente: this.elements.nome_cliente?.value?.trim() || '',
+            delivery_date: this.elements.delivery_date?.value?.trim() || '',
+            bag_height: this.elements.bag_height?.value?.trim() || '',
+            bag_width: this.elements.bag_width?.value?.trim() || '',
+            bag_step: this.elements.bag_step?.value?.trim() || '',
+            seal_sides: this.elements.seal_sides?.value?.trim() || '',
+            product_type: this.elements.product_type?.value?.trim() || '',
+            quantity: this.elements.quantity?.value?.trim() || '',
+            fase: this.elements.fase?.value?.trim() || '',
+            department: this.elements.department?.value?.trim() || ''
+        };
+    }
+
+    clear_validation_errors() {
+        // Clear all validation error spans
+        const errorSpans = document.querySelectorAll('.validation_error');
+        errorSpans.forEach(span => {
+            span.style.display = 'none';
+            span.textContent = '';
+        });
+    }
+
+    show_validation_error(fieldName, errorMessage) {
+        // Show error for specific field
+        const errorSpan = document.getElementById(`${fieldName}_error`);
+        if (errorSpan) {
+            errorSpan.textContent = errorMessage;
+            errorSpan.style.display = 'block';
+        }
     }
 
     /**
@@ -289,14 +325,14 @@ class BacklogManager extends BaseManager {
         try {
             // Validate required fields first
             if (!this.validate_form_fields()) {
-                this.show_error_message('Please fill in all required fields before calculating');
+                this.show_error_message('validating form fields', new Error('Please fill in all required fields before calculating'));
                 return;
             }
 
             // Get the selected phase
             const selectedPhaseId = this.elements.fase.value;
             if (!selectedPhaseId) {
-                this.show_error_message('Please select a production phase');
+                this.show_error_message('validating phase selection', new Error('Please select a production phase'));
                 return;
             }
 
@@ -311,7 +347,7 @@ class BacklogManager extends BaseManager {
             console.log('Selected phase found:', selectedPhase);
             
             if (!selectedPhase) {
-                this.show_error_message('Selected phase not found');
+                this.show_error_message('finding selected phase', new Error('Selected phase not found'));
                 return;
             }
 
@@ -331,7 +367,8 @@ class BacklogManager extends BaseManager {
             this.show_success_message('Calculation completed successfully');
             
         } catch (error) {
-            this.show_error_message('calculating production metrics', error);
+            const errorObj = error instanceof Error ? error : new Error(error?.message || error?.toString() || 'Calculation failed');
+            this.show_error_message('calculating production metrics', errorObj);
         }
     }
 
@@ -361,36 +398,36 @@ class BacklogManager extends BaseManager {
             const metersToPrint = (bagStep * quantity) / 1000;
             
             // Calculate printing time: mt_da_stampare / velocità_fase_stampa
-            results.printing.processing_time = metersToPrint / phase.v_stampa;
+            results.printing.processing_time = Math.round((metersToPrint / phase.v_stampa) * 100) / 100;
             
-            // Setup time from phase
-            results.printing.setup_time = phase.t_setup_stampa || 0;
+            // Setup time from phase (round to 2 decimals)
+            results.printing.setup_time = Math.round((phase.t_setup_stampa || 0) * 100) / 100;
             
             // Total printing time: tempo_stampa + tempo_setUP_fase_stampa
-            results.printing.total_time = results.printing.processing_time + results.printing.setup_time;
+            results.printing.total_time = Math.round((results.printing.processing_time + results.printing.setup_time) * 100) / 100;
             
             // Printing cost: tempo_ODP_totale_Stampa * costo_orario_fase
-            results.printing.cost = results.printing.total_time * (phase.costo_h_stampa || 0);
+            results.printing.cost = Math.round((results.printing.total_time * (phase.costo_h_stampa || 0)) * 100) / 100;
         }
 
         // Calculate packaging metrics if phase has packaging parameters
         if (phase.department === 'CONFEZIONAMENTO' && phase.v_conf > 0) {
             // Calculate packaging time: pezzi_ODP / velocità_fase_confezionamento
-            results.packaging.processing_time = quantity / phase.v_conf;
+            results.packaging.processing_time = Math.round((quantity / phase.v_conf) * 100) / 100;
             
-            // Setup time from phase
-            results.packaging.setup_time = phase.t_setup_conf || 0;
+            // Setup time from phase (round to 2 decimals)
+            results.packaging.setup_time = Math.round((phase.t_setup_conf || 0) * 100) / 100;
             
             // Total packaging time: tempo_confezionamento + tempo_setUP_fase_confezionamento
-            results.packaging.total_time = results.packaging.processing_time + results.packaging.setup_time;
+            results.packaging.total_time = Math.round((results.packaging.processing_time + results.packaging.setup_time) * 100) / 100;
             
             // Packaging cost: tempo_ODP_totale * costo_orario_fase
-            results.packaging.cost = results.packaging.total_time * (phase.costo_h_conf || 0);
+            results.packaging.cost = Math.round((results.packaging.total_time * (phase.costo_h_conf || 0)) * 100) / 100;
         }
 
-        // Calculate totals
-        results.totals.duration = results.printing.total_time + results.packaging.total_time;
-        results.totals.cost = results.printing.cost + results.packaging.cost;
+        // Calculate totals (round to 2 decimals)
+        results.totals.duration = Math.round((results.printing.total_time + results.packaging.total_time) * 100) / 100;
+        results.totals.cost = Math.round((results.printing.cost + results.packaging.cost) * 100) / 100;
 
 
         return results;
@@ -445,17 +482,20 @@ class BacklogManager extends BaseManager {
     async handle_create_task() {
         // Prevent double submission
         if (this.elements.create_task.disabled) {
+            console.log('Create task button already disabled, preventing double submission');
             return;
         }
         
-                // Validate form before starting the process
-        if (!this.validate_form_fields()) {
-            this.show_error_message('Please fill in all required fields before creating the task');
-            return;
-        }
-        
-        // Disable button to prevent multiple submissions
+        // Disable button immediately to prevent multiple submissions
         this.elements.create_task.disabled = true;
+        
+        // Validate form before starting the process (don't update button state)
+        if (!this.validate_form_fields(false)) {
+            this.show_error_message('validating form fields', new Error('Please fill in all required fields before creating the task'));
+            // Re-enable button on validation failure
+            this.elements.create_task.disabled = false;
+            return;
+        }
         
         // Temporary debugging - remove this later
         if (window.DEBUG) {
@@ -463,6 +503,14 @@ class BacklogManager extends BaseManager {
         }
         
         try {
+            // Perform comprehensive validation using ValidationService
+            const formData = this.collect_form_data();
+            const validation = this.validationService.validateODP(formData);
+            
+            if (!validation.isValid) {
+                this.show_error_message('validating production order', new Error('Validation failed: ' + validation.errors.join(', ')));
+            return;
+        }
 
             // Debug: Check if we have calculation results
             if (window.DEBUG) {
@@ -538,7 +586,9 @@ class BacklogManager extends BaseManager {
             // The clear_form_fields() above will reset the form, so validation will disable the button
             
         } catch (error) {
-            this.show_error_message('creating production order', error);
+            // Ensure error object has proper message property
+            const errorObj = error instanceof Error ? error : new Error(error?.message || error?.toString() || 'Unknown error occurred');
+            this.show_error_message('creating production order', errorObj);
             // Re-enable button on error so user can retry
             if (this.elements.create_task) {
                 this.elements.create_task.disabled = false;
@@ -559,7 +609,8 @@ class BacklogManager extends BaseManager {
             this.render_backlog(backlogItems);
         } catch (error) {
             console.error('Error loading backlog:', error);
-            this.show_error_message('loading backlog', error);
+            const errorObj = error instanceof Error ? error : new Error(error?.message || error?.toString() || 'Failed to load backlog');
+            this.show_error_message('loading backlog', errorObj);
             // Render empty table on error
             this.render_backlog([]);
         }
@@ -649,9 +700,7 @@ class BacklogManager extends BaseManager {
                     ${this.editManager ? this.editManager.create_edit_input('select', item.seal_sides, {
                         options: [
                             { value: '3', label: '3 sides' },
-                            { value: '4', label: '4 sides' },
-                            { value: '5', label: '5 sides' },
-                            { value: '6', label: '6 sides' }
+                            { value: '4', label: '4 sides' }
                         ]
                     }) : ''}
                 </td>
@@ -788,7 +837,8 @@ class BacklogManager extends BaseManager {
             this.show_success_message('ODP order updated');
 
         } catch (error) {
-            this.show_error_message('updating ODP order', error);
+            const errorObj = error instanceof Error ? error : new Error(error?.message || error?.toString() || 'Failed to update ODP order');
+            this.show_error_message('updating ODP order', errorObj);
         }
     }
 
@@ -885,11 +935,13 @@ class BacklogManager extends BaseManager {
                     await this.load_backlog();
                     this.show_success_message('ODP order deleted');
         } catch (error) {
-                    this.show_error_message('deleting ODP order', error);
+                    const errorObj = error instanceof Error ? error : new Error(error?.message || error?.toString() || 'Failed to delete ODP order');
+                    this.show_error_message('deleting ODP order', errorObj);
                 }
             });
         } catch (error) {
-            this.show_error_message('deleting ODP order', error);
+            const errorObj = error instanceof Error ? error : new Error(error?.message || error?.toString() || 'Failed to delete ODP order');
+            this.show_error_message('deleting ODP order', errorObj);
         }
     }
 
@@ -981,7 +1033,8 @@ class BacklogManager extends BaseManager {
             
         } catch (error) {
             console.error('Error syncing ODP orders with Gantt:', error);
-            this.show_error_message('syncing with Gantt chart', error);
+            const errorObj = error instanceof Error ? error : new Error(error?.message || error?.toString() || 'Failed to sync with Gantt chart');
+            this.show_error_message('syncing with Gantt chart', errorObj);
         }
     }
 

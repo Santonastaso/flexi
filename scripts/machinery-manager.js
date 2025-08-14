@@ -280,7 +280,8 @@ class MachineryManager extends BaseManager {
             this.show_success_message(`Machine "${newMachine.machine_name}" added successfully!`);
         } catch (error) {
             console.error('Error adding machine:', error);
-            this.show_error_message('adding machine', error);
+            const errorObj = error instanceof Error ? error : new Error(error?.message || error?.toString() || 'Failed to add machine');
+            this.show_error_message('adding machine', errorObj);
         } finally {
             // Re-enable button after operation completes
             this.elements.add_btn.disabled = false;
@@ -536,7 +537,8 @@ class MachineryManager extends BaseManager {
             }
         } catch (error) {
             console.error('Error finding machine:', error);
-            this.show_error_message('finding machine', error);
+            const errorObj = error instanceof Error ? error : new Error(error?.message || error?.toString() || 'Failed to find machine');
+            this.show_error_message('finding machine', errorObj);
         }
     }
 
@@ -558,7 +560,8 @@ class MachineryManager extends BaseManager {
                         await this.load_machinery();
                         this.show_success_message('Machine deleted successfully');
                     } catch (error) {
-                        this.show_error_message('deleting machine', error);
+                        const errorObj = error instanceof Error ? error : new Error(error?.message || error?.toString() || 'Failed to delete machine');
+                        this.show_error_message('deleting machine', errorObj);
                     }
                 });
             } else {
@@ -566,7 +569,8 @@ class MachineryManager extends BaseManager {
                 this.show_error_message('deleting machine', new Error('Delete confirmation dialog not available'));
             }
         } catch (error) {
-            this.show_error_message('deleting machine', error);
+            const errorObj = error instanceof Error ? error : new Error(error?.message || error?.toString() || 'Failed to delete machine');
+            this.show_error_message('deleting machine', errorObj);
         }
     }
 
@@ -684,7 +688,8 @@ class MachineryManager extends BaseManager {
             this.show_success_message('Machine updated successfully');
 
         } catch (error) {
-            this.show_error_message('updating machine', error);
+            const errorObj = error instanceof Error ? error : new Error(error?.message || error?.toString() || 'Failed to update machine');
+            this.show_error_message('updating machine', errorObj);
         } finally {
             // Clear the saving flag
             if (row.dataset.saving) {
