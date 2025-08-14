@@ -75,7 +75,7 @@ class StorageService {
             throw new Error(`Failed to ${operation_name.replace('_', ' ')} ${entity_type} ${operation_name.includes('get') || operation_name.includes('load') ? 'from' : 'to'} Supabase`);
         }
     }
-
+    
     /**
      * Log service calls if enabled
      */
@@ -84,16 +84,15 @@ class StorageService {
             console.log(`[Supabase] ${method}`, ...args);
         }
     }
-
+    
     /**
-     * Show message (delegates to appropriate service)
+     * Show message (delegates to global banner system)
      */
     show_message(message, type = 'info') {
-        // Use Supabase service for message display
-        if (this.supabaseService && this.supabaseService.show_message) {
-            this.supabaseService.show_message(message, type);
+        if (typeof show_banner === 'function') {
+            show_banner(message, type);
         } else {
-            // Fallback to basic message display
+            // Fallback to console if banner system not available
             console.log(`[${type.toUpperCase()}] ${message}`);
         }
     }
@@ -154,43 +153,31 @@ class StorageService {
     }
 
     async add_machine_with_sync(machine) {
-        this.log_call('add_machine_with_sync', 'machines', machine);
-        
-        try {
-            const result = await this.supabaseService.add_machine_with_sync(machine);
-            console.log('Machine added with sync to Supabase');
-            return result;
-        } catch (error) {
-            console.error('Error adding machine with sync to Supabase:', error);
-            throw new Error('Failed to add machine with sync to Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.add_machine_with_sync(machine),
+            'add_machine_with_sync',
+            'machines',
+            'Machine added with sync'
+        );
     }
 
     async save_machines_with_sync(machines) {
-        this.log_call('save_machines_with_sync', 'machines', machines);
-        
-        try {
-            const result = await this.supabaseService.save_machines_with_sync(machines);
-            console.log('Machines saved with sync to Supabase');
-            return result;
-        } catch (error) {
-            console.error('Error saving machines with sync to Supabase:', error);
-            throw new Error('Failed to save machines with sync to Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.save_machines_with_sync(machines),
+            'save_machines_with_sync',
+            'machines',
+            'Machines saved with sync'
+        );
     }
-
+    
     async validate_machine_can_be_deleted(machineId) {
-        this.log_call('validate_machine_can_be_deleted', 'machines', machineId);
-        
-        try {
-            const result = await this.supabaseService.validate_machine_can_be_deleted(machineId);
-            return result;
-        } catch (error) {
-            console.error('Error validating machine deletion in Supabase:', error);
-            throw new Error('Failed to validate machine deletion in Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.validate_machine_can_be_deleted(machineId),
+            'validate_machine_can_be_deleted',
+            'machines'
+        );
     }
-
+    
     /**
      * ODP ORDERS METHODS
      */
@@ -223,65 +210,45 @@ class StorageService {
     }
 
     async update_odp_order(id, updates) {
-        this.log_call('update_odp_order', 'odp_orders', id, updates);
-        
-        try {
-            const result = await this.supabaseService.update_odp_order(id, updates);
-            console.log('ODP order updated in Supabase');
-            return result;
-        } catch (error) {
-            console.error('Error updating ODP order in Supabase:', error);
-            throw new Error('Failed to update ODP order in Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.update_odp_order(id, updates),
+            'update_odp_order',
+            'odp_orders',
+            'ODP order updated'
+        );
     }
-
+    
     async remove_odp_order(id) {
-        this.log_call('remove_odp_order', 'odp_orders', id);
-        
-        try {
-            const result = await this.supabaseService.remove_odp_order(id);
-            console.log('ODP order removed from Supabase');
-            return result;
-        } catch (error) {
-            console.error('Error removing ODP order from Supabase:', error);
-            throw new Error('Failed to remove ODP order from Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.remove_odp_order(id),
+            'remove_odp_order',
+            'odp_orders',
+            'ODP order removed'
+        );
     }
-
+    
     async get_next_odp_number() {
-        this.log_call('get_next_odp_number', 'odp_orders');
-        
-        try {
-            const result = await this.supabaseService.get_next_odp_number();
-            return result;
-        } catch (error) {
-            console.error('Error getting next ODP number from Supabase:', error);
-            throw new Error('Failed to get next ODP number from Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.get_next_odp_number(),
+            'get_next_odp_number',
+            'odp_orders'
+        );
     }
 
     async get_valid_tasks_for_display() {
-        this.log_call('get_valid_tasks_for_display', 'odp_orders');
-        
-        try {
-            const result = await this.supabaseService.get_valid_tasks_for_display();
-            return result;
-        } catch (error) {
-            console.error('Error getting valid tasks from Supabase:', error);
-            throw new Error('Failed to get valid tasks from Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.get_valid_tasks_for_display(),
+            'get_valid_tasks_for_display',
+            'odp_orders'
+        );
     }
 
     async get_odp_order_by_id(id) {
-        this.log_call('get_odp_order_by_id', 'odp_orders', id);
-        
-        try {
-            const result = await this.supabaseService.get_odp_order_by_id(id);
-            return result;
-        } catch (error) {
-            console.error('Error getting ODP order by ID from Supabase:', error);
-            throw new Error('Failed to get ODP order by ID from Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.get_odp_order_by_id(id),
+            'get_odp_order_by_id',
+            'odp_orders'
+        );
     }
 
     /**
@@ -304,209 +271,149 @@ class StorageService {
     }
 
     async save_phases(phases) {
-        this.log_call('save_phases', 'phases', phases);
-        
         // Ensure initialization
         if (!this.initialized) {
             await this.wait_for_services();
             await this.init();
         }
         
-        try {
-            const result = await this.supabaseService.save_phases(phases);
-            console.log('Phases saved to Supabase');
-            return result;
-        } catch (error) {
-            console.error('Error saving phases to Supabase:', error);
-            throw new Error('Failed to save phases to Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.save_phases(phases),
+            'save_phases',
+            'phases',
+            'Phases saved'
+        );
     }
 
     async add_phase(phase) {
-        this.log_call('add_phase', 'phases', phase);
-        
         // Ensure initialization
         if (!this.initialized) {
             await this.wait_for_services();
             await this.init();
         }
         
-        try {
-            const result = await this.supabaseService.add_phase(phase);
-            console.log('Phase added to Supabase');
-            return result;
-        } catch (error) {
-            console.error('Error adding phase to Supabase:', error);
-            throw new Error('Failed to add phase to Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.add_phase(phase),
+            'add_phase',
+            'phases',
+            'Phase added'
+        );
     }
 
     async update_phase(id, updates) {
-        this.log_call('update_phase', 'phases', id, updates);
-        
-        try {
-            const result = await this.supabaseService.update_phase(id, updates);
-            console.log('Phase updated in Supabase');
-            return result;
-        } catch (error) {
-            console.error('Error updating phase in Supabase:', error);
-            throw new Error('Failed to update phase in Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.update_phase(id, updates),
+            'update_phase',
+            'phases',
+            'Phase updated'
+        );
     }
 
     async remove_phase(id) {
-        this.log_call('remove_phase', 'phases', id);
-        
-        try {
-            const result = await this.supabaseService.remove_phase(id);
-            console.log('Phase removed from Supabase');
-            return result;
-        } catch (error) {
-            console.error('Error removing phase from Supabase:', error);
-            throw new Error('Failed to remove phase from Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.remove_phase(id),
+            'remove_phase',
+            'phases',
+            'Phase removed'
+        );
     }
 
     async get_phase_by_id(id) {
-        this.log_call('get_phase_by_id', 'phases', id);
-        
-        try {
-            const result = await this.supabaseService.get_phase_by_id(id);
-            return result;
-        } catch (error) {
-            console.error('Error getting phase by ID from Supabase:', error);
-            throw new Error('Failed to get phase by ID from Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.get_phase_by_id(id),
+            'get_phase_by_id',
+            'phases'
+        );
     }
 
     /**
      * SCHEDULED EVENTS METHODS
      */
     async get_scheduled_events() {
-        this.log_call('get_scheduled_events', 'scheduled_events');
-        
-        try {
-            const result = await this.supabaseService.get_scheduled_events();
-            return result;
-        } catch (error) {
-            console.error('Error getting scheduled events from Supabase:', error);
-            throw new Error('Failed to get scheduled events from Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.get_scheduled_events(),
+            'get_scheduled_events',
+            'scheduled_events'
+        );
     }
 
     async save_scheduled_events(events) {
-        this.log_call('save_scheduled_events', 'scheduled_events', events);
-        
-        try {
-            const result = await this.supabaseService.save_scheduled_events(events);
-            console.log('Scheduled events saved to Supabase');
-            return result;
-        } catch (error) {
-            console.error('Error saving scheduled events to Supabase:', error);
-            throw new Error('Failed to save scheduled events to Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.save_scheduled_events(events),
+            'save_scheduled_events',
+            'scheduled_events',
+            'Scheduled events saved'
+        );
     }
 
     async add_scheduled_event(event) {
-        this.log_call('add_scheduled_event', 'scheduled_events', event);
-        
-        try {
-            const result = await this.supabaseService.add_scheduled_event(event);
-            console.log('Scheduled event added to Supabase');
-            return result;
-        } catch (error) {
-            console.error('Error adding scheduled event to Supabase:', error);
-            throw new Error('Failed to add scheduled event to Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.add_scheduled_event(event),
+            'add_scheduled_event',
+            'scheduled_events',
+            'Scheduled event added'
+        );
     }
 
     async remove_scheduled_event(event_id) {
-        this.log_call('remove_scheduled_event', 'scheduled_events', event_id);
-        
-        try {
-            const result = await this.supabaseService.remove_scheduled_event(event_id);
-            console.log('Scheduled event removed from Supabase');
-            return result;
-        } catch (error) {
-            console.error('Error removing scheduled event from Supabase:', error);
-            throw new Error('Failed to remove scheduled event from Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.remove_scheduled_event(event_id),
+            'remove_scheduled_event',
+            'scheduled_events',
+            'Scheduled event removed'
+        );
     }
 
     async is_task_scheduled(task_id) {
-        this.log_call('is_task_scheduled', 'scheduled_events', task_id);
-        
-        try {
-            const result = await this.supabaseService.is_task_scheduled(task_id);
-            return result;
-        } catch (error) {
-            console.error('Error checking if task is scheduled in Supabase:', error);
-            throw new Error('Failed to check if task is scheduled in Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.is_task_scheduled(task_id),
+            'is_task_scheduled',
+            'scheduled_events'
+        );
     }
 
     async get_events_by_machine(machine_name) {
-        this.log_call('get_events_by_machine', 'scheduled_events', machine_name);
-        
-        try {
-            const result = await this.supabaseService.get_events_by_machine(machine_name);
-            return result;
-        } catch (error) {
-            console.error('Error getting events by machine from Supabase:', error);
-            throw new Error('Failed to get events by machine from Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.get_events_by_machine(machine_name),
+            'get_events_by_machine',
+            'scheduled_events'
+        );
     }
 
     async get_events_by_date(date) {
-        this.log_call('get_events_by_date', 'scheduled_events', date);
-        
-        try {
-            const result = await this.supabaseService.get_events_by_date(date);
-            return result;
-        } catch (error) {
-            console.error('Error getting events by date from Supabase:', error);
-            throw new Error('Failed to get events by date from Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.get_events_by_date(date),
+            'get_events_by_date',
+            'scheduled_events'
+        );
     }
 
     async get_scheduled_event_by_id(event_id) {
-        this.log_call('get_scheduled_event_by_id', 'scheduled_events', event_id);
-        
-        try {
-            const result = await this.supabaseService.get_scheduled_event_by_id(event_id);
-            return result;
-        } catch (error) {
-            console.error('Error getting scheduled event by ID from Supabase:', error);
-            throw new Error('Failed to get scheduled event by ID from Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.get_scheduled_event_by_id(event_id),
+            'get_scheduled_event_by_id',
+            'scheduled_events'
+        );
     }
 
     /**
      * MACHINE AVAILABILITY METHODS
      */
     async get_machine_availability() {
-        this.log_call('get_machine_availability', 'machine_availability');
-        
-        try {
-            const result = await this.supabaseService.get_machine_availability();
-            return result;
-        } catch (error) {
-            console.error('Error getting machine availability from Supabase:', error);
-            throw new Error('Failed to get machine availability from Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.get_machine_availability(),
+            'get_machine_availability',
+            'machine_availability'
+        );
     }
 
     async save_machine_availability(availability) {
-        this.log_call('save_machine_availability', 'machine_availability', availability);
-        
-        try {
-            const result = await this.supabaseService.save_machine_availability(availability);
-            console.log('Machine availability saved to Supabase');
-            return result;
-        } catch (error) {
-            console.error('Error saving machine availability to Supabase:', error);
-            throw new Error('Failed to save machine availability to Supabase');
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabaseService.save_machine_availability(availability),
+            'save_machine_availability',
+            'machine_availability',
+            'Machine availability saved'
+        );
     }
 
     async get_machine_availability_for_date(machineName, date) {

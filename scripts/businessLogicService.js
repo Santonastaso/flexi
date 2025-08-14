@@ -252,9 +252,9 @@ class BusinessLogicService {
         return {
             ...machineData,
             machine_name: this.normalize_name(machineData.machine_name || ''),
-            machine_type: this.normalize_code(machineData.machine_type || ''),
-            work_center: this.normalize_code(machineData.work_center || 'ZANICA'),
-            department: this.normalize_code(machineData.department || ''),
+            machine_type: Utils.normalize_code(machineData.machine_type || ''),
+            work_center: Utils.normalize_code(machineData.work_center || 'ZANICA'),
+            department: Utils.normalize_code(machineData.department || ''),
             status: this.normalize_status(machineData.status || 'ACTIVE')
         };
     }
@@ -264,10 +264,10 @@ class BusinessLogicService {
     normalizeODPData(odpData) {
         return {
             ...odpData,
-            article_code: this.normalize_code(odpData.article_code || ''),
-            production_lot: this.normalize_code(odpData.production_lot || ''),
-            work_center: this.normalize_code(odpData.work_center || ''),
-            department: this.normalize_code(odpData.department || ''),
+            article_code: Utils.normalize_code(odpData.article_code || ''),
+            production_lot: Utils.normalize_code(odpData.production_lot || ''),
+            work_center: Utils.normalize_code(odpData.work_center || ''),
+            department: Utils.normalize_code(odpData.department || ''),
             product_type: this.normalize_enum_lower(odpData.product_type || 'crema'),
             status: this.normalize_status(odpData.status || 'DRAFT'),
             priority: this.normalize_enum_lower(odpData.priority || 'medium')
@@ -280,7 +280,7 @@ class BusinessLogicService {
         return {
             ...phaseData,
             name: this.normalize_name(phaseData.name || ''),
-            department: this.normalize_code(phaseData.department || 'STAMPA')
+            department: Utils.normalize_code(phaseData.department || 'STAMPA')
         };
     }
     // ===== UTILITY METHODS =====
@@ -290,12 +290,7 @@ class BusinessLogicService {
     normalize_name(name) {
         return String(name || '').trim().toUpperCase().replace(/\s+/g, '_');
     }
-    /**
-     * Normalize code (trim, uppercase, replace spaces with underscores)
-     */
-    normalize_code(code) {
-        return String(code || '').trim().toUpperCase().replace(/\s+/g, '_');
-    }
+
     /**
      * Normalize status (trim, uppercase)
      */
@@ -308,12 +303,7 @@ class BusinessLogicService {
     normalize_enum_lower(value) {
         return String(value || '').trim().toLowerCase();
     }
-    /**
-     * Normalize ID (ensure string format)
-     */
-    normalize_id(id) {
-        return String(id || '').trim();
-    }
+
 }
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

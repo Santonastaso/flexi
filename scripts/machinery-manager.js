@@ -699,57 +699,5 @@ class MachineryManager extends BaseManager {
 
 // Initialize when all resources are loaded and storage service is available
 window.addEventListener('load', () => {
-    // Wait for storage service to be available
-    const initialize_manager = () => {
-        try {
-            // Check if all required services are available and initialized
-            if (window.storageService && 
-                window.storageService.initialized && 
-                typeof ValidationService !== 'undefined' && 
-                typeof BusinessLogicService !== 'undefined' &&
-                typeof BaseManager !== 'undefined') {
-                
-
-                
-                // Create the manager instance
-                window.machineryManager = new MachineryManager();
-                
-                // Initialize with proper error handling
-                const elementMap = window.machineryManager.get_element_map();
-                if (elementMap) {
-                    const initSuccess = window.machineryManager.init(elementMap);
-                    if (initSuccess) {
-                        // MachineryManager initialized successfully
-                    } else {
-                        console.error('❌ Failed to initialize MachineryManager');
-                    }
-                } else {
-                    console.error('❌ Failed to get element map for MachineryManager');
-                }
-            } else {
-                // Log what's missing
-                const missing = [];
-                if (!window.storageService) missing.push('StorageService');
-                else if (!window.storageService.initialized) missing.push('StorageService (not initialized)');
-                if (typeof ValidationService === 'undefined') missing.push('ValidationService');
-                if (typeof BusinessLogicService === 'undefined') missing.push('BusinessLogicService');
-                if (typeof BaseManager === 'undefined') missing.push('BaseManager');
-                
-
-                
-                // If services not ready, wait a bit and try again
-                setTimeout(initialize_manager, 200);
-            }
-        } catch (error) {
-            console.error('❌ Error initializing MachineryManager:', error);
-            // Retry after a longer delay on error
-            setTimeout(initialize_manager, 1000);
-        }
-    };
-    
-    // Start initialization process
-    initialize_manager();
-    
-    // Also listen for storage service ready event for faster initialization
-    window.addEventListener('storageServiceReady', initialize_manager);
+    BaseManager.initialize_manager(MachineryManager, 'machineryManager');
 });

@@ -91,14 +91,7 @@ class Utils {
         };
     }
 
-    /**
-     * Show message (fallback if no banner system available)
-     */
-    static show_message(message, type = 'info') {
-        if (typeof show_banner === 'function') {
-            show_banner(message, type);
-        }
-    }
+
 
     /**
      * Validate numeric fields are non-negative
@@ -120,43 +113,9 @@ class Utils {
         };
     }
 
-    /**
-     * Validate date range (start before end)
-     */
-    static validate_date_range(start_date, end_date) {
-        if (!start_date || !end_date) return { isValid: true, errors: [] };
-        
-        const start = new Date(start_date);
-        const end = new Date(end_date);
-        
-        if (start >= end) {
-            return {
-                isValid: false,
-                errors: ['Start date must be before end date']
-            };
-        }
-        
-        return { isValid: true, errors: [] };
-    }
 
-    /**
-     * Validate field format using regex patterns
-     */
-    static validate_field_formats(fields, data) {
-        const errors = [];
-        
-        Object.entries(fields).forEach(([field_name, pattern]) => {
-            const value = data[field_name];
-            if (value && !pattern.test(value)) {
-                errors.push(`${field_name} format is invalid`);
-            }
-        });
-        
-        return {
-            isValid: errors.length === 0,
-            errors: errors
-        };
-    }
+
+
 
     /**
      * Check if form has required fields for button state
@@ -168,17 +127,7 @@ class Utils {
         });
     }
 
-    /**
-     * Common validation patterns
-     */
-    static get_validation_patterns() {
-        return {
-            articleCode: /^(P0|ISP0)\w+$/,
-            productionLot: /^[A-Z]{2,4}\d{3,6}$/,
-            // Align with StorageService.generateODPNumber() which returns OP######
-            odpNumber: /^OP\d{6}$/
-        };
-    }
+
 
     /**
      * Normalizers for consistent data
@@ -208,46 +157,9 @@ class Utils {
         return String(value).trim();
     }
 
-    /**
-     * Generic field validation with custom messages
-     */
-    static validate_fields(fields, data, validators = {}) {
-        const errors = [];
-        
-        Object.entries(validators).forEach(([field, validator]) => {
-            const value = data[field];
-            if (value !== undefined && value !== null && value !== '') {
-                const result = validator(value);
-                if (!result.isValid) {
-                    errors.push(result.message);
-                }
-            }
-        });
-        
-        return {
-            isValid: errors.length === 0,
-            errors: errors
-        };
-    }
 
-    /**
-     * Create a numeric validator for a field
-     */
-    static create_numeric_validator(field_name, min = 0, max = null) {
-        return (value) => {
-            const num = parseFloat(value);
-            if (isNaN(num)) {
-                return { isValid: false, message: `${field_name} must be a valid number` };
-            }
-            if (num < min) {
-                return { isValid: false, message: `${field_name} must be greater than or equal to ${min}` };
-            }
-            if (max !== null && num > max) {
-                return { isValid: false, message: `${field_name} must be less than or equal to ${max}` };
-            }
-            return { isValid: true };
-        };
-    }
+
+
 
     /**
      * Validate that one field is greater than or equal to another field

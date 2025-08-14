@@ -21,6 +21,9 @@ function show_banner(message, type) {
         }, 300);
     }, 3000);
 }
+
+// Backward compatibility alias (for camelCase usage)
+window.showBanner = show_banner;
 // Standardized delete confirmation - this is the approved standard
 function show_delete_confirmation(message, on_confirm) {
     return show_confirm_banner(message, on_confirm);

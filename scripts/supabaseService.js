@@ -41,7 +41,9 @@ class SupabaseService {
         const connected = await window.check_supabase_connection();
         if (!connected) {
             console.error('Failed to connect to Supabase');
-            this.show_message('Failed to connect to database. Some features may not work.', 'error');
+            if (typeof show_banner === 'function') {
+                show_banner('Failed to connect to database. Some features may not work.', 'error');
+            }
         }
         return connected;
     }
@@ -56,23 +58,7 @@ class SupabaseService {
         return this.client;
     }
 
-    /**
-     * Show message to user (maintains compatibility)
-     */
-    show_message(message, type = 'info') {
-        const messageEl = document.createElement('div');
-        messageEl.className = `message message-${type}`;
-        messageEl.textContent = message;
-        
-        const container = document.querySelector('.message-container') || document.body;
-        container.appendChild(messageEl);
-        
-        setTimeout(() => {
-            if (messageEl.parentElement) {
-                messageEl.remove();
-            }
-        }, 3000);
-    }
+
 
     /**
      * Cache management

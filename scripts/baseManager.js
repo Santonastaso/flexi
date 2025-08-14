@@ -15,7 +15,6 @@ class BaseManager {
     init(element_map) {
         if (this.bind_elements(element_map)) {
             this.attach_event_listeners(); // idempotent expectation
-            this.render_data();
             return true;
         }
         return false;
@@ -51,19 +50,14 @@ class BaseManager {
         // Override in subclasses
     }
 
-    /**
-     * Render data - to be overridden by subclasses
-     */
-    render_data() {
-        // Override in subclasses
-    }
+
 
     /**
      * Show banner message
      */
     show_message(message, type = 'info') {
-        if (typeof showBanner === 'function') {
-            showBanner(message, type);
+        if (typeof show_banner === 'function') {
+            show_banner(message, type);
         }
     }
 
