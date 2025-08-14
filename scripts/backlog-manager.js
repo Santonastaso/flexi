@@ -22,6 +22,9 @@ class BacklogManager extends BaseManager {
             
             // Attach event listeners for form interactions
             this.attach_event_listeners();
+            
+            // Initialize bag preview
+            this.update_bag_preview();
         
         // Initialize edit functionality
         if (this.editManager) {
@@ -72,7 +75,11 @@ class BacklogManager extends BaseManager {
             create_task: document.getElementById('create_task'),
             update_statuses_btn: document.getElementById('update_statuses_btn'),
             debug_events_btn: document.getElementById('debug_events_btn'),
-            backlog_table_body: document.getElementById('backlog_table_body')
+            backlog_table_body: document.getElementById('backlog_table_body'),
+            // Preview elements
+            preview_fascia: document.getElementById('preview_fascia'),
+            preview_altezza: document.getElementById('preview_altezza'),
+            preview_passo: document.getElementById('preview_passo')
         };
     }
 
@@ -100,12 +107,40 @@ class BacklogManager extends BaseManager {
             });
         }
 
+        // Department and work center changes should trigger phase dropdown repopulation
+        if (this.elements.department) {
+            this.elements.department.addEventListener('change', () => {
+                this.populate_phases_dropdown().catch(error => {
+                    console.error('Error repopulating phases dropdown:', error);
+                });
+            });
+        }
+        
+        if (this.elements.work_center) {
+            this.elements.work_center.addEventListener('change', () => {
+                this.populate_phases_dropdown().catch(error => {
+                    console.error('Error repopulating phases dropdown:', error);
+                });
+            });
+        }
+
         // Update statuses button
         if (this.elements.update_statuses_btn) {
             this.elements.update_statuses_btn.addEventListener('click', () => {
 
                 this.sync_all_odp_with_gantt();
             });
+        }
+
+        // Bag specification preview updates
+        if (this.elements.bag_width) {
+            this.elements.bag_width.addEventListener('input', () => this.update_bag_preview());
+        }
+        if (this.elements.bag_height) {
+            this.elements.bag_height.addEventListener('input', () => this.update_bag_preview());
+        }
+        if (this.elements.bag_step) {
+            this.elements.bag_step.addEventListener('input', () => this.update_bag_preview());
         }
 
         // Debug events button
@@ -212,9 +247,14 @@ class BacklogManager extends BaseManager {
             }
         });
         
-        // Enable/disable calculate button based on validation
+        // Enable/disable both calculate and create task buttons based on validation
         if (this.elements.calculate_btn) {
             this.elements.calculate_btn.disabled = !isValid;
+        }
+        
+        // Create task button should also be disabled until validation passes
+        if (this.elements.create_task) {
+            this.elements.create_task.disabled = !isValid;
         }
         
         // Temporary debugging - remove this later
@@ -223,6 +263,26 @@ class BacklogManager extends BaseManager {
         }
         
         return isValid;
+    }
+
+    /**
+     * Update the bag specification visual preview
+     */
+    update_bag_preview() {
+        const fascia = this.elements.bag_width ? this.elements.bag_width.value : '';
+        const altezza = this.elements.bag_height ? this.elements.bag_height.value : '';
+        const passo = this.elements.bag_step ? this.elements.bag_step.value : '';
+
+        // Update the visual preview text elements
+        if (this.elements.preview_fascia) {
+            this.elements.preview_fascia.textContent = fascia || '-';
+        }
+        if (this.elements.preview_altezza) {
+            this.elements.preview_altezza.textContent = altezza || '-';
+        }
+        if (this.elements.preview_passo) {
+            this.elements.preview_passo.textContent = passo || '-';
+        }
     }
 
     async handle_calculate() {
@@ -362,14 +422,8 @@ class BacklogManager extends BaseManager {
         this.update_result_field('total_duration', results.totals.duration.toFixed(2));
         this.update_result_field('total_cost', results.totals.cost.toFixed(2));
 
-        // Enable the "Add to Backlog" button
-        if (this.elements.create_task) {
-            this.elements.create_task.disabled = false;
-            // Temporary debugging - remove this later
-        if (window.DEBUG) {
-                console.log('Add to Backlog button enabled');
-            }
-        }
+        // Create task button state is now controlled by form validation
+        // No need to manually enable it after calculation
     }
 
     update_result_field(fieldId, value) {
@@ -385,24 +439,30 @@ class BacklogManager extends BaseManager {
             calculationResults.style.display = 'none';
         }
         
-        // Disable the "Add to Backlog" button initially
-        if (this.elements.create_task) {
-            this.elements.create_task.disabled = true;
-        }
+        // Create task button state is controlled by form validation
     }
 
     async handle_create_task() {
+        // Prevent double submission
+        if (this.elements.create_task.disabled) {
+            return;
+        }
+        
+                // Validate form before starting the process
+        if (!this.validate_form_fields()) {
+            this.show_error_message('Please fill in all required fields before creating the task');
+            return;
+        }
+        
+        // Disable button to prevent multiple submissions
+        this.elements.create_task.disabled = true;
+        
         // Temporary debugging - remove this later
         if (window.DEBUG) {
             console.log('handle_create_task called');
         }
         
         try {
-            // Validate form again before creating
-            if (!this.validate_form_fields()) {
-                this.show_error_message('Please fill in all required fields before creating the task');
-            return;
-        }
 
             // Debug: Check if we have calculation results
             if (window.DEBUG) {
@@ -474,13 +534,15 @@ class BacklogManager extends BaseManager {
                 calculationResults.style.display = 'none';
             }
             
-            // Disable the "Add to Backlog" button again
-            if (this.elements.create_task) {
-                this.elements.create_task.disabled = true;
-            }
+            // Task created successfully - button should stay disabled until next calculation
+            // The clear_form_fields() above will reset the form, so validation will disable the button
             
         } catch (error) {
             this.show_error_message('creating production order', error);
+            // Re-enable button on error so user can retry
+            if (this.elements.create_task) {
+                this.elements.create_task.disabled = false;
+            }
         }
     }
 
@@ -763,8 +825,11 @@ class BacklogManager extends BaseManager {
             console.error('Error populating phases dropdown:', error);
         });
         
-        // Re-validate form
+        // Re-validate form to update button state
         this.validate_form_fields();
+        
+        // Update bag preview to show cleared values
+        this.update_bag_preview();
     }
 
     async populate_phases_dropdown() {
@@ -779,29 +844,27 @@ class BacklogManager extends BaseManager {
                 // Clear existing options except the first placeholder
                 faseDropdown.innerHTML = '<option value="">Select production phase</option>';
                 
-                // Add phases based on the determined department
+                // Add phases based on the determined department and work center
                 const department = this.elements.department.value;
-                if (department) {
-                    // Filter phases by department
-                    const relevantPhases = phases.filter(phase => 
-                        phase.department === department
-                    );
-                    
-                    relevantPhases.forEach(phase => {
-                        const option = document.createElement('option');
-                        option.value = phase.id;  // Use UUID as value
-                        option.textContent = phase.name;  // Use name as display text
-                        faseDropdown.appendChild(option);
-                    });
-                } else {
-                    // If no work type determined yet, show all phases
-                    phases.forEach(phase => {
-                        const option = document.createElement('option');
-                        option.value = phase.id;  // Use UUID as value
-                        option.textContent = phase.name;  // Use name as display text
-                        faseDropdown.appendChild(option);
+                const workCenter = this.elements.work_center.value;
+                
+                let relevantPhases = phases;
+                
+                // Apply filters based on what's selected
+                if (department || workCenter) {
+                    relevantPhases = phases.filter(phase => {
+                        const departmentMatch = !department || phase.department === department;
+                        const workCenterMatch = !workCenter || phase.work_center === workCenter;
+                        return departmentMatch && workCenterMatch;
                     });
                 }
+                
+                relevantPhases.forEach(phase => {
+                    const option = document.createElement('option');
+                    option.value = phase.id;  // Use UUID as value
+                    option.textContent = phase.name;  // Use name as display text
+                    faseDropdown.appendChild(option);
+                });
             }
         } catch (error) {
             // Error populating phases dropdown

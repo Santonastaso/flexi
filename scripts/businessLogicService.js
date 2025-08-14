@@ -27,7 +27,8 @@ class BusinessLogicService {
             'ROTOGRAVURE': 'ROTO',
             'DOYPACK': 'DOYP',
             'PLURI_PIU': 'PLUR',
-            'MONO_PIU': 'MONO'
+            'MONO_PIU': 'MONO',
+            'CONFEZIONAMENTO_TRADIZIONALE': 'CONFTRAD'
         };
         return prefixes[machine_type] || 'MACH';
     }
@@ -37,7 +38,7 @@ class BusinessLogicService {
     get_valid_machine_types(department) {
         const valid_types = {
             'STAMPA': ['DIGITAL_PRINT', 'FLEXO_PRINT', 'ROTOGRAVURE'],
-            'CONFEZIONAMENTO': ['DOYPACK', 'PLURI_PIU', 'MONO_PIU']
+            'CONFEZIONAMENTO': ['DOYPACK', 'PLURI_PIU', 'MONO_PIU', 'CONFEZIONAMENTO_TRADIZIONALE']
         };
         return valid_types[department] || [];
     }
@@ -280,7 +281,8 @@ class BusinessLogicService {
         return {
             ...phaseData,
             name: this.normalize_name(phaseData.name || ''),
-            department: Utils.normalize_code(phaseData.department || 'STAMPA')
+            department: Utils.normalize_code(phaseData.department || 'STAMPA'),
+            work_center: Utils.normalize_code(phaseData.work_center || 'ZANICA')
         };
     }
     // ===== UTILITY METHODS =====

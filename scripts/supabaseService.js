@@ -714,8 +714,9 @@ class SupabaseService {
             // PGRST116 means "no rows returned", which is fine - no availability restrictions
             if (error && error.code !== 'PGRST116') {
                 // Log schema/table issues but don't spam console
-                if (error.code === 'PGRST204' || error.message?.includes('does not exist')) {
-                    // Table or column doesn't exist - this is expected during development
+                if (error.code === 'PGRST204' || error.message?.includes('does not exist') || error.message?.includes('406')) {
+                    // Table or column doesn't exist, or 406 Not Acceptable - return empty availability
+                    console.warn('Machine availability query failed (table/schema issue):', error.message);
                     return [];
                 }
                 throw error;

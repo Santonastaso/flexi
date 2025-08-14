@@ -69,6 +69,7 @@ class PhasesManager extends BaseManager {
             phase_name: document.getElementById('phase_name'),
             phase_type: document.getElementById('phase_type'),
             numero_persone: document.getElementById('numero_persone'),
+            phase_work_center: document.getElementById('phase_work_center'),
             add_phase_btn: document.getElementById('add_phase_btn'),
             printing_params: document.getElementById('printing_params'),
             packaging_params: document.getElementById('packaging_params'),
@@ -100,7 +101,7 @@ class PhasesManager extends BaseManager {
 
         // Phase form validation
         const phaseInputs = [
-            this.elements.phase_name, this.elements.phase_type, this.elements.numero_persone,
+            this.elements.phase_name, this.elements.phase_type, this.elements.numero_persone, this.elements.phase_work_center,
             this.elements.v_stampa, this.elements.t_setup_stampa, this.elements.costo_h_stampa, 
             this.elements.v_conf, this.elements.t_setup_conf, this.elements.costo_h_conf,
             this.elements.contenuto_fase
@@ -133,7 +134,7 @@ class PhasesManager extends BaseManager {
         if (!phases || phases.length === 0) {
                     this.elements.phases_table_body.innerHTML = `
             <tr>
-                <td colspan="13" class="text-center" style="padding: 2rem; color: #6b7280;">
+                <td colspan="14" class="text-center" style="padding: 2rem; color: #6b7280;">
                     No phases found. Add phases to get started.
                 </td>
             </tr>
@@ -169,6 +170,15 @@ class PhasesManager extends BaseManager {
                         options: [
                             { value: 'STAMPA', label: 'STAMPA' },
                             { value: 'CONFEZIONAMENTO', label: 'CONFEZIONAMENTO' }
+                        ]
+                    }) : ''}
+                </td>
+                <td class="editable-cell" data-field="work_center">
+                    <span class="static-value">${Utils.escape_html(phase.work_center || '-')}</span>
+                    ${this.editManager ? this.editManager.create_edit_input('select', phase.work_center, {
+                        options: [
+                            { value: 'ZANICA', label: 'ZANICA' },
+                            { value: 'BUSTO_GAROLFO', label: 'BUSTO GAROLFO' }
                         ]
                     }) : ''}
                 </td>
@@ -394,7 +404,8 @@ class PhasesManager extends BaseManager {
         const baseData = {
             name: this.elements.phase_name.value.trim(),
             department: phaseDepartment,
-            numero_persone: parseInt(this.elements.numero_persone.value) || 1
+            numero_persone: parseInt(this.elements.numero_persone.value) || 1,
+            work_center: this.elements.phase_work_center.value.trim()
         };
 
         if (phaseDepartment === 'STAMPA') {
@@ -435,6 +446,7 @@ class PhasesManager extends BaseManager {
         
         // Set default values for new phases
         if (this.elements.numero_persone) this.elements.numero_persone.value = '1'; // Default people required
+        if (this.elements.phase_work_center) this.elements.phase_work_center.value = 'ZANICA'; // Default work center
         if (this.elements.v_stampa) this.elements.v_stampa.value = '6000'; // Default printing speed mt/h
         if (this.elements.t_setup_stampa) this.elements.t_setup_stampa.value = '0.5'; // Default setup time h
         if (this.elements.costo_h_stampa) this.elements.costo_h_stampa.value = '50'; // Default hourly cost

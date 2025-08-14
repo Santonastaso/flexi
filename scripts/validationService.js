@@ -62,7 +62,7 @@ class ValidationService {
         // Machine type validation
         const validMachineTypes = {
             'STAMPA': ['DIGITAL_PRINT', 'FLEXO_PRINT', 'ROTOGRAVURE'],
-            'CONFEZIONAMENTO': ['DOYPACK', 'PLURI_PIU', 'MONO_PIU']
+            'CONFEZIONAMENTO': ['DOYPACK', 'PLURI_PIU', 'MONO_PIU','CONFEZIONAMENTO_TRADIZIONALE']
         };
         if (machineData.department && machineData.machine_type) {
             const validTypes = validMachineTypes[machineData.department] || [];
@@ -124,7 +124,7 @@ class ValidationService {
         const errors = [];
         const warnings = [];
         // Required fields validation
-        const required_fields = ['name', 'department', 'numero_persone'];
+        const required_fields = ['name', 'department', 'numero_persone', 'work_center'];
         required_fields.forEach(field => {
             if (!phaseData[field] || phaseData[field].toString().trim() === '') {
                 errors.push(`${this.formatFieldName(field)} is required`);
