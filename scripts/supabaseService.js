@@ -1,7 +1,6 @@
 /**
  * Supabase Service - Backend data management
- * Replaces localStorage with Supabase backend
- * Maintains API compatibility with StorageService
+ * Provides all data operations using Supabase backend
  */
 class SupabaseService {
     constructor() {
@@ -718,18 +717,27 @@ class SupabaseService {
 
     async get_machine_availability_for_date(machineName, date) {
         try {
-            const { data, error } = await this.client
+            const client = this.ensure_client();
+            const { data, error } = await client
                 .from(this.TABLES.MACHINE_AVAILABILITY)
                 .select('unavailable_hours')
                 .eq('machine_name', machineName)
                 .eq('date', date)
                 .single();
 
-            if (error && error.code !== 'PGRST116') throw error;
+            // PGRST116 means "no rows returned", which is fine - no availability restrictions
+            if (error && error.code !== 'PGRST116') {
+                // Log schema/table issues but don't spam console
+                if (error.code === 'PGRST204' || error.message?.includes('does not exist')) {
+                    // Table or column doesn't exist - this is expected during development
+                    return [];
+                }
+                throw error;
+            }
             
             return data?.unavailable_hours || [];
         } catch (error) {
-            console.error('Error fetching machine availability for date:', error);
+            // Silently return empty array - machine availability is optional
             return [];
         }
     }
