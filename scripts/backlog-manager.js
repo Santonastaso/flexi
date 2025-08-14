@@ -722,7 +722,7 @@ class BacklogManager extends BaseManager {
                     ${this.editManager ? this.editManager.create_edit_input('datetime-local', item.production_start) : ''}
                 </td>
                 <td class="editable-cell" data-field="production_end">
-                    <span class="static-value">${item.production_end ? this.format_production_start(item.production_end) : '-'}</span>
+                    <span class="static-value">${item.production_end ? this.format_production_end(item.production_end) : '-'}</span>
                     ${this.editManager ? this.editManager.create_edit_input('datetime-local', item.production_end) : ''}
                 </td>
                 <td class="editable-cell" data-field="delivery_date">
@@ -963,6 +963,8 @@ class BacklogManager extends BaseManager {
             
             if (window.DEBUG) {
                 console.log(`Syncing ${allOrders.length} ODP orders with ${scheduledEvents.length} scheduled events`);
+                console.log('Sample scheduled event:', scheduledEvents[0]);
+                console.log('Sample ODP order:', allOrders[0]);
             }
             
             let updatedCount = 0;
@@ -985,6 +987,29 @@ class BacklogManager extends BaseManager {
                     const newProductionStart = this.calculate_production_start_from_event(scheduledEvent);
                     const newProductionEnd = this.calculate_production_end_from_event(scheduledEvent);
                     
+                    if (window.DEBUG) {
+                        console.log(`Debug - ODP ${order.odp_number}:`, {
+                            currentStatus: order.status,
+                            newStatus: newStatus,
+                            currentProductionStart: order.production_start,
+                            newProductionStart: newProductionStart,
+                            currentProductionEnd: order.production_end,
+                            newProductionEnd: newProductionEnd,
+                            scheduledEvent: {
+                                start_time: scheduledEvent.start_time,
+                                end_time: scheduledEvent.end_time,
+                                date: scheduledEvent.date,
+                                startHour: scheduledEvent.startHour,
+                                duration: scheduledEvent.duration
+                            },
+                            // Debug the actual date objects
+                            startDateObj: newProductionStart ? new Date(newProductionStart) : null,
+                            endDateObj: newProductionEnd ? new Date(newProductionEnd) : null,
+                            startDateString: newProductionStart ? new Date(newProductionStart).toDateString() : null,
+                            endDateString: newProductionEnd ? new Date(newProductionEnd).toDateString() : null
+                        });
+                    }
+                    
                     if (order.status !== newStatus || 
                         order.production_start !== newProductionStart ||
                         order.production_end !== newProductionEnd) {
@@ -993,11 +1018,19 @@ class BacklogManager extends BaseManager {
                         updateData.production_start = newProductionStart;
                         updateData.production_end = newProductionEnd;
                         
+                        if (window.DEBUG) {
+                            console.log(`Debug - Updating ODP ${order.odp_number} with:`, updateData);
+                        }
+                        
                         await this.storageService.update_odp_order(order.id, updateData);
                         updatedCount++;
                         
                         if (window.DEBUG) {
                             console.log(`Updated ODP ${order.odp_number}: status=${newStatus}, production_start=${newProductionStart}, production_end=${newProductionEnd}`);
+                        }
+                    } else {
+                        if (window.DEBUG) {
+                            console.log(`Debug - ODP ${order.odp_number} already up to date, no changes needed`);
                         }
                     }
                 } else {
@@ -1048,20 +1081,53 @@ class BacklogManager extends BaseManager {
      */
     calculate_production_start_from_event(event) {
         try {
+            if (window.DEBUG) {
+                console.log(`Debug - calculate_production_start_from_event called with:`, {
+                    event: event,
+                    hasStartTime: !!event.start_time,
+                    hasDate: !!event.date,
+                    hasStartHour: event.startHour !== undefined
+                });
+            }
+            
+            // Use new datetime structure if available
+            if (event.start_time) {
+                if (window.DEBUG) {
+                    console.log(`Debug - Using new datetime structure: start_time = ${event.start_time}`);
+                }
+                return event.start_time;
+            }
+            
+            // Fallback to legacy structure
             if (!event || !event.date || event.startHour === undefined) {
+                if (window.DEBUG) {
+                    console.log(`Debug - Legacy structure missing required fields:`, {
+                        hasEvent: !!event,
+                        hasDate: !!event?.date,
+                        hasStartHour: event?.startHour !== undefined
+                    });
+                }
                 return null;
             }
             
             // Create date from event date string (YYYY-MM-DD format)
             const startDate = new Date(event.date);
             if (isNaN(startDate.getTime())) {
+                if (window.DEBUG) {
+                    console.log(`Debug - Invalid date string: ${event.date}`);
+                }
                 return null;
             }
             
             // Set the hour from the event
             startDate.setHours(event.startHour, 0, 0, 0);
+            const result = startDate.toISOString();
             
-            return startDate.toISOString();
+            if (window.DEBUG) {
+                console.log(`Debug - Calculated from legacy structure: ${result}`);
+            }
+            
+            return result;
         } catch (error) {
             console.error('Error calculating production start from event:', error);
             return null;
@@ -1075,13 +1141,43 @@ class BacklogManager extends BaseManager {
      */
     calculate_production_end_from_event(event) {
         try {
+            if (window.DEBUG) {
+                console.log(`Debug - calculate_production_end_from_event called with:`, {
+                    event: event,
+                    hasEndTime: !!event.end_time,
+                    hasDate: !!event.date,
+                    hasStartHour: event.startHour !== undefined,
+                    hasDuration: event.duration !== undefined
+                });
+            }
+            
+            // Use new datetime structure if available
+            if (event.end_time) {
+                if (window.DEBUG) {
+                    console.log(`Debug - Using new datetime structure: end_time = ${event.end_time}`);
+                }
+                return event.end_time;
+            }
+            
+            // Fallback to legacy structure
             if (!event || !event.date || event.startHour === undefined || event.duration === undefined) {
+                if (window.DEBUG) {
+                    console.log(`Debug - Legacy structure missing required fields:`, {
+                        hasEvent: !!event,
+                        hasDate: !!event?.date,
+                        hasStartHour: event?.startHour !== undefined,
+                        hasDuration: event?.duration !== undefined
+                    });
+                }
                 return null;
             }
             
             // Create date from event date string (YYYY-MM-DD format)
             const startDate = new Date(event.date);
             if (isNaN(startDate.getTime())) {
+                if (window.DEBUG) {
+                    console.log(`Debug - Invalid date string: ${event.date}`);
+                }
                 return null;
             }
             
@@ -1089,8 +1185,13 @@ class BacklogManager extends BaseManager {
             const endHour = event.startHour + event.duration;
             const endDate = new Date(startDate);
             endDate.setHours(endHour, 0, 0, 0);
+            const result = endDate.toISOString();
             
-            return endDate.toISOString();
+            if (window.DEBUG) {
+                console.log(`Debug - Calculated from legacy structure: ${result}`);
+            }
+            
+            return result;
         } catch (error) {
             console.error('Error calculating production end from event:', error);
             return null;
@@ -1156,6 +1257,32 @@ class BacklogManager extends BaseManager {
             return `${day}/${month}/${year} ${hours}:${minutes}`;
         } catch (error) {
             console.error('Error formatting production start:', error);
+            return '-';
+        }
+    }
+
+    /**
+     * Format production end timestamp for display
+     * @param {string} timestamp - ISO timestamp string
+     * @returns {string} - Formatted date and time
+     */
+    format_production_end(timestamp) {
+        try {
+            if (!timestamp) return '-';
+            
+            const date = new Date(timestamp);
+            if (isNaN(date.getTime())) return '-';
+            
+            // Format: "DD/MM/YYYY HH:MM"
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            
+            return `${day}/${month}/${year} ${hours}:${minutes}`;
+        } catch (error) {
+            console.error('Error formatting production end:', error);
             return '-';
         }
     }

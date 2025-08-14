@@ -2041,3 +2041,105 @@ tr.editing td {
     margin-top: 0.25rem;
     display: block;
 }
+
+/* ===== EDIT INTERFACE STYLES ===== */
+.edit-shifts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    background: var(--gray-light);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.edit-shifts-container label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-dark);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--border-radius);
+    transition: background-color 0.2s ease;
+}
+
+.edit-shifts-container label:hover {
+    background-color: var(--secondary-blue);
+}
+
+.edit-shifts-container input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-blue);
+}
+
+.edit-shifts-container input[type="checkbox"]:checked {
+    accent-color: var(--primary-blue);
+}
+
+.edit-shifts-container input[type="checkbox"]:checked + label {
+    font-weight: 600;
+    color: var(--primary-blue);
+}
+
+/* ===== MULTI-DAY EVENT STYLES ===== */
+.scheduled-event.multi-day-start {
+    border-left: 4px solid var(--primary-blue);
+    border-radius: 4px 0 0 4px;
+    position: relative;
+}
+
+.scheduled-event.multi-day-start::before {
+    content: '▶';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--primary-blue);
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.scheduled-event.multi-day-middle {
+    border-left: 4px solid var(--accent-orange);
+    border-radius: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        var(--success-green),
+        var(--success-green) 10px,
+        var(--accent-orange) 10px,
+        var(--accent-orange) 20px
+    );
+    color: white;
+    font-weight: bold;
+}
+
+.scheduled-event.multi-day-end {
+    border-left: 4px solid var(--danger-red);
+    border-radius: 0 4px 4px 0;
+    position: relative;
+}
+
+.scheduled-event.multi-day-end::before {
+    content: '◀';
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--danger-red);
+    font-weight: bold;
+    font-size: 12px;
+}
+
+/* Hover effects for multi-day events */
+.scheduled-event.multi-day-start:hover,
+.scheduled-event.multi-day-middle:hover,
+.scheduled-event.multi-day-end:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 20;
+}

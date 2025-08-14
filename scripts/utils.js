@@ -13,6 +13,65 @@ class Utils {
         return `${year}-${month}-${day}`;
     }
 
+    /**
+     * Format date for display in dd/mm/yyyy format (legacy compatibility)
+     */
+    static format_date_legacy(date) {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+
+    /**
+     * Format datetime for display
+     */
+    static format_datetime(date, includeSeconds = false) {
+        const dateStr = this.format_date(date);
+        const timeStr = this.format_time(date, includeSeconds);
+        return `${dateStr} ${timeStr}`;
+    }
+
+    /**
+     * Format time for display
+     */
+    static format_time(date, includeSeconds = false) {
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        if (includeSeconds) {
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
+        return `${hours}:${minutes}`;
+    }
+
+    /**
+     * Parse datetime string to Date object
+     */
+    static parse_datetime(datetimeStr) {
+        try {
+            return new Date(datetimeStr);
+        } catch (error) {
+            console.error('Error parsing datetime:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Check if two datetime ranges overlap
+     */
+    static datetime_ranges_overlap(start1, end1, start2, end2) {
+        return start1 < end2 && start2 < end1;
+    }
+
+    /**
+     * Calculate duration between two datetimes in hours
+     */
+    static calculate_duration_hours(startDateTime, endDateTime) {
+        const start = new Date(startDateTime);
+        const end = new Date(endDateTime);
+        return (end - start) / (1000 * 60 * 60);
+    }
 
 
     /**

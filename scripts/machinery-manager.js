@@ -552,7 +552,7 @@ class MachineryManager extends BaseManager {
                 <!-- DISPONIBILITÀ (Availability) -->
                 <td class="editable-cell" data-field="active_shifts">
                     <span class="static-value">${Array.isArray(machine.active_shifts) ? machine.active_shifts.join(', ') : machine.active_shifts || '-'}</span>
-                    ${this.editManager ? this.editManager.create_edit_input('text', Array.isArray(machine.active_shifts) ? machine.active_shifts.join(', ') : machine.active_shifts) : ''}
+                    ${this.editManager ? this.editManager.create_edit_input('shifts', machine.active_shifts) : ''}
                 </td>
 
                 
@@ -727,15 +727,17 @@ class MachineryManager extends BaseManager {
                 // Maintain compatibility fields
                 machine_name: updatedData.machine_name || machine.machine_name,
                 machine_type: updatedData.machine_type || machine.machine_type,
+                // Handle active_shifts array field properly
+                active_shifts: updatedData.active_shifts || machine.active_shifts || [],
                 updated_at: new Date().toISOString()
             };
             
-
-            
-
-
-
-
+            // Debug: Log the exact data being sent
+            console.log('Debug - Machine update data:', {
+                original_machine: machine,
+                updatedData: updatedData,
+                final_updated_machine: updated_machine
+            });
 
 
             // Save updated machine

@@ -158,6 +158,22 @@ class EditManager {
                     // For color, get the value from the select element
                     const color_select = cell.querySelector('.edit-select');
                     updated_data[field] = color_select ? color_select.value : input.value;
+                } else if (field === 'active_shifts') {
+                    // Handle active_shifts as an array - collect from shift checkboxes
+                    const shift_checkboxes = cell.querySelectorAll('.edit-shift-checkbox');
+                    if (shift_checkboxes.length > 0) {
+                        updated_data[field] = Array.from(shift_checkboxes)
+                            .filter(checkbox => checkbox.checked)
+                            .map(checkbox => checkbox.value);
+                    } else {
+                        // Fallback to text input if checkboxes not found
+                        const value = input.value.trim();
+                        if (value) {
+                            updated_data[field] = value.split(',').map(shift => shift.trim()).filter(shift => shift);
+                        } else {
+                            updated_data[field] = [];
+                        }
+                    }
                 } else {
                     updated_data[field] = input.value;
                 }
@@ -180,6 +196,16 @@ class EditManager {
                     `<option value="${opt.value}" ${opt.value === value ? 'selected' : ''}>${opt.label}</option>`
                 ).join('');
                 return `<select class="edit-select" style="display: none;">${options_html}</select>`;
+            case 'shifts':
+                // Special case for active_shifts - create checkboxes for T1, T2, T3
+                const shifts = Array.isArray(value) ? value : (value ? value.split(',').map(s => s.trim()) : []);
+                return `
+                    <div class="edit-shifts-container" style="display: none;">
+                        <label><input type="checkbox" class="edit-shift-checkbox" value="T1" ${shifts.includes('T1') ? 'checked' : ''}> T1</label>
+                        <label><input type="checkbox" class="edit-shift-checkbox" value="T2" ${shifts.includes('T2') ? 'checked' : ''}> T2</label>
+                        <label><input type="checkbox" class="edit-shift-checkbox" value="T3" ${shifts.includes('T3') ? 'checked' : ''}> T3</label>
+                    </div>
+                `;
             case 'color':
                 const color_options = [
                     { value: '#1a73e8', label: 'Blue' },

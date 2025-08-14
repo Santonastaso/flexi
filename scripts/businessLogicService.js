@@ -156,34 +156,38 @@ class BusinessLogicService {
     }
     // ===== STATUS CALCULATION LOGIC =====
     /**
+     * Unified event matching logic for ODP scheduling
+     * @param {string} odpNumber - The ODP number to match
+     * @param {Object} event - The scheduled event to check
+     * @returns {boolean} True if the event matches the ODP
+     */
+    _matchesODP(odpNumber, event) {
+        // Primary: Check taskId
+        if (String(event.taskId) === String(odpNumber)) return true;
+        // Secondary: Check if taskTitle contains the ODP number
+        if (event.taskTitle && String(event.taskTitle).includes(odpNumber)) return true;
+        // Tertiary: Check if there's an odp_number field
+        if (event.odp_number && String(event.odp_number) === String(odpNumber)) return true;
+        return false;
+    }
+    
+    /**
      * Determine ODP status based on Gantt schedule
      */
     determineODPStatus(odpNumber, scheduledEvents) {
         if (!odpNumber || !scheduledEvents) return 'Not Scheduled';
-        // Check if this ODP is scheduled using multiple matching strategies
-        const isScheduled = scheduledEvents.some(event => {
-            // Primary: Check taskId
-            if (String(event.taskId) === String(odpNumber)) return true;
-            // Secondary: Check if taskTitle contains the ODP number
-            if (event.taskTitle && String(event.taskTitle).includes(odpNumber)) return true;
-            // Tertiary: Check if there's an odp_number field
-            if (event.odp_number && String(event.odp_number) === String(odpNumber)) return true;
-            return false;
-        });
+        // Check if this ODP is scheduled using unified matching logic
+        const isScheduled = scheduledEvents.some(event => this._matchesODP(odpNumber, event));
         return isScheduled ? 'Scheduled' : 'Not Scheduled';
     }
+    
     /**
      * Get production start timestamp from Gantt schedule
      */
     getProductionStartTimestamp(odpNumber, scheduledEvents) {
         if (!odpNumber || !scheduledEvents) return null;
-        // Find scheduled event by ODP number
-        const scheduledEvent = scheduledEvents.find(event => {
-            if (String(event.taskId) === String(odpNumber)) return true;
-            if (event.taskTitle && String(event.taskTitle).includes(odpNumber)) return true;
-            if (event.odp_number && String(event.odp_number) === String(odpNumber)) return true;
-            return false;
-        });
+        // Find scheduled event by ODP number using unified matching logic
+        const scheduledEvent = scheduledEvents.find(event => this._matchesODP(odpNumber, event));
         if (scheduledEvent) {
             // Task is scheduled, return the timestamp
             const start_date = new Date(scheduledEvent.date);
@@ -197,53 +201,98 @@ class BusinessLogicService {
     /**
      * Check if machine is compatible with ODP requirements
      */
-    isMachineCompatible(machine, odpData) {
-        if (!machine || !odpData) return false;
+    /**
+     * Unified machine compatibility checking
+     * @param {Object} machine - The machine to check
+     * @param {Object} odpData - The ODP data to check against
+     * @param {Object} options - Compatibility check options
+     * @param {boolean} options.returnDetails - Return detailed compatibility information
+     * @returns {boolean|Object} Compatibility result (boolean or detailed object)
+     */
+    getMachineCompatibility(machine, odpData, options = {}) {
+        const { returnDetails = false } = options;
+        
+        if (!machine || !odpData) {
+            return returnDetails ? {
+                isCompatible: false,
+                reasons: ['Machine or ODP data is missing'],
+                status: 'incompatible',
+                icon: '❌',
+                message: 'Incompatible'
+            } : false;
+        }
+        
         // Department compatibility
-        if (machine.department !== odpData.department) return false;
+        if (machine.department !== odpData.department) {
+            return returnDetails ? {
+                isCompatible: false,
+                reasons: [`Department mismatch: ${machine.department} vs ${odpData.department}`],
+                status: 'incompatible',
+                icon: '❌',
+                message: 'Incompatible'
+            } : false;
+        }
+        
         // Web width compatibility
         if (machine.max_web_width !== undefined && odpData.bag_width !== undefined) {
-            if (parseInt(odpData.bag_width) > machine.max_web_width) return false;
+            if (parseInt(odpData.bag_width) > machine.max_web_width) {
+                return returnDetails ? {
+                    isCompatible: false,
+                    reasons: [`Bag width (${odpData.bag_width}mm) exceeds machine capacity (${machine.max_web_width}mm)`],
+                    status: 'incompatible',
+                    icon: '❌',
+                    message: 'Incompatible'
+                } : false;
+            }
         }
+        
         // Bag height compatibility
         if (machine.max_bag_height !== undefined && odpData.bag_height !== undefined) {
-            if (parseInt(odpData.bag_height) > machine.max_bag_height) return false;
+            if (parseInt(odpData.bag_height) > machine.max_bag_height) {
+                return returnDetails ? {
+                    isCompatible: false,
+                    reasons: [`Bag height (${odpData.bag_height}mm) exceeds machine capacity (${machine.max_bag_height}mm)`],
+                    status: 'incompatible',
+                    icon: '❌',
+                    message: 'Incompatible'
+                } : false;
+            }
         }
+        
         // Machine status compatibility
-        if (machine.status !== 'ACTIVE') return false;
-        return true;
+        if (machine.status !== 'ACTIVE') {
+            return returnDetails ? {
+                isCompatible: false,
+                reasons: [`Machine is not active (status: ${machine.status})`],
+                status: 'incompatible',
+                icon: '❌',
+                message: 'Incompatible'
+            } : false;
+        }
+        
+        // All checks passed
+        return returnDetails ? {
+            isCompatible: true,
+            reasons: [],
+            status: 'compatible',
+            icon: '✅',
+            message: 'Compatible'
+        } : true;
+    }
+    
+    /**
+     * Check if machine is compatible with ODP requirements (boolean result)
+     * @deprecated Use getMachineCompatibility(machine, odpData) instead
+     */
+    isMachineCompatible(machine, odpData) {
+        return this.getMachineCompatibility(machine, odpData);
     }
     /**
      * Get machine compatibility status with detailed information
+     * @deprecated Use getMachineCompatibility(machine, odpData, { returnDetails: true }) instead
      */
     getMachineCompatibilityStatus(machine, odpData) {
-        const isCompatible = this.isMachineCompatible(machine, odpData);
-        const reasons = [];
-        if (!isCompatible) {
-            if (machine.department !== odpData.department) {
-                reasons.push(`Department mismatch: ${machine.department} vs ${odpData.department}`);
-            }
-            if (machine.max_web_width !== undefined && odpData.bag_width !== undefined) {
-                if (parseInt(odpData.bag_width) > machine.max_web_width) {
-                    reasons.push(`Bag width (${odpData.bag_width}mm) exceeds machine capacity (${machine.max_web_width}mm)`);
-                }
-            }
-            if (machine.max_bag_height !== undefined && odpData.bag_height !== undefined) {
-                if (parseInt(odpData.bag_height) > machine.max_bag_height) {
-                    reasons.push(`Bag height (${odpData.bag_height}mm) exceeds machine capacity (${machine.max_bag_height}mm)`);
-                }
-            }
-            if (machine.status !== 'ACTIVE') {
-                reasons.push(`Machine is not active (status: ${machine.status})`);
-            }
-        }
-        return {
-            isCompatible,
-            reasons,
-            status: isCompatible ? 'compatible' : 'incompatible',
-            icon: isCompatible ? '✅' : '❌',
-            message: isCompatible ? 'Compatible' : 'Incompatible'
-        };
+        return this.getMachineCompatibility(machine, odpData, { returnDetails: true });
     }
     // ===== DATA NORMALIZATION =====
     /**
@@ -256,7 +305,7 @@ class BusinessLogicService {
             machine_type: Utils.normalize_code(machineData.machine_type || ''),
             work_center: Utils.normalize_code(machineData.work_center || 'ZANICA'),
             department: Utils.normalize_code(machineData.department || ''),
-            status: this.normalize_status(machineData.status || 'ACTIVE')
+            status: Utils.normalize_status(machineData.status, 'ACTIVE')
         };
     }
     /**
@@ -270,8 +319,8 @@ class BusinessLogicService {
             work_center: Utils.normalize_code(odpData.work_center || ''),
             department: Utils.normalize_code(odpData.department || ''),
             product_type: this.normalize_enum_lower(odpData.product_type || 'crema'),
-            status: this.normalize_status(odpData.status || 'DRAFT'),
-            priority: this.normalize_enum_lower(odpData.priority || 'medium')
+            status: Utils.normalize_status(odpData.status, 'DRAFT'),
+            priority: Utils.normalize_enum_lower(odpData.priority || 'medium')
         };
     }
     /**
@@ -293,12 +342,7 @@ class BusinessLogicService {
         return String(name || '').trim().toUpperCase().replace(/\s+/g, '_');
     }
 
-    /**
-     * Normalize status (trim, uppercase)
-     */
-    normalize_status(status) {
-        return String(status || '').trim().toUpperCase();
-    }
+    // REMOVED: normalize_status - now using Utils.normalize_status consistently
     /**
      * Normalize enum to lowercase
      */

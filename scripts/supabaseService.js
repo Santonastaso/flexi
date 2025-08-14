@@ -181,6 +181,9 @@ class SupabaseService {
 
     async update_machine(id, updates) {
         try {
+            // Debug: Log the exact data being sent to Supabase
+            console.log('Debug - Supabase update_machine called with:', { id, updates });
+            
             const { data, error } = await this.client
                 .from(this.TABLES.MACHINES)
                 .update({
@@ -484,6 +487,23 @@ class SupabaseService {
     }
 
     /**
+     * Helper method to convert legacy date/hour format to ISO datetime
+     */
+    convert_legacy_to_datetime(date_str, hour) {
+        if (!date_str || hour === undefined) return null;
+        
+        try {
+            // Parse date in dd/mm/yyyy format
+            const [day, month, year] = date_str.split('/').map(Number);
+            const date = new Date(year, month - 1, day, hour, 0, 0, 0);
+            return date.toISOString();
+        } catch (error) {
+            console.error('Error converting legacy format to datetime:', error);
+            return null;
+        }
+    }
+
+    /**
      * SCHEDULED EVENTS CRUD OPERATIONS
      */
     async get_scheduled_events() {
@@ -495,21 +515,24 @@ class SupabaseService {
             const { data, error } = await client
                 .from(this.TABLES.SCHEDULED_EVENTS)
                 .select('*')
-                .order('date', { ascending: true });
+                .order('start_time', { ascending: true });
 
             if (error) throw error;
             
-            // Convert database format to legacy format
+            // Convert database format to application format
             const events = (data || []).map(event => ({
                 id: event.id,
                 taskId: event.task_id,
                 taskTitle: event.task_title,
                 machine: event.machine,
-                date: event.date,
-                startHour: event.start_hour,
-                endHour: event.end_hour,
+                start_time: event.start_time,
+                end_time: event.end_time,
                 duration: event.duration,
-                color: event.color
+                color: event.color,
+                // Legacy compatibility - calculate old fields for backward compatibility
+                date: event.start_time ? new Date(event.start_time).toLocaleDateString('en-GB') : null,
+                startHour: event.start_time ? new Date(event.start_time).getHours() : 0,
+                endHour: event.end_time ? new Date(event.end_time).getHours() : 0
             }));
             
             this.set_cache('scheduled_events', events);
@@ -531,15 +554,15 @@ class SupabaseService {
             if (deleteError) throw deleteError;
 
             if (events.length > 0) {
-                // Convert legacy format to database format
+                // Convert application format to database format
                 const dbEvents = events.map(event => ({
                     id: event.id || crypto.randomUUID(),
                     task_id: event.taskId,
                     task_title: event.taskTitle,
                     machine: event.machine,
-                    date: event.date,
-                    start_hour: event.startHour,
-                    end_hour: event.endHour,
+                    // Legacy fields removed - no more date format errors!
+                    start_time: event.start_time,
+                    end_time: event.end_time,
                     duration: event.duration,
                     color: event.color,
                     created_at: new Date().toISOString()
@@ -563,22 +586,18 @@ class SupabaseService {
 
     async add_scheduled_event(event) {
         try {
-    
-            
             const dbEvent = {
                 id: event.id || crypto.randomUUID(),
                 task_id: event.taskId,
                 task_title: event.taskTitle,
                 machine: event.machine,
-                date: event.date,
-                start_hour: event.startHour,
-                end_hour: event.endHour,
+                // Legacy fields removed - no more date format errors!
+                start_time: event.start_time,
+                end_time: event.end_time,
                 duration: event.duration,
                 color: event.color,
                 created_at: new Date().toISOString()
             };
-            
-    
 
             const { data, error } = await this.client
                 .from(this.TABLES.SCHEDULED_EVENTS)
@@ -625,9 +644,39 @@ class SupabaseService {
         return events.filter(event => event.machine === machine_name);
     }
 
+    async get_events_by_date_range(start_date, end_date) {
+        const events = await this.get_scheduled_events();
+        const start = new Date(start_date);
+        const end = new Date(end_date);
+        
+        return events.filter(event => {
+            if (event.start_time && event.end_time) {
+                const eventStart = new Date(event.start_time);
+                const eventEnd = new Date(event.end_time);
+                // Check if event overlaps with the date range
+                return eventStart <= end && eventEnd >= start;
+            }
+            // Legacy compatibility - check if event date falls within range
+            if (event.date) {
+                const eventDate = new Date(event.date);
+                return eventDate >= start && eventDate <= end;
+            }
+            return false;
+        });
+    }
+
     async get_events_by_date(date) {
         const events = await this.get_scheduled_events();
-        return events.filter(event => event.date === date);
+        // Support both legacy date format and new datetime format
+        return events.filter(event => {
+            if (event.date === date) return true; // Legacy compatibility
+            if (event.start_time) {
+                const eventDate = new Date(event.start_time);
+                const targetDate = new Date(date);
+                return eventDate.toDateString() === targetDate.toDateString();
+            }
+            return false;
+        });
     }
 
     async get_scheduled_event_by_id(event_id) {
