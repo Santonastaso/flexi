@@ -199,18 +199,75 @@ class MachineryManager extends BaseManager {
 
 
     validate_form_fields() {
-        // Use centralized validation service
+        // Collect form data including shifts
         const machineData = this.collect_machine_data();
-        const validation = this.validationService.validate_machine(machineData);
+        if (!machineData) {
+            this.elements.add_btn.disabled = true;
+            return;
+        }
         
-        // Check that at least one shift is selected
-        const has_shifts = Array.from(this.elements.active_shifts).some(checkbox => checkbox.checked);
+        // Include shift selection in form data
+        const formData = {
+            ...machineData,
+            active_shifts: Array.from(this.elements.active_shifts).map(checkbox => checkbox.checked)
+        };
         
-        this.elements.add_btn.disabled = !(validation.isValid && has_shifts);
+        // Use centralized validation service
+        const validation = this.validationService.validate_machine_form(formData);
         
-        // Show validation errors if any
+        // Update button state
+        this.elements.add_btn.disabled = !validation.isValid;
+        
+        // Clear previous validation errors
+        this.clear_validation_errors();
+        
+        // Display field-specific validation errors
         if (!validation.isValid) {
-            // Validation errors handled by UI
+            Object.entries(validation.errors).forEach(([fieldId, errorMessage]) => {
+                this.show_validation_error(fieldId, errorMessage);
+            });
+        }
+        
+        return validation;
+    }
+
+    /**
+     * Clear all validation error displays
+     */
+    clear_validation_errors() {
+        const errorElements = document.querySelectorAll('.validation-error');
+        errorElements.forEach(element => {
+            element.style.display = 'none';
+            element.textContent = '';
+        });
+        
+        // Clear validation CSS classes from all form inputs
+        const formInputs = document.querySelectorAll('.form-group input, .form-group select');
+        formInputs.forEach(input => {
+            input.classList.remove('validation-error', 'validation-success');
+        });
+    }
+
+    /**
+     * Show validation error for a specific field
+     */
+    show_validation_error(fieldId, message) {
+        const errorElement = document.getElementById(`${fieldId}_error`);
+        const inputElement = this.elements[fieldId];
+        
+        if (errorElement) {
+            errorElement.textContent = message;
+            errorElement.style.display = message ? 'block' : 'none';
+        }
+        
+        if (inputElement) {
+            if (message) {
+                inputElement.classList.add('validation-error');
+                inputElement.classList.remove('validation-success');
+            } else {
+                inputElement.classList.remove('validation-error');
+                inputElement.classList.remove('validation-success');
+            }
         }
     }
 
@@ -234,21 +291,19 @@ class MachineryManager extends BaseManager {
                 return;
             }
 
-            // Use consolidated validation
-            const validationConfig = {
-                numericFields: ['standard_speed', 'min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height'],
-                field_labels: {
-                    standard_speed: 'Standard speed',
-                    min_web_width: 'Min web width',
-                    max_web_width: 'Max web width',
-                    min_bag_height: 'Min bag height',
-                    max_bag_height: 'Max bag height'
-                }
+            // Use centralized validation with shift data
+            const formData = {
+                ...machineData,
+                active_shifts: Array.from(this.elements.active_shifts).map(checkbox => checkbox.checked)
             };
             
-            const validation = this.validate_form(machineData, validationConfig);
+            const validation = this.validationService.validate_machine_form(formData);
             if (!validation.isValid) {
-                this.show_error_message('validating machine data', new Error(validation.errors.join(', ')));
+                const errorMessages = [
+                    ...Object.values(validation.errors),
+                    ...validation.generalErrors
+                ];
+                this.show_error_message('validating machine data', new Error(errorMessages.join(', ')));
                 return;
             }
 
@@ -653,18 +708,18 @@ class MachineryManager extends BaseManager {
             const updated_machine = {
                 ...machine,
                 ...updatedData,
-                // Apply proper data types for numeric fields
-                min_web_width: updatedData.min_web_width ? parseInt(updatedData.min_web_width) : machine.min_web_width,
-                max_web_width: updatedData.max_web_width ? parseInt(updatedData.max_web_width) : machine.max_web_width,
-                min_bag_height: updatedData.min_bag_height ? parseInt(updatedData.min_bag_height) : machine.min_bag_height,
-                max_bag_height: updatedData.max_bag_height ? parseInt(updatedData.max_bag_height) : machine.max_bag_height,
-                standard_speed: updatedData.standard_speed ? parseInt(updatedData.standard_speed) : machine.standard_speed,
-                setup_time_standard: updatedData.setup_time_standard ? parseFloat(updatedData.setup_time_standard) : machine.setup_time_standard,
-                changeover_color: updatedData.changeover_color ? parseFloat(updatedData.changeover_color) : machine.changeover_color,
-                changeover_material: updatedData.changeover_material ? parseFloat(updatedData.changeover_material) : machine.changeover_material,
+                // Apply proper data types for numeric fields with NaN protection
+                min_web_width: updatedData.min_web_width ? (parseInt(updatedData.min_web_width) || 0) : machine.min_web_width,
+                max_web_width: updatedData.max_web_width ? (parseInt(updatedData.max_web_width) || 0) : machine.max_web_width,
+                min_bag_height: updatedData.min_bag_height ? (parseInt(updatedData.min_bag_height) || 0) : machine.min_bag_height,
+                max_bag_height: updatedData.max_bag_height ? (parseInt(updatedData.max_bag_height) || 0) : machine.max_bag_height,
+                standard_speed: updatedData.standard_speed ? (parseInt(updatedData.standard_speed) || 0) : machine.standard_speed,
+                setup_time_standard: updatedData.setup_time_standard ? (parseFloat(updatedData.setup_time_standard) || 0) : machine.setup_time_standard,
+                changeover_color: updatedData.changeover_color ? (parseFloat(updatedData.changeover_color) || 0) : machine.changeover_color,
+                changeover_material: updatedData.changeover_material ? (parseFloat(updatedData.changeover_material) || 0) : machine.changeover_material,
                 // Maintain compatibility fields
-                            machine_name: updatedData.machine_name || machine.machine_name,
-            machine_type: updatedData.machine_type || machine.machine_type,
+                machine_name: updatedData.machine_name || machine.machine_name,
+                machine_type: updatedData.machine_type || machine.machine_type,
                 updated_at: new Date().toISOString()
             };
             
@@ -702,7 +757,12 @@ class MachineryManager extends BaseManager {
 }
 
 
-// Initialize when all resources are loaded and storage service is available
-window.addEventListener('load', () => {
+// Initialize when storage service is ready
+window.addEventListener('storageServiceReady', () => {
     BaseManager.initialize_manager(MachineryManager, 'machineryManager');
 });
+
+// Fallback: if storage service is already ready when this script loads
+if (window.storageService && window.storageService.initialized) {
+    BaseManager.initialize_manager(MachineryManager, 'machineryManager');
+}

@@ -465,6 +465,125 @@ class ValidationService {
             fieldErrors
         };
     }
+
+    /**
+     * Validate machinery form data with field-specific error mapping
+     * Centralizes all machinery form validation logic
+     */
+    validate_machine_form(formData) {
+        const errors = {};
+        const fieldErrors = {};
+        
+        // Use existing validate_machine logic
+        const machineValidation = this.validate_machine(formData);
+        
+        if (!machineValidation.isValid) {
+            machineValidation.errors.forEach(error => {
+                // Map generic errors to specific field errors
+                if (error.includes('Machine name')) {
+                    fieldErrors.machine_name = error;
+                } else if (error.includes('Machine type')) {
+                    fieldErrors.machine_type = error;
+                } else if (error.includes('Work center')) {
+                    fieldErrors.work_center = error;
+                } else if (error.includes('Department')) {
+                    fieldErrors.department = error;
+                } else if (error.includes('web width')) {
+                    if (error.includes('Minimum')) {
+                        fieldErrors.min_web_width = error;
+                    } else if (error.includes('Maximum')) {
+                        fieldErrors.max_web_width = error;
+                    } else {
+                        fieldErrors.web_width = error;
+                    }
+                } else if (error.includes('bag height')) {
+                    if (error.includes('Minimum')) {
+                        fieldErrors.min_bag_height = error;
+                    } else if (error.includes('Maximum')) {
+                        fieldErrors.max_bag_height = error;
+                    } else {
+                        fieldErrors.bag_height = error;
+                    }
+                } else if (error.includes('Standard speed')) {
+                    fieldErrors.standard_speed = error;
+                } else if (error.includes('Setup time')) {
+                    fieldErrors.setup_time_standard = error;
+                } else if (error.includes('Color changeover')) {
+                    fieldErrors.changeover_color = error;
+                } else if (error.includes('Material changeover')) {
+                    fieldErrors.changeover_material = error;
+                } else {
+                    // Generic errors
+                    if (!errors.general) errors.general = [];
+                    errors.general.push(error);
+                }
+            });
+        }
+        
+        // Additional form-specific validations
+        // Check that at least one shift is selected (if shifts are provided)
+        if (formData.active_shifts && Array.isArray(formData.active_shifts)) {
+            const hasShifts = formData.active_shifts.some(shift => shift);
+            if (!hasShifts) {
+                fieldErrors.active_shifts = 'At least one shift must be selected';
+            }
+        }
+        
+        return {
+            isValid: machineValidation.isValid && Object.keys(fieldErrors).length === 0,
+            errors: fieldErrors,
+            generalErrors: errors.general || []
+        };
+    }
+
+    /**
+     * Validate phase form data with field-specific error mapping
+     * Centralizes all phase form validation logic
+     */
+    validate_phase_form(formData) {
+        const errors = {};
+        const fieldErrors = {};
+        
+        // Use existing validate_phase logic
+        const phaseValidation = this.validate_phase(formData);
+        
+        if (!phaseValidation.isValid) {
+            phaseValidation.errors.forEach(error => {
+                // Map generic errors to specific field errors
+                if (error.includes('name') || error.includes('Name')) {
+                    fieldErrors.phase_name = error;
+                } else if (error.includes('department') || error.includes('Department')) {
+                    fieldErrors.phase_type = error;
+                } else if (error.includes('Work center')) {
+                    fieldErrors.phase_work_center = error;
+                } else if (error.includes('Number of people') || error.includes('numero_persone')) {
+                    fieldErrors.numero_persone = error;
+                } else if (error.includes('Printing speed')) {
+                    fieldErrors.v_stampa = error;
+                } else if (error.includes('Printing setup time')) {
+                    fieldErrors.t_setup_stampa = error;
+                } else if (error.includes('Printing hourly cost')) {
+                    fieldErrors.costo_h_stampa = error;
+                } else if (error.includes('Packaging speed')) {
+                    fieldErrors.v_conf = error;
+                } else if (error.includes('Packaging setup time')) {
+                    fieldErrors.t_setup_conf = error;
+                } else if (error.includes('Packaging hourly cost')) {
+                    fieldErrors.costo_h_conf = error;
+                } else {
+                    // Generic errors
+                    if (!errors.general) errors.general = [];
+                    errors.general.push(error);
+                }
+            });
+        }
+        
+        return {
+            isValid: phaseValidation.isValid && Object.keys(fieldErrors).length === 0,
+            errors: fieldErrors,
+            generalErrors: errors.general || []
+        };
+    }
 }
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

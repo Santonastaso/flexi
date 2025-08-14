@@ -1167,7 +1167,12 @@ class BacklogManager extends BaseManager {
     }
 }
 
-// Initialize when all resources are loaded and storage service is available
-window.addEventListener('load', () => {
+// Initialize when storage service is ready
+window.addEventListener('storageServiceReady', () => {
     BaseManager.initialize_manager(BacklogManager, 'backlogManager');
 });
+
+// Fallback: if storage service is already ready when this script loads
+if (window.storageService && window.storageService.initialized) {
+    BaseManager.initialize_manager(BacklogManager, 'backlogManager');
+}

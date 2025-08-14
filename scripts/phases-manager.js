@@ -274,20 +274,30 @@ class PhasesManager extends BaseManager {
     }
 
     validate_phase_form() {
-        // Use centralized validation service
+        // Collect form data
         const phaseData = this.collect_phase_data();
         if (!phaseData) {
             this.elements.add_phase_btn.disabled = true;
             return;
         }
         
-        const validation = this.validationService.validate_phase(phaseData);
+        // Use centralized validation service
+        const validation = this.validationService.validate_phase_form(phaseData);
+        
+        // Update button state
         this.elements.add_phase_btn.disabled = !validation.isValid;
         
-        // Show validation errors if any
+        // Clear previous validation errors
+        this.clear_validation_errors();
+        
+        // Display field-specific validation errors
         if (!validation.isValid) {
-            // Validation errors handled by UI
+            Object.entries(validation.errors).forEach(([fieldId, errorMessage]) => {
+                this.showValidationError(fieldId, errorMessage);
+            });
         }
+        
+        return validation;
     }
 
 
@@ -350,37 +360,18 @@ class PhasesManager extends BaseManager {
                 return;
             }
 
-            // Use consolidated validation for numeric fields
-            const validationConfig = {
-                numericFields: ['v_stampa', 't_setup_stampa', 'costo_h_stampa', 'v_conf', 't_setup_conf', 'costo_h_conf'],
-                field_labels: {
-                    v_stampa: 'Printing speed (mt/h)',
-                    t_setup_stampa: 'Printing setup time (h)',
-                    costo_h_stampa: 'Printing hourly cost',
-                    v_conf: 'Packaging speed (pz/h)',
-                    t_setup_conf: 'Packaging setup time (h)',
-                    costo_h_conf: 'Packaging hourly cost'
-                }
-            };
-            
-            const validation = this.validate_form(phaseData, validationConfig);
+            // Use centralized validation
+            const validation = this.validationService.validate_phase_form(phaseData);
             if (!validation.isValid) {
-                // Show inline validation errors
-                validation.errors.forEach(error => {
-                    if (error.includes('Printing speed')) {
-                        this.showValidationError('v_stampa', error);
-                    } else if (error.includes('Printing setup time')) {
-                        this.showValidationError('t_setup_stampa', error);
-                    } else if (error.includes('Printing hourly cost')) {
-                        this.showValidationError('costo_h_stampa', error);
-                    } else if (error.includes('Packaging speed')) {
-                        this.showValidationError('v_conf', error);
-                    } else if (error.includes('Packaging setup time')) {
-                        this.showValidationError('t_setup_conf', error);
-                    } else if (error.includes('Packaging hourly cost')) {
-                        this.showValidationError('costo_h_conf', error);
-                    }
+                // Display field-specific validation errors
+                Object.entries(validation.errors).forEach(([fieldId, errorMessage]) => {
+                    this.showValidationError(fieldId, errorMessage);
                 });
+                
+                // Show general errors if any
+                if (validation.generalErrors && validation.generalErrors.length > 0) {
+                    this.show_error_message('validating phase data', new Error(validation.generalErrors.join(', ')));
+                }
                 return;
             }
 
@@ -492,18 +483,18 @@ class PhasesManager extends BaseManager {
                 return;
             }
 
-            // Update phase with new values
+            // Update phase with new values with NaN protection
             const updatedPhase = {
                 ...phase,
                 name: updatedData.name || phase.name,
                 department: updatedData.department || phase.department,
-                numero_persone: parseInt(updatedData.numero_persone) || phase.numero_persone || 1,
-                v_stampa: parseInt(updatedData.v_stampa) || phase.v_stampa,
-                t_setup_stampa: parseFloat(updatedData.t_setup_stampa) || phase.t_setup_stampa,
-                costo_h_stampa: parseFloat(updatedData.costo_h_stampa) || phase.costo_h_stampa,
-                v_conf: parseInt(updatedData.v_conf) || phase.v_conf,
-                t_setup_conf: parseFloat(updatedData.t_setup_conf) || phase.t_setup_conf,
-                costo_h_conf: parseFloat(updatedData.costo_h_conf) || phase.costo_h_conf
+                numero_persone: updatedData.numero_persone ? (parseInt(updatedData.numero_persone) || 0) : (phase.numero_persone || 1),
+                v_stampa: updatedData.v_stampa ? (parseInt(updatedData.v_stampa) || 0) : (phase.v_stampa || 0),
+                t_setup_stampa: updatedData.t_setup_stampa ? (parseFloat(updatedData.t_setup_stampa) || 0) : (phase.t_setup_stampa || 0),
+                costo_h_stampa: updatedData.costo_h_stampa ? (parseFloat(updatedData.costo_h_stampa) || 0) : (phase.costo_h_stampa || 0),
+                v_conf: updatedData.v_conf ? (parseInt(updatedData.v_conf) || 0) : (phase.v_conf || 0),
+                t_setup_conf: updatedData.t_setup_conf ? (parseFloat(updatedData.t_setup_conf) || 0) : (phase.t_setup_conf || 0),
+                costo_h_conf: updatedData.costo_h_conf ? (parseFloat(updatedData.costo_h_conf) || 0) : (phase.costo_h_conf || 0)
             };
 
 
@@ -549,7 +540,12 @@ class PhasesManager extends BaseManager {
     }
 }
 
-// Initialize when all resources are loaded and storage service is available
-window.addEventListener('load', () => {
+// Initialize when storage service is ready
+window.addEventListener('storageServiceReady', () => {
     BaseManager.initialize_manager(PhasesManager, 'phasesManager');
-}); 
+});
+
+// Fallback: if storage service is already ready when this script loads
+if (window.storageService && window.storageService.initialized) {
+    BaseManager.initialize_manager(PhasesManager, 'phasesManager');
+} 

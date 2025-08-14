@@ -20,11 +20,24 @@ class Scheduler {
     }
     
     init() {
-        this.bind_elements();
+        if (!this.bind_elements()) {
+            console.error('Scheduler initialization failed: Required DOM elements not found');
+            return false;
+        }
+        
         this.attach_event_listeners();
-        this.load_tasks();
-        this.render_calendar();
         this.update_date_display();
+        
+        // Load data asynchronously but don't block initialization
+        this.load_tasks().catch(error => {
+            console.error('Error loading tasks:', error);
+        });
+        
+        this.render_calendar().catch(error => {
+            console.error('Error rendering calendar:', error);
+        });
+        
+        return true;
     }
     
     bind_elements() {
@@ -675,43 +688,39 @@ class Scheduler {
     }
 }
 
-// Initialize when DOM is loaded and StorageService is ready
-document.addEventListener('DOMContentLoaded', () => {
-    // Only initialize if we're on the scheduler page
+// Initialize when storage service is ready
+const initializeScheduler = () => {
+    // Only initialize if we're on the scheduler page and storage service is ready
     if (document.getElementById('calendar_container')) {
+        if (!window.storageService || !window.storageService.initialized) {
+            return;
+        }
         
-        const initializeScheduler = () => {
-            if (window.storageService && window.storageService.initialized) {
-                window.scheduler = new Scheduler();
-                console.log('Scheduler initialized successfully');
-            } else {
-                // Wait for StorageService to be ready
-                setTimeout(initializeScheduler, 100);
-            }
-        };
+        // Force clean initialization - remove any existing incomplete scheduler
+        if (window.scheduler) {
+            delete window.scheduler;
+        }
         
-        // Start initialization
-        initializeScheduler();
-        
-        // Also listen for storage service ready event
-        window.addEventListener('storageServiceReady', () => {
-            if (!window.scheduler && document.getElementById('calendar_container')) {
-                window.scheduler = new Scheduler();
-                console.log('Scheduler initialized successfully via event');
-            }
-        });
-        
-        // Listen for data change events for real-time updates
-        window.addEventListener('dataChange', (e) => {
-            const { dataType, action } = e.detail;
-            
-            if (dataType === 'machines' || dataType === 'tasks') {
-                if (window.scheduler) {
-                    window.scheduler.refresh_scheduler().catch(error => {
-                        console.error('Error refreshing scheduler from data change event:', error);
-                    });
-                }
-            }
-        });
+        try {
+            window.scheduler = new Scheduler();
+        } catch (error) {
+            console.error('Error initializing Scheduler:', error);
+        }
+    }
+};
+
+// Only listen for the event - no fallback that could cause premature initialization
+window.addEventListener('storageServiceReady', initializeScheduler);
+
+// Listen for data change events for real-time updates
+window.addEventListener('dataChange', (e) => {
+    const { dataType, action } = e.detail;
+    
+    if (dataType === 'machines' || dataType === 'tasks') {
+        if (window.scheduler) {
+            window.scheduler.refresh_scheduler().catch(error => {
+                console.error('Error refreshing scheduler from data change event:', error);
+            });
+        }
     }
 });
