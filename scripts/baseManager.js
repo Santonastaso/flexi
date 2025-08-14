@@ -44,6 +44,33 @@ class BaseManager {
     }
 
     /**
+     * Helper method to get DOM elements by ID with error logging
+     * @param {string[]} elementIds - Array of element IDs to retrieve
+     * @returns {Object} Map of {id: element} pairs
+     */
+    get_elements_by_id(elementIds) {
+        const elementMap = {};
+        const missingElements = [];
+        
+        elementIds.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                elementMap[id] = element;
+            } else {
+                missingElements.push(id);
+                elementMap[id] = null;
+            }
+        });
+        
+        // Log errors for missing elements
+        if (missingElements.length > 0) {
+            console.error(`Missing DOM elements with IDs: ${missingElements.join(', ')}`);
+        }
+        
+        return elementMap;
+    }
+
+    /**
      * Attach event listeners - to be overridden by subclasses
      */
     attach_event_listeners() {

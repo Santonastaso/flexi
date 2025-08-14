@@ -51,36 +51,39 @@ class BacklogManager extends BaseManager {
     }
 
     get_element_map() {
-        return {
+        const elementIds = [
             // Form elements
-            odp_number: document.getElementById('odp_number'),
-            article_code: document.getElementById('article_code'),
-            production_lot: document.getElementById('production_lot'),
-            work_center: document.getElementById('work_center'),
-            nome_cliente: document.getElementById('nome_cliente'),
-            description: document.getElementById('description'),
-            delivery_date: document.getElementById('delivery_date'),
-            bag_height: document.getElementById('bag_height'),
-            bag_width: document.getElementById('bag_width'),
-            bag_step: document.getElementById('bag_step'),
-            seal_sides: document.getElementById('seal_sides'),
-            product_type: document.getElementById('product_type'),
-            quantity: document.getElementById('quantity'),
-            department: document.getElementById('department'),
-            fase: document.getElementById('fase'),
-            internal_customer_code: document.getElementById('internal_customer_code'),
-            external_customer_code: document.getElementById('external_customer_code'),
-            customer_order_ref: document.getElementById('customer_order_ref'),
-            calculate_btn: document.getElementById('calculate_btn'),
-            create_task: document.getElementById('create_task'),
-            update_statuses_btn: document.getElementById('update_statuses_btn'),
-            debug_events_btn: document.getElementById('debug_events_btn'),
-            backlog_table_body: document.getElementById('backlog_table_body'),
+            'odp_number',
+            'article_code',
+            'production_lot',
+            'work_center',
+            'nome_cliente',
+            'description',
+            'delivery_date',
+            'bag_height',
+            'bag_width',
+            'bag_step',
+            'seal_sides',
+            'product_type',
+            'quantity',
+            'department',
+            'fase',
+            'internal_customer_code',
+            'external_customer_code',
+            'customer_order_ref',
+            'calculate_btn',
+            'create_task',
+            'update_statuses_btn',
+            'debug_events_btn',
+            'backlog_table_body',
             // Preview elements
-            preview_fascia: document.getElementById('preview_fascia'),
-            preview_altezza: document.getElementById('preview_altezza'),
-            preview_passo: document.getElementById('preview_passo')
-        };
+            'preview_fascia',
+            'preview_altezza',
+            'preview_passo'
+        ];
+        
+        // Get elements using base class helper
+        return this.get_elements_by_id(elementIds);
     }
 
     attach_event_listeners() {
@@ -230,7 +233,7 @@ class BacklogManager extends BaseManager {
         const formData = this.collect_form_data();
         
         // Use ValidationService for comprehensive ODP validation
-        const validation = this.validationService.validateODPForm(formData);
+        const validation = this.validationService.validate_odp(formData, { context: 'form', returnFieldMapping: true });
         const isValid = Object.keys(validation.errors).length === 0;
         
         // Clear previous validation errors
@@ -505,7 +508,7 @@ class BacklogManager extends BaseManager {
         try {
             // Perform comprehensive validation using ValidationService
             const formData = this.collect_form_data();
-            const validation = this.validationService.validateODP(formData);
+            const validation = this.validationService.validate_odp(formData, { context: 'submission' });
             
             if (!validation.isValid) {
                 this.show_error_message('validating production order', new Error('Validation failed: ' + validation.errors.join(', ')));

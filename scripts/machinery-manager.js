@@ -105,34 +105,41 @@ class MachineryManager extends BaseManager {
 
     get_element_map() {
         try {
-            const elementMap = {
+            const elementIds = [
                 // IDENTIFICAZIONE elements
-                machine_type: document.getElementById('machine_type'),
-                machine_name: document.getElementById('machine_name'),
-                machine_work_center: document.getElementById('machine_site'),
-                machine_department: document.getElementById('machine_department'),
+                'machine_type',
+                'machine_name',
+                'machine_site',  // mapped to machine_work_center
+                'machine_department',
 
                 // CAPACITÀ TECNICHE elements
-                min_web_width: document.getElementById('min_web_width'),
-                max_web_width: document.getElementById('max_web_width'),
-                min_bag_height: document.getElementById('min_bag_height'),
-                max_bag_height: document.getElementById('max_bag_height'),
+                'min_web_width',
+                'max_web_width',
+                'min_bag_height',
+                'max_bag_height',
                 
                 // PERFORMANCE elements
-                standard_speed: document.getElementById('standard_speed'),
-                setup_time_standard: document.getElementById('setup_time_standard'),
-                changeover_color: document.getElementById('changeover_color'),
-                changeover_material: document.getElementById('changeover_material'),
-                
-                // DISPONIBILITÀ elements
-                active_shifts: document.querySelectorAll('input[type="checkbox"][value^="T"]'),
+                'standard_speed',
+                'setup_time_standard',
+                'changeover_color',
+                'changeover_material',
                 
                 // Action elements
-                add_btn: document.getElementById('add_machine'),
+                'add_machine',  // mapped to add_btn
                 
                 // Table elements
-                machinery_table_body: document.getElementById('machinery_table_body')
-            };
+                'machinery_table_body'
+            ];
+            
+            // Get elements using base class helper
+            const elementMap = this.get_elements_by_id(elementIds);
+            
+            // Map specific IDs to expected property names
+            elementMap.machine_work_center = elementMap.machine_site;
+            elementMap.add_btn = elementMap.add_machine;
+            
+            // Handle special case for checkboxes (not retrieved by ID)
+            elementMap.active_shifts = document.querySelectorAll('input[type="checkbox"][value^="T"]');
             
             // Check if critical elements exist
             const criticalElements = ['machine_type', 'machine_name', 'machine_work_center', 'machine_department', 'add_btn'];
@@ -213,7 +220,7 @@ class MachineryManager extends BaseManager {
         };
         
         // Use centralized validation service
-        const validation = this.validationService.validate_machine_form(formData);
+        const validation = this.validationService.validate_machine(formData, { returnFieldMapping: true });
         
         // Update button state
         this.elements.add_btn.disabled = !validation.isValid;
@@ -297,7 +304,7 @@ class MachineryManager extends BaseManager {
                 active_shifts: Array.from(this.elements.active_shifts).map(checkbox => checkbox.checked)
             };
             
-            const validation = this.validationService.validate_machine_form(formData);
+            const validation = this.validationService.validate_machine(formData, { returnFieldMapping: true });
             if (!validation.isValid) {
                 const errorMessages = [
                     ...Object.values(validation.errors),

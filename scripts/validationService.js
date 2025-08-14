@@ -9,50 +9,92 @@ class ValidationService {
     /**
      * Validate machine data according to business rules
      */
-    validate_machine(machineData) {
+    validate_machine(machineData, options = {}) {
+        const { returnFieldMapping = false } = options;
         const errors = [];
+        const fieldErrors = {};
         const warnings = [];
         // Required fields validation
         const required_fields = ['machine_name', 'machine_type', 'work_center', 'department'];
         required_fields.forEach(field => {
             if (!machineData[field] || machineData[field].toString().trim() === '') {
-                errors.push(`${this.formatFieldName(field)} is required`);
+                const errorMessage = `${this.formatFieldName(field)} is required`;
+                errors.push(errorMessage);
+                if (returnFieldMapping) {
+                    fieldErrors[field] = errorMessage;
+                }
             }
         });
-        // Technical capacity validation
-        if (machineData.max_web_width !== undefined && machineData.max_web_width <= 0) {
-            errors.push('Maximum web width must be greater than 0');
-        }
-        if (machineData.max_bag_height !== undefined && machineData.max_bag_height <= 0) {
-            errors.push('Maximum bag height must be greater than 0');
-        }
-        // Web width relationship validation
-        if (machineData.min_web_width !== undefined && machineData.max_web_width !== undefined) {
-            if (machineData.min_web_width > machineData.max_web_width) {
+        // Technical capacity validation - required fields
+        const technicalFields = ['min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height'];
+        technicalFields.forEach(field => {
+            if (!machineData[field] || machineData[field].toString().trim() === '') {
+                const errorMessage = `${this.formatFieldName(field)} is required`;
+                errors.push(errorMessage);
+                if (returnFieldMapping) {
+                    fieldErrors[field] = errorMessage;
+                }
+            } else {
+                const value = parseFloat(machineData[field]);
+                if (isNaN(value) || value <= 0) {
+                    const errorMessage = `${this.formatFieldName(field)} must be a number > 0`;
+                    errors.push(errorMessage);
+                    if (returnFieldMapping) {
+                        fieldErrors[field] = errorMessage;
+                    }
+                }
+            }
+        });
+        
+        // Web width relationship validation (only if both values are valid)
+        if (machineData.min_web_width && machineData.max_web_width) {
+            const minWidth = parseFloat(machineData.min_web_width);
+            const maxWidth = parseFloat(machineData.max_web_width);
+            if (!isNaN(minWidth) && !isNaN(maxWidth) && minWidth > maxWidth) {
                 errors.push('Minimum web width cannot be greater than maximum web width');
             }
         }
-        // Bag height relationship validation
-        if (machineData.min_bag_height !== undefined && machineData.max_bag_height !== undefined) {
-            if (machineData.min_bag_height > machineData.max_bag_height) {
+        
+        // Bag height relationship validation (only if both values are valid)
+        if (machineData.min_bag_height && machineData.max_bag_height) {
+            const minHeight = parseFloat(machineData.min_bag_height);
+            const maxHeight = parseFloat(machineData.max_bag_height);
+            if (!isNaN(minHeight) && !isNaN(maxHeight) && minHeight > maxHeight) {
                 errors.push('Minimum bag height cannot be greater than maximum bag height');
             }
         }
-        // Performance validation
-        if (machineData.standard_speed !== undefined && machineData.standard_speed < 0) {
-            errors.push('Standard speed cannot be negative');
-        }
-        if (machineData.setup_time_standard !== undefined && machineData.setup_time_standard < 0) {
-            errors.push('Setup time cannot be negative');
-        }
-        // Changeover validation based on department
+        
+        // Performance validation - required fields
+        const performanceFields = ['standard_speed', 'setup_time_standard'];
+        performanceFields.forEach(field => {
+            if (!machineData[field] || machineData[field].toString().trim() === '') {
+                errors.push(`${this.formatFieldName(field)} is required`);
+            } else {
+                const value = parseFloat(machineData[field]);
+                if (isNaN(value) || value < 0) {
+                    errors.push(`${this.formatFieldName(field)} must be a number >= 0`);
+                }
+            }
+        });
+        
+        // Changeover validation based on department - required fields
         if (machineData.department === 'STAMPA') {
-            if (machineData.changeover_color !== undefined && machineData.changeover_color < 0) {
-                errors.push('Color changeover time cannot be negative');
+            if (!machineData.changeover_color || machineData.changeover_color.toString().trim() === '') {
+                errors.push(`${this.formatFieldName('changeover_color')} is required for printing machines`);
+            } else {
+                const value = parseFloat(machineData.changeover_color);
+                if (isNaN(value) || value < 0) {
+                    errors.push(`${this.formatFieldName('changeover_color')} must be a number >= 0`);
+                }
             }
         } else if (machineData.department === 'CONFEZIONAMENTO') {
-            if (machineData.changeover_material !== undefined && machineData.changeover_material < 0) {
-                errors.push('Material changeover time cannot be negative');
+            if (!machineData.changeover_material || machineData.changeover_material.toString().trim() === '') {
+                errors.push(`${this.formatFieldName('changeover_material')} is required for packaging machines`);
+            } else {
+                const value = parseFloat(machineData.changeover_material);
+                if (isNaN(value) || value < 0) {
+                    errors.push(`${this.formatFieldName('changeover_material')} must be a number >= 0`);
+                }
             }
         }
         // Shifts validation
@@ -81,53 +123,25 @@ class ValidationService {
             warnings
         };
     }
-    /**
-     * Validate ODP data for calculations (minimal required fields)
-     */
-    validateODPForCalculation(odpData) {
-        const errors = [];
-        const warnings = [];
-        // Essential fields for calculation
-        const essentialFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'department', 'fase'];
-        essentialFields.forEach(field => {
-            if (!odpData[field] || odpData[field].toString().trim() === '') {
-                errors.push(`${this.formatFieldName(field)} is required for calculations`);
-            }
-        });
-        // Numeric validation for calculation fields
-        const numericFields = ['bag_height', 'bag_width', 'bag_step', 'quantity'];
-        numericFields.forEach(field => {
-            if (odpData[field] !== undefined) {
-                const numValue = parseInt(odpData[field]);
-                if (isNaN(numValue) || numValue <= 0) {
-                    errors.push(`${this.formatFieldName(field)} must be a positive number for calculations`);
-                }
-            }
-        });
-        // Bag dimensions relationship validation
-        if (odpData.bag_width !== undefined && odpData.bag_step !== undefined) {
-            if (parseInt(odpData.bag_width) < parseInt(odpData.bag_step)) {
-                errors.push('Bag width must be greater than or equal to bag step');
-            }
-        }
-        return {
-            isValid: errors.length === 0,
-            errors,
-            warnings
-        };
-    }
+    // REMOVED: validateODPForCalculation - was never used
     // ===== PHASE VALIDATION =====
     /**
      * Validate phase data according to business rules
      */
-    validate_phase(phaseData) {
+    validate_phase(phaseData, options = {}) {
+        const { returnFieldMapping = false } = options;
         const errors = [];
+        const fieldErrors = {};
         const warnings = [];
         // Required fields validation
         const required_fields = ['name', 'department', 'numero_persone', 'work_center'];
         required_fields.forEach(field => {
             if (!phaseData[field] || phaseData[field].toString().trim() === '') {
-                errors.push(`${this.formatFieldName(field)} is required`);
+                const errorMessage = `${this.formatFieldName(field)} is required`;
+                errors.push(errorMessage);
+                if (returnFieldMapping) {
+                    fieldErrors[field] = errorMessage;
+                }
             }
         });
         // Department validation
@@ -144,19 +158,29 @@ class ValidationService {
         }
         // Department-specific validation
         if (phaseData.department === 'STAMPA') {
-            // Printing parameters validation
+            // Printing parameters are required and must be >= 0
             const printingFields = ['v_stampa', 't_setup_stampa', 'costo_h_stampa'];
             printingFields.forEach(field => {
-                if (phaseData[field] !== undefined && phaseData[field] < 0) {
-                    errors.push(`${this.formatFieldName(field)} cannot be negative`);
+                if (!phaseData[field] || phaseData[field].toString().trim() === '') {
+                    errors.push(`${this.formatFieldName(field)} is required for printing phases`);
+                } else {
+                    const value = parseFloat(phaseData[field]);
+                    if (isNaN(value) || value < 0) {
+                        errors.push(`${this.formatFieldName(field)} must be a number >= 0`);
+                    }
                 }
             });
         } else if (phaseData.department === 'CONFEZIONAMENTO') {
-            // Packaging parameters validation
+            // Packaging parameters are required and must be >= 0
             const packagingFields = ['v_conf', 't_setup_conf', 'costo_h_conf'];
             packagingFields.forEach(field => {
-                if (phaseData[field] !== undefined && phaseData[field] < 0) {
-                    errors.push(`${this.formatFieldName(field)} cannot be negative`);
+                if (!phaseData[field] || phaseData[field].toString().trim() === '') {
+                    errors.push(`${this.formatFieldName(field)} is required for packaging phases`);
+                } else {
+                    const value = parseFloat(phaseData[field]);
+                    if (isNaN(value) || value < 0) {
+                        errors.push(`${this.formatFieldName(field)} must be a number >= 0`);
+                    }
                 }
             });
             // Phase content validation for packaging
@@ -164,142 +188,193 @@ class ValidationService {
                 errors.push('Phase content is required for packaging phases');
             }
         }
-        return {
-            isValid: errors.length === 0,
-            errors,
-            warnings
-        };
+        
+        // Return format based on returnFieldMapping option
+        if (returnFieldMapping) {
+            return {
+                isValid: errors.length === 0,
+                errors: fieldErrors,
+                generalErrors: errors.filter(error => !Object.values(fieldErrors).includes(error))
+            };
+        } else {
+            return {
+                isValid: errors.length === 0,
+                errors,
+                warnings
+            };
+        }
     }
     // ===== ODP VALIDATION =====
     /**
-     * Validate ODP data according to business rules
+     * Unified ODP validation for both form and submission contexts
+     * @param {Object} odpData - The ODP data to validate
+     * @param {Object} options - Validation options
+     * @param {string} options.context - 'form' or 'submission'
+     * @param {boolean} options.returnFieldMapping - Return field-specific errors
+     * @returns {Object} Validation result
      */
-    validateODP(odpData) {
+    validate_odp(odpData, options = {}) {
+        const { context = 'submission', returnFieldMapping = false } = options;
+        
         const errors = [];
+        const fieldErrors = {};
         const warnings = [];
+        
+        // Context-specific required fields
+        const requiredFields = context === 'form' 
+            ? ['article_code', 'production_lot', 'bag_height', 'bag_width', 'bag_step', 'seal_sides', 'product_type', 'quantity', 'delivery_date', 'department', 'fase']
+            : ['odp_number', 'article_code', 'production_lot', 'bag_height', 'bag_width', 'bag_step', 'quantity', 'delivery_date', 'department', 'fase'];
+        
         // Required fields validation
-        const required_fields = ['odp_number', 'article_code', 'production_lot', 'bag_height', 'bag_width', 'bag_step', 'quantity', 'delivery_date', 'department', 'fase'];
-        required_fields.forEach(field => {
+        requiredFields.forEach(field => {
             if (!odpData[field] || odpData[field].toString().trim() === '') {
-                errors.push(`${this.formatFieldName(field)} is required`);
-            }
-        });
-        // ODP number format validation
-        if (odpData.odp_number) {
-            const odpPattern = /^OP\d{6}$/;
-            if (!odpPattern.test(odpData.odp_number)) {
-                errors.push('ODP number must follow format: OP000001');
-            }
-        }
-        // Article code format validation
-        if (odpData.article_code) {
-            const articlePattern = /^(P0|ISP0)\w+$/;
-            if (!articlePattern.test(odpData.article_code)) {
-                errors.push('Article code must start with P0 or ISP0');
-            }
-        }
-        // Production lot format validation
-        if (odpData.production_lot) {
-            const lotPattern = /^[A-Z]{2,4}\d{3,6}$/;
-            if (!lotPattern.test(odpData.production_lot)) {
-                errors.push('Production lot must follow format: AAPU001');
-            }
-        }
-        // Numeric field validation
-        const numericFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'progress'];
-        numericFields.forEach(field => {
-            if (odpData[field] !== undefined) {
-                const numValue = parseInt(odpData[field]);
-                if (isNaN(numValue) || numValue < 0) {
-                    errors.push(`${this.formatFieldName(field)} must be a positive number`);
+                const errorMessage = `${this.formatFieldName(field)} is required`;
+                errors.push(errorMessage);
+                if (returnFieldMapping) {
+                    fieldErrors[field] = errorMessage;
                 }
             }
         });
+        
+        // ODP number format validation (submission context only)
+        if (context === 'submission' && odpData.odp_number) {
+            const odpPattern = /^OP\d{6}$/;
+            if (!odpPattern.test(odpData.odp_number)) {
+                const errorMessage = 'ODP number must follow format: OP000001';
+                errors.push(errorMessage);
+                if (returnFieldMapping) {
+                    fieldErrors.odp_number = errorMessage;
+                }
+            }
+        }
+        
+        // Article code format validation
+        if (odpData.article_code && odpData.article_code.trim() !== '') {
+            const articlePattern = /^(P0|ISP0)\w+$/;
+            if (!articlePattern.test(odpData.article_code)) {
+                const errorMessage = 'Article code must start with P0 or ISP0';
+                errors.push(errorMessage);
+                if (returnFieldMapping) {
+                    fieldErrors.article_code = errorMessage;
+                }
+            }
+        }
+        
+        // Production lot format validation
+        if (odpData.production_lot && odpData.production_lot.trim() !== '') {
+            const lotPattern = /^[A-Z]{2,4}\d{3,6}$/;
+            if (!lotPattern.test(odpData.production_lot)) {
+                const errorMessage = 'Production lot must follow format: AAPU001';
+                errors.push(errorMessage);
+                if (returnFieldMapping) {
+                    fieldErrors.production_lot = errorMessage;
+                }
+            }
+        }
+        
+        // Numeric field validation
+        const numericFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'progress'];
+        numericFields.forEach(field => {
+            if (odpData[field] && odpData[field].toString().trim() !== '') {
+                const numValue = parseInt(odpData[field]);
+                if (isNaN(numValue) || numValue < 0) {
+                    const errorMessage = `${this.formatFieldName(field)} must be greater than or equal to 0`;
+                    errors.push(errorMessage);
+                    if (returnFieldMapping) {
+                        fieldErrors[field] = errorMessage;
+                    }
+                }
+            }
+        });
+        
         // Bag dimensions relationship validation
-        if (odpData.bag_width !== undefined && odpData.bag_step !== undefined) {
-            if (parseInt(odpData.bag_width) < parseInt(odpData.bag_step)) {
-                errors.push('Bag width must be greater than or equal to bag step');
+        if (odpData.bag_width && odpData.bag_step) {
+            const width = parseInt(odpData.bag_width);
+            const step = parseInt(odpData.bag_step);
+            if (!isNaN(width) && !isNaN(step) && width < step) {
+                const errorMessage = 'Bag width must be greater than or equal to bag step';
+                errors.push(errorMessage);
+                if (returnFieldMapping) {
+                    fieldErrors.bag_width = errorMessage;
+                }
             }
         }
-        // Quantity validation
-        if (odpData.quantity !== undefined) {
-            const quantity = parseInt(odpData.quantity);
-            if (quantity <= 0) {
-                errors.push('Quantity must be greater than 0');
-            }
-        }
-        // Date range validation
-        if (odpData.production_start && odpData.delivery_date) {
-            const start_date = new Date(odpData.production_start);
-            const deliveryDate = new Date(odpData.delivery_date);
-            if (start_date >= deliveryDate) {
-                errors.push('Production start date must be before delivery date');
-            }
-        }
-        // Delivery date validation
+        
+        // Date validation
         if (odpData.delivery_date) {
             const deliveryDate = new Date(odpData.delivery_date);
             const now = new Date();
             if (deliveryDate <= now) {
-                errors.push('Delivery date must be in the future');
+                const errorMessage = 'Delivery date must be in the future';
+                errors.push(errorMessage);
+                if (returnFieldMapping) {
+                    fieldErrors.delivery_date = errorMessage;
+                }
             }
         }
+        
+        // Date range validation (submission context only)
+        if (context === 'submission' && odpData.production_start && odpData.delivery_date) {
+            const start_date = new Date(odpData.production_start);
+            const deliveryDate = new Date(odpData.delivery_date);
+            if (start_date >= deliveryDate) {
+                const errorMessage = 'Production start date must be before delivery date';
+                errors.push(errorMessage);
+                if (returnFieldMapping) {
+                    fieldErrors.production_start = errorMessage;
+                }
+            }
+        }
+        
         // Department validation
         const validDepartments = ['STAMPA', 'CONFEZIONAMENTO'];
         if (odpData.department && !validDepartments.includes(odpData.department)) {
-            errors.push(`Department must be one of: ${validDepartments.join(', ')}`);
+            const errorMessage = `Department must be one of: ${validDepartments.join(', ')}`;
+            errors.push(errorMessage);
+            if (returnFieldMapping) {
+                fieldErrors.department = errorMessage;
+            }
         }
+        
         // Product type validation
         const validProductTypes = ['crema', 'liquido', 'polveri'];
         if (odpData.product_type && !validProductTypes.includes(odpData.product_type)) {
-            errors.push(`Product type must be one of: ${validProductTypes.join(', ')}`);
-        }
-        // Seal sides validation
-        if (odpData.seal_sides !== undefined) {
-            const sealSides = parseInt(odpData.seal_sides);
-            if (sealSides !== 3 && sealSides !== 4) {
-                errors.push('Seal sides must be 3 or 4');
+            const errorMessage = `Product type must be one of: ${validProductTypes.join(', ')}`;
+            errors.push(errorMessage);
+            if (returnFieldMapping) {
+                fieldErrors.product_type = errorMessage;
             }
         }
+        
+        // Seal sides validation
+        if (odpData.seal_sides !== undefined && odpData.seal_sides !== '') {
+            const sealSides = parseInt(odpData.seal_sides);
+            if (isNaN(sealSides) || (sealSides !== 3 && sealSides !== 4)) {
+                const errorMessage = 'Seal sides must be 3 or 4';
+                errors.push(errorMessage);
+                if (returnFieldMapping) {
+                    fieldErrors.seal_sides = errorMessage;
+                }
+            }
+        }
+        
+        // Return format based on returnFieldMapping option
+        if (returnFieldMapping) {
+            return {
+                isValid: errors.length === 0,
+                errors: fieldErrors,
+                fieldErrors: fieldErrors
+            };
+        } else {
         return {
             isValid: errors.length === 0,
             errors,
             warnings
         };
+        }
     }
     // ===== BUSINESS LOGIC VALIDATION =====
-    /**
-     * Validate machine compatibility with ODP requirements
-     */
-    validate_machineCompatibility(machine, odpData) {
-        const errors = [];
-        const warnings = [];
-        // Department compatibility
-        if (machine.department !== odpData.department) {
-            errors.push(`Machine department (${machine.department}) does not match ODP department (${odpData.department})`);
-        }
-        // Web width compatibility
-        if (machine.max_web_width !== undefined && odpData.bag_width !== undefined) {
-            if (parseInt(odpData.bag_width) > machine.max_web_width) {
-                errors.push(`Bag width (${odpData.bag_width}mm) exceeds machine maximum web width (${machine.max_web_width}mm)`);
-            }
-        }
-        // Bag height compatibility
-        if (machine.max_bag_height !== undefined && odpData.bag_height !== undefined) {
-            if (parseInt(odpData.bag_height) > machine.max_bag_height) {
-                errors.push(`Bag height (${odpData.bag_height}mm) exceeds machine maximum bag height (${machine.max_bag_height}mm)`);
-            }
-        }
-        // Machine status compatibility
-        if (machine.status !== 'ACTIVE') {
-            warnings.push(`Machine ${machine.machine_name} is not active (status: ${machine.status})`);
-        }
-        return {
-            isCompatible: errors.length === 0,
-            errors,
-            warnings
-        };
-    }
+    // REMOVED: validate_machineCompatibility - was never used
     // ===== UTILITY METHODS =====
     /**
      * Format field names for user-friendly error messages
@@ -310,7 +385,9 @@ class ValidationService {
             'machine_type': 'Machine Type',
             'work_center': 'Work Center',
             'department': 'Department',
+            'min_web_width': 'Minimum Web Width',
             'max_web_width': 'Maximum Web Width',
+            'min_bag_height': 'Minimum Bag Height',
             'max_bag_height': 'Maximum Bag Height',
             'standard_speed': 'Standard Speed',
             'setup_time_standard': 'Setup Time',
@@ -340,250 +417,12 @@ class ValidationService {
         };
         return fieldMap[field_name] || field_name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
-    /**
-     * Validate data format patterns
-     */
-    validate_format(field_name, value, pattern) {
-        if (!value) return { isValid: false, error: `${this.formatFieldName(field_name)} is required` };
-        if (!pattern.test(value)) return { isValid: false, error: `${this.formatFieldName(field_name)} format is invalid` };
-        return { isValid: true, error: null };
-    }
-    /**
-     * Validate numeric range
-     */
-    validateNumericRange(field_name, value, min, max) {
-        if (value === undefined || value === null) return { isValid: true, error: null };
-        const numValue = parseFloat(value);
-        if (isNaN(numValue)) return { isValid: false, error: `${this.formatFieldName(field_name)} must be a number` };
-        if (min !== undefined && numValue < min) return { isValid: false, error: `${this.formatFieldName(field_name)} must be at least ${min}` };
-        if (max !== undefined && numValue > max) return { isValid: false, error: `${this.formatFieldName(field_name)} must be at most ${max}` };
-        return { isValid: true, error: null };
-    }
-    /**
-     * Validate field relationships
-     */
-    validateFieldRelationship(field1Name, field1Value, field2Name, field2Value, operator = '>=') {
-        if (!field1Value || !field2Value) return { isValid: true, error: null };
-        const val1 = parseFloat(field1Value);
-        const val2 = parseFloat(field2Value);
-        if (isNaN(val1) || isNaN(val2)) return { isValid: true, error: null };
-        let isValid = false;
-        switch (operator) {
-            case '>=':
-                isValid = val1 >= val2;
-                break;
-            case '>':
-                isValid = val1 > val2;
-                break;
-            case '<=':
-                isValid = val1 <= val2;
-                break;
-            case '<':
-                isValid = val1 < val2;
-                break;
-            case '==':
-                isValid = val1 === val2;
-                break;
-            default:
-                isValid = true;
-        }
-        if (!isValid) {
-            return {
-                isValid: false,
-                error: `${this.formatFieldName(field1Name)} must be ${operator} ${this.formatFieldName(field2Name)}`
-            };
-        }
-        return { isValid: true, error: null };
-    }
-    /**
-     * Validate ODP form data with field-specific error mapping
-     */
-    validateODPForm(formData) {
-        const errors = {};
-        const fieldErrors = {};
-        // Required fields validation
-        const required_fields = ['article_code', 'production_lot', 'bag_height', 'bag_width', 'bag_step', 'seal_sides', 'product_type', 'quantity', 'delivery_date', 'department', 'fase'];
-        required_fields.forEach(field => {
-            if (!formData[field] || formData[field].toString().trim() === '') {
-                const errorMessage = `${this.formatFieldName(field)} is required`;
-                errors[field] = errorMessage;
-                fieldErrors[field] = errorMessage;
-            }
-        });
-        // Numeric field validation
-        const numericFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'progress'];
-        numericFields.forEach(field => {
-            if (formData[field] && formData[field].toString().trim() !== '') {
-                const numValue = parseInt(formData[field]);
-                if (isNaN(numValue) || numValue < 0) {
-                    const errorMessage = `${this.formatFieldName(field)} must be greater than or equal to 0`;
-                    errors[field] = errorMessage;
-                    fieldErrors[field] = errorMessage;
-                }
-            }
-        });
-        // Bag dimensions relationship validation
-        if (formData.bag_width && formData.bag_step) {
-            const width = parseInt(formData.bag_width);
-            const step = parseInt(formData.bag_step);
-            if (width < step) {
-                const errorMessage = 'Bag width must be greater than or equal to bag step';
-                errors.bag_width = errorMessage;
-                fieldErrors.bag_width = errorMessage;
-            }
-        }
-        // Date validation
-        if (formData.delivery_date) {
-            const deliveryDate = new Date(formData.delivery_date);
-            const now = new Date();
-            if (deliveryDate <= now) {
-                const errorMessage = 'Delivery date must be in the future';
-                errors.delivery_date = errorMessage;
-                fieldErrors.delivery_date = errorMessage;
-            }
-        }
-        // Format validation
-        if (formData.article_code && formData.article_code.trim() !== '') {
-            const articlePattern = /^(P0|ISP0)\w+$/;
-            if (!articlePattern.test(formData.article_code)) {
-                const errorMessage = 'Article code must start with P0 or ISP0';
-                errors.article_code = errorMessage;
-                fieldErrors.article_code = errorMessage;
-            }
-        }
-        if (formData.production_lot && formData.production_lot.trim() !== '') {
-            const lotPattern = /^[A-Z]{2,4}\d{3,6}$/;
-            if (!lotPattern.test(formData.production_lot)) {
-                const errorMessage = 'Production lot must follow format: AAPU001';
-                errors.production_lot = errorMessage;
-                fieldErrors.production_lot = errorMessage;
-            }
-        }
-        return {
-            isValid: Object.keys(errors).length === 0,
-            errors,
-            fieldErrors
-        };
-    }
+    // REMOVED: validate_format, validateNumericRange, validateFieldRelationship - were never used
+    // REMOVED: validateODPForm - consolidated into unified validateODP method
 
-    /**
-     * Validate machinery form data with field-specific error mapping
-     * Centralizes all machinery form validation logic
-     */
-    validate_machine_form(formData) {
-        const errors = {};
-        const fieldErrors = {};
-        
-        // Use existing validate_machine logic
-        const machineValidation = this.validate_machine(formData);
-        
-        if (!machineValidation.isValid) {
-            machineValidation.errors.forEach(error => {
-                // Map generic errors to specific field errors
-                if (error.includes('Machine name')) {
-                    fieldErrors.machine_name = error;
-                } else if (error.includes('Machine type')) {
-                    fieldErrors.machine_type = error;
-                } else if (error.includes('Work center')) {
-                    fieldErrors.work_center = error;
-                } else if (error.includes('Department')) {
-                    fieldErrors.department = error;
-                } else if (error.includes('web width')) {
-                    if (error.includes('Minimum')) {
-                        fieldErrors.min_web_width = error;
-                    } else if (error.includes('Maximum')) {
-                        fieldErrors.max_web_width = error;
-                    } else {
-                        fieldErrors.web_width = error;
-                    }
-                } else if (error.includes('bag height')) {
-                    if (error.includes('Minimum')) {
-                        fieldErrors.min_bag_height = error;
-                    } else if (error.includes('Maximum')) {
-                        fieldErrors.max_bag_height = error;
-                    } else {
-                        fieldErrors.bag_height = error;
-                    }
-                } else if (error.includes('Standard speed')) {
-                    fieldErrors.standard_speed = error;
-                } else if (error.includes('Setup time')) {
-                    fieldErrors.setup_time_standard = error;
-                } else if (error.includes('Color changeover')) {
-                    fieldErrors.changeover_color = error;
-                } else if (error.includes('Material changeover')) {
-                    fieldErrors.changeover_material = error;
-                } else {
-                    // Generic errors
-                    if (!errors.general) errors.general = [];
-                    errors.general.push(error);
-                }
-            });
-        }
-        
-        // Additional form-specific validations
-        // Check that at least one shift is selected (if shifts are provided)
-        if (formData.active_shifts && Array.isArray(formData.active_shifts)) {
-            const hasShifts = formData.active_shifts.some(shift => shift);
-            if (!hasShifts) {
-                fieldErrors.active_shifts = 'At least one shift must be selected';
-            }
-        }
-        
-        return {
-            isValid: machineValidation.isValid && Object.keys(fieldErrors).length === 0,
-            errors: fieldErrors,
-            generalErrors: errors.general || []
-        };
-    }
+    // REMOVED: validate_machine_form - consolidated into unified validate_machine method
 
-    /**
-     * Validate phase form data with field-specific error mapping
-     * Centralizes all phase form validation logic
-     */
-    validate_phase_form(formData) {
-        const errors = {};
-        const fieldErrors = {};
-        
-        // Use existing validate_phase logic
-        const phaseValidation = this.validate_phase(formData);
-        
-        if (!phaseValidation.isValid) {
-            phaseValidation.errors.forEach(error => {
-                // Map generic errors to specific field errors
-                if (error.includes('name') || error.includes('Name')) {
-                    fieldErrors.phase_name = error;
-                } else if (error.includes('department') || error.includes('Department')) {
-                    fieldErrors.phase_type = error;
-                } else if (error.includes('Work center')) {
-                    fieldErrors.phase_work_center = error;
-                } else if (error.includes('Number of people') || error.includes('numero_persone')) {
-                    fieldErrors.numero_persone = error;
-                } else if (error.includes('Printing speed')) {
-                    fieldErrors.v_stampa = error;
-                } else if (error.includes('Printing setup time')) {
-                    fieldErrors.t_setup_stampa = error;
-                } else if (error.includes('Printing hourly cost')) {
-                    fieldErrors.costo_h_stampa = error;
-                } else if (error.includes('Packaging speed')) {
-                    fieldErrors.v_conf = error;
-                } else if (error.includes('Packaging setup time')) {
-                    fieldErrors.t_setup_conf = error;
-                } else if (error.includes('Packaging hourly cost')) {
-                    fieldErrors.costo_h_conf = error;
-                } else {
-                    // Generic errors
-                    if (!errors.general) errors.general = [];
-                    errors.general.push(error);
-                }
-            });
-        }
-        
-        return {
-            isValid: phaseValidation.isValid && Object.keys(fieldErrors).length === 0,
-            errors: fieldErrors,
-            generalErrors: errors.general || []
-        };
-    }
+    // REMOVED: validate_phase_form - consolidated into unified validate_phase method
 }
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

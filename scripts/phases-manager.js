@@ -64,25 +64,28 @@ class PhasesManager extends BaseManager {
     }
 
     get_element_map() {
-        return {
+        const elementIds = [
             // Form elements
-            phase_name: document.getElementById('phase_name'),
-            phase_type: document.getElementById('phase_type'),
-            numero_persone: document.getElementById('numero_persone'),
-            phase_work_center: document.getElementById('phase_work_center'),
-            add_phase_btn: document.getElementById('add_phase_btn'),
-            printing_params: document.getElementById('printing_params'),
-            packaging_params: document.getElementById('packaging_params'),
-            phase_content: document.getElementById('phase_content'),
-            v_stampa: document.getElementById('v_stampa'),
-            t_setup_stampa: document.getElementById('t_setup_stampa'),
-            costo_h_stampa: document.getElementById('costo_h_stampa'),
-            v_conf: document.getElementById('v_conf'),
-            t_setup_conf: document.getElementById('t_setup_conf'),
-            costo_h_conf: document.getElementById('costo_h_conf'),
-            contenuto_fase: document.getElementById('contenuto_fase'),
-            phases_table_body: document.getElementById('phases_table_body')
-        };
+            'phase_name',
+            'phase_type',
+            'numero_persone',
+            'phase_work_center',
+            'add_phase_btn',
+            'printing_params',
+            'packaging_params',
+            'phase_content',
+            'v_stampa',
+            't_setup_stampa',
+            'costo_h_stampa',
+            'v_conf',
+            't_setup_conf',
+            'costo_h_conf',
+            'contenuto_fase',
+            'phases_table_body'
+        ];
+        
+        // Get elements using base class helper
+        return this.get_elements_by_id(elementIds);
     }
 
     attach_event_listeners() {
@@ -282,7 +285,7 @@ class PhasesManager extends BaseManager {
         }
         
         // Use centralized validation service
-        const validation = this.validationService.validate_phase_form(phaseData);
+        const validation = this.validationService.validate_phase(phaseData, { returnFieldMapping: true });
         
         // Update button state
         this.elements.add_phase_btn.disabled = !validation.isValid;
@@ -361,7 +364,7 @@ class PhasesManager extends BaseManager {
             }
 
             // Use centralized validation
-            const validation = this.validationService.validate_phase_form(phaseData);
+            const validation = this.validationService.validate_phase(phaseData, { returnFieldMapping: true });
             if (!validation.isValid) {
                 // Display field-specific validation errors
                 Object.entries(validation.errors).forEach(([fieldId, errorMessage]) => {
