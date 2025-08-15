@@ -277,6 +277,7 @@
                                 <!-- Additional fields -->
                                 <th>Priority</th>
                                 <th>Status</th>
+                                <th>Scheduled Machine</th>
                                 <th class="text-center" style="width: 150px;">Actions</th>
                             </tr>
                         </thead>
@@ -289,23 +290,11 @@
     </div>
 
     <!-- External JavaScript -->
-    <script src="../scripts/utils.js"></script>
-    <script src="../scripts/validationService.js"></script>
-    <script src="../scripts/businessLogicService.js"></script>    <!-- Supabase Client -->
+    <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <!-- Storage Services -->
-
-    <script src="../scripts/supabaseClient.js"></script>
-    <script src="../scripts/supabaseService.js"></script>
-    <script src="../scripts/serviceConfig.js"></script>
-    <script src="../scripts/storageService.js"></script>
-    <script src="../scripts/baseManager.js"></script>
-    <script src="../scripts/uiComponents.js"></script>
-    <script src="../scripts/banner.js"></script>
-    <script src="../scripts/editManager.js"></script>
-    <script src="../scripts/backlog-manager.js"></script>
-    <script src="../components/navigation.js"></script>
+    <!-- Page Initializer -->
+    <script type="module" src="../scripts/page-initializers/backlog-init.js"></script>
     
     <script>
         // Enable debug mode for troubleshooting

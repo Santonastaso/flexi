@@ -1,18 +1,25 @@
 /**
  * Backlog Manager - Manages production orders (ODP) in the backlog
  */
-class BacklogManager extends BaseManager {
+import { BaseManager } from './baseManager.js';
+import { ValidationService } from './validationService.js';
+import { BusinessLogicService } from './businessLogicService.js';
+import { storageService } from './storageService.js';
+import { editManager } from './editManager.js';
+import { Utils } from './utils.js';
+
+export class BacklogManager extends BaseManager {
     constructor() {
         super(null);
-        this.editManager = window.editManager;
+        this.editManager = editManager;
         this.validationService = new ValidationService();
         this.businessLogic = new BusinessLogicService();
-        this.storageService = window.storageService;
+        this.storageService = storageService;
     }
 
     init(elementMap) {
         // Set up storage service reference
-        this.storageService = window.storageService;
+        this.storageService = storageService;
         
         if (!this.validate_storage_service()) return false;
         
@@ -781,6 +788,10 @@ class BacklogManager extends BaseManager {
                     <span class="static-value">${Utils.escape_html(item.status || '-')}</span>
                     ${this.editManager ? this.editManager.create_edit_input('text', item.status) : ''}
                 </td>
+                <td class="editable-cell" data-field="scheduled_machine">
+                    <span class="static-value">${Utils.escape_html(item.scheduled_machine || '-')}</span>
+                    ${this.editManager ? this.editManager.create_edit_input('text', item.scheduled_machine) : ''}
+                </td>
                 
                 <td class="text-center">
                     ${this.editManager ? this.editManager.create_action_buttons() : ''}
@@ -1295,14 +1306,4 @@ class BacklogManager extends BaseManager {
             error.textContent = '';
         });
     }
-}
-
-// Initialize when storage service is ready
-window.addEventListener('storageServiceReady', () => {
-    BaseManager.initialize_manager(BacklogManager, 'backlogManager');
-});
-
-// Fallback: if storage service is already ready when this script loads
-if (window.storageService && window.storageService.initialized) {
-    BaseManager.initialize_manager(BacklogManager, 'backlogManager');
 }

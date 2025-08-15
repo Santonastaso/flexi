@@ -221,17 +221,17 @@ class CalendarRenderer {
     }
     
     render_mini_month(year, month) {
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        const start_date = new Date(firstDay);
-        start_date.setDate(start_date.getDate() - firstDay.getDay());
+        const first_day = new Date(year, month, 1);
+        const last_day = new Date(year, month + 1, 0);
+        const start_date = new Date(first_day);
+        start_date.setDate(start_date.getDate() - first_day.getDay());
         
         let html = '<div class="mini-month-grid">';
         const current = new Date(start_date);
         
         for (let week = 0; week < 6; week++) {
             for (let day = 0; day < 7; day++) {
-                const isCurrentMonth = current.getMonth() === month;
+                const is_current_month = current.getMonth() === month;
                 const has_events = this.storage_service.get_events_by_date(Utils.format_date(current))
                     .filter(e => e.machine === this.machine_name).length > 0;
                 

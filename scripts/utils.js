@@ -2,7 +2,7 @@
  * Shared Utilities - Common functions used across the application
  * Consolidates duplicate code to follow DRY principles
  */
-class Utils {
+export class Utils {
     /**
      * Format date for display (YYYY-MM-DD)
      */
@@ -276,9 +276,4 @@ class Utils {
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = Utils;
-}
-
-// Make available globally
-if (typeof window !== 'undefined') {
-    window.Utils = Utils;
 }

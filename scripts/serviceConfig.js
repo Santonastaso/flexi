@@ -3,7 +3,7 @@
  * Configuration for Supabase-only backend
  */
 
-const ServiceConfig = {
+export const ServiceConfig = {
     // Always use Supabase
     STORAGE_MODE: 'supabase',
     
@@ -15,7 +15,7 @@ const ServiceConfig = {
      * Get the Supabase service
      */
     get_service() {
-        return window.supabaseService;
+        return window.supabase_service;
     },
     
     /**
@@ -26,6 +26,3 @@ const ServiceConfig = {
         return true;
     }
 };
-
-// Make available globally
-window.ServiceConfig = ServiceConfig;

@@ -1,43 +1,66 @@
 /**
- * Supabase Client Configuration
- * Handles connection to Supabase backend
+ * Supabase Client Initialization
+ * Handles Supabase client creation and connection management
  */
 
 // Supabase configuration
 const SUPABASE_URL = 'https://jyrfznujcyqskpfthrsf.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5cmZ6bnVqY3lxc2twZnRocnNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUwODM1OTMsImV4cCI6MjA3MDY1OTU5M30.JOZLGHslSQO7wDeFSq7FHAV6_VNtD9DS-gMNUu4rEnM';
 
-// Create Supabase client
-let supabaseClient = null;
+let supabase_client = null;
+let initialization_promise = null;
 
 function initializeSupabaseClient() {
-    if (window.supabase) {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: {
-                persistSession: true,
-                autoRefreshToken: true
-            },
-            realtime: {
-                params: {
-                    eventsPerSecond: 10
+    return new Promise((resolve, reject) => {
+        const maxAttempts = 100; // 10 seconds max wait
+        let attempts = 0;
+        
+        const tryInitialize = () => {
+            if (window.supabase) {
+                try {
+                    supabase_client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                        auth: {
+                            persistSession: true,
+                            autoRefreshToken: true
+                        },
+                        realtime: {
+                            params: {
+                                eventsPerSecond: 10
+                            }
+                        }
+                    });
+                    
+                    console.log('✅ Supabase client initialized successfully');
+                    resolve(supabase_client);
+                } catch (error) {
+                    console.error('❌ Error creating Supabase client:', error);
+                    reject(error);
                 }
+            } else {
+                attempts++;
+                if (attempts >= maxAttempts) {
+                    const error = new Error('Supabase library not loaded after 10 seconds');
+                    console.error('❌', error.message);
+                    reject(error);
+                    return;
+                }
+                
+                // Wait 100ms before trying again
+                setTimeout(tryInitialize, 100);
             }
-        });
+        };
         
-        // Make client globally available after creation
-        window.supabaseClient = supabaseClient;
-        
-        console.log('Supabase client initialized successfully');
-    } else {
-        console.error('Supabase library not loaded yet');
-    }
+        tryInitialize();
+    });
 }
 
-// Initialize only once when DOM is ready
-document.addEventListener('DOMContentLoaded', initializeSupabaseClient);
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    initialization_promise = initializeSupabaseClient();
+});
 
 // Helper function to handle Supabase errors
-function handle_supabase_error(error, context = '') {
+export function handle_supabase_error(error, context = '') {
     console.error(`Supabase error${context ? ` in ${context}` : ''}:`, error);
     
     // User-friendly error messages
@@ -55,14 +78,14 @@ function handle_supabase_error(error, context = '') {
 }
 
 // Connection status checker
-async function check_supabase_connection() {
-    if (!supabaseClient) {
+export async function check_supabase_connection() {
+    if (!supabase_client) {
         console.error('Supabase client not initialized');
         return false;
     }
     
     try {
-        const { data, error } = await supabaseClient
+        const { data, error } = await supabase_client
             .from('machines')
             .select('count')
             .limit(1);
@@ -72,7 +95,7 @@ async function check_supabase_connection() {
             return false;
         }
         
-        console.log('Supabase connection successful');
+        console.log('✅ Supabase connection successful');
         return true;
     } catch (error) {
         console.error('Supabase connection error:', error);
@@ -80,32 +103,31 @@ async function check_supabase_connection() {
     }
 }
 
-// Export helper functions for use in other modules
-window.handle_supabase_error = handle_supabase_error;
-window.check_supabase_connection = check_supabase_connection;
-// Note: window.supabaseClient is set in initializeSupabaseClient() after client creation
+// Export the client getter function with waiting capability
+export async function get_supabase_client() {
+    if (supabase_client) {
+        return supabase_client;
+    }
+    
+    // Wait for initialization if it's still in progress
+    if (initialization_promise) {
+        try {
+            await initialization_promise;
+            return supabase_client;
+        } catch (error) {
+            console.error('Failed to wait for Supabase client initialization:', error);
+            return null;
+        }
+    }
+    
+    return null;
+}
 
-// NOTE: To fix RLS (Row Level Security) issues, run these SQL commands in your Supabase SQL editor:
-// 
-// -- Option 1: Disable RLS entirely (simplest for development)
-// ALTER TABLE machines DISABLE ROW LEVEL SECURITY;
-// ALTER TABLE phases DISABLE ROW LEVEL SECURITY;
-// ALTER TABLE odp_orders DISABLE ROW LEVEL SECURITY;
-// ALTER TABLE scheduled_events DISABLE ROW LEVEL SECURITY;
-// ALTER TABLE machine_availability DISABLE ROW LEVEL SECURITY;
-//
-// -- Option 2: Create permissive policies (more secure)
-// DROP POLICY IF EXISTS "Enable all operations for authenticated users" ON machines;
-// CREATE POLICY "Enable all operations for anon users" ON machines FOR ALL USING (true);
-//
-// DROP POLICY IF EXISTS "Enable all operations for authenticated users" ON phases;
-// CREATE POLICY "Enable all operations for anon users" ON phases FOR ALL USING (true);
-//
-// DROP POLICY IF EXISTS "Enable all operations for authenticated users" ON odp_orders;
-// CREATE POLICY "Enable all operations for anon users" ON odp_orders FOR ALL USING (true);
-//
-// DROP POLICY IF EXISTS "Enable all operations for authenticated users" ON scheduled_events;
-// CREATE POLICY "Enable all operations for anon users" ON scheduled_events FOR ALL USING (true);
-//
-// DROP POLICY IF EXISTS "Enable all operations for authenticated users" ON machine_availability;
-// CREATE POLICY "Enable all operations for anon users" ON machine_availability FOR ALL USING (true);
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        handle_supabase_error,
+        check_supabase_connection,
+        get_supabase_client
+    };
+}

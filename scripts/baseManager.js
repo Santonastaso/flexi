@@ -2,7 +2,9 @@
  * Base Manager Class - Provides common functionality for all managers
  * Consolidates repeated patterns across BacklogManager, MachineryManager, etc.
  */
-class BaseManager {
+import { Utils } from './utils.js';
+
+export class BaseManager {
     constructor(storage_service) {
         this.storage_service = storage_service;
         this.elements = {};
@@ -122,33 +124,10 @@ class BaseManager {
 
     /**
      * Common initialization pattern for managers
+     * @deprecated Use ES6 module imports instead
      */
     static initialize_manager(ManagerClass, manager_name) {
-        const initialize_manager = () => {
-            if (window.storageService && window.storageService.initialized) {
-                const manager = new ManagerClass();
-                window[manager_name] = manager;
-                
-                // Initialize the manager with its element map
-                const elementMap = manager.get_element_map();
-                if (elementMap) {
-                    const initSuccess = manager.init(elementMap);
-                                    if (initSuccess) {
-                    // Manager initialized successfully
-                } else {
-                    console.error(`❌ Failed to initialize ${manager_name}`);
-                }
-                } else {
-                    console.error(`❌ Failed to get element map for ${manager_name}`);
-                }
-            } else {
-                setTimeout(initialize_manager, 50);
-            }
-        };
-        initialize_manager();
-        
-        // Also listen for storage service ready event for faster initialization
-        window.addEventListener('storageServiceReady', initialize_manager);
+        console.warn('BaseManager.initialize_manager is deprecated. Use ES6 module imports instead.');
     }
 
     /**

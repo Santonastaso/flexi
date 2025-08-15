@@ -259,9 +259,4 @@ class EditManager {
 }
 
 // Export as global singleton
-const editManager = new EditManager();
-
-// Make available globally
-if (typeof window !== 'undefined') {
-    window.editManager = editManager;
-}
+export const editManager = new EditManager();

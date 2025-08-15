@@ -246,7 +246,7 @@ class ViewManager {
     }
     
     set_off_time_range(start_date, end_date, start_time, end_time) {
-        const machine_name = this.calendar_renderer.machineName;
+        const machine_name = this.calendar_renderer.machine_name;
         if (!machine_name) return;
         
         // Parse time strings to hours and minutes

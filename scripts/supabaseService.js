@@ -2,17 +2,22 @@
  * Supabase Service - Backend data management
  * Provides all data operations using Supabase backend
  */
+import { get_supabase_client, check_supabase_connection } from './supabaseClient.js';
+import { show_banner } from './banner.js';
+
+// No longer needed - using stable event IDs instead of random UUIDs
+
 class SupabaseService {
     constructor() {
         this.client = null; // Will be set in init()
         this.subscriptions = new Map();
         this.cache = new Map();
-        this.cacheTimeout = 5000; // 5 seconds cache
+        this.cache_timeout = 5000; // 5 seconds cache
         
         // Table names matching Supabase schema
         this.TABLES = {
             MACHINES: 'machines',
-            SCHEDULED_EVENTS: 'scheduled_events',
+            SCHEDULED_EVENTS: 'odp_orders', // Now using consolidated table
             MACHINE_AVAILABILITY: 'machine_availability',
             ODP_ORDERS: 'odp_orders',
             PHASES: 'phases'
@@ -23,24 +28,30 @@ class SupabaseService {
      * Initialize service and check connection
      */
     async init() {
-        // Wait for supabaseClient to be available
+        // Wait for supabase_client to be available
         let attempts = 0;
-        while (!window.supabaseClient && attempts < 50) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+        const maxAttempts = 50; // 5 seconds max wait
+        
+        while (attempts < maxAttempts) {
+            const client = await get_supabase_client();
+            if (client) {
+                this.client = client;
+                console.log('✅ SupabaseService client assigned:', !!this.client);
+                break;
+            }
+            
             attempts++;
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
         
-        if (!window.supabaseClient) {
-            console.error('Supabase client not available after 5 seconds');
+        if (!this.client) {
+            console.error('❌ Supabase client not available after 5 seconds');
             return false;
         }
         
-        this.client = window.supabaseClient;
-        console.log('SupabaseService client assigned:', !!this.client);
-        
-        const connected = await window.check_supabase_connection();
+        const connected = await check_supabase_connection();
         if (!connected) {
-            console.error('Failed to connect to Supabase');
+            console.error('❌ Failed to connect to Supabase');
             if (typeof show_banner === 'function') {
                 show_banner('Failed to connect to database. Some features may not work.', 'error');
             }
@@ -65,7 +76,7 @@ class SupabaseService {
      */
     get_from_cache(key) {
         const cached = this.cache.get(key);
-        if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+        if (cached && Date.now() - cached.timestamp < this.cache_timeout) {
             return cached.data;
         }
         this.cache.delete(key);
@@ -511,30 +522,51 @@ class SupabaseService {
 
         try {
             const client = this.ensure_client();
+            // Get ODP orders that have scheduling information (consolidated approach)
             const { data, error } = await client
-                .from(this.TABLES.SCHEDULED_EVENTS)
+                .from(this.TABLES.ODP_ORDERS)
                 .select('*')
-                .order('start_time', { ascending: true });
+                .not('scheduled_machine', 'is', null)
+                .order('scheduled_start_time', { ascending: true });
 
             if (error) throw error;
             
-            // Convert database format to application format
-            const events = (data || []).map(event => ({
-                id: event.id,
-                taskId: event.task_id,
-                taskTitle: event.task_title,
-                machine: event.machine,
-                start_time: event.start_time,
-                end_time: event.end_time,
-                duration: event.duration,
-                color: event.color,
-                // Legacy compatibility - calculate old fields for backward compatibility
-                date: event.start_time ? new Date(event.start_time).toLocaleDateString('en-GB') : null,
-                startHour: event.start_time ? new Date(event.start_time).getHours() : 0,
-                endHour: event.end_time ? new Date(event.end_time).getHours() : 0
-            }));
+                        // Transform ODP orders to match the expected scheduled_events format
+            const events = (data || []).map(odp => {
+                // Generate a STABLE event ID based on ODP ID and machine to ensure consistency
+                // This prevents event IDs from changing on every get_scheduled_events call
+                const eventId = `event_${odp.id}_${odp.scheduled_machine}`;
+                
+                return {
+                    id: eventId,                    // Stable event ID based on ODP ID and machine
+                    taskId: odp.id,                 // ODP order ID for database operations
+                    taskTitle: odp.odp_number,
+                    machine: odp.scheduled_machine,
+                    start_time: odp.scheduled_start_time,
+                    end_time: odp.scheduled_end_time,
+                    duration: odp.duration,
+                    color: odp.color || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    // Additional ODP fields for enhanced tooltips
+                    cost: odp.cost,
+                    progress: odp.progress,
+                    priority: odp.priority,
+                    status: odp.status,
+                    // Legacy compatibility - calculate old fields for backward compatibility
+                    date: odp.scheduled_start_time ? new Date(odp.scheduled_start_time).toLocaleDateString('en-GB') : null,
+                    startHour: odp.scheduled_start_time ? new Date(odp.scheduled_start_time).getHours() : 0,
+                    endHour: odp.scheduled_end_time ? new Date(odp.scheduled_end_time).getHours() : 0
+                };
+            });
             
-            this.set_cache('scheduled_events', events);
+            // Debug: Log the event transformation to verify IDs are correct
+            console.log('get_scheduled_events debug - Event transformation:', events.map(event => ({
+                eventId: event.id,
+                taskId: event.taskId,
+                taskTitle: event.taskTitle,
+                machine: event.machine
+            })));
+            
+            this.set_cache('scheduled_events', events); // Keep cache key for backward compatibility
             return events;
         } catch (error) {
             console.error('Error fetching scheduled events:', error);
@@ -544,38 +576,40 @@ class SupabaseService {
 
     async save_scheduled_events(events) {
         try {
-            // Delete all existing events and insert new ones
-            const { error: deleteError } = await this.client
-                .from(this.TABLES.SCHEDULED_EVENTS)
-                .delete()
-                .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+            // Clear all existing scheduling information from ODP orders
+            const { error: clearError } = await this.client
+                .from(this.TABLES.ODP_ORDERS)
+                .update({
+                    scheduled_machine: null,
+                    scheduled_start_time: null,
+                    scheduled_end_time: null,
+                    color: null,
+                    status: 'NOT SCHEDULED'
+                })
+                .not('scheduled_machine', 'is', null);
 
-            if (deleteError) throw deleteError;
+            if (clearError) throw clearError;
 
             if (events.length > 0) {
-                // Convert application format to database format
-                const dbEvents = events.map(event => ({
-                    id: event.id || crypto.randomUUID(),
-                    task_id: event.taskId,
-                    task_title: event.taskTitle,
-                    machine: event.machine,
-                    // Legacy fields removed - no more date format errors!
-                    start_time: event.start_time,
-                    end_time: event.end_time,
-                    duration: event.duration,
-                    color: event.color,
-                    created_at: new Date().toISOString()
-                }));
+                // Update ODP orders with new scheduling information
+                for (const event of events) {
+                    const { error: updateError } = await this.client
+                        .from(this.TABLES.ODP_ORDERS)
+                        .update({
+                            scheduled_machine: event.machine,
+                            scheduled_start_time: event.start_time,
+                            scheduled_end_time: event.end_time,
+                            color: event.color,
+                            status: 'SCHEDULED'
+                        })
+                        .eq('id', event.taskId);
 
-                const { data, error } = await this.client
-                    .from(this.TABLES.SCHEDULED_EVENTS)
-                    .insert(dbEvents)
-                    .select();
-
-                if (error) throw error;
+                    if (updateError) throw updateError;
+                }
             }
             
-            this.clear_cache('scheduled_events');
+            this.clear_cache('scheduled_events'); // Keep for backward compatibility
+            this.clear_cache('odp_orders');
             return events;
         } catch (error) {
             console.error('Error saving scheduled events:', error);
@@ -585,28 +619,34 @@ class SupabaseService {
 
     async add_scheduled_event(event) {
         try {
-            const dbEvent = {
-                id: event.id || crypto.randomUUID(),
-                task_id: event.taskId,
-                task_title: event.taskTitle,
+            // Debug: Log what's being passed to add_scheduled_event
+            console.log('add_scheduled_event debug:', {
+                eventId: event.id,
+                taskId: event.taskId,
                 machine: event.machine,
-                // Legacy fields removed - no more date format errors!
                 start_time: event.start_time,
                 end_time: event.end_time,
-                duration: event.duration,
-                color: event.color,
-                created_at: new Date().toISOString()
-            };
-
+                eventKeys: Object.keys(event)
+            });
+            
+            // Update the ODP order with scheduling information instead of creating a separate event
             const { data, error } = await this.client
-                .from(this.TABLES.SCHEDULED_EVENTS)
-                .insert(dbEvent)
+                .from(this.TABLES.ODP_ORDERS)
+                .update({
+                    scheduled_machine: event.machine,
+                    scheduled_start_time: event.start_time,
+                    scheduled_end_time: event.end_time,
+                    color: event.color,
+                    status: 'SCHEDULED'
+                })
+                .eq('id', event.taskId)
                 .select()
                 .single();
 
             if (error) throw error;
             
-            this.clear_cache('scheduled_events');
+            this.clear_cache('scheduled_events'); // Keep for backward compatibility
+            this.clear_cache('odp_orders');
             return event;
         } catch (error) {
             console.error('Error adding scheduled event:', error);
@@ -616,14 +656,38 @@ class SupabaseService {
 
     async remove_scheduled_event(event_id) {
         try {
+            // First, get the event to find the taskId (ODP order ID)
+            const events = await this.get_scheduled_events();
+            const event = events.find(e => e.id === event_id);
+            
+            if (!event || !event.taskId) {
+                console.error('Cannot remove scheduled event: event not found or missing taskId');
+                throw new Error('Event not found or missing taskId');
+            }
+            
+            console.log('remove_scheduled_event debug:', {
+                eventId: event_id,
+                taskId: event.taskId,
+                eventMachine: event.machine,
+                eventKeys: Object.keys(event)
+            });
+            
+            // Clear scheduling information from the ODP order using the taskId
             const { error } = await this.client
-                .from(this.TABLES.SCHEDULED_EVENTS)
-                .delete()
-                .eq('id', event_id);
+                .from(this.TABLES.ODP_ORDERS)
+                .update({
+                    scheduled_machine: null,
+                    scheduled_start_time: null,
+                    scheduled_end_time: null,
+                    color: null,
+                    status: 'NOT SCHEDULED'
+                })
+                .eq('id', event.taskId);
 
             if (error) throw error;
             
-            this.clear_cache('scheduled_events');
+            this.clear_cache('scheduled_events'); // Keep for backward compatibility
+            this.clear_cache('odp_orders');
             
             // Return remaining events
             return await this.get_scheduled_events();
@@ -934,14 +998,9 @@ class SupabaseService {
 }
 
 // Export as global singleton
-const supabaseService = new SupabaseService();
-
-// Make available globally
-if (typeof window !== 'undefined') {
-    window.supabaseService = supabaseService;
-}
+export const supabase_service = new SupabaseService();
 
 // ES6 module export
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = supabaseService;
+    module.exports = supabase_service;
 }

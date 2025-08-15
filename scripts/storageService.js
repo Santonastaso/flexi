@@ -3,9 +3,12 @@
  * Provides all data operations using Supabase backend
  * Simple, clean interface for database operations
  */
+import { supabase_service } from './supabaseService.js';
+import { ServiceConfig } from './serviceConfig.js';
+
 class StorageService {
     constructor() {
-        this.supabaseService = null;
+        this.supabase_service = null;
         this.config = null;
         this.initialized = false;
     }
@@ -18,7 +21,7 @@ class StorageService {
         await this.wait_for_services();
         
         // Initialize Supabase connection
-        await this.supabaseService.init();
+        await this.supabase_service.init();
         this.initialized = true;
     }
 
@@ -26,22 +29,15 @@ class StorageService {
      * Wait for Supabase service to be available
      */
     async wait_for_services() {
-        let attempts = 0;
-        const maxAttempts = 50; // 5 seconds max wait
-        
-        while (attempts < maxAttempts) {
-            if (window.supabaseService && window.ServiceConfig) {
-                this.supabaseService = window.supabaseService;
-                this.config = window.ServiceConfig;
-                console.log('StorageService dependencies loaded successfully');
-                return;
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
+        // Services are now imported directly, so they should be available immediately
+        if (supabase_service && ServiceConfig) {
+            this.supabase_service = supabase_service;
+            this.config = ServiceConfig;
+            console.log('StorageService dependencies loaded successfully');
+            return;
         }
         
-        throw new Error('Supabase service not available after 5 seconds');
+        throw new Error('Supabase service not available');
     }
 
 
@@ -50,8 +46,8 @@ class StorageService {
      * Clear cache for a specific feature
      */
     async clear_cache(feature) {
-        if (this.supabaseService && this.supabaseService.clear_cache) {
-            this.supabaseService.clear_cache(feature);
+        if (this.supabase_service && this.supabase_service.clear_cache) {
+            this.supabase_service.clear_cache(feature);
             console.log(`Cache cleared for ${feature}`);
         }
     }
@@ -102,12 +98,12 @@ class StorageService {
      */
     async check_connection() {
         try {
-            if (!this.supabaseService) {
+            if (!this.supabase_service) {
                 return { connected: false, error: 'Supabase service not available' };
             }
             
             // Try a simple operation to test connection
-            await this.supabaseService.get_machines();
+            await this.supabase_service.get_machines();
             return { connected: true, error: null };
         } catch (error) {
             return { 
@@ -122,7 +118,7 @@ class StorageService {
      */
     async get_machines() {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.get_machines(),
+            () => this.supabase_service.get_machines(),
             'get_machines',
             'machines'
         );
@@ -130,7 +126,7 @@ class StorageService {
 
     async get_active_machines() {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.get_active_machines(),
+            () => this.supabase_service.get_active_machines(),
             'get_active_machines',
             'machines'
         );
@@ -138,7 +134,7 @@ class StorageService {
     
     async save_machines(machines) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.save_machines(machines),
+            () => this.supabase_service.save_machines(machines),
             'save_machines',
             'machines',
             'Machines saved'
@@ -147,7 +143,7 @@ class StorageService {
     
     async add_machine(machine) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.add_machine(machine),
+            () => this.supabase_service.add_machine(machine),
             'add_machine',
             'machines',
             'Machine added'
@@ -156,7 +152,7 @@ class StorageService {
 
     async update_machine(id, updates) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.update_machine(id, updates),
+            () => this.supabase_service.update_machine(id, updates),
             'update_machine',
             'machines',
             'Machine updated'
@@ -165,7 +161,7 @@ class StorageService {
     
     async remove_machine(machine_id) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.remove_machine(machine_id),
+            () => this.supabase_service.remove_machine(machine_id),
             'remove_machine',
             'machines',
             'Machine removed'
@@ -174,7 +170,7 @@ class StorageService {
 
     async add_machine_with_sync(machine) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.add_machine_with_sync(machine),
+            () => this.supabase_service.add_machine_with_sync(machine),
             'add_machine_with_sync',
             'machines',
             'Machine added with sync'
@@ -183,7 +179,7 @@ class StorageService {
 
     async save_machines_with_sync(machines) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.save_machines_with_sync(machines),
+            () => this.supabase_service.save_machines_with_sync(machines),
             'save_machines_with_sync',
             'machines',
             'Machines saved with sync'
@@ -192,7 +188,7 @@ class StorageService {
     
     async validate_machine_can_be_deleted(machineId) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.validate_machine_can_be_deleted(machineId),
+            () => this.supabase_service.validate_machine_can_be_deleted(machineId),
             'validate_machine_can_be_deleted',
             'machines'
         );
@@ -203,7 +199,7 @@ class StorageService {
      */
     async get_odp_orders() {
         const result = await this.handle_supabase_operation(
-            () => this.supabaseService.get_odp_orders(),
+            () => this.supabase_service.get_odp_orders(),
             'get_odp_orders',
             'odp_orders'
         );
@@ -213,7 +209,7 @@ class StorageService {
 
     async save_odp_orders(orders) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.save_odp_orders(orders),
+            () => this.supabase_service.save_odp_orders(orders),
             'save_odp_orders',
             'odp_orders',
             'ODP orders saved'
@@ -222,7 +218,7 @@ class StorageService {
 
     async add_odp_order(order) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.add_odp_order(order),
+            () => this.supabase_service.add_odp_order(order),
             'add_odp_order',
             'odp_orders',
             'ODP order added'
@@ -231,7 +227,7 @@ class StorageService {
 
     async update_odp_order(id, updates) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.update_odp_order(id, updates),
+            () => this.supabase_service.update_odp_order(id, updates),
             'update_odp_order',
             'odp_orders',
             'ODP order updated'
@@ -240,7 +236,7 @@ class StorageService {
     
     async remove_odp_order(id) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.remove_odp_order(id),
+            () => this.supabase_service.remove_odp_order(id),
             'remove_odp_order',
             'odp_orders',
             'ODP order removed'
@@ -249,7 +245,7 @@ class StorageService {
     
     async get_next_odp_number() {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.get_next_odp_number(),
+            () => this.supabase_service.get_next_odp_number(),
             'get_next_odp_number',
             'odp_orders'
         );
@@ -257,7 +253,7 @@ class StorageService {
 
     async get_valid_tasks_for_display() {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.get_valid_tasks_for_display(),
+            () => this.supabase_service.get_valid_tasks_for_display(),
             'get_valid_tasks_for_display',
             'odp_orders'
         );
@@ -265,7 +261,7 @@ class StorageService {
 
     async get_odp_order_by_id(id) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.get_odp_order_by_id(id),
+            () => this.supabase_service.get_odp_order_by_id(id),
             'get_odp_order_by_id',
             'odp_orders'
         );
@@ -282,7 +278,7 @@ class StorageService {
         }
         
         const result = await this.handle_supabase_operation(
-            () => this.supabaseService.get_phases(),
+            () => this.supabase_service.get_phases(),
             'get_phases',
             'phases'
         );
@@ -298,7 +294,7 @@ class StorageService {
         }
         
         return await this.handle_supabase_operation(
-            () => this.supabaseService.save_phases(phases),
+            () => this.supabase_service.save_phases(phases),
             'save_phases',
             'phases',
             'Phases saved'
@@ -313,7 +309,7 @@ class StorageService {
         }
         
         return await this.handle_supabase_operation(
-            () => this.supabaseService.add_phase(phase),
+            () => this.supabase_service.add_phase(phase),
             'add_phase',
             'phases',
             'Phase added'
@@ -322,7 +318,7 @@ class StorageService {
 
     async update_phase(id, updates) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.update_phase(id, updates),
+            () => this.supabase_service.update_phase(id, updates),
             'update_phase',
             'phases',
             'Phase updated'
@@ -331,7 +327,7 @@ class StorageService {
 
     async remove_phase(id) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.remove_phase(id),
+            () => this.supabase_service.remove_phase(id),
             'remove_phase',
             'phases',
             'Phase removed'
@@ -340,7 +336,7 @@ class StorageService {
 
     async get_phase_by_id(id) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.get_phase_by_id(id),
+            () => this.supabase_service.get_phase_by_id(id),
             'get_phase_by_id',
             'phases'
         );
@@ -351,7 +347,7 @@ class StorageService {
      */
     async get_scheduled_events() {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.get_scheduled_events(),
+            () => this.supabase_service.get_scheduled_events(),
             'get_scheduled_events',
             'scheduled_events'
         );
@@ -359,7 +355,7 @@ class StorageService {
 
     async save_scheduled_events(events) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.save_scheduled_events(events),
+            () => this.supabase_service.save_scheduled_events(events),
             'save_scheduled_events',
             'scheduled_events',
             'Scheduled events saved'
@@ -368,7 +364,7 @@ class StorageService {
 
     async add_scheduled_event(event) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.add_scheduled_event(event),
+            () => this.supabase_service.add_scheduled_event(event),
             'add_scheduled_event',
             'scheduled_events',
             'Scheduled event added'
@@ -377,7 +373,7 @@ class StorageService {
 
     async remove_scheduled_event(event_id) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.remove_scheduled_event(event_id),
+            () => this.supabase_service.remove_scheduled_event(event_id),
             'remove_scheduled_event',
             'scheduled_events',
             'Scheduled event removed'
@@ -386,7 +382,7 @@ class StorageService {
 
     async is_task_scheduled(task_id) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.is_task_scheduled(task_id),
+            () => this.supabase_service.is_task_scheduled(task_id),
             'is_task_scheduled',
             'scheduled_events'
         );
@@ -394,7 +390,7 @@ class StorageService {
 
     async get_events_by_machine(machine_name) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.get_events_by_machine(machine_name),
+            () => this.supabase_service.get_events_by_machine(machine_name),
             'get_events_by_machine',
             'scheduled_events'
         );
@@ -402,7 +398,7 @@ class StorageService {
 
     async get_events_by_date(date) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.get_events_by_date(date),
+            () => this.supabase_service.get_events_by_date(date),
             'get_events_by_date',
             'scheduled_events'
         );
@@ -410,7 +406,7 @@ class StorageService {
 
     async get_scheduled_event_by_id(event_id) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.get_scheduled_event_by_id(event_id),
+            () => this.supabase_service.get_scheduled_event_by_id(event_id),
             'get_scheduled_event_by_id',
             'scheduled_events'
         );
@@ -421,7 +417,7 @@ class StorageService {
      */
     async get_machine_availability() {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.get_machine_availability(),
+            () => this.supabase_service.get_machine_availability(),
             'get_machine_availability',
             'machine_availability'
         );
@@ -429,7 +425,7 @@ class StorageService {
 
     async save_machine_availability(availability) {
         return await this.handle_supabase_operation(
-            () => this.supabaseService.save_machine_availability(availability),
+            () => this.supabase_service.save_machine_availability(availability),
             'save_machine_availability',
             'machine_availability',
             'Machine availability saved'
@@ -440,7 +436,7 @@ class StorageService {
         this.log_call('get_machine_availability_for_date', 'machine_availability', machineName, date);
         
         try {
-            const result = await this.supabaseService.get_machine_availability_for_date(machineName, date);
+            const result = await this.supabase_service.get_machine_availability_for_date(machineName, date);
             return result;
         } catch (error) {
             console.error('Error getting machine availability for date from Supabase:', error);
@@ -452,7 +448,7 @@ class StorageService {
         this.log_call('set_machine_availability', 'machine_availability', machineName, date, unavailableHours);
         
         try {
-            const result = await this.supabaseService.set_machine_availability(machineName, date, unavailableHours);
+            const result = await this.supabase_service.set_machine_availability(machineName, date, unavailableHours);
             console.log('Machine availability set in Supabase');
             return result;
         } catch (error) {
@@ -465,7 +461,7 @@ class StorageService {
         this.log_call('toggle_machine_hour_availability', 'machine_availability', machineName, date, hour);
         
         try {
-            const result = await this.supabaseService.toggle_machine_hour_availability(machineName, date, hour);
+            const result = await this.supabase_service.toggle_machine_hour_availability(machineName, date, hour);
             console.log('Machine hour availability toggled in Supabase');
             return result;
         } catch (error) {
@@ -488,45 +484,27 @@ class StorageService {
      * REALTIME SUBSCRIPTIONS (Supabase only)
      */
     subscribe_to_changes(table, callback) {
-        if (this.config && this.config.ENABLE_REALTIME && this.supabaseService) {
-            return this.supabaseService.subscribe_to_changes(table, callback);
+        if (this.config && this.config.ENABLE_REALTIME && this.supabase_service) {
+            return this.supabase_service.subscribe_to_changes(table, callback);
         }
         return null;
     }
 
     unsubscribe_from_changes(table) {
-        if (this.config && this.config.ENABLE_REALTIME && this.supabaseService) {
-            this.supabaseService.unsubscribe_from_changes(table);
+        if (this.config && this.config.ENABLE_REALTIME && this.supabase_service) {
+            this.supabase_service.unsubscribe_from_changes(table);
         }
     }
 
     unsubscribe_all() {
-        if (this.config && this.config.ENABLE_REALTIME && this.supabaseService) {
-            this.supabaseService.unsubscribe_all();
+        if (this.config && this.config.ENABLE_REALTIME && this.supabase_service) {
+            this.supabase_service.unsubscribe_all();
         }
     }
 }
 
 // Create and export storage service
-const storageService = new StorageService();
-
-// Make available globally
-if (typeof window !== 'undefined') {
-    window.storageService = storageService;
-    
-    // Initialize the service after all scripts are loaded
-    window.addEventListener('load', async () => {
-        try {
-            await storageService.init();
-            console.log('StorageService initialized successfully');
-            
-            // Dispatch a custom event to notify other components
-            window.dispatchEvent(new CustomEvent('storageServiceReady'));
-        } catch (error) {
-            console.error('Failed to initialize StorageService:', error);
-        }
-    });
-}
+export const storageService = new StorageService();
 
 // ES6 module export
 if (typeof module !== 'undefined' && module.exports) {

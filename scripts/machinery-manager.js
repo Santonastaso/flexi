@@ -5,14 +5,17 @@
  * This is the single source of truth for all machine data in the application.
  */
 
+import { BaseManager } from './baseManager.js';
+import { ValidationService } from './validationService.js';
+import { BusinessLogicService } from './businessLogicService.js';
+import { storageService } from './storageService.js';
+import { editManager } from './editManager.js';
+import { Utils } from './utils.js';
 
-
-
-
-class MachineryManager extends BaseManager {
+export class MachineryManager extends BaseManager {
     constructor() {
-        super(window.storageService);
-        this.editManager = window.editManager;
+        super(storageService);
+        this.editManager = editManager;
         this.current_editing_type = null;
         this.current_editing_id = null;
         
@@ -32,7 +35,7 @@ class MachineryManager extends BaseManager {
 
     init(elementMap) {
         // Set up storage service reference
-        this.storageService = window.storageService;
+        this.storageService = storageService;
         
         // Ensure storage service is available
         if (!this.storageService) {
@@ -758,15 +761,4 @@ class MachineryManager extends BaseManager {
     }
 
 
-}
-
-
-// Initialize when storage service is ready
-window.addEventListener('storageServiceReady', () => {
-    BaseManager.initialize_manager(MachineryManager, 'machineryManager');
-});
-
-// Fallback: if storage service is already ready when this script loads
-if (window.storageService && window.storageService.initialized) {
-    BaseManager.initialize_manager(MachineryManager, 'machineryManager');
 }

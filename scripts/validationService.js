@@ -2,7 +2,7 @@
  * Validation Service - Centralized validation logic for all entities
  * Single source of truth for all business rules and validation patterns
  */
-class ValidationService {
+export class ValidationService {
     constructor() {
     }
     // ===== MACHINERY VALIDATION =====
@@ -427,6 +427,4 @@ class ValidationService {
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = ValidationService;
-} else if (typeof window !== 'undefined') {
-    window.ValidationService = ValidationService;
 }

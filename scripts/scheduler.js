@@ -2,21 +2,27 @@
  * Production Scheduler - Fixed Implementation
  * Uses existing CSS structure and StorageService API
  */
-class Scheduler {
-    constructor() {
-        this.storageService = window.storageService;
-        this.businessLogic = new BusinessLogicService();
-        this.currentDate = new Date();
-        this.currentDate.setHours(0, 0, 0, 0);
+
+// Import dependencies
+import { BusinessLogicService } from './businessLogicService.js';
+import { Utils } from './utils.js';
+
+export class Scheduler {
+    constructor(storage_service = null, business_logic_service = null) {
+        this.storage_service = storage_service || window.storageService;
+        this.business_logic = business_logic_service || new BusinessLogicService();
+        this.current_date = new Date();
+        this.current_date.setHours(0, 0, 0, 0);
         
         this.elements = {};
-        this.dragState = {
-            isDragging: false,
-            draggedElement: null,
-            dragType: null // 'task' or 'event'
+        this.drag_state = {
+            is_dragging: false,
+            dragged_element: null,
+            drag_type: null // 'task' or 'event'
         };
         
-        this.init();
+        // Don't auto-initialize - let the caller do it when ready
+        // this.init();
     }
     
     init() {
@@ -98,7 +104,7 @@ class Scheduler {
             taskPool.classList.remove('drag-over');
             
             const eventId = e.dataTransfer.getData('text/plain');
-            if (eventId && this.dragState.dragType === 'event') {
+            if (eventId && this.drag_state.drag_type === 'event') {
                 this.unschedule_event(eventId);
             }
         });
@@ -112,11 +118,9 @@ class Scheduler {
         
         try {
             // Get available tasks (ODP orders that aren't scheduled)
-            const allOrders = await this.storageService.get_odp_orders();
-            const scheduledEvents = await this.storageService.get_scheduled_events();
-            const scheduledTaskIds = new Set(scheduledEvents.map(event => event.taskId));
-            
-            const availableTasks = allOrders.filter(order => !scheduledTaskIds.has(order.id));
+            const allOrders = await this.storage_service.get_odp_orders();
+            // In the consolidated approach, scheduled tasks have scheduled_machine set
+            const availableTasks = allOrders.filter(order => !order.scheduled_machine);
             
             if (availableTasks.length === 0) {
                 taskPool.innerHTML = '<div class="empty-state">No tasks available for scheduling</div>';
@@ -148,9 +152,9 @@ class Scheduler {
         
         // Drag events
         taskElement.addEventListener('dragstart', (e) => {
-            this.dragState.isDragging = true;
-            this.dragState.draggedElement = taskElement;
-            this.dragState.dragType = 'task';
+            this.drag_state.is_dragging = true;
+            this.drag_state.dragged_element = taskElement;
+            this.drag_state.drag_type = 'task';
             
             taskElement.classList.add('dragging');
             e.dataTransfer.setData('text/plain', task.id);
@@ -159,9 +163,9 @@ class Scheduler {
         });
         
         taskElement.addEventListener('dragend', (e) => {
-            this.dragState.isDragging = false;
-            this.dragState.draggedElement = null;
-            this.dragState.dragType = null;
+            this.drag_state.is_dragging = false;
+            this.drag_state.dragged_element = null;
+            this.drag_state.drag_type = null;
             taskElement.classList.remove('dragging');
             
             // Clear drag-over states
@@ -176,7 +180,7 @@ class Scheduler {
     async render_calendar() {
         try {
             // Get only active machines for scheduling
-            const allMachines = await this.storageService.get_machines();
+            const allMachines = await this.storage_service.get_machines();
             
             const activeMachines = this.get_active_machines(allMachines);
             
@@ -321,14 +325,14 @@ class Scheduler {
             timeSlot.dataset.machine = this.get_machine_display_name(machine);
             
             // Check if this 15-minute slot is unavailable for the machine
-            const dateStr = Utils.format_date(this.currentDate);
+            const dateStr = Utils.format_date(this.current_date);
             const machineName = this.get_machine_display_name(machine);
             
             // TEMPORARILY DISABLED: Machine availability check causing database overload
             // TODO: Re-enable when machine_availability table is properly configured
             /*
             // Check machine availability asynchronously (non-blocking)
-            this.storageService.get_machine_availability_for_date(machineName, dateStr)
+            this.storage_service.get_machine_availability_for_date(machineName, dateStr)
                 .then(unavailableHours => {
                     if (unavailableHours && Array.isArray(unavailableHours) && unavailableHours.includes(hour)) {
                         timeSlot.classList.add('unavailable');
@@ -357,7 +361,7 @@ class Scheduler {
             slot.classList.add('drag-over');
             
             // Add visual feedback for valid drop zones
-            if (this.dragState.isDragging) {
+            if (this.drag_state.is_dragging) {
                 slot.style.backgroundColor = 'rgba(37, 99, 235, 0.1)';
             }
         });
@@ -375,7 +379,7 @@ class Scheduler {
             const taskId = e.dataTransfer.getData('text/plain');
             
             // Only try to parse JSON if we're dragging a task (not an event)
-            if (taskId && this.dragState.dragType === 'task') {
+            if (taskId && this.drag_state.drag_type === 'task') {
                 try {
                     const taskDataJson = e.dataTransfer.getData('application/json');
                     if (taskDataJson) {
@@ -388,10 +392,10 @@ class Scheduler {
                     console.error('Error parsing task data:', error);
                     this.show_message('Error scheduling task: Invalid data', 'error');
                 }
-            } else if (taskId && this.dragState.dragType === 'event') {
+            } else if (taskId && this.drag_state.drag_type === 'event') {
                 // Handle moving existing events (rescheduling)
                 this.reschedule_event(taskId, slot);
-            }
+        }
         });
     }
     
@@ -438,7 +442,7 @@ class Scheduler {
         };
         
         try {
-            await this.storageService.add_scheduled_event(event);
+            await this.storage_service.add_scheduled_event(event);
             
             // Dispatch custom event for status update
             window.dispatchEvent(new CustomEvent('odpStatusChanged', {
@@ -463,7 +467,7 @@ class Scheduler {
         const end = new Date(endDateTime);
         
         // Get all events for the machine across the entire time range
-        const allEvents = await this.storageService.get_scheduled_events();
+        const allEvents = await this.storage_service.get_scheduled_events();
         const machineEvents = allEvents.filter(event => event.machine === machine);
         
         // Check for conflicts with existing events
@@ -489,54 +493,58 @@ class Scheduler {
         const minute = parseInt(slot.dataset.minute) || 0;
         const duration = this.get_task_duration(taskData);
         
-        // Calculate start and end times using the EXACT same approach as reschedule_event
-        // Use the same date parsing method to ensure consistency
-        const startDate = new Date(this.currentDate);
-        startDate.setHours(hour, minute, 0, 0);
-        const endDate = new Date(this.currentDate);
+        // SIMPLE APPROACH: Duration comes from ODP data, end time = start time + duration
+        const startDate = new Date(this.current_date.getFullYear(), this.current_date.getMonth(), this.current_date.getDate(), hour, minute, 0, 0);
         
-        // Handle decimal hours properly: split into whole hours and minutes
-        const totalEndHours = hour + duration;
-        const wholeHours = Math.floor(totalEndHours);
-        const decimalMinutes = Math.round((totalEndHours % 1) * 60);
+        // End time = Start time + Duration (from ODP data)
+        const endDate = new Date(startDate.getTime() + (duration * 60 * 60 * 1000));
         
-        // Set the end time with proper hour and minute calculation
-        endDate.setHours(wholeHours, decimalMinutes, 0, 0);
-        
-        // Handle multi-day tasks - if end time goes past midnight, adjust the date
-        if (hour + duration > 24) {
-            // Calculate how many days and hours this task spans
-            const totalHours = hour + duration;
-            const extraDays = Math.floor(totalHours / 24);
-            const remainingHours = Math.round((totalHours % 24) * 100) / 100; // Round to 2 decimal places
-            
-            // Create a new end date to avoid modifying the original
-            const calculatedEndDate = new Date(this.currentDate);
-            calculatedEndDate.setDate(calculatedEndDate.getDate() + extraDays);
-            calculatedEndDate.setHours(Math.floor(remainingHours), Math.round((remainingHours % 1) * 60), 0, 0);
-            
-            // Update the endDate with the calculated value
-            endDate.setTime(calculatedEndDate.getTime());
-            
-
-        }
+        // No complex multi-day calculations needed - the duration handles it automatically
         
         // Create event with new datetime structure
         const event = {
-            id: crypto.randomUUID(), // Generate a proper UUID
+            id: `event_${taskId}_${machine}`, // Generate STABLE event ID matching service pattern
             taskId: taskId,
             taskTitle: taskData.odp_number || 'Unknown Task',
             machine: machine,
-            start_time: startDate.toISOString(),
-            end_time: endDate.toISOString(),
+            start_time: startDate.toISOString(), // Store with timezone info to preserve local time
+            end_time: endDate.toISOString(), // Store with timezone info to preserve local time
             color: this.get_task_color(taskData)
             // Duration is now computed in the database
         };
         
+        // Debug: Log the timezone conversion to verify it's working correctly
+        console.log('Timezone debug - Task scheduling:', {
+            localStart: startDate.toString(),
+            localEnd: endDate.toString(),
+            utcStart: startDate.toISOString(),
+            utcEnd: endDate.toISOString(),
+            currentDate: this.current_date.toString(),
+            hour: hour,
+            duration: duration
+        });
+        
+        // Check work center compatibility
+        const machines = await this.storage_service.get_machines();
+        const targetMachine = machines.find(m => m.machine_name === machine);
+        
+        // Debug: Log the values to see what's happening
+        console.log('Work center check:', {
+            machine: machine,
+            taskWorkCenter: taskData.work_center,
+            targetMachine: targetMachine,
+            machineWorkCenter: targetMachine?.work_center
+        });
+        
+        if (!targetMachine || targetMachine.work_center !== taskData.work_center) {
+            this.show_message(`Task can only be scheduled on machines with work center: ${taskData.work_center}`, 'error');
+            return;
+        }
+        
         // Validate scheduling - use the updated conflict detection
         if (!(await this.can_schedule_task(machine, hour, minute, duration, null, taskId))) {
             // Check if the task is already scheduled somewhere
-            const allEvents = await this.storageService.get_scheduled_events();
+            const allEvents = await this.storage_service.get_scheduled_events();
             const existingTaskEvents = allEvents.filter(event => event.taskId === taskId);
             
             if (existingTaskEvents.length > 0) {
@@ -548,7 +556,7 @@ class Scheduler {
         }
         
         try {
-            await this.storageService.add_scheduled_event(event);
+            await this.storage_service.add_scheduled_event(event);
             
             // Dispatch custom event for status update
             window.dispatchEvent(new CustomEvent('odpStatusChanged', {
@@ -572,11 +580,11 @@ class Scheduler {
     async unschedule_event(eventId) {
         try {
             // Get the event details before removing it
-            const event = await this.storageService.get_scheduled_event_by_id(eventId);
+            const event = await this.storage_service.get_scheduled_event_by_id(eventId);
             
 
             
-            await this.storageService.remove_scheduled_event(eventId);
+            await this.storage_service.remove_scheduled_event(eventId);
             
             // Dispatch custom event for status update if we have the task ID
             if (event && event.taskId) {
@@ -600,13 +608,16 @@ class Scheduler {
     async reschedule_event(eventId, newSlot) {
         try {
             // Get the existing event
-            const existingEvents = await this.storageService.get_scheduled_events();
+            const existingEvents = await this.storage_service.get_scheduled_events();
             const existingEvent = existingEvents.find(event => event.id === eventId);
             
             if (!existingEvent) {
                 this.show_message('Event not found', 'error');
                 return;
             }
+            
+            // Store a copy of the event data for safety
+            const originalEvent = { ...existingEvent };
             
             // Calculate new position
             const newMachine = newSlot.dataset.machine;
@@ -624,9 +635,36 @@ class Scheduler {
                 if (duration <= 0 || duration > 24) {
                     duration = 1; // Fallback to 1 hour
                 }
+                
+                // Debug: Log the duration calculation
+                console.log('Duration calculation for rescheduling:', {
+                    taskTitle: existingEvent.taskTitle,
+                    originalStart: existingEvent.start_time,
+                    originalEnd: existingEvent.end_time,
+                    startTime: startTime.toString(),
+                    endTime: endTime.toString(),
+                    calculatedDuration: duration,
+                    originalEventKeys: Object.keys(existingEvent)
+                });
             } else {
                 // Fallback to 1 hour if no datetime fields (shouldn't happen anymore)
                 duration = 1;
+            }
+            
+            // CRITICAL FIX: Add work center validation for rescheduling
+            // Get the task data to check work center compatibility
+            const allOrders = await this.storage_service.get_odp_orders();
+            const taskData = allOrders.find(order => order.id === existingEvent.taskId);
+            
+            if (taskData) {
+                // Check work center compatibility
+                const machines = await this.storage_service.get_machines();
+                const targetMachine = machines.find(m => m.machine_name === newMachine);
+                
+                if (!targetMachine || targetMachine.work_center !== taskData.work_center) {
+                    this.show_message(`Task can only be scheduled on machines with work center: ${taskData.work_center}`, 'error');
+                    return;
+                }
             }
             
             // Check if the new position is valid
@@ -635,37 +673,25 @@ class Scheduler {
                 return;
             }
             
-            // Remove the old event
-            await this.storageService.remove_scheduled_event(eventId);
-            
             // Calculate new start and end times
-            // CRITICAL FIX: Use the current date for rescheduling, but preserve exact duration
-            const newStartDate = new Date(this.currentDate);
-            newStartDate.setHours(newHour, newMinute, 0, 0);
-            const newEndDate = new Date(newStartDate);
+            // CRITICAL FIX: Create dates in local timezone to avoid timezone conversion issues
+            const newStartDate = new Date(this.current_date.getFullYear(), this.current_date.getMonth(), this.current_date.getDate(), newHour, newMinute, 0, 0);
+            const newEndDate = new Date(this.current_date.getFullYear(), this.current_date.getMonth(), this.current_date.getDate(), newHour, newMinute, 0, 0);
             
             // Add the exact duration to preserve task length
             newEndDate.setTime(newStartDate.getTime() + (duration * 60 * 60 * 1000));
             
-
+            // Debug: Log the new time calculation
+            console.log('New time calculation for rescheduling:', {
+                newHour: newHour,
+                newMinute: newMinute,
+                duration: duration,
+                newStartDate: newStartDate.toString(),
+                newEndDate: newEndDate.toString(),
+                crossesMidnight: newHour + duration > 24
+            });
             
-            // Handle multi-day tasks - if end time goes past midnight, adjust the date
-            if (newHour + duration > 24) {
-                // Calculate how many days and hours this task spans
-                const totalHours = newHour + duration;
-                const extraDays = Math.floor(totalHours / 24);
-                const remainingHours = Math.round((totalHours % 24) * 100) / 100; // Round to 2 decimal places
-                
-                // CRITICAL FIX: Use the original event's date for multi-day calculations
-                const calculatedEndDate = new Date(originalEventDate);
-                calculatedEndDate.setDate(calculatedEndDate.getDate() + extraDays);
-                calculatedEndDate.setHours(Math.floor(remainingHours), Math.round((remainingHours % 1) * 60), 0, 0);
-                
-                // Update the newEndDate with the calculated value
-                newEndDate.setTime(calculatedEndDate.getTime());
-                
-
-            }
+            // No complex multi-day calculations needed - the duration handles it automatically
             
 
             
@@ -681,24 +707,62 @@ class Scheduler {
                 throw new Error(`Invalid start hour: ${newHour}`);
             }
             
-            const calculatedEndHour = newHour + duration > 24 ? Math.round(((newHour + duration) % 24) * 100) / 100 || 24 : Math.round((newHour + duration) * 100) / 100;
-            if (calculatedEndHour < 0 || calculatedEndHour > 24) {
-                throw new Error(`Invalid end hour: ${calculatedEndHour}`);
-            }
+            // Simple validation - just ensure the end time is after start time
             
 
             
             // Create the new event with updated position and new datetime structure
+            // Event ID is now generated using stable pattern: event_{taskId}_{machine}
+            
             const newEvent = {
                 ...existingEvent,
+                id: existingEvent.id, // Keep the same event ID for consistency
+                taskId: existingEvent.taskId, // Ensure taskId is preserved for ODP order update
                 machine: newMachine,
-                start_time: newStartDate.toISOString(),
-                end_time: newEndDate.toISOString()
+                start_time: newStartDate.toISOString(), // Store with timezone info to preserve local time
+                end_time: newEndDate.toISOString(), // Store with timezone info to preserve local time
+                // Preserve the original multi-day status for rendering purposes
+                originalStartTime: existingEvent.start_time,
+                originalEndTime: existingEvent.end_time
                 // Legacy fields removed - no more constraint violations!
             };
             
-            // Add the rescheduled event
-            await this.storageService.add_scheduled_event(newEvent);
+            // Debug: Log the timezone conversion to verify it's working correctly
+            console.log('Timezone debug - Task rescheduling:', {
+                localStart: newStartDate.toString(),
+                localEnd: newEndDate.toString(),
+                utcStart: newStartDate.toISOString(),
+                utcEnd: newEndDate.toISOString(),
+                currentDate: this.current_date.toString(),
+                newHour: newHour,
+                duration: duration,
+                taskId: existingEvent.taskId,
+                existingEventKeys: Object.keys(existingEvent),
+                oldEventId: existingEvent.id,
+                newEventId: newEvent.id,
+                sameMachine: newMachine === existingEvent.machine
+            });
+            
+            // Validate the new event data before sending to database
+            if (!newEvent.id || !newEvent.machine || !newEvent.start_time || !newEvent.end_time) {
+                throw new Error('Invalid event data: missing required fields');
+            }
+            
+            // Event ID validation removed - stable IDs are now used and can be the same for same-machine rescheduling
+            
+            // Since we're using consolidated scheduling, just update the existing event
+            // No need to add/remove - just update the ODP order directly
+            console.log('Updating existing event with new scheduling:', { 
+                eventId: existingEvent.id, 
+                oldMachine: existingEvent.machine, 
+                newMachine: newMachine,
+                oldStart: existingEvent.start_time,
+                newStart: newEvent.start_time
+            });
+            
+            // Update the existing event directly
+            await this.storage_service.add_scheduled_event(newEvent);
+            console.log('Successfully updated event');
             
             // Dispatch custom event for status update with new start time info
             if (existingEvent.taskId) {
@@ -708,7 +772,6 @@ class Scheduler {
                         status: 'SCHEDULED',
                         isReschedule: true,
                         newStartTime: newStartDate.toISOString(),
-                        newMachine: newMachine,
                         newHour: newHour
                     }
                 }));
@@ -716,52 +779,55 @@ class Scheduler {
             
             this.show_message(`Task rescheduled successfully to ${newMachine}`, 'success');
             
-            // Add a small delay before refreshing to ensure database consistency
-            setTimeout(() => {
-                this.refresh_scheduler().catch(error => {
-                    console.error('Error refreshing scheduler:', error);
-                });
-            }, 500);
+            // Refresh immediately to show the changes
+            await this.refresh_scheduler();
             
         } catch (error) {
             console.error('Error rescheduling event:', error);
             this.show_message('Failed to reschedule task', 'error');
+            
+            // Try to recover by ensuring the original event still exists
+            try {
+                const recoveryCheck = await this.storage_service.get_scheduled_events();
+                const eventExists = recoveryCheck.find(event => event.id === eventId);
+                
+                if (!eventExists) {
+                    console.warn('Original event was lost during failed reschedule, attempting recovery...');
+                    // Try to restore the original event if it was lost
+                    // Event ID is now generated using stable pattern
+                    
+                    const recoveryEvent = {
+                        ...originalEvent,
+                        id: `event_${originalEvent.taskId}_${originalEvent.machine}` // Use stable ID pattern
+                    };
+                    await this.storage_service.add_scheduled_event(recoveryEvent);
+                    console.log('Event recovery successful');
+                }
+            } catch (recoveryError) {
+                console.error('Failed to recover event:', recoveryError);
+            }
         }
     }
     
     async can_schedule_task(machine, startHour, startMinute = 0, duration, excludeEventId = null, taskId = null) {
         const endHour = startHour + duration;
         
-        // Check if this is a multi-day task
-        if (endHour > 24) {
-            
-            // Calculate the actual datetime range for multi-day tasks
-            const startDate = new Date(this.currentDate);
-            startDate.setHours(startHour, startMinute, 0, 0);
-            const endDate = new Date(this.currentDate);
-            endDate.setHours(endHour, 0, 0, 0);
-            
-            // Handle multi-day rollover
-            if (endHour > 24) {
-                const extraDays = Math.floor(endHour / 24);
-                const remainingHours = endHour % 24;
-                endDate.setDate(endDate.getDate() + extraDays);
-                endDate.setHours(remainingHours, 0, 0, 0);
-            }
-            
-            // Use the multi-day conflict detection
-            const canSchedule = await this.can_schedule_multi_day_task(machine, startDate.toISOString(), endDate.toISOString());
-            return canSchedule;
-        }
+        // SIMPLE APPROACH: Use duration to calculate end time
+        const startDate = new Date(this.current_date.getFullYear(), this.current_date.getMonth(), this.current_date.getDate(), startHour, startMinute, 0, 0);
+        const endDate = new Date(startDate.getTime() + (duration * 60 * 60 * 1000));
         
-        // For single-day tasks, check if within working hours (0-24)
-        if (startHour < 0 || endHour > 24) {
+        // Use the multi-day conflict detection for all tasks
+        const canSchedule = await this.can_schedule_multi_day_task(machine, startDate.toISOString(), endDate.toISOString());
+        return canSchedule;
+        
+        // Simple validation - just ensure reasonable hours
+        if (startHour < 0 || startHour > 23) {
             return false;
         }
         
         // CRITICAL FIX: Check if the same task is already scheduled anywhere
         if (taskId && !excludeEventId) {
-            const allEvents = await this.storageService.get_scheduled_events();
+            const allEvents = await this.storage_service.get_scheduled_events();
             const existingTaskEvents = allEvents.filter(event => event.taskId === taskId);
             
             if (existingTaskEvents.length > 0) {
@@ -771,7 +837,7 @@ class Scheduler {
         }
         
         // Get events for the current date
-        const events = await this.storageService.get_events_by_date(Utils.format_date(this.currentDate));
+                    const events = await this.storage_service.get_events_by_date(Utils.format_date(this.current_date));
         const machineEvents = events.filter(event => event.machine === machine);
         
         // Check for conflicts using datetime fields
@@ -784,12 +850,7 @@ class Scheduler {
             if (event.start_time && event.end_time) {
                 const eventStart = new Date(event.start_time);
                 const eventEnd = new Date(event.end_time);
-                const newStart = new Date(this.currentDate);
-                newStart.setHours(startHour, startMinute, 0, 0);
-                const newEnd = new Date(this.currentDate);
-                newEnd.setHours(endHour, 0, 0, 0);
-                
-                if (Utils.datetime_ranges_overlap(newStart, newEnd, eventStart, eventEnd)) {
+                if (Utils.datetime_ranges_overlap(startDate, endDate, eventStart, eventEnd)) {
                     return false; // Conflict found
                 }
             }
@@ -799,10 +860,12 @@ class Scheduler {
     }
     
     get_task_color(task) {
+        // In the consolidated approach, color comes from the ODP order
         return task.color || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
     }
     
     get_task_duration(task) {
+        // In the consolidated approach, duration comes from the ODP order
         const duration = parseFloat(task.duration) || 1;
         return Math.max(0.1, Math.round(duration * 10) / 10);
     }
@@ -813,13 +876,13 @@ class Scheduler {
             this.elements.calendar_container.querySelectorAll('.scheduled-event').forEach(el => el.remove());
             
             // Check connection status first
-            const connectionStatus = await this.storageService.check_connection();
+            const connectionStatus = await this.storage_service.check_connection();
             if (!connectionStatus.connected) {
                 console.warn('Database connection issue:', connectionStatus.error);
                 this.show_message(`Database connection issue: ${connectionStatus.error}`, 'warning');
                 
                 // Try to use cached data
-                const cachedEvents = this.storageService.cache?.get('scheduled_events');
+                const cachedEvents = this.storage_service.cache?.get('scheduled_events');
                 if (cachedEvents && cachedEvents.data && cachedEvents.data.length > 0) {
                     console.log('Using cached events due to connection issue');
                     this.show_message('Using cached data due to connection issue', 'warning');
@@ -844,7 +907,7 @@ class Scheduler {
                         await new Promise(resolve => setTimeout(resolve, delay));
                     }
                     
-                    allEvents = await this.storageService.get_scheduled_events();
+                    allEvents = await this.storage_service.get_scheduled_events();
                     break; // Success, exit retry loop
                 } catch (error) {
                     retryCount++;
@@ -862,7 +925,7 @@ class Scheduler {
                 console.error('All retry attempts failed for fetching scheduled events');
                 
                 // Try to use cached data as fallback
-                const cachedEvents = this.storageService.cache?.get('scheduled_events');
+                const cachedEvents = this.storage_service.cache?.get('scheduled_events');
                 if (cachedEvents && cachedEvents.data && cachedEvents.data.length > 0) {
                     console.log('Using cached events due to all retries failing');
                     this.show_message('Using cached data due to database issues', 'warning');
@@ -878,7 +941,7 @@ class Scheduler {
             // Check if we got events or if there was a network issue
             if (!allEvents || allEvents.length === 0) {
                 // Check if this is due to a network issue
-                const cachedEvents = this.storageService.cache?.get('scheduled_events');
+                const cachedEvents = this.storage_service.cache?.get('scheduled_events');
                 if (cachedEvents && cachedEvents.data && cachedEvents.data.length > 0) {
                     console.log('Using cached events due to network issue');
                     this.show_message('Using cached data due to network connectivity issue', 'warning');
@@ -895,9 +958,9 @@ class Scheduler {
                     // New datetime format - check if event overlaps with current date
                     const eventStart = new Date(event.start_time);
                     const eventEnd = new Date(event.end_time);
-                    const currentDateStart = new Date(this.currentDate);
+                    const currentDateStart = new Date(this.current_date);
                     currentDateStart.setHours(0, 0, 0, 0);
-                    const currentDateEnd = new Date(this.currentDate);
+                    const currentDateEnd = new Date(this.current_date);
                     currentDateEnd.setHours(23, 59, 59, 999);
                     
                     // Check if event overlaps with current date
@@ -910,14 +973,44 @@ class Scheduler {
             });
             
             visibleEvents.forEach(event => {
-                // Handle multi-day events
+                // Handle multi-day events with robust timezone-aware detection
+                let isMultiDay = false;
                 if (event.start_time && event.end_time) {
                     const eventStart = new Date(event.start_time);
                     const eventEnd = new Date(event.end_time);
-                    const isMultiDay = eventStart.toDateString() !== eventEnd.toDateString();
+                    
+                    // More robust multi-day detection that accounts for timezone differences
+                    // Check if the event spans more than 24 hours or crosses midnight
+                    const eventDuration = eventEnd.getTime() - eventStart.getTime();
+                    const hoursDiff = eventDuration / (1000 * 60 * 60);
+                    
+                    // Event is multi-day if it spans more than 24 hours OR crosses midnight
+                    isMultiDay = hoursDiff > 24 || eventStart.toDateString() !== eventEnd.toDateString();
+                    
+                    // Enhanced debug logging to show timezone conversion details
+                    const debugInfo = {
+                        taskTitle: event.taskTitle,
+                        storedStart: event.start_time,
+                        storedEnd: event.end_time,
+                        eventStartISO: eventStart.toISOString(),
+                        eventEndISO: eventEnd.toISOString(),
+                        eventStartLocal: eventStart.toString(),
+                        eventEndLocal: eventEnd.toString(),
+                        currentDate: this.current_date.toISOString(),
+                        hoursDiff: hoursDiff,
+                        crossesMidnight: eventStart.toDateString() !== eventEnd.toDateString()
+                    };
+                    
+                    if (isMultiDay) {
+                        debugInfo.isStartDay = eventStart.toDateString() === this.current_date.toDateString();
+                        debugInfo.isEndDay = eventEnd.toDateString() === this.current_date.toDateString();
+                        console.log('Multi-day event detected:', debugInfo);
+                    } else {
+                        console.log('Single-day event detected:', debugInfo);
+                    }
                 }
                 
-                this.render_event(event);
+                this.render_event(event, isMultiDay);
             });
         } catch (error) {
             console.error('Error rendering scheduled events:', error);
@@ -927,7 +1020,7 @@ class Scheduler {
                 this.show_message('Network connectivity issue. Please check your internet connection.', 'error');
                 
                 // Try to use cached data as fallback
-                const cachedEvents = this.storageService.cache?.get('scheduled_events');
+                const cachedEvents = this.storage_service.cache?.get('scheduled_events');
                 if (cachedEvents && cachedEvents.data && cachedEvents.data.length > 0) {
                     console.log('Using cached events due to network error');
                     this.show_message('Using cached data due to network error', 'warning');
@@ -949,9 +1042,9 @@ class Scheduler {
                 if (event.start_time && event.end_time) {
                     const eventStart = new Date(event.start_time);
                     const eventEnd = new Date(event.end_time);
-                    const currentDateStart = new Date(this.currentDate);
+                    const currentDateStart = new Date(this.current_date);
                     currentDateStart.setHours(0, 0, 0, 0);
-                    const currentDateEnd = new Date(this.currentDate);
+                    const currentDateEnd = new Date(this.current_date);
                     currentDateEnd.setHours(23, 59, 59, 999);
                     
                     const overlaps = Utils.datetime_ranges_overlap(eventStart, eventEnd, currentDateStart, currentDateEnd);
@@ -961,7 +1054,20 @@ class Scheduler {
             });
             
             visibleEvents.forEach(event => {
-                this.render_event(event);
+                // Calculate isMultiDay for cached events with robust detection
+                let isMultiDay = false;
+                if (event.start_time && event.end_time) {
+                    const eventStart = new Date(event.start_time);
+                    const eventEnd = new Date(event.end_time);
+                    
+                    // More robust multi-day detection that accounts for timezone differences
+                    const eventDuration = eventEnd.getTime() - eventStart.getTime();
+                    const hoursDiff = eventDuration / (1000 * 60 * 60);
+                    
+                    // Event is multi-day if it spans more than 24 hours OR crosses midnight
+                    isMultiDay = hoursDiff > 24 || eventStart.toDateString() !== eventEnd.toDateString();
+                }
+                this.render_event(event, isMultiDay);
             });
             
             console.log(`Rendered ${visibleEvents.length} events from cache`);
@@ -970,7 +1076,7 @@ class Scheduler {
         }
     }
     
-    render_event(event) {
+    render_event(event, isMultiDay = false) {
         const machineRow = this.elements.calendar_container.querySelector(`[data-machine="${event.machine}"]`);
         if (!machineRow) {
             return;
@@ -1005,18 +1111,17 @@ class Scheduler {
         
         if (event.start_time && event.end_time) {
             // New datetime format
-            const currentDateStart = new Date(this.currentDate);
+            const currentDateStart = new Date(this.current_date);
             currentDateStart.setHours(0, 0, 0, 0);
-            const currentDateEnd = new Date(this.currentDate);
+            const currentDateEnd = new Date(this.current_date);
             currentDateEnd.setHours(23, 59, 59, 999);
             
-            // Check if this is a multi-day event
-            const isMultiDay = eventStart.toDateString() !== eventEnd.toDateString();
+            // Use the isMultiDay parameter passed from the caller
             
             // Calculate the total days this event spans
             const totalEventDays = Math.ceil((eventEnd - eventStart) / (1000 * 60 * 60 * 24));
             
-            if (isMultiDay && eventStart.toDateString() === this.currentDate.toDateString()) {
+            if (isMultiDay && eventStart.toDateString() === this.current_date.toDateString()) {
                 // This is the start of a multi-day event - show it extending to the end of the day
                 startHour = eventStart.getHours();
                 endHour = 24;
@@ -1024,36 +1129,10 @@ class Scheduler {
                 
                 // Add visual indicator for multi-day events
                 eventElement.classList.add('multi-day-start');
-                eventElement.title = `${event.taskTitle} (Multi-day event starting today - continues tomorrow)`;
+                eventElement.title = this.generate_enhanced_tooltip(event, 'start', totalEventDays);
                 
-            } else if (isMultiDay && eventEnd.toDateString() === this.currentDate.toDateString()) {
+            } else if (isMultiDay && eventEnd.toDateString() === this.current_date.toDateString()) {
                 // This is the end of a multi-day event - show it from the start of the day until the actual end time
-                startHour = 0;
-                endHour = eventEnd.getHours();
-                duration = endHour;
-                
-                // If the event ends at exactly midnight (00:00), don't show it on this day
-                if (endHour === 0) {
-                    return; // Don't render this event on the end day
-                }
-                
-                eventElement.classList.add('multi-day-end');
-                eventElement.title = `${event.taskTitle} (Multi-day event ending today at ${endHour}:00 - started yesterday)`;
-                
-            } else if (isMultiDay && totalEventDays > 2 && eventStart < currentDateStart && eventEnd > currentDateEnd) {
-                // This is a middle day of a multi-day event (3+ days) - show it spanning the full day
-                startHour = 0;
-                endHour = 24;
-                duration = 24;
-                
-                eventElement.classList.add('multi-day-middle');
-                const daysFromStart = Math.floor((this.currentDate - eventStart) / (1000 * 60 * 60 * 24));
-                eventElement.title = `${event.taskTitle} (Multi-day event - day ${daysFromStart + 1})`;
-                
-            } else if (isMultiDay) {
-                // This is a multi-day event but we're viewing a day that's not start, middle, or end
-                // This can happen when the event spans exactly 2 days and we're viewing the second day
-                // In this case, we should show from 00:00 to the actual end time
                 startHour = 0;
                 endHour = eventEnd.getHours();
                 duration = endHour;
@@ -1064,7 +1143,56 @@ class Scheduler {
                 }
                 
                 eventElement.classList.add('multi-day-end');
-                eventElement.title = `${event.taskTitle} (Multi-day event ending today at ${endHour}:00)`;
+                eventElement.title = this.generate_enhanced_tooltip(event, 'end', totalEventDays);
+                
+            } else if (isMultiDay && totalEventDays > 2 && eventStart < currentDateStart && eventEnd > currentDateEnd) {
+                // This is a middle day of a multi-day event (3+ days) - show it spanning the full day
+                startHour = 0;
+                endHour = 24;
+                duration = 24;
+                
+                eventElement.classList.add('multi-day-middle');
+                const daysFromStart = Math.floor((this.current_date - eventStart) / (1000 * 60 * 60 * 24));
+                eventElement.title = this.generate_enhanced_tooltip(event, 'middle', totalEventDays, daysFromStart + 1);
+                
+            } else if (isMultiDay) {
+                // This is a multi-day event but we're viewing a day that's not start, middle, or end
+                // This handles 2-day events when viewing the second day
+                // Check if we're viewing a day that falls within the event range
+                const eventStartDate = new Date(eventStart);
+                eventStartDate.setHours(0, 0, 0, 0);
+                const eventEndDate = new Date(eventEnd);
+                eventEndDate.setHours(23, 59, 59, 999);
+                
+                // Debug logging for multi-day event handling
+                console.log('Multi-day event fallback logic:', {
+                    taskTitle: event.taskTitle,
+                    currentDate: this.current_date.toDateString(),
+                    eventStartDate: eventStartDate.toDateString(),
+                    eventEndDate: eventEndDate.toDateString(),
+                    isWithinRange: this.current_date >= eventStartDate && this.current_date <= eventEndDate,
+                    currentDateObj: this.current_date,
+                    eventStartDateObj: eventStartDate,
+                    eventEndDateObj: eventEndDate
+                });
+                
+                if (this.current_date >= eventStartDate && this.current_date <= eventEndDate) {
+                    // We're viewing a day within the event range - this is likely the end day of a 2-day event
+                    startHour = 0;
+                    endHour = eventEnd.getHours();
+                    duration = endHour;
+                    
+                    // If the event ends at exactly midnight (00:00), don't show it on this day
+                    if (endHour === 0) {
+                        return; // Don't render this event on this day
+                    }
+                    
+                    eventElement.classList.add('multi-day-end');
+                    eventElement.title = this.generate_enhanced_tooltip(event, 'end', totalEventDays);
+                } else {
+                    // We're viewing a day outside the event range - don't render
+                    return;
+                }
                 
             } else {
                 // Single-day event or event that starts/ends on current day
@@ -1091,9 +1219,26 @@ class Scheduler {
         // Calculate precise positioning using 15-minute slots for granular display
         const totalSlots = 96; // 24 hours × 4 slots per hour
         
-        // Calculate slots directly from datetime values for accuracy
-        const startMinutes = eventStart.getHours() * 60 + eventStart.getMinutes();
-        const endMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes();
+        // Calculate positioning based on the current day's view of the event
+        let startMinutes, endMinutes;
+        
+        if (isMultiDay && eventStart.toDateString() === this.current_date.toDateString()) {
+            // Event starts on current day - show from start time to end of day
+            startMinutes = eventStart.getHours() * 60 + eventStart.getMinutes();
+            endMinutes = 24 * 60; // End of day (midnight)
+        } else if (isMultiDay && eventEnd.toDateString() === this.current_date.toDateString()) {
+            // Event ends on current day - show from start of day to end time
+            startMinutes = 0; // Start of day
+            endMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes();
+        } else if (isMultiDay) {
+            // Event spans across current day (middle day of multi-day event)
+            startMinutes = 0; // Start of day
+            endMinutes = 24 * 60; // End of day
+        } else {
+            // Single-day event - use original times
+            startMinutes = eventStart.getHours() * 60 + eventStart.getMinutes();
+            endMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes();
+        }
         
         const startSlot = Math.floor(startMinutes / 15);
         const endSlot = Math.ceil(endMinutes / 15);
@@ -1102,6 +1247,24 @@ class Scheduler {
         // Convert to percentages for precise positioning (96 slots = 100%)
         const leftPosition = (startSlot / totalSlots) * 100;
         const width = (durationSlots / totalSlots) * 100;
+        
+        // Debug logging for positioning calculations
+        if (event.taskTitle && event.taskTitle.includes('P000025')) {
+            console.log('Positioning calculation for P000025:', {
+                startHour, endHour, duration,
+                startMinutes, endMinutes,
+                startSlot, endSlot, durationSlots,
+                leftPosition, width,
+                currentDate: this.current_date.toDateString(),
+                eventStart: eventStart.toDateString(),
+                eventEnd: eventEnd.toDateString(),
+                isMultiDay,
+                dayType: isMultiDay ? 
+                    (eventStart.toDateString() === this.current_date.toDateString() ? 'start' : 
+                     eventEnd.toDateString() === this.current_date.toDateString() ? 'end' : 'middle') : 'single',
+                totalEventDays: Math.ceil((eventEnd - eventStart) / (1000 * 60 * 60 * 24))
+            });
+        }
         
 
         
@@ -1115,9 +1278,9 @@ class Scheduler {
         
         // Make event draggable for unscheduling
         eventElement.addEventListener('dragstart', (e) => {
-            this.dragState.isDragging = true;
-            this.dragState.draggedElement = eventElement;
-            this.dragState.dragType = 'event';
+            this.drag_state.is_dragging = true;
+            this.drag_state.dragged_element = eventElement;
+            this.drag_state.drag_type = 'event';
             
             eventElement.classList.add('dragging');
             e.dataTransfer.setData('text/plain', event.id);
@@ -1125,9 +1288,9 @@ class Scheduler {
         });
         
         eventElement.addEventListener('dragend', (e) => {
-            this.dragState.isDragging = false;
-            this.dragState.draggedElement = null;
-            this.dragState.dragType = null;
+            this.drag_state.is_dragging = false;
+            this.drag_state.dragged_element = null;
+            this.drag_state.drag_type = null;
             eventElement.classList.remove('dragging');
         });
         
@@ -1149,8 +1312,8 @@ class Scheduler {
     }
     
     go_to_today() {
-        this.currentDate = new Date();
-        this.currentDate.setHours(0, 0, 0, 0);
+        this.current_date = new Date();
+        this.current_date.setHours(0, 0, 0, 0);
         this.update_date_display();
         this.render_calendar().catch(error => {
             console.error('Error rendering calendar:', error);
@@ -1162,7 +1325,7 @@ class Scheduler {
     }
     
     previous_day() {
-        this.currentDate.setDate(this.currentDate.getDate() - 1);
+        this.current_date.setDate(this.current_date.getDate() - 1);
         this.update_date_display();
         this.render_calendar().catch(error => {
             console.error('Error rendering calendar:', error);
@@ -1174,7 +1337,7 @@ class Scheduler {
     }
     
     next_day() {
-        this.currentDate.setDate(this.currentDate.getDate() + 1);
+        this.current_date.setDate(this.current_date.getDate() + 1);
         this.update_date_display();
         this.render_calendar().catch(error => {
             console.error('Error rendering calendar:', error);
@@ -1190,10 +1353,10 @@ class Scheduler {
             const today = new Date();
         today.setHours(0, 0, 0, 0);
         
-        if (this.currentDate.getTime() === today.getTime()) {
+        if (this.current_date.getTime() === today.getTime()) {
             this.elements.current_date.textContent = 'Today';
         } else {
-            this.elements.current_date.textContent = this.currentDate.toLocaleDateString('en-US', {
+            this.elements.current_date.textContent = this.current_date.toLocaleDateString('en-US', {
                 month: 'long',
                 day: 'numeric'
             });
@@ -1205,31 +1368,45 @@ class Scheduler {
         await this.load_tasks();
         await this.render_calendar();
     }
-}
-
-// Initialize when storage service is ready
-const initializeScheduler = () => {
-    // Only initialize if we're on the scheduler page and storage service is ready
-    if (document.getElementById('calendar_container')) {
-        if (!window.storageService || !window.storageService.initialized) {
-            return;
+    
+    /**
+     * Generate enhanced tooltip with task information
+     */
+    generate_enhanced_tooltip(event, dayType, totalDays, currentDay = null) {
+        const totalDuration = event.duration || this.calculate_event_duration(event);
+        // In the consolidated approach, cost and progress come from the ODP order
+        const cost = event.cost || 'N/A';
+        const progress = event.progress || 'N/A';
+        
+        let tooltip = `${event.taskTitle}\n`;
+        tooltip += `Total Duration: ${totalDuration}h\n`;
+        tooltip += `Cost: ${cost}\n`;
+        tooltip += `Progress: ${progress}`;
+        
+        // Add day-specific information for multi-day events
+        if (dayType === 'start') {
+            tooltip += `\n(Multi-day event starting today - continues for ${totalDays} days)`;
+        } else if (dayType === 'end') {
+            tooltip += `\n(Multi-day event ending today - started ${totalDays} days ago)`;
+        } else if (dayType === 'middle' && currentDay) {
+            tooltip += `\n(Multi-day event - day ${currentDay} of ${totalDays})`;
         }
         
-        // Force clean initialization - remove any existing incomplete scheduler
-        if (window.scheduler) {
-            delete window.scheduler;
-        }
-        
-        try {
-            window.scheduler = new Scheduler();
-        } catch (error) {
-            console.error('Error initializing Scheduler:', error);
-        }
+        return tooltip;
     }
-};
-
-// Only listen for the event - no fallback that could cause premature initialization
-window.addEventListener('storageServiceReady', initializeScheduler);
+    
+    /**
+     * Calculate event duration from start and end times
+     */
+    calculate_event_duration(event) {
+        if (event.start_time && event.end_time) {
+            const start = new Date(event.start_time);
+            const end = new Date(event.end_time);
+            return Math.round((end - start) / (1000 * 60 * 60) * 100) / 100;
+        }
+        return event.duration || 0;
+    }
+}
 
 // Listen for data change events for real-time updates
 window.addEventListener('dataChange', (e) => {

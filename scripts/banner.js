@@ -1,5 +1,5 @@
 // Banner and confirmation logic for destructive actions
-function show_banner(message, type) {
+export function show_banner(message, type) {
     let banner = document.getElementById('banner');
     if (!banner) {
         banner = document.createElement('div');
@@ -25,10 +25,11 @@ function show_banner(message, type) {
 // Backward compatibility alias (for camelCase usage)
 window.showBanner = show_banner;
 // Standardized delete confirmation - this is the approved standard
-function show_delete_confirmation(message, on_confirm) {
+export function show_delete_confirmation(message, on_confirm) {
     return show_confirm_banner(message, on_confirm);
 }
-function show_confirm_banner(message, on_confirm) {
+
+export function show_confirm_banner(message, on_confirm) {
     // Remove any existing modal first
     const existing_modal = document.getElementById('confirmModal');
     if (existing_modal) {

@@ -2,7 +2,7 @@
  * Business Logic Service - Centralized business logic for all entities
  * Handles calculations, determinations, and business rules
  */
-class BusinessLogicService {
+export class BusinessLogicService {
     constructor() {
     }
     // ===== MACHINERY BUSINESS LOGIC =====
@@ -354,6 +354,4 @@ class BusinessLogicService {
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = BusinessLogicService;
-} else if (typeof window !== 'undefined') {
-    window.BusinessLogicService = BusinessLogicService;
 }

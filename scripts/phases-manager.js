@@ -1,11 +1,18 @@
 /**
  * Phases Manager - Handles production phases management
  */
-class PhasesManager extends BaseManager {
+import { BaseManager } from './baseManager.js';
+import { ValidationService } from './validationService.js';
+import { BusinessLogicService } from './businessLogicService.js';
+import { storageService } from './storageService.js';
+import { editManager } from './editManager.js';
+import { Utils } from './utils.js';
+
+export class PhasesManager extends BaseManager {
     constructor() {
         // Don't call super with storageService yet - it might not be available
         super(null);
-        this.editManager = window.editManager;
+        this.editManager = editManager;
         
         // Initialize centralized services
         this.validationService = new ValidationService();
@@ -17,7 +24,7 @@ class PhasesManager extends BaseManager {
 
     init() {
         // Set up storage service reference
-        this.storageService = window.storageService;
+        this.storageService = storageService;
         
         if (!this.validate_storage_service()) return;
         
@@ -541,14 +548,4 @@ class PhasesManager extends BaseManager {
             }
         });
     }
-}
-
-// Initialize when storage service is ready
-window.addEventListener('storageServiceReady', () => {
-    BaseManager.initialize_manager(PhasesManager, 'phasesManager');
-});
-
-// Fallback: if storage service is already ready when this script loads
-if (window.storageService && window.storageService.initialized) {
-    BaseManager.initialize_manager(PhasesManager, 'phasesManager');
 } 
