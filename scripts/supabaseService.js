@@ -242,7 +242,10 @@ class SupabaseService {
             const client = this.ensure_client();
             const { data, error } = await client
                 .from(this.TABLES.ODP_ORDERS)
-                .select('*')
+                .select(`
+                    *,
+                    machines!scheduled_machine_id(machine_name)
+                `)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -522,26 +525,33 @@ class SupabaseService {
 
         try {
             const client = this.ensure_client();
-            // Get ODP orders that have scheduling information (consolidated approach)
+            // Get ODP orders that have scheduling information with machine names joined
             const { data, error } = await client
                 .from(this.TABLES.ODP_ORDERS)
-                .select('*')
-                .not('scheduled_machine', 'is', null)
+                .select(`
+                    *,
+                    machines!scheduled_machine_id(id, machine_name)
+                `)
+                .not('scheduled_machine_id', 'is', null)
                 .order('scheduled_start_time', { ascending: true });
 
             if (error) throw error;
             
-                        // Transform ODP orders to match the expected scheduled_events format
+            // Transform ODP orders to match the expected scheduled_events format
             const events = (data || []).map(odp => {
-                // Generate a STABLE event ID based on ODP ID and machine to ensure consistency
-                // This prevents event IDs from changing on every get_scheduled_events call
-                const eventId = `event_${odp.id}_${odp.scheduled_machine}`;
+                // Get current machine name from joined machines table
+                const machineName = odp.machines?.machine_name || 'Unknown Machine';
+                const machineId = odp.scheduled_machine_id;
+                
+                // Generate a STABLE event ID based on ODP ID and machine ID to ensure consistency
+                const eventId = `event_${odp.id}_${machineId}`;
                 
                 return {
-                    id: eventId,                    // Stable event ID based on ODP ID and machine
+                    id: eventId,                    // Stable event ID based on ODP ID and machine ID
                     taskId: odp.id,                 // ODP order ID for database operations
                     taskTitle: odp.odp_number,
-                    machine: odp.scheduled_machine,
+                    machine: machineName,            // Current machine name from joined table
+                    machineId: machineId,            // Machine ID for reference
                     start_time: odp.scheduled_start_time,
                     end_time: odp.scheduled_end_time,
                     duration: odp.duration,
@@ -580,23 +590,54 @@ class SupabaseService {
             const { error: clearError } = await this.client
                 .from(this.TABLES.ODP_ORDERS)
                 .update({
-                    scheduled_machine: null,
+                    scheduled_machine_id: null,
                     scheduled_start_time: null,
                     scheduled_end_time: null,
                     color: null,
                     status: 'NOT SCHEDULED'
                 })
-                .not('scheduled_machine', 'is', null);
+                .not('scheduled_machine_id', 'is', null);
 
             if (clearError) throw clearError;
 
             if (events.length > 0) {
                 // Update ODP orders with new scheduling information
                 for (const event of events) {
+                                                    // Get machine ID - event.machine could be either a name or an ID
+                console.log(`Looking up machine for save: "${event.machine}"`);
+                
+                let machineId = event.machine;
+                
+                // If event.machine is not a UUID, treat it as a machine name and look it up
+                if (!event.machine.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                    // It's a machine name, look up the ID
+                    const { data: allMachines, error: listError } = await this.client
+                        .from('machines')
+                        .select('id, machine_name')
+                        .order('machine_name');
+                    
+                    if (listError) {
+                        console.error('Error listing machines for save:', listError);
+                        throw new Error(`Failed to list machines: ${listError.message}`);
+                    }
+                    
+                    console.log('Available machines for save:', allMachines?.map(m => m.machine_name) || []);
+                    
+                    const machine = allMachines?.find(m => m.machine_name === event.machine);
+                    
+                    if (!machine) {
+                        throw new Error(`Machine not found: "${event.machine}". Available machines: ${allMachines?.map(m => m.machine_name).join(', ') || 'none'}`);
+                    }
+                    
+                    machineId = machine.id;
+                }
+                
+                console.log(`Using machine ID for save: ${machineId}`);
+                    
                     const { error: updateError } = await this.client
                         .from(this.TABLES.ODP_ORDERS)
                         .update({
-                            scheduled_machine: event.machine,
+                            scheduled_machine_id: machineId,
                             scheduled_start_time: event.start_time,
                             scheduled_end_time: event.end_time,
                             color: event.color,
@@ -629,11 +670,42 @@ class SupabaseService {
                 eventKeys: Object.keys(event)
             });
             
-            // Update the ODP order with scheduling information instead of creating a separate event
+            // Get machine ID - event.machine could be either a name or an ID
+            console.log(`Looking up machine: "${event.machine}"`);
+            
+            let machineId = event.machine;
+            
+            // If event.machine is not a UUID, treat it as a machine name and look it up
+            if (!event.machine.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                // It's a machine name, look up the ID
+                const { data: allMachines, error: listError } = await this.client
+                    .from('machines')
+                    .select('id, machine_name')
+                    .order('machine_name');
+                
+                if (listError) {
+                    console.error('Error listing machines:', listError);
+                    throw new Error(`Failed to list machines: ${listError.message}`);
+                }
+                
+                console.log('Available machines:', allMachines?.map(m => m.machine_name) || []);
+                
+                const machine = allMachines?.find(m => m.machine_name === event.machine);
+                
+                if (!machine) {
+                    throw new Error(`Machine not found: "${event.machine}". Available machines: ${allMachines?.map(m => m.machine_name).join(', ') || 'none'}`);
+                }
+                
+                machineId = machine.id;
+            }
+            
+            console.log(`Using machine ID: ${machineId}`);
+            
+            // Update the ODP order with scheduling information using machine ID
             const { data, error } = await this.client
                 .from(this.TABLES.ODP_ORDERS)
                 .update({
-                    scheduled_machine: event.machine,
+                    scheduled_machine_id: machineId, // Store machine ID instead of name
                     scheduled_start_time: event.start_time,
                     scheduled_end_time: event.end_time,
                     color: event.color,
@@ -676,7 +748,7 @@ class SupabaseService {
             const { error } = await this.client
                 .from(this.TABLES.ODP_ORDERS)
                 .update({
-                    scheduled_machine: null,
+                    scheduled_machine_id: null, // Clear machine ID instead of name
                     scheduled_start_time: null,
                     scheduled_end_time: null,
                     color: null,

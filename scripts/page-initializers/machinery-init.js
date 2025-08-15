@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Get the element map and initialize
         const elementMap = machineryManager.get_element_map();
         if (elementMap) {
-            const initSuccess = machineryManager.init(elementMap);
+            const initSuccess = await machineryManager.init(elementMap);
             if (initSuccess) {
                 console.log('✅ MachineryManager initialized successfully');
             } else {

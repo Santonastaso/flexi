@@ -14,40 +14,29 @@ class EditManager {
         const table = typeof table_selector === 'string' ? document.querySelector(table_selector) : table_selector;
         if (!table) return;
 
-        // Add event delegation for edit buttons
+        // Add a single event listener for all actions using event delegation
         table.addEventListener('click', (e) => {
-            if (e.target.classList.contains('btn-edit')) {
-                const row = e.target.closest('tr');
-                if (row) {
-                    this.start_edit(row);
+            const target = e.target;
+            const row = target.closest('tr');
+            if (!row) return; // Exit if the click was not on a button inside a row
+
+            if (target.matches('.btn-edit')) {
+                this.start_edit(row);
+            } else if (target.matches('.btn-save')) {
+                const handler = this.table_save_handlers.get(table);
+                if (handler) {
+                    handler(row);
+                } else {
+                    this.save_edit(row);
                 }
-            } else if (e.target.classList.contains('btn-save')) {
-                const row = e.target.closest('tr');
-                if (row) {
-                    const handler = this.table_save_handlers.get(table);
-                    if (typeof handler === 'function') {
-                        handler(row);
-                    } else {
-                        this.save_edit(row);
-                    }
-                }
-            } else if (e.target.classList.contains('btn-cancel')) {
-                const row = e.target.closest('tr');
-                if (row) {
-                    this.cancel_edit(row);
-                }
-            } else if (e.target.classList.contains('btn-delete')) {
-                const row = e.target.closest('tr');
-                if (row) {
-                    // Trigger custom delete event
-                    const delete_event = new CustomEvent('deleteRow', {
-                        detail: { row: row }
-                    });
-                    table.dispatchEvent(delete_event);
-                }
+            } else if (target.matches('.btn-cancel')) {
+                this.cancel_edit(row);
+            } else if (target.matches('.btn-delete')) {
+                table.dispatchEvent(new CustomEvent('deleteRow', { detail: { row } }));
             }
         });
     }
+
 
     /**
      * Register a per-table save handler to avoid global overrides
@@ -89,8 +78,7 @@ class EditManager {
         row.querySelector('.save-cancel-buttons').style.display = 'flex';
 
         // Focus first input
-        const first_input = row.querySelector('.edit-input, .edit-select');
-        if (first_input) first_input.focus();
+        row.querySelector('.edit-input, .edit-select')?.focus();
 
         // Add keyboard event listeners
         row.querySelectorAll('.edit-input, .edit-select').forEach(input => {
@@ -123,8 +111,7 @@ class EditManager {
         // Hide edit mode
         row.classList.remove('editing');
         row.querySelectorAll('.static-value').forEach(el => el.style.display = 'block');
-        row.querySelectorAll('.edit-input, .edit-select').forEach(el => el.style.display = 'none');
-        row.querySelectorAll('.edit-color-container').forEach(el => el.style.display = 'none');
+        row.querySelectorAll('.edit-input, .edit-select, .edit-color-container').forEach(el => el.style.display = 'none');
         row.querySelector('.action-buttons').style.display = 'flex';
         row.querySelector('.save-cancel-buttons').style.display = 'none';
 
@@ -137,46 +124,35 @@ class EditManager {
     save_edit(row) {
         // Find the table this row belongs to
         const table = row.closest('table');
-        if (table && this.table_save_handlers.has(table)) {
-            const save_handler = this.table_save_handlers.get(table);
-            if (typeof save_handler === 'function') {
-                save_handler(row);
-            }
+        const save_handler = this.table_save_handlers.get(table);
+        if (table && typeof save_handler === 'function') {
+            save_handler(row);
         }
     }
+
 
     /**
      * Collect edited values from a row
      */
     collect_edited_values(row) {
         const updated_data = {};
-        row.querySelectorAll('.editable-cell').forEach(cell => {
+        row.querySelectorAll('.editable-cell[data-field]').forEach(cell => {
             const field = cell.dataset.field;
             const input = cell.querySelector('.edit-input, .edit-select');
-            if (input) {
-                if (field === 'color') {
-                    // For color, get the value from the select element
-                    const color_select = cell.querySelector('.edit-select');
-                    updated_data[field] = color_select ? color_select.value : input.value;
-                } else if (field === 'active_shifts') {
-                    // Handle active_shifts as an array - collect from shift checkboxes
-                    const shift_checkboxes = cell.querySelectorAll('.edit-shift-checkbox');
-                    if (shift_checkboxes.length > 0) {
-                        updated_data[field] = Array.from(shift_checkboxes)
-                            .filter(checkbox => checkbox.checked)
-                            .map(checkbox => checkbox.value);
-                    } else {
-                        // Fallback to text input if checkboxes not found
-                        const value = input.value.trim();
-                        if (value) {
-                            updated_data[field] = value.split(',').map(shift => shift.trim()).filter(shift => shift);
-                        } else {
-                            updated_data[field] = [];
-                        }
-                    }
+            if (!input) return;
+
+            if (field === 'active_shifts') {
+                const checkboxes = cell.querySelectorAll('.edit-shift-checkbox');
+                if (checkboxes.length > 0) {
+                    updated_data[field] = Array.from(checkboxes)
+                        .filter(cb => cb.checked)
+                        .map(cb => cb.value);
                 } else {
-                    updated_data[field] = input.value;
+                    const value = input.value.trim();
+                    updated_data[field] = value ? value.split(',').map(s => s.trim()).filter(Boolean) : [];
                 }
+            } else {
+                updated_data[field] = input.value;
             }
         });
         return updated_data;
@@ -192,32 +168,27 @@ class EditManager {
             case 'number':
                 return `<input type="number" class="edit-input" value="${value || ''}" min="0" step="${options.step || 1}" style="display: none;">`;
             case 'select':
-                const options_html = options.options.map(opt => 
+                const options_html = options.options.map(opt =>
                     `<option value="${opt.value}" ${opt.value === value ? 'selected' : ''}>${opt.label}</option>`
                 ).join('');
                 return `<select class="edit-select" style="display: none;">${options_html}</select>`;
             case 'shifts':
-                // Special case for active_shifts - create checkboxes for T1, T2, T3
-                const shifts = Array.isArray(value) ? value : (value ? value.split(',').map(s => s.trim()) : []);
+                const shifts = Array.isArray(value) ? value : (value ? String(value).split(',').map(s => s.trim()) : []);
                 return `
                     <div class="edit-shifts-container" style="display: none;">
-                        <label><input type="checkbox" class="edit-shift-checkbox" value="T1" ${shifts.includes('T1') ? 'checked' : ''}> T1</label>
-                        <label><input type="checkbox" class="edit-shift-checkbox" value="T2" ${shifts.includes('T2') ? 'checked' : ''}> T2</label>
-                        <label><input type="checkbox" class="edit-shift-checkbox" value="T3" ${shifts.includes('T3') ? 'checked' : ''}> T3</label>
+                        ${['T1', 'T2', 'T3'].map(s => `
+                            <label><input type="checkbox" class="edit-shift-checkbox" value="${s}" ${shifts.includes(s) ? 'checked' : ''}> ${s}</label>
+                        `).join('')}
                     </div>
                 `;
             case 'color':
                 const color_options = [
-                    { value: '#1a73e8', label: 'Blue' },
-                    { value: '#34a853', label: 'Green' },
-                    { value: '#ea4335', label: 'Red' },
-                    { value: '#fbbc04', label: 'Yellow' },
-                    { value: '#9c27b0', label: 'Purple' },
-                    { value: '#ff9800', label: 'Orange' },
-                    { value: '#00bcd4', label: 'Cyan' },
-                    { value: '#e91e63', label: 'Pink' }
+                    { value: '#1a73e8', label: 'Blue' }, { value: '#34a853', label: 'Green' },
+                    { value: '#ea4335', label: 'Red' }, { value: '#fbbc04', label: 'Yellow' },
+                    { value: '#9c27b0', label: 'Purple' }, { value: '#ff9800', label: 'Orange' },
+                    { value: '#00bcd4', label: 'Cyan' }, { value: '#e91e63', label: 'Pink' }
                 ];
-                const color_options_html = color_options.map(opt => 
+                const color_options_html = color_options.map(opt =>
                     `<option value="${opt.value}" ${opt.value === value ? 'selected' : ''}>${opt.label}</option>`
                 ).join('');
                 return `
@@ -225,7 +196,7 @@ class EditManager {
                         <select class="edit-select" onchange="this.nextElementSibling.style.backgroundColor = this.value;">
                             ${color_options_html}
                         </select>
-                        <div class="color-preview-edit" style="background-color: ${value || '#1a73e8'}; width: 20px; height: 20px; border-radius: 50%; display: inline-block; margin-left: 8px;"></div>
+                        <div class="color-preview-edit" style="background-color: ${value || '#1a73e8'};"></div>
                     </div>
                 `;
             default:
@@ -239,20 +210,12 @@ class EditManager {
     create_action_buttons() {
         return `
             <div class="action-buttons">
-                <button class="btn-edit" title="Edit">
-                    Edit
-                </button>
-                <button class="btn-delete" title="Delete">
-                    Delete
-                </button>
+                <button class="btn-edit" title="Edit">Edit</button>
+                <button class="btn-delete" title="Delete">Delete</button>
             </div>
             <div class="save-cancel-buttons" style="display: none;">
-                <button class="btn-save" title="Save changes">
-                    Save
-                </button>
-                <button class="btn-cancel" title="Cancel edit">
-                    Cancel
-                </button>
+                <button class="btn-save" title="Save changes">Save</button>
+                <button class="btn-cancel" title="Cancel edit">Cancel</button>
             </div>
         `;
     }

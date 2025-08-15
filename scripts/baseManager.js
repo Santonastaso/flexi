@@ -34,12 +34,10 @@ export class BaseManager {
      * Validate that all required elements exist
      */
     validate_elements() {
-        const missing_elements = Object.entries(this.elements)
-            .filter(([key, element]) => !element)
-            .map(([key]) => key);
-            
-        if (missing_elements.length > 0) {
-            console.error('Missing required elements:', missing_elements);
+        const missing_keys = Object.keys(this.elements).filter(key => !this.elements[key]);
+
+        if (missing_keys.length > 0) {
+            console.error('Missing required elements:', missing_keys);
             return false;
         }
         return true;
@@ -53,7 +51,7 @@ export class BaseManager {
     get_elements_by_id(elementIds) {
         const elementMap = {};
         const missingElements = [];
-        
+
         elementIds.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
@@ -63,12 +61,12 @@ export class BaseManager {
                 elementMap[id] = null;
             }
         });
-        
+
         // Log errors for missing elements
         if (missingElements.length > 0) {
             console.error(`Missing DOM elements with IDs: ${missingElements.join(', ')}`);
         }
-        
+
         return elementMap;
     }
 
@@ -78,8 +76,6 @@ export class BaseManager {
     attach_event_listeners() {
         // Override in subclasses
     }
-
-
 
     /**
      * Show banner message
@@ -94,8 +90,8 @@ export class BaseManager {
      * Common success message for CRUD operations
      */
     show_success_message(operation, item_name = '') {
-        const message = item_name ? 
-            `${operation} "${item_name}" completed successfully!` : 
+        const message = item_name ?
+            `${operation} "${item_name}" completed successfully!` :
             `${operation} completed successfully!`;
         this.show_message(message, 'success');
     }
@@ -146,14 +142,14 @@ export class BaseManager {
      */
     validateRequiredFields(fields) {
         const errors = [];
-        
+
         fields.forEach(field => {
             const element = this.elements[field];
             if (!element || !element.value.trim()) {
                 errors.push(`${field} is required`);
             }
         });
-        
+
         return {
             isValid: errors.length === 0,
             errors: errors
@@ -178,11 +174,7 @@ export class BaseManager {
     clear_form_fields() {
         Object.values(this.elements).forEach(element => {
             if (element && (element.tagName === 'INPUT' || element.tagName === 'SELECT' || element.tagName === 'TEXTAREA')) {
-                if (element.type === 'checkbox' || element.type === 'radio') {
-                    element.checked = false;
-                } else {
-                    element.value = '';
-                }
+                (element.type === 'checkbox' || element.type === 'radio') ? element.checked = false: element.value = '';
             }
         });
     }
@@ -196,15 +188,13 @@ export class BaseManager {
      */
     validate_form(data, config) {
         const errors = [];
-        
 
-        
         // Required fields validation
         if (config.required_fields) {
             try {
                 const requiredValidation = Utils.validate_required_fields(
-                    data, 
-                    config.required_fields, 
+                    data,
+                    config.required_fields,
                     config.field_labels || {}
                 );
                 if (!requiredValidation.isValid) {
@@ -215,13 +205,13 @@ export class BaseManager {
                 errors.push('Required validation failed: ' + error.message);
             }
         }
-        
+
         // Numeric fields validation  
         if (config.numericFields) {
             try {
                 const numericValidation = Utils.validate_numeric_fields(
-                    config.numericFields, 
-                    data, 
+                    config.numericFields,
+                    data,
                     config.field_labels || {}
                 );
                 if (!numericValidation.isValid) {
@@ -232,13 +222,13 @@ export class BaseManager {
                 errors.push('Numeric validation failed: ' + error.message);
             }
         }
-        
+
         // Field relationship validation
         if (config.relationships) {
             config.relationships.forEach(rel => {
                 const relationshipValidation = Utils.validate_field_relationship(
                     rel.field1, data[rel.field1],
-                    rel.field2, data[rel.field2], 
+                    rel.field2, data[rel.field2],
                     rel.field1_label, rel.field2_label
                 );
                 if (!relationshipValidation.isValid) {
@@ -246,7 +236,6 @@ export class BaseManager {
                 }
             });
         }
-        
 
         return {
             isValid: errors.length === 0,
@@ -259,45 +248,39 @@ export class BaseManager {
      */
     validate_edit_row(row, required_fields, numericFields, field_labels = {}) {
         const updatedData = this.editManager.collect_edited_values(row);
-        
-        // Check if updatedData is valid
+
         if (!updatedData || typeof updatedData !== 'object') {
             console.error('Invalid updatedData:', updatedData);
             this.show_error_message('validating data', new Error('Failed to collect edited values'));
             return null;
         }
-        
+
         const validationConfig = {
             required_fields: required_fields,
             numericFields: numericFields,
             field_labels: field_labels
         };
-        
 
-        
-        // Test if we can call the method at all
         let validation;
         try {
             validation = this.validate_form(updatedData, validationConfig);
-
         } catch (error) {
             console.error('Error calling validate_form:', error);
             this.show_error_message('validating data', new Error('Validation method error: ' + error.message));
             return null;
         }
-        
-        // Check if validation result is valid
+
         if (!validation || typeof validation !== 'object' || validation.isValid === undefined) {
             console.error('Invalid validation result:', validation);
             this.show_error_message('validating data', new Error('Validation failed'));
             return null;
         }
-        
+
         if (!validation.isValid) {
             this.show_error_message('validating data', new Error(validation.errors.join(', ')));
             return null;
         }
-        
+
         return updatedData;
     }
 
@@ -307,7 +290,7 @@ export class BaseManager {
     bind_elementsById(elementIds) {
         const elements = {};
         const missing = [];
-        
+
         elementIds.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
@@ -316,12 +299,12 @@ export class BaseManager {
                 missing.push(id);
             }
         });
-        
+
         if (missing.length > 0) {
             console.error('Missing elements:', missing);
             return null;
         }
-        
+
         return elements;
     }
 

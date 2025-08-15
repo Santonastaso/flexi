@@ -123,6 +123,17 @@ class StorageService {
             'machines'
         );
     }
+    
+    async get_machine_by_id(machineId) {
+        return await this.handle_supabase_operation(
+            async () => {
+                const machines = await this.supabase_service.get_machines();
+                return machines.find(m => m.id === machineId) || null;
+            },
+            'get_machine_by_id',
+            'machines'
+        );
+    }
 
     async get_active_machines() {
         return await this.handle_supabase_operation(

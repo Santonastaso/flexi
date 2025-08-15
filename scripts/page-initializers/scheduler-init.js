@@ -105,6 +105,25 @@ async function initialize_scheduler() {
         // Initialize the scheduler now that DOM is ready
         if (window.scheduler.init()) {
             console.log('✅ Scheduler initialized successfully');
+            
+            // Add refresh machines button event listener
+            const refreshBtn = document.getElementById('refresh_machines_btn');
+            if (refreshBtn && window.scheduler.refresh_machine_data) {
+                refreshBtn.addEventListener('click', async () => {
+                    try {
+                        refreshBtn.disabled = true;
+                        refreshBtn.textContent = '⏳';
+                        await window.scheduler.refresh_machine_data();
+                        refreshBtn.textContent = '🔄';
+                    } catch (error) {
+                        console.error('Error refreshing machines:', error);
+                        refreshBtn.textContent = '🔄';
+                    } finally {
+                        refreshBtn.disabled = false;
+                    }
+                });
+                console.log('✅ Refresh machines button initialized');
+            }
         } else {
             console.error('❌ Scheduler initialization failed');
         }

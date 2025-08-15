@@ -1897,6 +1897,17 @@ tr.editing td {
     background: var(--border-color);
 }
 
+.nav-btn.refresh {
+    padding: 8px;
+    min-width: 40px;
+    justify-content: center;
+}
+
+.nav-btn.refresh:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .today-btn {
     font-weight: 500;
     color: var(--primary-blue);

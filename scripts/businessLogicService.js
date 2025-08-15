@@ -2,9 +2,11 @@
  * Business Logic Service - Centralized business logic for all entities
  * Handles calculations, determinations, and business rules
  */
+import { Utils } from './utils.js';
+
 export class BusinessLogicService {
-    constructor() {
-    }
+    constructor() {}
+
     // ===== MACHINERY BUSINESS LOGIC =====
     /**
      * Generate machine ID based on type and work center
@@ -17,6 +19,7 @@ export class BusinessLogicService {
         const timestamp = Date.now().toString(36);
         return `${prefix}_${work_center_code}_${timestamp}`;
     }
+
     /**
      * Get machine type prefix for ID generation
      */
@@ -32,6 +35,7 @@ export class BusinessLogicService {
         };
         return prefixes[machine_type] || 'MACH';
     }
+
     /**
      * Get valid machine types for a department
      */
@@ -42,244 +46,180 @@ export class BusinessLogicService {
         };
         return valid_types[department] || [];
     }
+
     /**
      * Get valid work centers
      */
     get_valid_work_centers() {
         return ['ZANICA', 'BUSTO_GAROLFO'];
     }
+
     /**
      * Get machine display name
      */
     get_machine_display_name(machine) {
-        if (!machine) return 'Unknown Machine';
-        // Use current field first
-        if (machine.machine_name) {
-            return machine.machine_name;
-        }
-        // Return default name
-        return 'Unknown Machine';
+        return machine?.machine_name || 'Unknown Machine';
     }
+
     /**
      * Check if machine is active
      */
     is_active_machine(machine) {
         if (!machine) return false;
-        // Use current status field
-        if (machine.status) {
-            return String(machine.status).toUpperCase() === 'ACTIVE';
-        }
-        // Any named machine is considered active
-        return !!machine.machine_name;
+        return machine.status ? String(machine.status).toUpperCase() === 'ACTIVE' : !!machine.machine_name;
     }
+
     // ===== ODP BUSINESS LOGIC =====
     /**
      * Auto-determine work center based on article code
      */
     auto_determine_work_center(article_code) {
         if (!article_code) return 'ZANICA';
-        // Article codes starting with P05 or ISP05 go to BUSTO GAROLFO
-        if (article_code.startsWith('P05') || article_code.startsWith('ISP05')) {
-            return 'BUSTO_GAROLFO';
-        }
-        // All other article codes go to ZANICA
-        return 'ZANICA';
+        return (article_code.startsWith('P05') || article_code.startsWith('ISP05')) ? 'BUSTO_GAROLFO' : 'ZANICA';
     }
+
     /**
      * Auto-determine department based on article code
      */
     auto_determine_department(article_code) {
         if (!article_code) return 'STAMPA';
-        // Article codes starting with P0 go to CONFEZIONAMENTO
-        if (article_code.startsWith('P0')) {
-            return 'CONFEZIONAMENTO';
-        }
-        // All other article codes go to STAMPA
-        return 'STAMPA';
+        return article_code.startsWith('P0') ? 'CONFEZIONAMENTO' : 'STAMPA';
     }
+
     /**
      * Generate ODP number (next in sequence)
      */
     generate_odp_number(existing_odp_numbers = []) {
-        const existing_numbers = existing_odp_numbers
-            .map(num => num && num.startsWith('OP') ? parseInt(num.substring(2)) : 0)
-            .filter(num => !isNaN(num));
-        const next_number = existing_numbers.length > 0 ? Math.max(...existing_numbers) + 1 : 1;
-        return `OP${next_number.toString().padStart(6, '0')}`;
+        const maxNum = existing_odp_numbers.reduce((max, num) => {
+            if (num?.startsWith('OP')) {
+                const currentNum = parseInt(num.substring(2), 10);
+                return Math.max(max, isNaN(currentNum) ? 0 : currentNum);
+            }
+            return max;
+        }, 0);
+        return `OP${(maxNum + 1).toString().padStart(6, '0')}`;
     }
+
     /**
      * Auto-set internal customer code from article code
      */
     auto_set_internal_customer_code(article_code) {
         return article_code || '';
     }
+
     /**
      * Calculate production duration based on phase and quantity
      */
     calculate_production_duration(phase, quantity, bag_width, bag_height) {
         if (!phase || !quantity) return 0;
+
         let speed = 0;
         let setup_time = 0;
+        let production_time = 0;
+
         if (phase.department === 'STAMPA') {
-            speed = phase.v_stampa || 0; // mt/h
+            speed = phase.v_stampa || 0;
             setup_time = phase.t_setup_stampa || 0;
-            // For printing, calculate based on bag width and quantity
             if (speed > 0 && bag_width > 0) {
-                const meters_per_bag = bag_width / 1000; // Convert mm to meters
+                const meters_per_bag = bag_width / 1000;
                 const bags_per_hour = speed / meters_per_bag;
-                const production_time = quantity / bags_per_hour;
-                return setup_time + production_time;
+                production_time = quantity / bags_per_hour;
             }
         } else if (phase.department === 'CONFEZIONAMENTO') {
-            speed = phase.v_conf || 0; // pz/h
+            speed = phase.v_conf || 0;
             setup_time = phase.t_setup_conf || 0;
-            // For packaging, calculate based on quantity and speed
             if (speed > 0) {
-                const production_time = quantity / speed;
-                return setup_time + production_time;
+                production_time = quantity / speed;
             }
         }
-        return setup_time;
+        return setup_time + production_time;
     }
+
     /**
      * Calculate production cost based on phase and duration
      */
     calculate_production_cost(phase, duration) {
         if (!phase || !duration) return 0;
-        let hourly_cost = 0;
-        if (phase.department === 'STAMPA') {
-            hourly_cost = phase.costo_h_stampa || 0;
-        } else if (phase.department === 'CONFEZIONAMENTO') {
-            hourly_cost = phase.costo_h_conf || 0;
-        }
+        const costMap = {
+            'STAMPA': phase.costo_h_stampa || 0,
+            'CONFEZIONAMENTO': phase.costo_h_conf || 0
+        };
+        const hourly_cost = costMap[phase.department] || 0;
         return hourly_cost * duration;
     }
+
     // ===== STATUS CALCULATION LOGIC =====
     /**
      * Unified event matching logic for ODP scheduling
-     * @param {string} odpNumber - The ODP number to match
-     * @param {Object} event - The scheduled event to check
-     * @returns {boolean} True if the event matches the ODP
      */
     _matchesODP(odpNumber, event) {
-        // Primary: Check taskId
-        if (String(event.taskId) === String(odpNumber)) return true;
-        // Secondary: Check if taskTitle contains the ODP number
-        if (event.taskTitle && String(event.taskTitle).includes(odpNumber)) return true;
-        // Tertiary: Check if there's an odp_number field
-        if (event.odp_number && String(event.odp_number) === String(odpNumber)) return true;
-        return false;
+        const odpStr = String(odpNumber);
+        return String(event.taskId) === odpStr ||
+            event.taskTitle?.includes(odpStr) ||
+            String(event.odp_number) === odpStr;
     }
-    
+
     /**
      * Determine ODP status based on Gantt schedule
      */
     determineODPStatus(odpNumber, scheduledEvents) {
         if (!odpNumber || !scheduledEvents) return 'Not Scheduled';
-        // Check if this ODP is scheduled using unified matching logic
-        const isScheduled = scheduledEvents.some(event => this._matchesODP(odpNumber, event));
-        return isScheduled ? 'Scheduled' : 'Not Scheduled';
+        return scheduledEvents.some(event => this._matchesODP(odpNumber, event)) ? 'Scheduled' : 'Not Scheduled';
     }
-    
+
     /**
      * Get production start timestamp from Gantt schedule
      */
     getProductionStartTimestamp(odpNumber, scheduledEvents) {
         if (!odpNumber || !scheduledEvents) return null;
-        // Find scheduled event by ODP number using unified matching logic
         const scheduledEvent = scheduledEvents.find(event => this._matchesODP(odpNumber, event));
         if (scheduledEvent) {
-            // Task is scheduled, return the timestamp
             const start_date = new Date(scheduledEvent.date);
-            const startHour = scheduledEvent.startHour || 0;
-            start_date.setHours(startHour, 0, 0, 0);
+            start_date.setHours(scheduledEvent.startHour || 0, 0, 0, 0);
             return start_date.toISOString();
         }
         return null;
     }
+
     // ===== COMPATIBILITY LOGIC =====
     /**
-     * Check if machine is compatible with ODP requirements
-     */
-    /**
      * Unified machine compatibility checking
-     * @param {Object} machine - The machine to check
-     * @param {Object} odpData - The ODP data to check against
-     * @param {Object} options - Compatibility check options
-     * @param {boolean} options.returnDetails - Return detailed compatibility information
-     * @returns {boolean|Object} Compatibility result (boolean or detailed object)
      */
     getMachineCompatibility(machine, odpData, options = {}) {
         const { returnDetails = false } = options;
-        
+
+        const createResponse = (isCompatible, reasons = []) => {
+            if (!returnDetails) return isCompatible;
+            return {
+                isCompatible,
+                reasons,
+                status: isCompatible ? 'compatible' : 'incompatible',
+                icon: isCompatible ? '✅' : '❌',
+                message: isCompatible ? 'Compatible' : 'Incompatible'
+            };
+        };
+
         if (!machine || !odpData) {
-            return returnDetails ? {
-                isCompatible: false,
-                reasons: ['Machine or ODP data is missing'],
-                status: 'incompatible',
-                icon: '❌',
-                message: 'Incompatible'
-            } : false;
+            return createResponse(false, ['Machine or ODP data is missing']);
         }
-        
-        // Department compatibility
-        if (machine.department !== odpData.department) {
-            return returnDetails ? {
-                isCompatible: false,
-                reasons: [`Department mismatch: ${machine.department} vs ${odpData.department}`],
-                status: 'incompatible',
-                icon: '❌',
-                message: 'Incompatible'
-            } : false;
-        }
-        
-        // Web width compatibility
-        if (machine.max_web_width !== undefined && odpData.bag_width !== undefined) {
-            if (parseInt(odpData.bag_width) > machine.max_web_width) {
-                return returnDetails ? {
-                    isCompatible: false,
-                    reasons: [`Bag width (${odpData.bag_width}mm) exceeds machine capacity (${machine.max_web_width}mm)`],
-                    status: 'incompatible',
-                    icon: '❌',
-                    message: 'Incompatible'
-                } : false;
+
+        const checks = [
+            () => (machine.department !== odpData.department) ? `Department mismatch: ${machine.department} vs ${odpData.department}` : null,
+            () => (machine.max_web_width !== undefined && parseInt(odpData.bag_width) > machine.max_web_width) ? `Bag width (${odpData.bag_width}mm) exceeds machine capacity (${machine.max_web_width}mm)` : null,
+            () => (machine.max_bag_height !== undefined && parseInt(odpData.bag_height) > machine.max_bag_height) ? `Bag height (${odpData.bag_height}mm) exceeds machine capacity (${machine.max_bag_height}mm)` : null,
+            () => (machine.status !== 'ACTIVE') ? `Machine is not active (status: ${machine.status})` : null,
+        ];
+
+        for (const check of checks) {
+            const reason = check();
+            if (reason) {
+                return createResponse(false, [reason]);
             }
         }
-        
-        // Bag height compatibility
-        if (machine.max_bag_height !== undefined && odpData.bag_height !== undefined) {
-            if (parseInt(odpData.bag_height) > machine.max_bag_height) {
-                return returnDetails ? {
-                    isCompatible: false,
-                    reasons: [`Bag height (${odpData.bag_height}mm) exceeds machine capacity (${machine.max_bag_height}mm)`],
-                    status: 'incompatible',
-                    icon: '❌',
-                    message: 'Incompatible'
-                } : false;
-            }
-        }
-        
-        // Machine status compatibility
-        if (machine.status !== 'ACTIVE') {
-            return returnDetails ? {
-                isCompatible: false,
-                reasons: [`Machine is not active (status: ${machine.status})`],
-                status: 'incompatible',
-                icon: '❌',
-                message: 'Incompatible'
-            } : false;
-        }
-        
-        // All checks passed
-        return returnDetails ? {
-            isCompatible: true,
-            reasons: [],
-            status: 'compatible',
-            icon: '✅',
-            message: 'Compatible'
-        } : true;
+
+        return createResponse(true);
     }
-    
+
     /**
      * Check if machine is compatible with ODP requirements (boolean result)
      * @deprecated Use getMachineCompatibility(machine, odpData) instead
@@ -287,6 +227,7 @@ export class BusinessLogicService {
     isMachineCompatible(machine, odpData) {
         return this.getMachineCompatibility(machine, odpData);
     }
+
     /**
      * Get machine compatibility status with detailed information
      * @deprecated Use getMachineCompatibility(machine, odpData, { returnDetails: true }) instead
@@ -294,6 +235,7 @@ export class BusinessLogicService {
     getMachineCompatibilityStatus(machine, odpData) {
         return this.getMachineCompatibility(machine, odpData, { returnDetails: true });
     }
+
     // ===== DATA NORMALIZATION =====
     /**
      * Normalize machine data for storage
@@ -308,6 +250,7 @@ export class BusinessLogicService {
             status: Utils.normalize_status(machineData.status, 'ACTIVE')
         };
     }
+
     /**
      * Normalize ODP data for storage
      */
@@ -323,6 +266,7 @@ export class BusinessLogicService {
             priority: Utils.normalize_enum_lower(odpData.priority || 'medium')
         };
     }
+
     /**
      * Normalize phase data for storage
      */
@@ -334,6 +278,7 @@ export class BusinessLogicService {
             work_center: Utils.normalize_code(phaseData.work_center || 'ZANICA')
         };
     }
+
     // ===== UTILITY METHODS =====
     /**
      * Normalize name (trim, uppercase, replace spaces with underscores)
@@ -342,15 +287,14 @@ export class BusinessLogicService {
         return String(name || '').trim().toUpperCase().replace(/\s+/g, '_');
     }
 
-    // REMOVED: normalize_status - now using Utils.normalize_status consistently
     /**
      * Normalize enum to lowercase
      */
     normalize_enum_lower(value) {
         return String(value || '').trim().toLowerCase();
     }
-
 }
+
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = BusinessLogicService;

@@ -5,376 +5,275 @@
 class SlotHandler {
     constructor(options = {}) {
         this.options = {
-            enable_drag_drop: options.enableDragDrop !== undefined ? options.enableDragDrop : true,
-            enable_click: options.enableClick !== undefined ? options.enableClick : true,
-            enable_hover: options.enableHover !== undefined ? options.enableHover : true,
-            feedback_duration: options.feedbackDuration || 2000,
+            enable_drag_drop: options.enableDragDrop ?? true,
+            enable_click: options.enableClick ?? true,
+            enable_hover: options.enableHover ?? true,
+            feedback_duration: options.feedbackDuration ?? 2000,
+            on_slot_click: options.onSlotClick ?? null,
+            on_slot_drop: options.onSlotDrop ?? null,
+            on_slot_hover: options.onSlotHover ?? null,
+            on_validation_error: options.onValidationError ?? null,
+            on_success: options.onSuccess ?? null,
             ...options
         };
-        
+
         this.storage_service = window.storageService;
-        this.callbacks = {
-            on_slot_click: options.onSlotClick || null,
-            on_slot_drop: options.onSlotDrop || null,
-            on_slot_hover: options.onSlotHover || null,
-            on_validation_error: options.onValidationError || null,
-            on_success: options.onSuccess || null
-        };
-        
         this.drag_state = {
             is_dragging: false,
             dragged_item: null,
             drag_start_time: null
         };
     }
-    
+
     /**
      * Initialize slot interactions for a container
      */
     initialize_slots(container) {
         if (!container) return;
-        
-        const slots = container.querySelectorAll('.time-slot.interactive');
-        
-        slots.forEach(slot => {
+
+        container.querySelectorAll('.time-slot.interactive').forEach(slot => {
             this.setup_slot_interactions(slot);
         });
-        
-        // Setup task pool interactions if present
+
         const task_pool = container.querySelector('.task-pool-container, #taskPool');
         if (task_pool) {
             this.setup_task_pool_interactions(task_pool);
         }
     }
-    
+
     /**
      * Setup interactions for a single slot
      */
     setup_slot_interactions(slot) {
-        // Click interactions
-        if (this.options.enable_click && this.callbacks.on_slot_click) {
+        if (this.options.enable_click && this.options.on_slot_click) {
             slot.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.handle_slot_click(slot, e);
             });
         }
-        
-        // Hover interactions
+
         if (this.options.enable_hover) {
-            slot.addEventListener('mouseenter', (e) => {
-                this.handle_slot_hover(slot, e, 'enter');
-            });
-            
-            slot.addEventListener('mouseleave', (e) => {
-                this.handle_slot_hover(slot, e, 'leave');
+            ['mouseenter', 'mouseleave'].forEach(eventType => {
+                slot.addEventListener(eventType, e => {
+                    this.handle_slot_hover(slot, e, eventType === 'mouseenter' ? 'enter' : 'leave');
+                });
             });
         }
-        
-        // Drag and drop interactions
+
         if (this.options.enable_drag_drop) {
             this.setup_drag_drop_for_slot(slot);
         }
     }
-    
+
     /**
      * Setup drag and drop for a slot
      */
     setup_drag_drop_for_slot(slot) {
-        // Allow drops
         slot.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
-            
             if (!slot.classList.contains('drag-over')) {
                 slot.classList.add('drag-over');
                 this.show_slot_feedback(slot, 'drag-over');
             }
         });
-        
+
         slot.addEventListener('dragleave', (e) => {
-            // Only remove if we're actually leaving the slot
             if (!slot.contains(e.relatedTarget)) {
                 slot.classList.remove('drag-over');
                 this.clear_slot_feedback(slot, 'drag-over');
             }
         });
-        
+
         slot.addEventListener('drop', (e) => {
             e.preventDefault();
             slot.classList.remove('drag-over');
-            this.clearSlotFeedback(slot, 'drag-over');
-            
-            this.handleSlotDrop(slot, e);
+            this.clear_slot_feedback(slot, 'drag-over');
+            this.handle_slot_drop(slot, e);
         });
     }
-    
+
     /**
      * Setup task pool interactions
      */
     setup_task_pool_interactions(task_pool) {
-        // Update class for consistency
-        if (!taskPool.classList.contains('task-pool-container')) {
-            taskPool.classList.add('task-pool-container');
+        if (!task_pool.classList.contains('task-pool-container')) {
+            task_pool.classList.add('task-pool-container');
         }
-        
-        // Allow drops to unschedule tasks
-        taskPool.addEventListener('dragover', (e) => {
+
+        task_pool.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
-            taskPool.classList.add('drag-over');
+            task_pool.classList.add('drag-over');
         });
-        
-        taskPool.addEventListener('dragleave', (e) => {
-            if (!taskPool.contains(e.relatedTarget)) {
-                taskPool.classList.remove('drag-over');
+
+        task_pool.addEventListener('dragleave', (e) => {
+            if (!task_pool.contains(e.relatedTarget)) {
+                task_pool.classList.remove('drag-over');
             }
         });
-        
-        taskPool.addEventListener('drop', (e) => {
+
+        task_pool.addEventListener('drop', (e) => {
             e.preventDefault();
-            taskPool.classList.remove('drag-over');
-            
-            this.handleTaskPoolDrop(taskPool, e);
+            task_pool.classList.remove('drag-over');
+            this.handle_task_pool_drop(task_pool, e);
         });
-        
-        // Setup draggable tasks
-        this.setupTaskDragging(taskPool);
+
+        this.setup_task_dragging(task_pool);
     }
-    
+
     /**
      * Setup dragging for tasks in the pool
      */
-    setupTaskDragging(taskPool) {
-        const tasks = taskPool.querySelectorAll('.task-item');
-        
-        tasks.forEach(task => {
+    setup_task_dragging(task_pool) {
+        task_pool.querySelectorAll('.task-item').forEach(task => {
             task.draggable = true;
-            
             task.addEventListener('dragstart', (e) => {
-                this.dragState.isDragging = true;
-                this.dragState.draggedItem = task;
-                this.dragState.dragStartTime = Date.now();
-                
+                this.drag_state.is_dragging = true;
+                this.drag_state.dragged_item = task;
+                this.drag_state.drag_start_time = Date.now();
                 task.classList.add('dragging');
-                
-                // Set drag data
                 const taskId = task.id.replace('pool-task-', '') || task.dataset.taskId;
                 e.dataTransfer.setData('text/plain', taskId);
-                e.dataTransfer.setData('application/json', JSON.stringify({
-                    id: taskId,
-                    source: 'pool'
-                }));
-                
+                e.dataTransfer.setData('application/json', JSON.stringify({ id: taskId, source: 'pool' }));
                 e.dataTransfer.effectAllowed = 'move';
             });
-            
+
             task.addEventListener('dragend', (e) => {
-                this.dragState.isDragging = false;
-                this.dragState.draggedItem = null;
+                this.drag_state.is_dragging = false;
+                this.drag_state.dragged_item = null;
                 task.classList.remove('dragging');
-                
-                // Clear any remaining visual feedback
-                this.clearAllFeedback();
+                this.clear_all_feedback();
             });
         });
     }
-    
+
     /**
      * Handle slot click events
      */
     handle_slot_click(slot, event) {
         const slot_data = this.extract_slot_data(slot);
-        
-        if (this.callbacks.onSlotClick) {
-            this.callbacks.onSlotClick(slotData, event, slot);
+        if (this.options.on_slot_click) {
+            this.options.on_slot_click(slot_data, event, slot);
         } else {
-            // Default behavior: toggle availability
-            this.toggleSlotAvailability(slotData, slot);
+            this.toggle_slot_availability(slot_data, slot);
         }
     }
-    
+
     /**
      * Handle slot hover events
      */
     handle_slot_hover(slot, event, action) {
         const slot_data = this.extract_slot_data(slot);
-        
         if (action === 'enter') {
-            this.showSlotPreview(slot, slotData);
+            this.show_slot_preview(slot, slot_data);
         } else {
-            this.hideSlotPreview(slot, slotData);
+            this.hide_slot_preview(slot, slot_data);
         }
-        
-        if (this.callbacks.onSlotHover) {
-            this.callbacks.onSlotHover(slotData, event, slot, action);
-        }
+        this.options.on_slot_hover?.(slot_data, event, slot, action);
     }
-    
+
     /**
      * Handle slot drop events
      */
     handle_slot_drop(slot, event) {
         event.preventDefault();
         event.stopPropagation();
-        
+
         const slot_data = this.extract_slot_data(slot);
         const task_id = event.dataTransfer.getData('text/plain');
-        
-        if (!task_id) {
-            this.show_error('Invalid task data');
+
+        if (!task_id || !this.validate_slot_for_drop(slot_data, task_id)) {
+            this.show_error('Invalid task data or slot.');
             return;
         }
-        
-        // Check if slot is valid for dropping
-        if (!this.validate_slot_for_drop(slot_data, task_id)) {
-            return;
-        }
-        
-        if (this.callbacks.on_slot_drop) {
-            this.callbacks.on_slot_drop(slot_data, task_id, event, slot);
+
+        if (this.options.on_slot_drop) {
+            this.options.on_slot_drop(slot_data, task_id, event, slot);
         } else {
-            // Default behavior: schedule task
             this.schedule_task_to_slot(slot_data, task_id, slot);
         }
     }
-    
+
     /**
      * Handle task pool drop events
      */
     handle_task_pool_drop(task_pool, event) {
         const event_id = event.dataTransfer.getData('text/plain');
-        
         if (!event_id) {
             this.show_error('Invalid event data');
             return;
         }
-        
-        // Try to get event data
         let event_data;
         try {
             event_data = JSON.parse(event.dataTransfer.getData('application/json'));
         } catch (e) {
-            // Fallback to just the ID
             event_data = { id: event_id };
         }
-        
-        if (event_data.source === 'pool') {
-            // Task is already in pool, no action needed
-            return;
-        }
-        
+        if (event_data.source === 'pool') return; // Task already in pool
         this.unschedule_task(event_id, task_pool);
     }
-    
+
     /**
      * Validate if a slot can accept a drop
      */
     validate_slot_for_drop(slot_data, task_id) {
-        if (!this.storage_service) {
-            this.show_error('Storage service not available');
-            return false;
-        }
-        
-        // Check if slot is already occupied
-        if (this.is_slot_occupied(slot_data)) {
-            this.show_error('This time slot is already occupied');
-            return false;
-        }
-        
-        // Check if slot is unavailable
-        if (this.is_slot_unavailable(slot_data)) {
-            this.show_error('This time slot is marked as unavailable');
-            return false;
-        }
-        
-        // Get task data to validate duration
+        if (!this.storage_service) return !this.show_error('Storage service not available');
+        if (this.is_slot_occupied(slot_data)) return !this.show_error('This time slot is already occupied');
+        if (this.is_slot_unavailable(slot_data)) return !this.show_error('This time slot is marked as unavailable');
+
         const task = this.storage_service.getBacklogTaskById(task_id);
-        if (!task) {
-            this.show_error('Task not found');
-            return false;
-        }
-        
-        // Check if task duration fits
+        if (!task) return !this.show_error('Task not found');
         if (!this.validate_task_duration(slot_data, task)) {
-            this.show_error(`Task duration (${task.duration}h) doesn't fit in available time`);
-            return false;
+            return !this.show_error(`Task duration (${task.duration}h) doesn't fit in available time`);
         }
-        
         return true;
     }
-    
+
     /**
      * Check if slot is occupied
      */
     is_slot_occupied(slot_data) {
         if (!slot_data.machine || !slot_data.date) return false;
-        
         const events = this.storage_service.get_events_by_date(slot_data.date);
-        
-        return events.some(event => 
+        return events.some(event =>
             event.machine === slot_data.machine &&
-            slot_data.hour >= event.startHour && 
+            slot_data.hour >= event.startHour &&
             slot_data.hour < event.endHour
         );
     }
-    
+
     /**
      * Check if slot is unavailable
      */
     is_slot_unavailable(slot_data) {
         if (!slot_data.machine || !slot_data.date) return false;
-        
-        const unavailable_hours = this.storage_service.getMachineAvailabilityForDate(
-            slot_data.machine, 
-            slot_data.date
-        );
-        
+        const unavailable_hours = this.storage_service.getMachineAvailabilityForDate(slot_data.machine, slot_data.date);
         return unavailable_hours.includes(slot_data.hour);
     }
-    
+
     /**
      * Validate task duration against available time
      */
     validate_task_duration(slot_data, task) {
-        if (!slot_data.machine || !slot_data.date) return false;
-        if (!task || !task.duration || task.duration <= 0) return false;
-        
+        if (!slot_data.machine || !slot_data.date || !task?.duration > 0) return false;
         const events = this.storage_service.get_events_by_date(slot_data.date);
-        const unavailable_hours = this.storage_service.getMachineAvailabilityForDate(
-            slot_data.machine, 
-            slot_data.date
-        );
-        
-        // Check each hour in the task duration
+        const unavailable = this.storage_service.getMachineAvailabilityForDate(slot_data.machine, slot_data.date);
+
         for (let h = slot_data.hour; h < slot_data.hour + task.duration; h++) {
-            // Check if hour is occupied
-            const is_occupied = events.some(event => 
-                event.machine === slot_data.machine &&
-                h >= event.startHour && 
-                h < event.endHour
-            );
-            
-            // Check if hour is unavailable
-            const is_unavailable = unavailable_hours.includes(h);
-            
-            if (is_occupied || is_unavailable) {
-                return false;
-            }
+            const is_occupied = events.some(e => e.machine === slot_data.machine && h >= e.startHour && h < e.endHour);
+            if (is_occupied || unavailable.includes(h)) return false;
         }
-        
         return true;
     }
-    
+
     /**
      * Schedule a task to a slot
      */
     schedule_task_to_slot(slot_data, task_id, slot) {
         const task = this.storage_service.getBacklogTaskById(task_id);
-        if (!task) {
-            this.show_error('Task not found');
-            return;
-        }
-        
+        if (!task) return this.show_error('Task not found');
+
         const event_data = {
             id: `${task_id}-${Date.now()}`,
             taskId: task_id,
@@ -386,19 +285,16 @@ class SlotHandler {
             color: task.color,
             duration: task.duration
         };
-        
+
         try {
             this.storage_service.addScheduledEvent(event_data);
             this.show_success(`Task "${task.odp_number || 'Unknown Task'}" scheduled successfully`);
-            
-            if (this.callbacks.on_success) {
-                this.callbacks.on_success('schedule', event_data, slot);
-            }
+            this.options.on_success?.('schedule', event_data, slot);
         } catch (error) {
             this.show_error(`Failed to schedule task: ${error.message}`);
         }
     }
-    
+
     /**
      * Unschedule a task
      */
@@ -406,38 +302,26 @@ class SlotHandler {
         try {
             this.storage_service.removeScheduledEvent(event_id);
             this.show_success('Task unscheduled successfully');
-            
-            if (this.callbacks.on_success) {
-                this.callbacks.on_success('unschedule', { id: event_id }, task_pool);
-            }
+            this.options.on_success?.('unschedule', { id: event_id }, task_pool);
         } catch (error) {
             this.show_error(`Failed to unschedule task: ${error.message}`);
         }
     }
-    
+
     /**
      * Toggle slot availability
      */
-    toggleSlotAvailability(slotData, slot) {
-        if (!slotData.machine) return; // Only works for machine slots
-        
+    toggle_slot_availability(slot_data, slot) {
+        if (!slot_data.machine) return;
         try {
-            this.storageService.toggleMachineHourAvailability(
-                slotData.machine, 
-                slotData.date, 
-                slotData.hour
-            );
-            
-            this.showSuccess('Slot availability updated');
-            
-            if (this.callbacks.onSuccess) {
-                this.callbacks.onSuccess('availability', slotData, slot);
-            }
+            this.storage_service.toggleMachineHourAvailability(slot_data.machine, slot_data.date, slot_data.hour);
+            this.show_success('Slot availability updated');
+            this.options.on_success?.('availability', slot_data, slot);
         } catch (error) {
-            this.showError(`Failed to update availability: ${error.message}`);
+            this.show_error(`Failed to update availability: ${error.message}`);
         }
     }
-    
+
     /**
      * Extract slot data from DOM element
      */
@@ -449,134 +333,99 @@ class SlotHandler {
             element: slot
         };
     }
-    
+
     /**
      * Show slot preview on hover
      */
     show_slot_preview(slot, slot_data) {
-        if (this.drag_state.is_dragging) {
-            // Show drop preview
-            this.show_drop_preview(slot, slot_data);
-        } else {
-            // Show info preview
-            this.show_info_preview(slot, slot_data);
-        }
+        if (this.drag_state.is_dragging) this.show_drop_preview(slot, slot_data);
+        else this.show_info_preview(slot, slot_data);
     }
-    
+
     /**
      * Hide slot preview
      */
-    hide_slot_preview(slot, slot_data) {
+    hide_slot_preview(slot) {
         slot.removeAttribute('title');
         this.clear_slot_feedback(slot, 'preview');
     }
-    
+
     /**
      * Show drop preview
      */
     show_drop_preview(slot, slot_data) {
         if (!this.drag_state.dragged_item) return;
-        
         const task_id = this.drag_state.dragged_item.id.replace('pool-task-', '');
         const is_valid = this.validate_slot_for_drop(slot_data, task_id);
-        
-        if (is_valid) {
-            slot.classList.add('valid-drop');
-            slot.title = 'Drop here to schedule task';
-        } else {
-            slot.classList.add('invalid-drop');
-            slot.title = 'Cannot drop here';
-        }
+        slot.classList.add(is_valid ? 'valid-drop' : 'invalid-drop');
+        slot.title = is_valid ? 'Drop here to schedule task' : 'Cannot drop here';
     }
+
     /**
      * Show info preview
      */
     show_info_preview(slot, slot_data) {
         const is_occupied = this.is_slot_occupied(slot_data);
         const is_unavailable = this.is_slot_unavailable(slot_data);
-        
-        let title = `${slot_data.hour}:00`;
-        if (slot_data.machine) {
-            title += ` - ${slot_data.machine}`;
-        }
-        
-        if (is_occupied) {
-            title += ' (Occupied)';
-        } else if (is_unavailable) {
-            title += ' (Unavailable)';
-        } else {
-            title += ' (Available)';
-        }
-        
+        let title = `${slot_data.hour}:00 - ${slot_data.machine}`;
+        if (is_occupied) title += ' (Occupied)';
+        else if (is_unavailable) title += ' (Unavailable)';
+        else title += ' (Available)';
         slot.title = title;
     }
-    
+
     /**
      * Show slot feedback
      */
     show_slot_feedback(slot, type) {
         slot.classList.add(`feedback-${type}`);
-        
-        if (this.options.feedbackDuration > 0) {
-            setTimeout(() => {
-                this.clearSlotFeedback(slot, type);
-            }, this.options.feedbackDuration);
+        if (this.options.feedback_duration > 0) {
+            setTimeout(() => this.clear_slot_feedback(slot, type), this.options.feedback_duration);
         }
     }
-    
+
     /**
      * Clear slot feedback
      */
     clear_slot_feedback(slot, type) {
         slot.classList.remove(`feedback-${type}`, 'valid-drop', 'invalid-drop');
     }
-    
+
     /**
      * Clear all visual feedback
      */
     clear_all_feedback() {
-        document.querySelectorAll('.time-slot').forEach(slot => {
-            slot.classList.remove('drag-over', 'valid-drop', 'invalid-drop', 'highlighted');
-            slot.removeAttribute('title');
-        });
-        
-        document.querySelectorAll('.task-pool-container').forEach(pool => {
-            pool.classList.remove('drag-over');
+        document.querySelectorAll('.time-slot, .task-pool-container').forEach(el => {
+            el.classList.remove('drag-over', 'valid-drop', 'invalid-drop', 'highlighted');
+            el.removeAttribute('title');
         });
     }
-    
+
     /**
      * Show success message
      */
     show_success(message) {
-        if (this.callbacks.on_success) {
-            this.callbacks.on_success('message', { message }, null);
-        } else {
-        }
+        this.options.on_success?.('message', { message }, null);
     }
-    
+
     /**
      * Show error message
      */
     show_error(message) {
-        if (this.callbacks.on_validation_error) {
-            this.callbacks.on_validation_error(message);
+        if (this.options.on_validation_error) {
+            this.options.on_validation_error(message);
         } else {
             console.error('Error:', message);
-            alert(message); // Fallback alert
+            alert(message);
         }
     }
-    
+
     /**
      * Cleanup event listeners
      */
     cleanup() {
         this.clear_all_feedback();
-        this.drag_state = {
-            is_dragging: false,
-            dragged_item: null,
-            drag_start_time: null
-        };
+        this.drag_state = { is_dragging: false, dragged_item: null, drag_start_time: null };
     }
 }
 
