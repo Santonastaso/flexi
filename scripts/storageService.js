@@ -96,6 +96,26 @@ class StorageService {
             console.log(`[${type.toUpperCase()}] ${message}`);
         }
     }
+    
+    /**
+     * Check if the database connection is working
+     */
+    async check_connection() {
+        try {
+            if (!this.supabaseService) {
+                return { connected: false, error: 'Supabase service not available' };
+            }
+            
+            // Try a simple operation to test connection
+            await this.supabaseService.get_machines();
+            return { connected: true, error: null };
+        } catch (error) {
+            return { 
+                connected: false, 
+                error: error.message || 'Connection failed' 
+            };
+        }
+    }
 
     /**
      * MACHINES METHODS

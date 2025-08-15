@@ -181,8 +181,7 @@ class SupabaseService {
 
     async update_machine(id, updates) {
         try {
-            // Debug: Log the exact data being sent to Supabase
-            console.log('Debug - Supabase update_machine called with:', { id, updates });
+
             
             const { data, error } = await this.client
                 .from(this.TABLES.MACHINES)

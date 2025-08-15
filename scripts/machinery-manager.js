@@ -732,12 +732,7 @@ class MachineryManager extends BaseManager {
                 updated_at: new Date().toISOString()
             };
             
-            // Debug: Log the exact data being sent
-            console.log('Debug - Machine update data:', {
-                original_machine: machine,
-                updatedData: updatedData,
-                final_updated_machine: updated_machine
-            });
+
 
 
             // Save updated machine
