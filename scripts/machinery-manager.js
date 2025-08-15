@@ -170,7 +170,7 @@ export class MachineryManager extends BaseManager {
         const machineData = this.collect_machine_data();
         if (!machineData) {
             this.elements.add_btn.disabled = true;
-            return;
+            return false;
         }
 
         const formData = {
@@ -179,39 +179,10 @@ export class MachineryManager extends BaseManager {
         };
 
         const validation = this.validationService.validate_machine(formData, { returnFieldMapping: true });
-        this.elements.add_btn.disabled = !validation.isValid;
-        this.clear_validation_errors();
-
-        if (!validation.isValid) {
-            Object.entries(validation.errors).forEach(([fieldId, errorMessage]) => {
-                this.show_validation_error(fieldId, errorMessage);
-            });
-        }
-        return validation.isValid;
+        return this.validate_form_with_button_state(validation, this.elements.add_btn);
     }
 
-    clear_validation_errors() {
-        document.querySelectorAll('.validation-error').forEach(element => {
-            element.style.display = 'none';
-            element.textContent = '';
-        });
-        document.querySelectorAll('.form-group input, .form-group select').forEach(input => {
-            input.classList.remove('validation-error', 'validation-success');
-        });
-    }
-
-    show_validation_error(fieldId, message) {
-        const errorElement = document.getElementById(`${fieldId}_error`);
-        const inputElement = this.elements[fieldId];
-        if (errorElement) {
-            errorElement.textContent = message;
-            errorElement.style.display = message ? 'block' : 'none';
-        }
-        if (inputElement) {
-            inputElement.classList.toggle('validation-error', !!message);
-            inputElement.classList.remove('validation-success');
-        }
-    }
+    // Validation methods now inherited from BaseManager
 
     async handle_add_machine() {
         if (this.elements.add_btn.disabled) return;
@@ -269,11 +240,22 @@ export class MachineryManager extends BaseManager {
     }
 
     clear_form() {
+        // Use the base class method to clear all form fields
         this.clear_form_fields();
+    }
+
+    /**
+     * Custom form clearing logic for machinery
+     * Called automatically by the base class clear_form_fields method
+     */
+    custom_clear_form() {
+        // Set default values for machinery-specific fields
         this.elements.setup_time_standard.value = '0.5';
         this.elements.changeover_color.value = '0.25';
         this.elements.changeover_material.value = '0.75';
         this.elements.active_shifts.forEach(checkbox => checkbox.checked = (checkbox.value === 'T1'));
+        
+        // Validate the form after clearing
         this.validate_form_fields();
         this.update_changeover_field_visibility();
     }

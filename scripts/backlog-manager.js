@@ -12,6 +12,7 @@ export class BacklogManager extends BaseManager {
     constructor() {
         super(null);
         this.editManager = editManager;
+        this.event_listeners_attached = false; // Flag to prevent duplicate event listeners
         this.validationService = new ValidationService();
         this.businessLogic = new BusinessLogicService();
         this.storageService = storageService;
@@ -41,14 +42,14 @@ export class BacklogManager extends BaseManager {
                     this.editManager.register_save_handler(tableBody, (row) => this.save_edit(row));
                     
                     // Add delete event listener
-                                        tableBody.addEventListener('deleteRow', async (e) => {
-                    const row = e.detail.row;
+                    tableBody.addEventListener('deleteRow', async (e) => {
+                        const row = e.detail.row;
                         const odpId = row.dataset.odpId;
                         if (odpId) {
                             await this.delete_odp_order(odpId);
-                    }
-                });
-            }
+                        }
+                    });
+                }
             }
             
             return true;
@@ -75,6 +76,11 @@ export class BacklogManager extends BaseManager {
     }
 
     attach_event_listeners() {
+        // Prevent duplicate event listener attachment
+        if (this.event_listeners_attached) {
+            return;
+        }
+
         // Event handlers mapping
         const eventHandlers = {
             handle_article_code_change: ['article_code'],
@@ -106,6 +112,9 @@ export class BacklogManager extends BaseManager {
         // Initial setup
         this.populate_phases_dropdown().catch(console.error);
         this.hide_calculation_results();
+
+        // Mark event listeners as attached
+        this.event_listeners_attached = true;
     }
 
 
@@ -133,19 +142,13 @@ export class BacklogManager extends BaseManager {
     validate_form_fields(updateButtonState = true) {
         const formData = this.collect_form_data();
         const validation = this.validationService.validate_odp(formData, { context: 'form', returnFieldMapping: true });
-        const isValid = Object.keys(validation.errors).length === 0;
         
-        this.clear_validation_errors();
+        // Use base class validation method for consistent behavior
+        const isValid = this.validate_form_with_button_state(validation, this.elements.create_task);
         
-        if (!isValid) {
-            Object.entries(validation.errors).forEach(([field, errorMessage]) => {
-                this.show_validation_error(field, errorMessage);
-            });
-        }
-        
-        if (updateButtonState) {
-            if (this.elements.calculate_btn) this.elements.calculate_btn.disabled = !isValid;
-            if (this.elements.create_task) this.elements.create_task.disabled = !isValid;
+        // Handle additional buttons if needed
+        if (updateButtonState && this.elements.calculate_btn) {
+            this.elements.calculate_btn.disabled = !isValid;
         }
 
         if (window.DEBUG) console.log(`Form validation result: ${isValid}`, validation.errors);
@@ -166,22 +169,7 @@ export class BacklogManager extends BaseManager {
         return data;
     }
 
-    clear_validation_errors() {
-        // Clear all validation error spans
-        document.querySelectorAll('.validation_error').forEach(span => {
-            span.style.display = 'none';
-            span.textContent = '';
-        });
-    }
-
-    show_validation_error(fieldName, errorMessage) {
-        // Show error for specific field
-        const errorSpan = document.getElementById(`${fieldName}_error`);
-        if (errorSpan) {
-            errorSpan.textContent = errorMessage;
-            errorSpan.style.display = 'block';
-        }
-    }
+    // Validation methods now inherited from BaseManager
 
     /**
      * Update the bag specification visual preview
@@ -306,21 +294,21 @@ export class BacklogManager extends BaseManager {
             if (!validation.isValid) {
                 this.show_error_message('validating production order', new Error('Validation failed: ' + validation.errors.join(', ')));
                 this.elements.create_task.disabled = false;
-            return;
-        }
+                return;
+            }
 
             const orderData = {
                 ...this.collect_form_data(), // Re-use form data collection
                 delivery_date: this.elements.delivery_date.value,
-            bag_height: parseInt(this.elements.bag_height.value) || 0,
-            bag_width: parseInt(this.elements.bag_width.value) || 0,
-            bag_step: parseInt(this.elements.bag_step.value) || 0,
+                bag_height: parseInt(this.elements.bag_height.value) || 0,
+                bag_width: parseInt(this.elements.bag_width.value) || 0,
+                bag_step: parseInt(this.elements.bag_step.value) || 0,
                 seal_sides: this.elements.seal_sides.value,
-            product_type: this.elements.product_type.value,
-            quantity: parseInt(this.elements.quantity.value) || 0,
+                product_type: this.elements.product_type.value,
+                quantity: parseInt(this.elements.quantity.value) || 0,
                 internal_customer_code: this.elements.internal_customer_code.value.trim(),
-            external_customer_code: this.elements.external_customer_code.value.trim(),
-            customer_order_ref: this.elements.customer_order_ref.value.trim(),
+                external_customer_code: this.elements.external_customer_code.value.trim(),
+                customer_order_ref: this.elements.customer_order_ref.value.trim(),
                 duration: this.current_calculation_results?.totals.duration || 0,
                 cost: this.current_calculation_results?.totals.cost || 0,
                 status: 'NOT SCHEDULED',
@@ -343,6 +331,7 @@ export class BacklogManager extends BaseManager {
         } catch (error) {
             const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
             this.show_error_message('creating production order', errorObj);
+        } finally {
             if (this.elements.create_task) this.elements.create_task.disabled = false;
         }
     }
@@ -375,8 +364,6 @@ export class BacklogManager extends BaseManager {
     }
 
     create_backlog_row(item) {
-        // This function is primarily HTML generation, no significant code logic to streamline.
-        // It remains unchanged for brevity and clarity.
         return `
             <tr data-odp-id="${item.id}">
                 <td class="editable-cell" data-field="id"><span class="static-value">${item.id}</span>${this.editManager ? this.editManager.create_edit_input('text', item.id) : ''}</td>
@@ -462,17 +449,24 @@ export class BacklogManager extends BaseManager {
     }
 
     clear_form_fields() {
-        Object.values(this.elements).forEach(element => {
-            if (element?.tagName === 'INPUT' || element?.tagName === 'SELECT' || element?.tagName === 'TEXTAREA') {
-                element.type === 'checkbox' || element.type === 'radio' ? element.checked = false : element.value = '';
-            }
-        });
+        // Use the base class method to clear all form fields
+        super.clear_form_fields();
+    }
 
+    /**
+     * Custom form clearing logic for backlog
+     * Called automatically by the base class clear_form_fields method
+     */
+    custom_clear_form() {
+        // Clear specific data attributes
         if (this.elements.article_code) delete this.elements.article_code.dataset.department;
         if (this.elements.work_center) this.elements.work_center.value = '';
         if (this.elements.department) this.elements.department.value = '';
 
+        // Reset calculation results
         this.current_calculation_results = null;
+        
+        // Repopulate and update UI
         this.populate_phases_dropdown().catch(console.error);
         this.validate_form_fields();
         this.update_bag_preview();
@@ -494,8 +488,8 @@ export class BacklogManager extends BaseManager {
                 
                 relevantPhases.forEach(phase => {
                     const option = document.createElement('option');
-                option.value = phase.id;
-                option.textContent = phase.name;
+                    option.value = phase.id;
+                    option.textContent = phase.name;
                     faseDropdown.appendChild(option);
                 });
         } catch (error) {
@@ -504,25 +498,21 @@ export class BacklogManager extends BaseManager {
     }
 
     async delete_odp_order(odpId) {
-        try {
-            const currentOrder = await this.storageService.get_odp_order_by_id(odpId);
-            const orderName = currentOrder?.odp_number || 'this ODP order';
-            const message = `Are you sure you want to delete "${orderName}"? This action cannot be undone.`;
-            
-            show_delete_confirmation(message, async () => {
-                try {
-                    await this.storageService.remove_odp_order(odpId);
-                    await this.load_backlog();
-                    this.show_success_message('ODP order deleted');
-        } catch (error) {
-                    const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
-                    this.show_error_message('deleting ODP order', errorObj);
-                }
-            });
-        } catch (error) {
-            const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
-            this.show_error_message('deleting ODP order', errorObj);
-        }
+        // Assuming `show_delete_confirmation` is a global helper function.
+        // The original `message` variable was undefined.
+        const message = `Are you sure you want to delete ODP Order #${odpId}?`;
+    
+        // This function shows a confirmation dialog and executes the callback if confirmed.
+        show_delete_confirmation(message, async () => {
+            try {
+                await this.storageService.remove_odp_order(odpId);
+                await this.load_backlog();
+                this.show_success_message('ODP order deleted successfully.');
+            } catch (error) {
+                const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
+                this.show_error_message('deleting ODP order', errorObj);
+            }
+        });
     }
 
     /**

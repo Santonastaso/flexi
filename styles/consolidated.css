@@ -441,18 +441,7 @@ tr.editing td {
 .banner.error { border-left-color: var(--danger-red); }
 .banner.info { border-left-color: var(--primary-blue); }
 
-/* ===== VALIDATION & STATUS STYLES ===== */
-.form-group input.validation-error,
-.form-group select.validation-error {
-    border-color: var(--danger-red);
-    box-shadow: 0 0 0 1px var(--danger-red);
-}
-.validation-error {
-    color: var(--danger-red);
-    font-size: 12px;
-    margin-top: 4px;
-    display: block;
-}
+/* ===== STATUS STYLES ===== */
 .status-badge {
     display: inline-flex;
     align-items: center;

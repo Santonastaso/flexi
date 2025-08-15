@@ -177,6 +177,11 @@ export class BaseManager {
                 (element.type === 'checkbox' || element.type === 'radio') ? element.checked = false: element.value = '';
             }
         });
+        
+        // Call custom clear logic if it exists
+        if (typeof this.custom_clear_form === 'function') {
+            this.custom_clear_form();
+        }
     }
 
     // Note: Action buttons are provided by EditManager.create_action_buttons()
@@ -306,6 +311,22 @@ export class BaseManager {
         }
 
         return elements;
+    }
+
+    /**
+     * Validate form and update button state - lean validation approach
+     * Only responsibility is to enable/disable the action button
+     */
+    validate_form_with_button_state(validation, actionButton) {
+        if (!actionButton) {
+            console.warn('No action button provided for validation');
+            return false;
+        }
+        
+        const isValid = validation && validation.isValid === true;
+        actionButton.disabled = !isValid;
+        
+        return isValid;
     }
 
     /**

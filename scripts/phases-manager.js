@@ -12,6 +12,7 @@ export class PhasesManager extends BaseManager {
     constructor() {
         super(null); // Defer storageService assignment until init
         this.editManager = editManager;
+        this.event_listeners_attached = false; // Flag to prevent duplicate event listeners
         this.validationService = new ValidationService();
         this.businessLogic = new BusinessLogicService();
     }
@@ -54,6 +55,11 @@ export class PhasesManager extends BaseManager {
     }
 
     attach_event_listeners() {
+        // Prevent duplicate event listener attachment
+        if (this.event_listeners_attached) {
+            return;
+        }
+
         this.elements.add_phase_btn?.addEventListener('click', () => this.handle_add_phase());
 
         this.elements.phase_type?.addEventListener('change', () => {
@@ -75,6 +81,9 @@ export class PhasesManager extends BaseManager {
                 input.addEventListener('change', handler);
             }
         });
+
+        // Mark event listeners as attached
+        this.event_listeners_attached = true;
     }
 
     setup_form_validation() {
@@ -133,56 +142,26 @@ export class PhasesManager extends BaseManager {
         const phaseData = this.collect_phase_data();
         if (!phaseData) {
             this.elements.add_phase_btn.disabled = true;
-            return;
+            return false;
         }
 
         const validation = this.validationService.validate_phase(phaseData, { returnFieldMapping: true });
-        this.elements.add_phase_btn.disabled = !validation.isValid;
-        this.clear_validation_errors();
-
-        if (!validation.isValid) {
-            Object.entries(validation.errors).forEach(([fieldId, errorMessage]) => {
-                this.showValidationError(fieldId, errorMessage);
-            });
-        }
-        return validation.isValid;
+        return this.validate_form_with_button_state(validation, this.elements.add_phase_btn);
     }
 
-    showValidationError(fieldId, message) {
-        const errorElement = document.getElementById(`${fieldId}-error`);
-        if (errorElement) {
-            errorElement.textContent = message;
-            errorElement.style.display = message ? 'block' : 'none';
-        }
-        const inputElement = this.elements[fieldId];
-        if (inputElement) {
-            inputElement.classList.toggle('validation-error', !!message);
-            inputElement.classList.remove('validation-success');
-        }
-    }
-
-    clear_validation_errors() {
-        document.querySelectorAll('.validation-error').forEach(element => {
-            element.style.display = 'none';
-            element.textContent = '';
-        });
-        document.querySelectorAll('.form-group input, .form-group select').forEach(input => {
-            input.classList.remove('validation-error', 'validation-success');
-        });
-    }
+    // Validation methods now inherited from BaseManager
 
     async handle_add_phase() {
         if (this.elements.add_phase_btn.disabled) return;
         this.elements.add_phase_btn.disabled = true;
 
         try {
-            this.clear_validation_errors();
             const phaseData = this.collect_phase_data();
             if (!this.validate_phase_form()) {
                 throw new Error('Please fill in all required fields correctly.');
             }
             const newPhase = await this.storageService.add_phase(phaseData);
-            this.clear_phase_form();
+            this.clear_form_fields();
             await this.load_phases();
             this.show_success_message('Phase added', newPhase.name);
         } catch (error) {
@@ -223,11 +202,15 @@ export class PhasesManager extends BaseManager {
     }
 
 
-    clear_phase_form() {
-        this.clear_form_fields();
+    /**
+     * Custom form clearing logic for phases
+     * Called automatically by the base class clear_form_fields method
+     */
+    custom_clear_form() {
+        // Handle phase-specific section visibility
         this.handle_phase_department_change(); // Hides sections
 
-        // Set default values
+        // Set default values for phase-specific fields
         this.elements.numero_persone.value = '1';
         this.elements.phase_work_center.value = 'ZANICA';
         this.elements.v_stampa.value = '6000';
@@ -237,6 +220,7 @@ export class PhasesManager extends BaseManager {
         this.elements.t_setup_conf.value = '0.25';
         this.elements.costo_h_conf.value = '40';
 
+        // Validate the form after clearing
         this.validate_phase_form();
     }
 
