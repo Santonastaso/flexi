@@ -18,7 +18,7 @@ export class ValidationService {
         const required_fields = ['machine_name', 'machine_type', 'work_center', 'department'];
         required_fields.forEach(field => {
             if (!machineData[field] || machineData[field].toString().trim() === '') {
-                const errorMessage = `${this.formatFieldName(field)} is required`;
+                const errorMessage = `${this.format_field_name(field)} is required`;
                 errors.push(errorMessage);
                 if (returnFieldMapping) {
                     fieldErrors[field] = errorMessage;
@@ -29,7 +29,7 @@ export class ValidationService {
         const technicalFields = ['min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height'];
         technicalFields.forEach(field => {
             if (!machineData[field] || machineData[field].toString().trim() === '') {
-                const errorMessage = `${this.formatFieldName(field)} is required`;
+                const errorMessage = `${this.format_field_name(field)} is required`;
                 errors.push(errorMessage);
                 if (returnFieldMapping) {
                     fieldErrors[field] = errorMessage;
@@ -37,7 +37,7 @@ export class ValidationService {
             } else {
                 const value = parseFloat(machineData[field]);
                 if (isNaN(value) || value <= 0) {
-                    const errorMessage = `${this.formatFieldName(field)} must be a number > 0`;
+                    const errorMessage = `${this.format_field_name(field)} must be a number > 0`;
                     errors.push(errorMessage);
                     if (returnFieldMapping) {
                         fieldErrors[field] = errorMessage;
@@ -68,11 +68,11 @@ export class ValidationService {
         const performanceFields = ['standard_speed', 'setup_time_standard'];
         performanceFields.forEach(field => {
             if (!machineData[field] || machineData[field].toString().trim() === '') {
-                errors.push(`${this.formatFieldName(field)} is required`);
+                errors.push(`${this.format_field_name(field)} is required`);
             } else {
                 const value = parseFloat(machineData[field]);
                 if (isNaN(value) || value < 0) {
-                    errors.push(`${this.formatFieldName(field)} must be a number >= 0`);
+                    errors.push(`${this.format_field_name(field)} must be a number >= 0`);
                 }
             }
         });
@@ -80,20 +80,20 @@ export class ValidationService {
         // Changeover validation based on department - required fields
         if (machineData.department === 'STAMPA') {
             if (!machineData.changeover_color || machineData.changeover_color.toString().trim() === '') {
-                errors.push(`${this.formatFieldName('changeover_color')} is required for printing machines`);
+                errors.push(`${this.format_field_name('changeover_color')} is required for printing machines`);
             } else {
                 const value = parseFloat(machineData.changeover_color);
                 if (isNaN(value) || value < 0) {
-                    errors.push(`${this.formatFieldName('changeover_color')} must be a number >= 0`);
+                    errors.push(`${this.format_field_name('changeover_color')} must be a number >= 0`);
                 }
             }
         } else if (machineData.department === 'CONFEZIONAMENTO') {
             if (!machineData.changeover_material || machineData.changeover_material.toString().trim() === '') {
-                errors.push(`${this.formatFieldName('changeover_material')} is required for packaging machines`);
+                errors.push(`${this.format_field_name('changeover_material')} is required for packaging machines`);
             } else {
                 const value = parseFloat(machineData.changeover_material);
                 if (isNaN(value) || value < 0) {
-                    errors.push(`${this.formatFieldName('changeover_material')} must be a number >= 0`);
+                    errors.push(`${this.format_field_name('changeover_material')} must be a number >= 0`);
                 }
             }
         }
@@ -137,7 +137,7 @@ export class ValidationService {
         const required_fields = ['name', 'department', 'numero_persone', 'work_center'];
         required_fields.forEach(field => {
             if (!phaseData[field] || phaseData[field].toString().trim() === '') {
-                const errorMessage = `${this.formatFieldName(field)} is required`;
+                const errorMessage = `${this.format_field_name(field)} is required`;
                 errors.push(errorMessage);
                 if (returnFieldMapping) {
                     fieldErrors[field] = errorMessage;
@@ -162,11 +162,11 @@ export class ValidationService {
             const printingFields = ['v_stampa', 't_setup_stampa', 'costo_h_stampa'];
             printingFields.forEach(field => {
                 if (!phaseData[field] || phaseData[field].toString().trim() === '') {
-                    errors.push(`${this.formatFieldName(field)} is required for printing phases`);
+                    errors.push(`${this.format_field_name(field)} is required for printing phases`);
                 } else {
                     const value = parseFloat(phaseData[field]);
                     if (isNaN(value) || value < 0) {
-                        errors.push(`${this.formatFieldName(field)} must be a number >= 0`);
+                        errors.push(`${this.format_field_name(field)} must be a number >= 0`);
                     }
                 }
             });
@@ -175,11 +175,11 @@ export class ValidationService {
             const packagingFields = ['v_conf', 't_setup_conf', 'costo_h_conf'];
             packagingFields.forEach(field => {
                 if (!phaseData[field] || phaseData[field].toString().trim() === '') {
-                    errors.push(`${this.formatFieldName(field)} is required for packaging phases`);
+                    errors.push(`${this.format_field_name(field)} is required for packaging phases`);
                 } else {
                     const value = parseFloat(phaseData[field]);
                     if (isNaN(value) || value < 0) {
-                        errors.push(`${this.formatFieldName(field)} must be a number >= 0`);
+                        errors.push(`${this.format_field_name(field)} must be a number >= 0`);
                     }
                 }
             });
@@ -228,7 +228,7 @@ export class ValidationService {
         // Required fields validation
         requiredFields.forEach(field => {
             if (!odpData[field] || odpData[field].toString().trim() === '') {
-                const errorMessage = `${this.formatFieldName(field)} is required`;
+                const errorMessage = `${this.format_field_name(field)} is required`;
                 errors.push(errorMessage);
                 if (returnFieldMapping) {
                     fieldErrors[field] = errorMessage;
@@ -278,7 +278,7 @@ export class ValidationService {
             if (odpData[field] && odpData[field].toString().trim() !== '') {
                 const numValue = parseInt(odpData[field]);
                 if (isNaN(numValue) || numValue < 0) {
-                    const errorMessage = `${this.formatFieldName(field)} must be greater than or equal to 0`;
+                    const errorMessage = `${this.format_field_name(field)} must be greater than or equal to 0`;
                     errors.push(errorMessage);
                     if (returnFieldMapping) {
                         fieldErrors[field] = errorMessage;
@@ -379,7 +379,7 @@ export class ValidationService {
     /**
      * Format field names for user-friendly error messages
      */
-    formatFieldName(field_name) {
+    format_field_name(field_name) {
         const fieldMap = {
             'machine_name': 'Machine Name',
             'machine_type': 'Machine Type',
