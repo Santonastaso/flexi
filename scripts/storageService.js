@@ -445,13 +445,34 @@ class StorageService {
 
     async get_machine_availability_for_date(machineName, date) {
         this.log_call('get_machine_availability_for_date', 'machine_availability', machineName, date);
-        
         try {
             const result = await this.supabase_service.get_machine_availability_for_date(machineName, date);
             return result;
         } catch (error) {
-            console.error('Error getting machine availability for date from Supabase:', error);
-            return []; // Return empty array on error to prevent UI issues
+            console.error('Error in get_machine_availability_for_date:', error);
+            throw error;
+        }
+    }
+
+    async get_machine_availability_for_date_all_machines(date) {
+        this.log_call('get_machine_availability_for_date_all_machines', 'machine_availability', date);
+        try {
+            const result = await this.supabase_service.get_machine_availability_for_date_all_machines(date);
+            return result;
+        } catch (error) {
+            console.error('Error in get_machine_availability_for_date_all_machines:', error);
+            throw error;
+        }
+    }
+
+    async get_machine_availability_for_week_range(machineName, startDate, endDate) {
+        this.log_call('get_machine_availability_for_week_range', 'machine_availability', machineName, startDate, endDate);
+        try {
+            const result = await this.supabase_service.get_machine_availability_for_week_range(machineName, startDate, endDate);
+            return result;
+        } catch (error) {
+            console.error('Error in get_machine_availability_for_week_range:', error);
+            throw error;
         }
     }
 

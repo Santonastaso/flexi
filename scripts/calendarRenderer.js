@@ -84,16 +84,9 @@ class CalendarRenderer {
             if (view === 'week') {
                 // Load availability data for the week view only when needed
                 this.load_availability_for_week_view(date);
-                this.update_time_slots_with_data();
-            } else if (view === 'month') {
-                // Load availability data for the month view
-                this.load_availability_for_month_view(date);
-                this.update_month_view_with_data();
-            } else if (view === 'year') {
-                // Load availability data for the year view
-                this.load_availability_for_year_view(date);
-                this.update_year_view_with_data();
+                // Don't call update_time_slots_with_data here - it's handled in load_availability_for_week_view
             }
+            // Removed month and year view data loading - not needed
         }
     }
     
@@ -340,182 +333,70 @@ class CalendarRenderer {
         if (!this.machine_name || !this.storage_service) return;
         
         try {
+            console.log('🔍 Loading availability for week view, date:', date);
+            
             // Calculate the week range
             const weekStart = Utils.get_start_of_week(date);
             const weekEnd = new Date(weekStart);
             weekEnd.setDate(weekStart.getDate() + 6);
             
-            // Load availability data for this specific week
-            await this.storage_service.load_machine_availability_for_week?.(this.machine_name, weekStart, weekEnd);
+            console.log('🔍 Week range:', weekStart.toDateString(), 'to', weekEnd.toDateString());
+            
+            // Make ONE database call to get all availability for the week
+            const weekStartStr = weekStart.toISOString().split('T')[0];
+            const weekEndStr = weekEnd.toISOString().split('T')[0];
+            
+            // Get all machine availability for this week in one query
+            const availabilityData = await this.storage_service.get_machine_availability_for_week_range(
+                this.machine_name, 
+                weekStartStr, 
+                weekEndStr
+            );
+            
+            console.log('🔍 Week availability loaded in one query:', availabilityData);
+            
+            // Update the UI with the loaded data
+            this.update_week_view_with_data(availabilityData);
+            
         } catch (error) {
             console.warn('Could not load availability for week view:', error);
         }
     }
 
     /**
-     * Load availability data for the month view only when needed
+     * Update week view with availability data - simple X placement
      */
-    async load_availability_for_month_view(date) {
-        if (!this.machine_name || !this.storage_service) return;
+    update_week_view_with_data(availabilityData) {
+        if (!availabilityData || !Array.isArray(availabilityData)) return;
         
-        try {
-            // Calculate the month range
-            const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-            const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-            
-            // Load availability data for this specific month
-            await this.storage_service.load_machine_availability_for_month?.(this.machine_name, monthStart, monthEnd);
-        } catch (error) {
-            console.warn('Could not load availability for month view:', error);
-        }
-    }
-
-    /**
-     * Load availability data for the year view only when needed
-     */
-    async load_availability_for_year_view(date) {
-        if (!this.machine_name || !this.storage_service) return;
+        console.log('🔍 Updating week view with availability data');
         
-        try {
-            // Calculate the year range
-            const yearStart = new Date(date.getFullYear(), 0, 1);
-            const yearEnd = new Date(date.getFullYear(), 11, 31);
+        // For each availability record, mark the time slots as unavailable
+        availabilityData.forEach(record => {
+            const { date, unavailable_hours } = record;
             
-            // Load availability data for this specific year
-            await this.storage_service.load_machine_availability_for_year?.(this.machine_name, yearStart, yearEnd);
-        } catch (error) {
-            console.warn('Could not load availability for year view:', error);
-        }
-    }
-
-    /**
-     * Update year view with real data from the store
-     */
-    async update_year_view_with_data() {
-        if (!this.machine_name || !this.storage_service || this.current_view !== 'year') return;
-        
-        try {
-            // For year view, we'll update event counts for each month
-            const monthCells = this.container.querySelectorAll('.month-cell');
-            
-            for (const cell of monthCells) {
-                const year = parseInt(cell.dataset.year);
-                const month = parseInt(cell.dataset.month);
-                
-                // Get events for this month
-                const events = await this.storage_service.getEventsByMachine(this.machine_name);
-                const monthEvents = events.filter(e => {
-                    const event_date = new Date(e.date);
-                    return event_date.getFullYear() === year && event_date.getMonth() === month;
+            if (unavailable_hours && Array.isArray(unavailable_hours)) {
+                unavailable_hours.forEach(hour => {
+                    // Find the time slot for this date and hour
+                    const timeSlot = this.container.querySelector(`[data-date="${date}"][data-hour="${hour}"]`);
+                    if (timeSlot) {
+                        // Mark as unavailable
+                        timeSlot.classList.add('unavailable');
+                        timeSlot.dataset.unavailable = 'true';
+                        
+                        // Add X indicator
+                        const content = timeSlot.querySelector('.time-slot-content');
+                        if (content) {
+                            content.innerHTML = '<span class="unavailable-indicator">X</span>';
+                        }
+                        
+                        console.log(`🔍 Marked ${date} hour ${hour} as unavailable`);
+                    }
                 });
-                
-                // Update event indicator
-                const eventIndicator = cell.querySelector('.event-indicator');
-                if (eventIndicator) {
-                    if (monthEvents.length > 0) {
-                        eventIndicator.textContent = `${monthEvents.length} events`;
-                        eventIndicator.style.display = 'block';
-                    } else {
-                        eventIndicator.style.display = 'none';
-                    }
-                }
-
-                // Update mini month grid with event indicators
-                const miniMonthGrid = cell.querySelector('.mini-month-grid');
-                if (miniMonthGrid) {
-                    await this.update_mini_month_with_data(miniMonthGrid, year, month);
-                }
             }
-        } catch (error) {
-            console.error('Error updating year view with data:', error);
-        }
-    }
-
-    /**
-     * Update mini month grid with real data
-     */
-    async update_mini_month_with_data(miniMonthGrid, year, month) {
-        if (!this.machine_name || !this.storage_service) return;
+        });
         
-        try {
-            const miniDays = miniMonthGrid.querySelectorAll('.mini-day');
-            const monthStart = new Date(year, month, 1);
-            const monthEnd = new Date(year, month + 1, 0);
-            const startDate = new Date(monthStart);
-            startDate.setDate(startDate.getDate() - monthStart.getDay()); // Start from Sunday
-            
-            for (let i = 0; i < miniDays.length; i++) {
-                const day = new Date(startDate);
-                day.setDate(startDate.getDate() + i);
-                
-                if (day.getMonth() === month) {
-                    const dateStr = Utils.format_date(day);
-                    
-                    // Get events for this day
-                    const events = await this.storage_service.get_events_by_date(dateStr);
-                    const hasEvents = events.some(e => e.machine === this.machine_name);
-                    
-                    // Update the mini day
-                    const miniDay = miniDays[i];
-                    miniDay.className = `mini-day current-month ${hasEvents ? 'has-events' : ''}`;
-                }
-                
-                if (day.getMonth() > month) break;
-            }
-        } catch (error) {
-            console.error('Error updating mini month with data:', error);
-        }
-    }
-
-    /**
-     * Update month view with real data from the store
-     */
-    async update_month_view_with_data() {
-        if (!this.machine_name || !this.storage_service || this.current_view !== 'month') return;
-        
-        try {
-            const dayCells = this.container.querySelectorAll('.day-cell');
-            
-            for (const cell of dayCells) {
-                const dateStr = cell.dataset.date;
-                if (!dateStr) continue;
-                
-                // Get events and availability data
-                const [events, unavailableHours] = await Promise.all([
-                    this.storage_service.get_events_by_date(dateStr),
-                    this.storage_service.get_machine_availability_for_date(this.machine_name, dateStr)
-                ]);
-                
-                const machineEvents = events.filter(e => e.machine === this.machine_name);
-                const isUnavailable = unavailableHours.length >= 24; // Full day unavailable
-                const isPartiallyUnavailable = unavailableHours.length > 0 && unavailableHours.length < 24;
-                
-                // Update cell classes
-                cell.className = `day-cell ${cell.classList.contains('current-month') ? 'current-month' : 'other-month'} ${cell.classList.contains('today') ? 'today' : ''} ${isUnavailable ? 'unavailable' : ''} ${isPartiallyUnavailable ? 'partially-unavailable' : ''}`;
-                
-                // Update indicators
-                const dayNumber = cell.querySelector('.day-number');
-                if (dayNumber) {
-                    let html = dayNumber.innerHTML.replace(/<span[^>]*>.*?<\/span>/g, ''); // Remove existing indicators
-                    
-                    if (isUnavailable) {
-                        html += '<span class="unavailable-indicator">✕</span>';
-                    } else if (isPartiallyUnavailable) {
-                        html += '<span class="partially-unavailable-indicator">⚠</span>';
-                    }
-                    
-                    dayNumber.innerHTML = html;
-                }
-                
-                // Update events
-                const dayEvents = cell.querySelector('.day-events');
-                if (dayEvents) {
-                    dayEvents.innerHTML = this.render_day_events(machineEvents);
-                }
-            }
-        } catch (error) {
-            console.error('Error updating month view with data:', error);
-        }
+        console.log('🔍 Week view updated with availability data');
     }
 
     /**
@@ -570,9 +451,23 @@ class CalendarRenderer {
         if (!this.machine_name || !this.storage_service) return;
         
         try {
+            console.log('🔍 Time slot clicked:', date_str, 'hour:', hour);
+            
+            // Ensure availability data is loaded for this date
+            const dateObj = new Date(date_str);
+            const weekStart = Utils.get_start_of_week(dateObj);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            
+            // Load availability for the entire week if not already loaded
+            await this.storage_service.load_machine_availability_for_week?.(this.machine_name, weekStart, weekEnd);
+            
             // Check if this time slot is already unavailable
             const unavailableHours = await this.storage_service.get_machine_availability_for_date(this.machine_name, date_str);
             const isCurrentlyUnavailable = unavailableHours.includes(hour);
+            
+            console.log('🔍 Current unavailable hours:', unavailableHours);
+            console.log('🔍 Hour', hour, 'is currently unavailable:', isCurrentlyUnavailable);
             
             if (isCurrentlyUnavailable) {
                 // Remove the hour from unavailable hours
@@ -597,8 +492,10 @@ class CalendarRenderer {
                 console.log(`✅ Hour ${hour} marked as unavailable for ${date_str}`);
             }
             
-            // The calendar will automatically re-render due to store subscription
-            // No need to call this.render() manually
+            // Manually refresh the week view to show the change
+            if (this.current_view === 'week') {
+                this.load_availability_for_week_view(this.current_date);
+            }
             
         } catch (error) {
             console.error('Error toggling time slot availability:', error);
@@ -614,11 +511,8 @@ class CalendarRenderer {
     get_month_event_count(year, month) {
         if (!this.machine_name) return 0;
         // For now, return 0 to avoid async calls during render
-        // This will be updated when we implement year view data loading
         return 0;
     }
-    
-
     
     format_hour(hour) {
         return Utils.format_hour(hour);

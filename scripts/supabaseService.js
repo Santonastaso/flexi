@@ -535,6 +535,51 @@ class SupabaseService {
     }
 
     /**
+     * Get machine availability for a specific date for all machines
+     * @param {string} date - Date in YYYY-MM-DD format
+     * @returns {Promise<Array>} Array of availability records
+     */
+    async get_machine_availability_for_date_all_machines(date) {
+        try {
+            const { data, error } = await this.ensure_client()
+                .from(this.TABLES.MACHINE_AVAILABILITY)
+                .select('machine_name, date, unavailable_hours')
+                .eq('date', date);
+            
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Error getting machine availability for date:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get machine availability for a specific machine and week range
+     * @param {string} machineName - Name of the machine
+     * @param {string} startDate - Start date in YYYY-MM-DD format
+     * @param {string} endDate - End date in YYYY-MM-DD format
+     * @returns {Promise<Array>} Array of availability records for the week
+     */
+    async get_machine_availability_for_week_range(machineName, startDate, endDate) {
+        try {
+            const { data, error } = await this.ensure_client()
+                .from(this.TABLES.MACHINE_AVAILABILITY)
+                .select('machine_name, date, unavailable_hours')
+                .eq('machine_name', machineName)
+                .gte('date', startDate)
+                .lte('date', endDate)
+                .order('date');
+            
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Error getting machine availability for week range:', error);
+            return [];
+        }
+    }
+
+    /**
      * COMPATIBILITY & HELPERS
      */
     async get_next_odp_number() {

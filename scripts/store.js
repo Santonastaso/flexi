@@ -36,6 +36,9 @@ function _notify() {
  * Application Store - Single source of truth for application state
  */
 export const appStore = {
+    // Expose storageService for direct access
+    storageService,
+    
     /**
      * Subscribe to state changes
      * @param {Function} callback - Function to call when state changes
@@ -258,7 +261,30 @@ export const appStore = {
 
     async setMachineAvailability(machineName, dateStr, hours) {
         try {
-            return await storageService.set_machine_availability(machineName, dateStr, hours);
+            // Update the database
+            await storageService.set_machine_availability(machineName, dateStr, hours);
+            
+            // Update the local state
+            if (!state.machineAvailability[dateStr]) {
+                state.machineAvailability[dateStr] = [];
+            }
+            
+            // Find existing row or create new one
+            let machineRow = state.machineAvailability[dateStr].find(row => row.machine_name === machineName);
+            if (machineRow) {
+                machineRow.unavailable_hours = hours;
+            } else {
+                state.machineAvailability[dateStr].push({
+                    machine_name: machineName,
+                    date: dateStr,
+                    unavailable_hours: hours
+                });
+            }
+            
+            // Notify subscribers
+            _notify();
+            
+            return true;
         } catch (error) {
             console.error('❌ Error setting machine availability:', error);
             throw error;
@@ -274,7 +300,52 @@ export const appStore = {
         }
     },
 
-    // --- Enhanced Machine Availability Actions ---
+    /**
+     * Load machine availability data for a specific date
+     * @param {string} date - Date in YYYY-MM-DD format
+     */
+    async loadMachineAvailabilityForDate(date) {
+        // Prevent multiple simultaneous calls for the same date
+        if (state.machineAvailability[date] && state.machineAvailability[date]._loading) {
+            console.log(`⏳ Already loading availability for date: ${date}, skipping duplicate call`);
+            return;
+        }
+
+        try {
+            // Check if machine_availability table is accessible
+            const isAccessible = await this.isMachineAvailabilityAccessible();
+            if (!isAccessible) {
+                console.warn('⚠️ Machine availability table not accessible, skipping availability loading');
+                return;
+            }
+
+            // Mark as loading
+            if (!state.machineAvailability[date]) {
+                state.machineAvailability[date] = [];
+            }
+            state.machineAvailability[date]._loading = true;
+            _notify();
+
+            // Get all machine availability for this date in one query
+            const availabilityData = await storageService.get_machine_availability_for_date_all_machines(date);
+            
+            // Update state with the new data
+            state.machineAvailability[date] = availabilityData;
+            
+            // Notify subscribers
+            _notify();
+            
+            console.log(`✅ Loaded availability for date: ${date}`, availabilityData);
+        } catch (error) {
+            console.error('❌ Error loading machine availability for date:', error);
+            // Clear loading state on error
+            if (state.machineAvailability[date]) {
+                state.machineAvailability[date]._loading = false;
+                _notify();
+            }
+        }
+    },
+
     /**
      * Load machine availability data for a specific machine and date range
      * This is much more efficient than loading all data upfront
@@ -289,35 +360,27 @@ export const appStore = {
                 return {};
             }
 
-            // Initialize machine availability if it doesn't exist
-            if (!state.machineAvailability[machineName]) {
-                state.machineAvailability[machineName] = {};
-            }
-
             const machineAvailability = {};
             const current = new Date(startDate);
             
             while (current <= endDate) {
                 const dateStr = current.toISOString().split('T')[0];
                 
-                // Only load if we don't already have this date
-                if (!state.machineAvailability[machineName][dateStr]) {
-                    try {
-                        const unavailableHours = await storageService.get_machine_availability_for_date(machineName, dateStr);
-                        if (unavailableHours.length > 0) {
-                            machineAvailability[dateStr] = unavailableHours;
-                        }
-                    } catch (error) {
-                        console.warn(`⚠️ Could not load availability for ${machineName} on ${dateStr}:`, error.message);
-                    }
+                // Check if we already have this date's data
+                if (!state.machineAvailability[dateStr]) {
+                    // Load all machines for this date
+                    await this.loadMachineAvailabilityForDate(dateStr);
+                }
+                
+                // Get the data for this specific machine
+                const machineData = this.getMachineAvailability(machineName, dateStr);
+                if (machineData && machineData.length > 0) {
+                    machineAvailability[dateStr] = machineData;
                 }
                 
                 current.setDate(current.getDate() + 1);
             }
 
-            // Update state with new data
-            Object.assign(state.machineAvailability[machineName], machineAvailability);
-            
             return machineAvailability;
         } catch (error) {
             console.error('❌ Error loading machine availability for machine:', error);
@@ -381,10 +444,13 @@ export const appStore = {
      */
     getMachineAvailability(machineName, dateStr) {
         try {
-            const machineData = state.machineAvailability[machineName];
-            if (!machineData) return [];
+            // Use the new data structure: machineAvailability[date] = [rows]
+            const dateData = state.machineAvailability[dateStr];
+            if (!dateData || !Array.isArray(dateData)) return [];
             
-            return machineData[dateStr] || [];
+            // Find the row for this machine
+            const machineRow = dateData.find(row => row.machine_name === machineName);
+            return machineRow ? machineRow.unavailable_hours || [] : [];
         } catch (error) {
             console.error('❌ Error getting machine availability from store:', error);
             return [];
@@ -393,33 +459,34 @@ export const appStore = {
 
     /**
      * Check if machine availability table is accessible
+     * @returns {Promise<boolean>} True if accessible, false otherwise
      */
     async isMachineAvailabilityAccessible() {
         try {
-            await storageService.get_machine_availability_for_date('test', '2025-01-01');
+            // Try to access the table with a simple query
+            await storageService.get_machine_availability_for_date_all_machines('2025-01-01');
             return true;
         } catch (error) {
+            console.warn('⚠️ Machine availability table not accessible:', error.message);
             return false;
         }
     },
 
     /**
      * Get machine availability table status
+     * @returns {Promise<Object>} Status information
      */
     async getMachineAvailabilityStatus() {
         try {
-            await storageService.get_machine_availability_for_date('test', '2025-01-01');
-            return { accessible: true, message: 'Machine availability table is accessible' };
+            const isAccessible = await this.isMachineAvailabilityAccessible();
+            return {
+                accessible: isAccessible,
+                message: isAccessible ? 'Table is accessible' : 'Table is not accessible - check permissions or table existence'
+            };
         } catch (error) {
-            if (error.message.includes('406') || error.message.includes('Not Acceptable')) {
-                return { 
-                    accessible: false, 
-                    message: 'Machine availability table does not exist or has permission issues. Please run the SQL script to create the table.' 
-                };
-            }
-            return { 
-                accessible: false, 
-                message: `Error accessing machine availability table: ${error.message}` 
+            return {
+                accessible: false,
+                message: `Error checking table: ${error.message}`
             };
         }
     },
