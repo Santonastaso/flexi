@@ -70,10 +70,6 @@ class MachineCalendarManager {
      */
     async initialize_components() {
         try {
-            console.log('🔍 === INITIALIZING MACHINE CALENDAR COMPONENTS ===');
-            console.log('🔍 Machine name:', this.machineName);
-            console.log('🔍 Elements bound:', Object.keys(this.elements));
-            
             // Subscribe to store changes to automatically refresh the calendar
             // Disabled automatic re-rendering to prevent loops
             this.unsubscribe = appStore.subscribe((state) => {
@@ -91,14 +87,12 @@ class MachineCalendarManager {
                 get_events_by_date: async (dateStr) => {
                     const cacheKey = `events_${dateStr}`;
                     if (storageWrapper._eventsCache.has(cacheKey)) {
-                        console.log('🔍 Events loaded from cache for date:', dateStr);
                         return storageWrapper._eventsCache.get(cacheKey);
                     }
                     
                     try {
                         const events = await appStore.storageService.get_events_by_date(dateStr);
                         storageWrapper._eventsCache.set(cacheKey, events);
-                        console.log('🔍 Events loaded for date:', dateStr, events);
                         return events;
                     } catch (error) {
                         console.error('Error getting events for date:', error);
@@ -110,7 +104,6 @@ class MachineCalendarManager {
                 get_machine_availability_for_date: async (machineName, dateStr) => {
                     const cacheKey = `availability_${machineName}_${dateStr}`;
                     if (storageWrapper._availabilityCache.has(cacheKey)) {
-                        console.log('🔍 Availability loaded from cache for machine:', machineName, 'date:', dateStr);
                         return storageWrapper._availabilityCache.get(cacheKey);
                     }
                     
@@ -129,7 +122,6 @@ class MachineCalendarManager {
                         // Fallback to individual date query
                         const availability = await appStore.storageService.get_machine_availability_for_date(machineName, dateStr);
                         storageWrapper._availabilityCache.set(cacheKey, availability);
-                        console.log('🔍 Availability loaded for machine:', machineName, 'date:', dateStr, availability);
                         return availability;
                     } catch (error) {
                         console.error('Error getting machine availability for date:', error);
@@ -146,7 +138,6 @@ class MachineCalendarManager {
                             endDate
                         );
                         storageWrapper._weekAvailabilityData = weekData;
-                        console.log('🔍 Week availability data loaded and stored locally:', weekData);
                         return weekData;
                     } catch (error) {
                         console.error('Error getting machine availability for week range:', error);
@@ -166,39 +157,36 @@ class MachineCalendarManager {
                         // Clear week data since it might be outdated
                         storageWrapper._weekAvailabilityData = null;
                         
-                        console.log('✅ Machine availability updated and cache cleared');
                     } catch (error) {
-                        console.error('Error setting machine availability:', error);
+                        console.error('Error updating machine availability:', error);
                         throw error;
                     }
                 },
                 
-                // Clear cache methods
+                // Clear all caches
                 clearCache: () => {
                     storageWrapper._eventsCache.clear();
                     storageWrapper._availabilityCache.clear();
                     storageWrapper._weekAvailabilityData = null;
-                    console.log('🔍 All caches cleared');
                 },
                 
+                // Clear cache for a specific date
                 clearCacheForDate: (dateStr) => {
-                    // Clear events cache for specific date
+                    // Clear events cache for this date
                     const eventsKey = `events_${dateStr}`;
                     storageWrapper._eventsCache.delete(eventsKey);
                     
-                    // Clear availability cache for specific date
+                    // Clear availability cache for all machines on this date
                     for (const key of storageWrapper._availabilityCache.keys()) {
                         if (key.includes(dateStr)) {
                             storageWrapper._availabilityCache.delete(key);
                         }
                     }
-                    
-                    console.log('🔍 Cache cleared for date:', dateStr);
                 },
                 
+                // Clear week data
                 clearWeekData: () => {
                     storageWrapper._weekAvailabilityData = null;
-                    console.log('🔍 Week data cleared');
                 }
             };
             
@@ -214,14 +202,10 @@ class MachineCalendarManager {
             // Set machine name in renderer
             this.calendarRenderer.machine_name = this.machineName;
             
-            console.log('🔍 Components initialized successfully');
-            
             // Defer initial render to avoid initialization errors
             setTimeout(() => {
                 try {
-                    console.log('🔍 Attempting initial render...');
-            this.viewManager.set_view('month', new Date());
-                    console.log('🔍 Initial render completed successfully');
+                    this.viewManager.set_view('month', new Date());
                 } catch (error) {
                     console.error('Error in deferred initial render:', error);
                     this.show_error('Failed to render initial calendar view. Please refresh the page.');
@@ -233,7 +217,6 @@ class MachineCalendarManager {
                 getMachineName: () => this.machineName,
                 getViewManager: () => this.viewManager,
                 testWeekView: () => {
-                    console.log('🔍 === TESTING WEEK VIEW ===');
                     this.viewManager.set_view('week', new Date());
                     return 'Week view activated';
                 }

@@ -325,82 +325,42 @@ export class MachineryManager extends BaseManager {
     }
 
     async save_edit(row) {
-        // This method would also be refactored to use an `updateMachine` action in the store.
-        // It remains complex for now but follows the same pattern.
-        if (row.dataset.saving === 'true') {
-            return;
-        }
-        
         const machine_id = row.dataset.machineId;
-        console.log('🔍 Starting save_edit for machine_id:', machine_id);
-        console.log('🔍 Row dataset:', row.dataset);
-        
         if (!machine_id) {
-            console.error('❌ No machine ID found in row dataset');
+            console.error('No machine ID found in row');
             return;
         }
         
-        row.dataset.saving = 'true';
-
         try {
             const { machines } = appStore.getState();
             const currentMachine = machines.find(m => m.id === machine_id);
-            console.log('🔍 Current machine found:', currentMachine);
-            
             if (!currentMachine) {
-                throw new Error(`Machine with ID ${machine_id} not found in store`);
+                throw new Error('Machine not found');
             }
             
-            const department = currentMachine?.department || 'STAMPA';
-
-            const numericFields = ['standard_speed', 'setup_time_standard', department === 'STAMPA' ? 'changeover_color' : 'changeover_material'];
-            const field_labels = {
-                machine_name: 'Machine name',
-                standard_speed: 'Standard speed',
-                setup_time_standard: 'Setup time standard',
-                changeover_color: 'Color changeover time',
-                changeover_material: 'Material changeover time'
-            };
-
-            const updatedData = this.validate_edit_row(row, ['machine_id', 'machine_name'], numericFields, field_labels);
-            console.log('🔍 Updated data collected:', updatedData);
-            
+            // Collect updated data from the row
+            const updatedData = this.editManager.collect_edit_data(row);
             if (!updatedData) {
-                console.error('❌ No updated data collected');
-                return;
-            }
-
-            const updated_machine = { ...currentMachine, ...updatedData, updated_at: new Date().toISOString() };
-            console.log('🔍 Updated machine object:', updated_machine);
-            
-            // Normalize status to uppercase for consistency
-            if (updated_machine.status) {
-                updated_machine.status = Utils.normalize_status(updated_machine.status);
+                throw new Error('No changes detected');
             }
             
-            ['min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height', 'standard_speed'].forEach(f => {
-                const value = updated_machine[f];
-                updated_machine[f] = (value === '' || value === null || value === undefined) ? 0 : (parseInt(value, 10) || 0);
-            });
-            ['setup_time_standard', 'changeover_color', 'changeover_material'].forEach(f => {
-                const value = updated_machine[f];
-                updated_machine[f] = (value === '' || value === null || value === undefined) ? 0 : (parseFloat(value) || 0);
-            });
+            // Normalize status to uppercase
+            if (updatedData.status) {
+                updatedData.status = Utils.normalize_status(updatedData.status);
+            }
             
-            console.log('🔍 About to call appStore.updateMachine with:', machine_id, updated_machine);
+            // Create updated machine object
+            const updated_machine = { ...currentMachine, ...updatedData };
             
-            // Actually update the machine in the store and database
+            // Update machine in the store
             await appStore.updateMachine(machine_id, updated_machine);
-            console.log('✅ Machine updated successfully in store');
             
-            this.editManager.cancel_edit(row);
-            this.show_success_message('Machine updated successfully');
+            // Show success message
+            this.show_success_message('Machine updated successfully!');
+            
         } catch (error) {
-            console.error('❌ Error in save_edit:', error);
-            console.error('❌ Error stack:', error.stack);
-            this.show_error_message('updating machine', error);
-        } finally {
-            delete row.dataset.saving;
+            const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
+            this.show_error_message('updating machine', errorObj);
         }
     }
 }

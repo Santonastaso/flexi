@@ -30,23 +30,15 @@ function initializeSupabaseClient() {
                         }
                     });
                     
-                    console.log('✅ Supabase client initialized successfully');
                     resolve(supabase_client);
                 } catch (error) {
-                    console.error('❌ Error creating Supabase client:', error);
                     reject(error);
                 }
-            } else {
+            } else if (attempts < maxAttempts) {
                 attempts++;
-                if (attempts >= maxAttempts) {
-                    const error = new Error('Supabase library not loaded after 10 seconds');
-                    console.error('❌', error.message);
-                    reject(error);
-                    return;
-                }
-                
-                // Wait 100ms before trying again
                 setTimeout(tryInitialize, 100);
+            } else {
+                reject(new Error('Supabase not available after maximum attempts'));
             }
         };
         
@@ -95,7 +87,6 @@ export async function check_supabase_connection() {
             return false;
         }
         
-        console.log('✅ Supabase connection successful');
         return true;
     } catch (error) {
         console.error('Supabase connection error:', error);

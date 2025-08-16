@@ -30,11 +30,15 @@ class StorageService {
      * Wait for Supabase service to be available
      */
     async wait_for_services() {
+        console.log('🔍 Waiting for services...');
+        console.log('🔍 supabase_service available:', !!supabase_service);
+        console.log('🔍 ServiceConfig available:', !!ServiceConfig);
+        
         // Services are now imported directly, so they should be available immediately
         if (supabase_service && ServiceConfig) {
             this.supabase_service = supabase_service;
             this.config = ServiceConfig;
-            console.log('StorageService dependencies loaded successfully');
+            console.log('✅ StorageService dependencies loaded successfully');
             return;
         }
         
@@ -57,19 +61,37 @@ class StorageService {
      * Centralized error handling wrapper for Supabase operations
      * Reduces code duplication and ensures consistent error handling
      */
-    async handle_supabase_operation(operation, operation_name, entity_type, success_message = null) {
-        this.log_call(operation_name, entity_type);
-        
+    async handle_supabase_operation(operation, method, ...args) {
         try {
-            const result = await operation();
-            if (success_message) {
-                console.log(`${success_message} to Supabase`);
-            }
+            const result = operation(...args);
             return result;
         } catch (error) {
-            const errorMessage = `Error ${operation_name.replace('_', ' ')} ${entity_type} ${operation_name.includes('get') || operation_name.includes('load') ? 'from' : 'to'} Supabase`;
-            console.error(`${errorMessage}:`, error);
-            throw new Error(`Failed to ${operation_name.replace('_', ' ')} ${entity_type} ${operation_name.includes('get') || operation_name.includes('load') ? 'from' : 'to'} Supabase`);
+            const error_message = `Error in ${method}`;
+            this.log_error(error_message, error);
+            throw error;
+        }
+    }
+
+    log_success(success_message, method, ...args) {
+        if (this.debug_mode) {
+            console.log(`${success_message} to Supabase`);
+        }
+    }
+
+    log_error(error_message, error) {
+        const type = error?.code || 'UNKNOWN';
+        const message = error?.message || error?.toString() || 'Unknown error';
+        
+        if (this.debug_mode) {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        // Show banner if available
+        if (typeof show_banner === 'function') {
+            show_banner(message, type);
+        } else {
+            // Fallback to console if banner system not available
+            console.log(`[${type.toUpperCase()}] ${message}`);
         }
     }
     
@@ -210,13 +232,11 @@ class StorageService {
      * ODP ORDERS METHODS
      */
     async get_odp_orders() {
-        const result = await this.handle_supabase_operation(
+        return await this.handle_supabase_operation(
             () => this.supabase_service.get_odp_orders(),
             'get_odp_orders',
             'odp_orders'
         );
-        console.log('ODP orders loaded from Supabase:', result.length);
-        return result;
     }
 
     async save_odp_orders(orders) {
@@ -283,19 +303,11 @@ class StorageService {
      * PHASES METHODS
      */
     async get_phases() {
-        // Ensure initialization
-        if (!this.initialized) {
-            await this.wait_for_services();
-            await this.init();
-        }
-        
-        const result = await this.handle_supabase_operation(
+        return await this.handle_supabase_operation(
             () => this.supabase_service.get_phases(),
             'get_phases',
             'phases'
         );
-        console.log('Phases loaded from Supabase:', result.length);
-        return result;
     }
 
     async save_phases(phases) {
@@ -477,29 +489,31 @@ class StorageService {
         }
     }
 
-    async set_machine_availability(machineName, date, unavailableHours) {
-        this.log_call('set_machine_availability', 'machine_availability', machineName, date, unavailableHours);
-        
-        try {
-            const result = await this.supabase_service.set_machine_availability(machineName, date, unavailableHours);
-            console.log('Machine availability set in Supabase');
-            return result;
-        } catch (error) {
-            console.error('Error setting machine availability in Supabase:', error);
-            throw new Error('Failed to set machine availability in Supabase');
-        }
+    async set_machine_availability(machineName, dateStr, unavailableHours) {
+        return await this.handle_supabase_operation(
+            () => this.supabase_service.set_machine_availability(machineName, dateStr, unavailableHours),
+            'set_machine_availability',
+            'machine_availability'
+        );
     }
 
-    async toggle_machine_hour_availability(machineName, date, hour) {
-        this.log_call('toggle_machine_hour_availability', 'machine_availability', machineName, date, hour);
-        
+    async toggle_machine_hour_availability(machineName, dateStr, hour) {
         try {
-            const result = await this.supabase_service.toggle_machine_hour_availability(machineName, date, hour);
-            console.log('Machine hour availability toggled in Supabase');
+            // Get current availability
+            const currentAvailability = await this.get_machine_availability_for_date(machineName, dateStr);
+            const currentHours = currentAvailability || [];
+            
+            // Toggle the hour
+            const newHours = currentHours.includes(hour)
+                ? currentHours.filter(h => h !== hour)
+                : [...currentHours, hour].sort((a, b) => a - b);
+            
+            // Update the database
+            const result = await this.set_machine_availability(machineName, dateStr, newHours);
             return result;
         } catch (error) {
-            console.error('Error toggling machine hour availability in Supabase:', error);
-            throw new Error('Failed to toggle machine hour availability in Supabase');
+            this.log_error('Error toggling machine hour availability', error);
+            throw error;
         }
     }
     

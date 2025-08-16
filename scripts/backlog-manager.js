@@ -549,9 +549,7 @@ export class BacklogManager extends BaseManager {
             const scheduledEvents = odpOrders.filter(o => o.status === 'SCHEDULED');
             
             console.group("Scheduler Debug");
-            console.log('=== SCHEDULED EVENTS (from store) ===');
             console.table(scheduledEvents);
-            console.log('=== ALL ODP ORDERS (from store) ===');
             console.table(odpOrders.map(o => ({ id: o.id, odp: o.odp_number, status: o.status, start: o.production_start, end: o.production_end })));
             console.groupEnd();
         } catch (error) {

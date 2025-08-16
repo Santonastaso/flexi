@@ -42,15 +42,9 @@ export class Scheduler {
             goToAugust13: () => this.set_current_date('2025-08-13'),
             testExactDate: () => this.set_current_date('2025-08-13'),
             showCurrentDate: () => {
-                console.log('🔍 Current date object:', this.current_date);
-                console.log('🔍 Current date ISO string:', this.current_date.toISOString().split('T')[0]);
-                console.log('🔍 Current date local string:', this.current_date.toLocaleDateString());
-                console.log('🔍 Current date UTC string:', this.current_date.toUTCString());
                 return this.current_date;
             },
             testDateParsing: () => {
-                console.log('🔍 === TESTING DATE PARSING ===');
-                
                 // Test different date formats
                 const testDates = [
                     '2025-08-13',
@@ -62,27 +56,22 @@ export class Scheduler {
                 
                 testDates.forEach(dateStr => {
                     const date = new Date(dateStr);
-                    console.log(`🔍 "${dateStr}" → ${date.toISOString().split('T')[0]} (${date.toLocaleDateString()})`);
                 });
                 
                 // Test explicit parsing
                 const [year, month, day] = '2025-08-13'.split('-').map(Number);
                 const explicitDate = new Date(year, month - 1, day);
-                console.log(`🔍 Explicit parsing: new Date(${year}, ${month-1}, ${day}) → ${explicitDate.toISOString().split('T')[0]}`);
                 
                 return 'Date parsing test complete - check console';
             },
             testAvailabilityForDate: (dateStr) => {
-                console.log(`🔍 Testing availability for date: ${dateStr}`);
                 this.set_current_date(dateStr);
                 setTimeout(() => this.debug_availability(), 100);
                 return `Testing availability for ${dateStr}`;
             },
             checkTableStatus: async () => {
-                console.log('🔍 === CHECKING MACHINE AVAILABILITY TABLE STATUS ===');
                 try {
                     const status = await appStore.getMachineAvailabilityStatus();
-                    console.log('🔍 Table status:', status);
                     return status;
                 } catch (error) {
                     console.error('❌ Error checking table status:', error);
@@ -90,13 +79,6 @@ export class Scheduler {
                 }
             },
             debugDateConversion: () => {
-                console.log('🔍 === DATE CONVERSION DEBUG ===');
-                console.log('🔍 Current date object:', this.current_date);
-                console.log('🔍 Current date getDate():', this.current_date.getDate());
-                console.log('🔍 Current date getMonth():', this.current_date.getMonth());
-                console.log('🔍 Current date getFullYear():', this.current_date.getFullYear());
-                console.log('🔍 Formatted date string:', this._get_italian_date_string());
-                console.log('🔍 === END DATE CONVERSION DEBUG ===');
                 return this._get_italian_date_string();
             }
         };
@@ -166,22 +148,18 @@ export class Scheduler {
      */
     set_current_date(date) {
         if (typeof date === 'string') {
-            // Handle YYYY-MM-DD format explicitly to avoid timezone issues
-            if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                const [year, month, day] = date.split('-').map(Number);
-                this.current_date = new Date(year, month - 1, day); // month is 0-indexed
-            } else {
-                this.current_date = new Date(date);
-            }
-        } else {
+            // Parse date string to avoid timezone issues
+            const [year, month, day] = date.split('-').map(Number);
+            this.current_date = new Date(year, month - 1, day);
+        } else if (date instanceof Date) {
             this.current_date = new Date(date);
+        } else {
+            this.current_date = new Date();
         }
+        
+        // Ensure the date is set to start of day in local timezone
         this.current_date.setHours(0, 0, 0, 0);
         
-        console.log('🔍 Setting current date to:', this.current_date);
-        console.log('🔍 Date string representation:', this.current_date.toISOString().split('T')[0]);
-        
-        this.update_date_display();
         this.render();
     }
 
@@ -628,24 +606,13 @@ export class Scheduler {
         // Use Italian timezone (Europe/Rome) to avoid timezone issues
         const currentDate = this._get_italian_date_string();
         
-        // Debug: Show the exact date values
-        console.log('🔍 === DATE DEBUG ===');
-        console.log('🔍 Current date object:', this.current_date);
-        console.log('🔍 Current date getDate():', this.current_date.getDate());
-        console.log('🔍 Current date getMonth():', this.current_date.getMonth());
-        console.log('🔍 Current date getFullYear():', this.current_date.getFullYear());
-        console.log('🔍 Formatted date string:', currentDate);
-        console.log('🔍 === END DATE DEBUG ===');
-        
         // Check if already loading or already loaded
         const { machineAvailability } = appStore.getState();
         if (machineAvailability[currentDate] && machineAvailability[currentDate]._loading) {
-            console.log('⏳ Availability already loading for date:', currentDate);
             return;
         }
         
         if (machineAvailability[currentDate] && machineAvailability[currentDate].length >= 0) {
-            console.log('✅ Availability already loaded for date:', currentDate);
             return;
         }
         
@@ -655,12 +622,9 @@ export class Scheduler {
         }
         
         this._availability_load_timeout = setTimeout(async () => {
-            console.log('🔍 Loading availability for date:', currentDate);
-            
             try {
                 // Load availability for the current date
                 await appStore.loadMachineAvailabilityForDate(currentDate);
-                console.log('✅ Availability loaded for date:', currentDate);
             } catch (error) {
                 console.warn('⚠️ Could not load availability:', error.message);
             }
@@ -759,34 +723,20 @@ export class Scheduler {
      * Debug method to manually test availability loading
      */
     async debug_availability() {
-        console.log('🔍 === DEBUGGING AVAILABILITY ===');
-        console.log('🔍 Current date object:', this.current_date);
-        console.log('🔍 Current date string (ISO):', this.current_date.toISOString().split('T')[0]);
-        
         // Show Italian timezone date
         const italianDateStr = this._get_italian_date_string();
-        console.log('🔍 Current date string (Italian timezone):', italianDateStr);
-        
-        console.log('🔍 Current date local string:', this.current_date.toLocaleDateString());
-        console.log('🔍 Current date UTC string:', this.current_date.toUTCString());
         
         const { machines, machineAvailability } = appStore.getState();
-        console.log('🔍 All machines:', machines);
-        console.log('🔍 Machine availability state:', machineAvailability);
         
         // Try to manually load availability for the current date
         try {
-            console.log('🔍 Manually loading availability for date:', italianDateStr);
             await appStore.loadMachineAvailabilityForDate(italianDateStr);
             
             // Check the updated state
             const updatedState = appStore.getState();
-            console.log('🔍 Updated machine availability state:', updatedState.machineAvailability);
             
             // Test the availability check method for tufello_mach_1
-            console.log('🔍 Testing availability check for tufello_mach_1, hour 1:');
             const isUnavailable = this._is_slot_unavailable('tufello_mach_1', 1);
-            console.log('🔍 Hour 1 unavailable:', isUnavailable);
         } catch (error) {
             console.error('❌ Manual load failed:', error);
         }

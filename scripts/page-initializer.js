@@ -62,19 +62,23 @@ function detect_page() {
     // Try to get page from data attribute first
     const pageElement = document.querySelector('[data-page]');
     if (pageElement) {
-        return pageElement.dataset.page;
+        const detectedPage = pageElement.dataset.page;
+        console.log('🔍 Page detected from data-page attribute:', detectedPage);
+        return detectedPage;
     }
     
     // Fall back to URL path detection
     const path = window.location.pathname;
-    if (path.includes('backlog')) return 'backlog';
-    if (path.includes('machinery')) return 'machinery';
-    if (path.includes('phases')) return 'phases';
-    if (path.includes('machine-settings')) return 'machine-settings';
-    if (path.includes('scheduler')) return 'scheduler';
+    let detectedPage = 'index'; // Default to index/home page
     
-    // Default to index/home page
-    return 'index';
+    if (path.includes('backlog')) detectedPage = 'backlog';
+    else if (path.includes('machinery')) detectedPage = 'machinery';
+    else if (path.includes('phases')) detectedPage = 'phases';
+    else if (path.includes('machine-settings')) detectedPage = 'machine-settings';
+    else if (path.includes('scheduler')) detectedPage = 'scheduler';
+    
+    console.log('🔍 Page detected from URL path:', detectedPage, '(path:', path, ')');
+    return detectedPage;
 }
 
 /**
@@ -83,16 +87,14 @@ function detect_page() {
 async function initialize_storage() {
     if (!storageService.initialized) {
         await storageService.init();
-        console.log('✅ StorageService initialized');
     }
 }
 
 /**
- * Initialize the central data store
+ * Initialize the application store
  */
 async function initialize_store() {
     await appStore.init();
-    console.log('✅ AppStore initialized');
 }
 
 /**
@@ -101,7 +103,6 @@ async function initialize_store() {
 function initialize_nav() {
     if (typeof initialize_navigation === 'function') {
         initialize_navigation();
-        console.log('✅ Navigation initialized');
     }
 }
 
@@ -113,20 +114,19 @@ function initialize_edit_manager() {
         const tables = document.querySelectorAll('.modern-table');
         tables.forEach(table => {
             editManager.init_table_edit(table);
-            console.log('✅ Edit functionality initialized for table');
         });
     }
 }
 
 /**
- * Initialize a component manager
+ * Initialize a specific component
  */
 async function initialize_component(config) {
-    const { component_class, global_var_name } = config;
+    const { component_class, global_var_name, type } = config;
     
+    // Skip component initialization for pages that don't have components
     if (!component_class) {
-        console.error('❌ No component class specified');
-        return false;
+        return true; // Return true for pages without components
     }
     
     try {
@@ -138,34 +138,28 @@ async function initialize_component(config) {
             if (element_map) {
                 const init_success = await component_instance.init(element_map);
                 if (init_success) {
-                    console.log(`✅ ${component_class.name} initialized successfully`);
-                } else {
-                    console.error(`❌ Failed to initialize ${component_class.name}`);
-                    return false;
+                    // Make component available globally for debugging if specified
+                    if (global_var_name) {
+                        window[global_var_name] = component_instance;
+                    }
+                    return true;
                 }
-            } else {
-                console.error(`❌ Failed to get element map for ${component_class.name}`);
-                return false;
             }
         } else if (typeof component_instance.init === 'function') {
             // Try to initialize without element map
             const init_success = await component_instance.init();
             if (init_success) {
-                console.log(`✅ ${component_class.name} initialized successfully`);
-            } else {
-                console.error(`❌ Failed to initialize ${component_class.name}`);
-                return false;
+                // Make component available globally for debugging if specified
+                if (global_var_name) {
+                    window[global_var_name] = component_instance;
+                }
+                return true;
             }
         }
         
-        // Make component available globally for debugging if specified
-        if (global_var_name) {
-            window[global_var_name] = component_instance;
-        }
-        
-        return true;
+        return false;
     } catch (error) {
-        console.error(`❌ Error initializing ${component_class.name}:`, error);
+        console.error(`❌ Failed to initialize ${component_class.name}:`, error);
         return false;
     }
 }
@@ -177,11 +171,10 @@ async function initialize_scheduler() {
     try {
         // Check if we're on the scheduler page
         if (!document.getElementById('calendar_container')) {
-            console.log('⚠️ Not on scheduler page, skipping scheduler initialization');
             return;
         }
         
-        // Debug: Check if Scheduler class is available
+        // Wait for the Scheduler class to be available
         if (typeof Scheduler !== 'function') {
             throw new Error(`Scheduler is not a constructor. Got: ${typeof Scheduler}`);
         }
@@ -191,11 +184,9 @@ async function initialize_scheduler() {
         
         // Initialize the scheduler now that DOM is ready
         if (scheduler.init()) {
-            console.log('✅ Scheduler initialized successfully');
-            
-            // Add refresh machines button event listener
-            const refreshBtn = document.getElementById('refresh_machines_btn');
-            if (refreshBtn && scheduler.refresh_machine_data) {
+            // Set up refresh button if it exists
+            const refreshBtn = document.getElementById('refresh_machines');
+            if (refreshBtn) {
                 refreshBtn.addEventListener('click', async () => {
                     try {
                         refreshBtn.disabled = true;
@@ -209,54 +200,60 @@ async function initialize_scheduler() {
                         refreshBtn.disabled = false;
                     }
                 });
-                console.log('✅ Refresh machines button initialized');
             }
-        } else {
-            console.error('❌ Scheduler initialization failed');
         }
-        
     } catch (error) {
-        console.error('❌ Error initializing scheduler:', error);
-        console.error('❌ Error details:', error.stack);
+        console.error('❌ Failed to initialize scheduler:', error);
     }
 }
 
 /**
- * Main initialization function
+ * Main page initialization function
  */
 async function initialize_page() {
     try {
         const page_key = detect_page();
         const config = PAGE_CONFIGS[page_key];
         
+        console.log('🔍 Initializing page:', page_key);
+        console.log('🔍 Page config:', config);
+        
         if (!config) {
             console.error(`❌ No configuration found for page: ${page_key}`);
             return;
         }
         
-        console.log(`🚀 Initializing ${config.name}...`);
-        
-        // Initialize core services IN THE CORRECT ORDER
+        // Initialize storage and store first
         await initialize_storage();
         await initialize_store();
+        
+        // Initialize navigation
         initialize_nav();
         
-        // Initialize edit manager if required
+        // Initialize edit manager for tables if needed
         if (config.requires_edit_manager) {
+            console.log('🔍 Initializing edit manager');
             initialize_edit_manager();
         }
         
-        // Initialize component if this is a component page
+        // Initialize component if this page has one
         if (config.type === 'component') {
+            console.log('🔍 Initializing component:', config.component_class.name);
             await initialize_component(config);
+        } else {
+            console.log('🔍 No component to initialize for page type:', config.type);
         }
         
         // Run custom initialization if this is a complex page
         if (config.type === 'complex' && config.custom_init) {
+            console.log('🔍 Running custom initialization');
             await config.custom_init();
         }
         
-        console.log(`✅ ${config.name} initialized successfully`);
+        // Initialize scheduler if needed
+        await initialize_scheduler();
+        
+        console.log('✅ Page initialization completed successfully');
         
     } catch (error) {
         console.error('❌ Error during page initialization:', error);
@@ -264,7 +261,23 @@ async function initialize_page() {
 }
 
 // Auto-initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', initialize_page);
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔍 DOM Content Loaded event fired');
+    console.log('🔍 Starting page initialization...');
+    initialize_page().catch(error => {
+        console.error('❌ Error in DOMContentLoaded handler:', error);
+    });
+});
+
+// Also try to initialize immediately if DOM is already loaded
+if (document.readyState === 'loading') {
+    console.log('🔍 DOM still loading, waiting for DOMContentLoaded event');
+} else {
+    console.log('🔍 DOM already loaded, initializing immediately');
+    initialize_page().catch(error => {
+        console.error('❌ Error in immediate initialization:', error);
+    });
+}
 
 // Export functions for manual initialization if needed
 export { initialize_page, detect_page, PAGE_CONFIGS };

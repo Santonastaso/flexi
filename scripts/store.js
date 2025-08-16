@@ -93,13 +93,10 @@ export const appStore = {
             // Notify subscribers of the new data
             _notify();
             
-            console.log('✅ Store initialized and initial data loaded successfully');
-            console.log(`📊 Loaded ${state.machines.length} machines, ${state.odpOrders.length} ODP orders, and ${state.phases.length} phases.`);
-            
         } catch (error) {
+            console.error('❌ Error initializing store:', error);
             state.isLoading = false;
             _notify();
-            console.error('❌ Error loading initial data for store:', error);
             throw error;
         }
     },
@@ -110,7 +107,6 @@ export const appStore = {
             const addedMachine = await storageService.add_machine(newMachine);
             state.machines.push(addedMachine);
             _notify();
-            console.log('✅ Machine added successfully:', addedMachine.machine_name);
             return addedMachine;
         } catch (error) {
             console.error('❌ Error adding machine:', error);
@@ -126,7 +122,6 @@ export const appStore = {
                 state.machines[machineIndex] = { ...state.machines[machineIndex], ...updatedMachine };
             }
             _notify();
-            console.log('✅ Machine updated successfully:', id);
             return updatedMachine;
         } catch (error) {
             console.error('❌ Error updating machine:', error);
@@ -140,7 +135,6 @@ export const appStore = {
             const addedOrder = await storageService.add_odp_order(newOrder);
             state.odpOrders.push(addedOrder);
             _notify();
-            console.log('✅ ODP order added successfully:', addedOrder.odp_number);
             return addedOrder;
         } catch (error) {
             console.error('❌ Error adding ODP order:', error);
@@ -155,7 +149,6 @@ export const appStore = {
                 state.odpOrders[orderIndex] = { ...state.odpOrders[orderIndex], ...updatedOrder };
             }
             _notify();
-            console.log('✅ ODP order updated successfully:', id);
             return updatedOrder;
         } catch (error) {
             console.error('❌ Error updating ODP order:', error);
@@ -167,7 +160,6 @@ export const appStore = {
             await storageService.remove_odp_order(id);
             state.odpOrders = state.odpOrders.filter(order => order.id !== id);
             _notify();
-            console.log('✅ ODP order removed successfully:', id);
             return true;
         } catch (error) {
             console.error('❌ Error removing ODP order:', error);
@@ -181,7 +173,6 @@ export const appStore = {
             const addedPhase = await storageService.add_phase(newPhase);
             state.phases.push(addedPhase);
             _notify();
-            console.log('✅ Phase added successfully:', addedPhase.name);
             return addedPhase;
         } catch (error) {
             console.error('❌ Error adding phase:', error);
@@ -196,7 +187,6 @@ export const appStore = {
                 state.phases[phaseIndex] = { ...state.phases[phaseIndex], ...updatedPhase };
             }
             _notify();
-            console.log('✅ Phase updated successfully:', id);
             return updatedPhase;
         } catch (error) {
             console.error('❌ Error updating phase:', error);
@@ -208,7 +198,6 @@ export const appStore = {
             await storageService.remove_phase(id);
             state.phases = state.phases.filter(phase => phase.id !== id);
             _notify();
-            console.log('✅ Phase removed successfully:', id);
             return true;
         } catch (error) {
             console.error('❌ Error removing phase:', error);
@@ -305,44 +294,40 @@ export const appStore = {
      * @param {string} date - Date in YYYY-MM-DD format
      */
     async loadMachineAvailabilityForDate(date) {
-        // Prevent multiple simultaneous calls for the same date
-        if (state.machineAvailability[date] && state.machineAvailability[date]._loading) {
-            console.log(`⏳ Already loading availability for date: ${date}, skipping duplicate call`);
+        // Check if already loading or already loaded
+        if (state.machineAvailability[date]?._loading) {
             return;
         }
-
+        
+        if (state.machineAvailability[date] && state.machineAvailability[date].length >= 0) {
+            return;
+        }
+        
         try {
-            // Check if machine_availability table is accessible
-            const isAccessible = await this.isMachineAvailabilityAccessible();
-            if (!isAccessible) {
-                console.warn('⚠️ Machine availability table not accessible, skipping availability loading');
-                return;
-            }
-
             // Mark as loading
             if (!state.machineAvailability[date]) {
                 state.machineAvailability[date] = [];
             }
             state.machineAvailability[date]._loading = true;
             _notify();
-
-            // Get all machine availability for this date in one query
+            
+            // Load availability data
             const availabilityData = await storageService.get_machine_availability_for_date_all_machines(date);
             
-            // Update state with the new data
-            state.machineAvailability[date] = availabilityData;
+            // Update state
+            state.machineAvailability[date] = availabilityData || [];
+            delete state.machineAvailability[date]._loading;
             
             // Notify subscribers
             _notify();
             
-            console.log(`✅ Loaded availability for date: ${date}`, availabilityData);
         } catch (error) {
             console.error('❌ Error loading machine availability for date:', error);
-            // Clear loading state on error
+            // Remove loading state on error
             if (state.machineAvailability[date]) {
-                state.machineAvailability[date]._loading = false;
-                _notify();
+                delete state.machineAvailability[date]._loading;
             }
+            throw error;
         }
     },
 
@@ -400,13 +385,12 @@ export const appStore = {
      * Initialize empty machine availability data for all machines (no database calls)
      */
     initializeEmptyMachineAvailability() {
-        const machines = state.machines;
+        const { machines } = state;
         machines.forEach(machine => {
             if (!state.machineAvailability[machine.machine_name]) {
                 state.machineAvailability[machine.machine_name] = {};
             }
         });
-        console.log('✅ Empty machine availability data initialized for all machines');
     },
 
     /**
