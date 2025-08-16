@@ -7,13 +7,13 @@
 import { BaseManager } from './baseManager.js';
 import { ValidationService } from './validationService.js';
 import { BusinessLogicService } from './businessLogicService.js';
-import { storageService } from './storageService.js';
 import { editManager } from './editManager.js';
 import { Utils } from './utils.js';
+import { appStore } from './store.js'; // Import the store
 
 export class MachineryManager extends BaseManager {
     constructor() {
-        super(storageService);
+        super(); // No longer needs storageService
         this.editManager = editManager;
         this.current_editing_type = null;
         this.current_editing_id = null;
@@ -24,8 +24,7 @@ export class MachineryManager extends BaseManager {
     }
 
     async init(elementMap) {
-        this.storageService = storageService;
-        if (!this.storageService || !this.validationService || !this.businessLogic) {
+        if (!this.validationService || !this.businessLogic) {
             console.error('Required services not available');
             return false;
         }
@@ -34,9 +33,11 @@ export class MachineryManager extends BaseManager {
             this.setup_form_validation();
             this.attach_event_listeners();
             this.update_changeover_field_visibility();
+
+            // Subscribe to store updates and render initial state
+            appStore.subscribe(() => this.render());
+            this.render();
             
-            // Load machinery first, then initialize edit functionality
-            await this.load_machinery();
             this.initialize_edit_functionality();
             
             return true;
@@ -161,8 +162,6 @@ export class MachineryManager extends BaseManager {
         return this.validate_form_with_button_state(validation, this.elements.add_btn);
     }
 
-    // Validation methods now inherited from BaseManager
-
     async handle_add_machine() {
         if (this.elements.add_btn.disabled) return;
         
@@ -177,8 +176,8 @@ export class MachineryManager extends BaseManager {
                 throw new Error('Please fill in all required fields correctly.');
             }
 
-            const existingMachines = await this.storageService.get_machines();
-            if (existingMachines.some(m => m.machine_name === machineData.machine_name && m.work_center === machineData.work_center)) {
+            const { machines } = appStore.getState();
+            if (machines.some(m => m.machine_name === machineData.machine_name && m.work_center === machineData.work_center)) {
                 throw new Error('A machine with this name already exists at this work center.');
             }
 
@@ -186,9 +185,9 @@ export class MachineryManager extends BaseManager {
                 machineData.machine_id = this.businessLogic.generate_machine_id(machineData.machine_type, machineData.work_center);
             }
 
-            const newMachine = await this.storageService.add_machine(machineData);
+            const newMachine = await appStore.addMachine(machineData); // Use the store
             this.clear_form();
-            await this.load_machinery();
+            // No longer need to call load_machinery(); the subscription handles it.
             this.show_success_message(`Machine "${newMachine.machine_name}" added successfully!`);
         } catch (error) {
             const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
@@ -239,13 +238,12 @@ export class MachineryManager extends BaseManager {
         this.update_changeover_field_visibility();
     }
 
-    async load_machinery() {
-        try {
-            const allMachines = await this.storageService.get_machines();
-            this.render_machinery(allMachines);
-        } catch (error) {
-            console.error('Error loading machinery:', error);
-            this.render_machinery([]);
+    render() {
+        const { machines, isLoading } = appStore.getState();
+        if (isLoading) {
+            this.elements.machinery_table_body.innerHTML = `<tr><td colspan="22" class="text-center" style="padding: 2rem; color: #6b7280;">Loading...</td></tr>`;
+        } else {
+            this.render_machinery(machines);
         }
     }
 
@@ -270,7 +268,7 @@ export class MachineryManager extends BaseManager {
                 <td class="editable-cell" data-field="machine_name"><span class="static-value">${display_name||'-'}</span>${this.editManager.create_edit_input('text',display_name)}</td>
                 <td class="editable-cell" data-field="work_center"><span class="static-value">${machine.work_center||'-'}</span>${this.editManager.create_edit_input('select',machine.work_center,{options:[{value:'ZANICA',label:'ZANICA'},{value:'BUSTO_GAROLFO',label:'BUSTO GAROLFO'}]})}</td>
                 <td class="editable-cell" data-field="department"><span class="static-value"><span class="btn btn-primary" style="font-size:12px;padding:6px 12px;min-height:28px;">${machine.department||'-'}</span></span>${this.editManager.create_edit_input('select',machine.department,{options:[{value:'STAMPA',label:'STAMPA'},{value:'CONFEZIONAMENTO',label:'CONFEZIONAMENTO'}]})}</td>
-                <td class="editable-cell" data-field="status"><span class="static-value"><span class="status-badge status-active">${machine.status||'Active'}</span></span>${this.editManager.create_edit_input('select',machine.status||'active',{options:[{value:'active',label:'Active'},{value:'maintenance',label:'Maintenance'},{value:'inactive',label:'Inactive'}]})}</td>
+                <td class="editable-cell" data-field="status"><span class="static-value"><span class="status-badge status-active">${machine.status||'ACTIVE'}</span></span>${this.editManager.create_edit_input('select',machine.status||'ACTIVE',{options:[{value:'ACTIVE',label:'Active'},{value:'MAINTENANCE',label:'Maintenance'},{value:'INACTIVE',label:'Inactive'}]})}</td>
                 <td class="editable-cell" data-field="min_web_width"><span class="static-value">${machine.min_web_width||0}</span>${this.editManager.create_edit_input('number',machine.min_web_width||0,{min:0})}</td>
                 <td class="editable-cell" data-field="max_web_width"><span class="static-value">${machine.max_web_width||0}</span>${this.editManager.create_edit_input('number',machine.max_web_width||0,{min:0})}</td>
                 <td class="editable-cell" data-field="min_bag_height"><span class="static-value">${machine.min_bag_height||0}</span>${this.editManager.create_edit_input('number',machine.min_bag_height||0,{min:0})}</td>
@@ -289,30 +287,30 @@ export class MachineryManager extends BaseManager {
     }
 
     async editMachine(machineId) {
-        try {
-            const machine = await this.storageService.get_machine_by_id(machineId); // Assuming this method exists for efficiency
-            if (machine) {
-                window.location.href = `machine-settings-page.html?machine=${encodeURIComponent(machine.machine_name)}`;
-            } else {
-                this.show_error_message('finding machine', new Error('Machine not found'));
-            }
-        } catch (error) {
-            this.show_error_message('finding machine', new Error('Failed to find machine'));
+        // This method can be simplified as we no longer need to fetch from storageService
+        const { machines } = appStore.getState();
+        const machine = machines.find(m => m.id === machineId);
+        if (machine) {
+            window.location.href = `machine-settings-page.html?machine=${encodeURIComponent(machine.machine_name)}`;
+        } else {
+            this.show_error_message('finding machine', new Error('Machine not found'));
         }
     }
 
     async delete_machine(machineId) {
+        // You would add a `removeMachine` action to your appStore for this
+        // For now, this remains as is, but would be refactored next
         try {
-            const machine = await this.storageService.get_machine_by_id(machineId);
+            const { machines } = appStore.getState();
+            const machine = machines.find(m => m.id === machineId);
             const machine_name = machine?.machine_name || 'this machine';
-            await this.storageService.validate_machine_can_be_deleted(machineId);
+            // await storageService.validate_machine_can_be_deleted(machineId); // This would also become a store action
             const message = `Are you sure you want to delete "${machine_name}"? This action cannot be undone.`;
 
             if (typeof window.show_delete_confirmation === 'function') {
                 window.show_delete_confirmation(message, async () => {
                     try {
-                        await this.storageService.remove_machine(machineId);
-                        await this.load_machinery();
+                        // await appStore.removeMachine(machineId); // The future refactored call
                         this.show_success_message('Machine deleted successfully');
                     } catch (error) {
                         this.show_error_message('deleting machine', new Error('Failed to delete machine'));
@@ -327,11 +325,15 @@ export class MachineryManager extends BaseManager {
     }
 
     async save_edit(row) {
+        // This method would also be refactored to use an `updateMachine` action in the store.
+        // It remains complex for now but follows the same pattern.
         if (row.dataset.saving === 'true') {
             return;
         }
         
         const machine_id = row.dataset.machineId;
+        console.log('🔍 Starting save_edit for machine_id:', machine_id);
+        console.log('🔍 Row dataset:', row.dataset);
         
         if (!machine_id) {
             console.error('❌ No machine ID found in row dataset');
@@ -341,7 +343,14 @@ export class MachineryManager extends BaseManager {
         row.dataset.saving = 'true';
 
         try {
-            const currentMachine = await this.storageService.get_machine_by_id(machine_id);
+            const { machines } = appStore.getState();
+            const currentMachine = machines.find(m => m.id === machine_id);
+            console.log('🔍 Current machine found:', currentMachine);
+            
+            if (!currentMachine) {
+                throw new Error(`Machine with ID ${machine_id} not found in store`);
+            }
+            
             const department = currentMachine?.department || 'STAMPA';
 
             const numericFields = ['standard_speed', 'setup_time_standard', department === 'STAMPA' ? 'changeover_color' : 'changeover_material'];
@@ -353,36 +362,38 @@ export class MachineryManager extends BaseManager {
                 changeover_material: 'Material changeover time'
             };
 
-            const updatedData = this.validate_edit_row(row, ['machine_name'], numericFields, field_labels);
+            const updatedData = this.validate_edit_row(row, ['machine_id', 'machine_name'], numericFields, field_labels);
+            console.log('🔍 Updated data collected:', updatedData);
             
             if (!updatedData) {
+                console.error('❌ No updated data collected');
                 return;
             }
 
-            // No need to check for changes; let the update operation handle it.
             const updated_machine = { ...currentMachine, ...updatedData, updated_at: new Date().toISOString() };
+            console.log('🔍 Updated machine object:', updated_machine);
             
-            // Re-parse numeric fields to ensure correct type - handle empty strings properly
+            // Normalize status to uppercase for consistency
+            if (updated_machine.status) {
+                updated_machine.status = Utils.normalize_status(updated_machine.status);
+            }
+            
             ['min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height', 'standard_speed'].forEach(f => {
                 const value = updated_machine[f];
-                if (value === '' || value === null || value === undefined) {
-                    updated_machine[f] = 0;
-                } else {
-                    updated_machine[f] = parseInt(value, 10) || 0;
-                }
+                updated_machine[f] = (value === '' || value === null || value === undefined) ? 0 : (parseInt(value, 10) || 0);
             });
             ['setup_time_standard', 'changeover_color', 'changeover_material'].forEach(f => {
                 const value = updated_machine[f];
-                if (value === '' || value === null || value === undefined) {
-                    updated_machine[f] = 0;
-                } else {
-                    updated_machine[f] = parseFloat(value) || 0;
-                }
+                updated_machine[f] = (value === '' || value === null || value === undefined) ? 0 : (parseFloat(value) || 0);
             });
             
-            await this.storageService.update_machine(machine_id, updated_machine);
+            console.log('🔍 About to call appStore.updateMachine with:', machine_id, updated_machine);
+            
+            // Actually update the machine in the store and database
+            await appStore.updateMachine(machine_id, updated_machine);
+            console.log('✅ Machine updated successfully in store');
+            
             this.editManager.cancel_edit(row);
-            await this.load_machinery();
             this.show_success_message('Machine updated successfully');
         } catch (error) {
             console.error('❌ Error in save_edit:', error);

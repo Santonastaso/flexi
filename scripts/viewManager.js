@@ -2,6 +2,9 @@
  * View Manager - Handles calendar view switching and navigation
  * Implements Google Calendar-style navigation controls
  */
+import { Utils } from './utils.js';
+import { appStore } from './store.js';
+
 class ViewManager {
     constructor(calendar_renderer, controls_container) {
         this.calendar_renderer = calendar_renderer;
@@ -12,9 +15,15 @@ class ViewManager {
         this.init();
     }
     
-    init() {
-        this.render_controls();
-        this.setup_event_listeners();
+    async init() {
+        try {
+            this.render_controls();
+            this.setup_event_listeners();
+            await this.check_machine_availability_status();
+        } catch (error) {
+            console.error('Error initializing ViewManager:', error);
+            // Don't fail initialization for availability status check
+        }
     }
     
     render_controls() {
@@ -55,6 +64,7 @@ class ViewManager {
             <div class="off-time-controls">
                 <div class="off-time-section">
                     <h3>Set Off-Time Period</h3>
+                    <div id="off-time-status" class="off-time-status" style="display: none;"></div>
                     <div class="date-range-inputs">
                         <div class="input-group">
                             <label for="start-date">Start Date:</label>
@@ -202,89 +212,98 @@ class ViewManager {
         return names[view] || 'Month';
     }
     
-    handle_set_off_time() {
-        const start_date_input = document.getElementById('start-date');
-        const start_time_input = document.getElementById('start-time');
-        const end_date_input = document.getElementById('end-date');
-        const end_time_input = document.getElementById('end-time');
-        
-        const start_date = this.parse_date_input(start_date_input.value);
-        const end_date = this.parse_date_input(end_date_input.value);
-        
-        if (!start_date || !end_date) {
-            alert('Please enter valid dates in dd/mm/yyyy format.');
-            return;
-        }
-        
-        if (start_date > end_date) {
-            alert('Start date must be before or equal to end date.');
-            return;
-        }
-        
-        // Parse time inputs
-        const start_time = start_time_input.value;
-        const end_time = end_time_input.value;
-        
-        if (!start_time || !end_time) {
-            alert('Please enter both start and end times.');
-            return;
-        }
-        
-        // Set off-time for the specific time range
-        this.set_off_time_range(start_date, end_date, start_time, end_time);
-        
-        // Clear inputs
-        start_date_input.value = '';
-        start_time_input.value = '';
-        end_date_input.value = '';
-        end_time_input.value = '';
-        
-        // Refresh calendar
-        this.calendar_renderer.render();
-        
-        alert(`Off-time period set from ${this.format_display_date(start_date)} ${start_time} to ${this.format_display_date(end_date)} ${end_time}`);
-    }
-    
-    set_off_time_range(start_date, end_date, start_time, end_time) {
-        const machine_name = this.calendar_renderer.machine_name;
-        if (!machine_name) return;
-        
-        // Parse time strings to hours and minutes
-        const [start_hour, start_minute] = start_time.split(':').map(Number);
-        const [end_hour, end_minute] = end_time.split(':').map(Number);
-        
-        const current = new Date(start_date);
-        while (current <= end_date) {
-            const date_str = Utils.format_date(current);
-            
-            // Set specific time range as unavailable
-            for (let hour = start_hour; hour <= end_hour; hour++) {
-                if (hour === start_hour && hour === end_hour) {
-                    // Same hour, check minutes
-                    if (start_minute <= end_minute) {
-                        this.set_hour_unavailable(machine_name, date_str, hour);
-                    }
-                } else if (hour === start_hour) {
-                    // Start hour, set from start minute to end of hour
-                    this.set_hour_unavailable(machine_name, date_str, hour);
-                } else if (hour === end_hour) {
-                    // End hour, set from start of hour to end minute
-                    this.set_hour_unavailable(machine_name, date_str, hour);
-                } else {
-                    // Full hour in between
-                    this.set_hour_unavailable(machine_name, date_str, hour);
-                }
+
+
+    /**
+     * Handle setting off-time period
+     */
+    async handle_set_off_time() {
+        try {
+            const startDate = document.getElementById('start-date').value;
+            const startTime = document.getElementById('start-time').value;
+            const endDate = document.getElementById('end-date').value;
+            const endTime = document.getElementById('end-time').value;
+
+            // Validate inputs
+            if (!startDate || !startTime || !endDate || !endTime) {
+                alert('Please fill in all date and time fields.');
+                return;
             }
-            
-            current.setDate(current.getDate() + 1);
+
+            // Get machine name from the calendar renderer
+            const machineName = this.calendar_renderer.machine_name;
+            if (!machineName) {
+                alert('Machine name not found. Please refresh the page.');
+                return;
+            }
+
+            // Check if machine availability table is accessible
+            const status = await appStore.getMachineAvailabilityStatus();
+            if (!status.accessible) {
+                alert(`Cannot set off-time: ${status.message}`);
+                return;
+            }
+
+            // Call the store action to set machine unavailability
+            await appStore.setMachineUnavailability(machineName, startDate, endDate, startTime, endTime);
+
+            // Clear the form
+            document.getElementById('start-date').value = '';
+            document.getElementById('start-time').value = '';
+            document.getElementById('end-date').value = '';
+            document.getElementById('end-time').value = '';
+
+            // Show success message
+            alert('Off-time period set successfully!');
+
+        } catch (error) {
+            console.error('Error setting off-time period:', error);
+            alert(`Error setting off-time period: ${error.message}`);
         }
     }
 
-    set_hour_unavailable(machine_name, date_str, hour) {
-        const unavailable_hours = window.storageService.get_machine_availability_for_date(machine_name, date_str);
-        if (!unavailable_hours.includes(hour)) {
-            unavailable_hours.push(hour);
-            window.storageService.set_machine_availability(machine_name, date_str, unavailable_hours);
+    /**
+     * Check and display machine availability table status
+     */
+    async check_machine_availability_status() {
+        try {
+            const status = await appStore.getMachineAvailabilityStatus();
+            const statusDiv = document.getElementById('off-time-status');
+            
+            if (statusDiv) {
+                if (status.accessible) {
+                    statusDiv.style.display = 'none';
+                } else {
+                    statusDiv.style.display = 'block';
+                    statusDiv.innerHTML = `
+                        <div class="status-warning">
+                            <strong>⚠️ Machine Availability Table Not Accessible</strong><br>
+                            ${status.message}<br>
+                            <small>Please contact your administrator to create the required database table.</small>
+                        </div>
+                    `;
+                    statusDiv.className = 'off-time-status warning';
+                }
+            }
+        } catch (error) {
+            console.error('Error checking machine availability status:', error);
+        }
+    }
+
+    /**
+     * Set a specific hour as unavailable (legacy method - now handled by store)
+     */
+    async set_hour_unavailable(machine_name, date_str, hour) {
+        try {
+            const currentHours = await appStore.getMachineAvailabilityForDate(machine_name, date_str);
+            const newHours = currentHours.includes(hour) 
+                ? currentHours 
+                : [...currentHours, hour].sort((a, b) => a - b);
+            
+            await appStore.setMachineAvailability(machine_name, date_str, newHours);
+        } catch (error) {
+            console.error('Error setting hour unavailable:', error);
+            throw error;
         }
     }
     
@@ -349,7 +368,5 @@ class ViewManager {
     }
 }
 
-// Export for module usage
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ViewManager;
-}
+// Export for ES6 modules
+export { ViewManager };

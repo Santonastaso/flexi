@@ -100,6 +100,16 @@ export class Utils {
     }
 
     /**
+     * Get the start of the week (Sunday) for a given date
+     */
+    static get_start_of_week(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day; // Adjust to Sunday
+        return new Date(d.setDate(diff));
+    }
+
+    /**
      * Escape HTML to prevent XSS
      */
     static escape_html(text) {
@@ -273,7 +283,4 @@ export class Utils {
     }
 }
 
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = Utils;
-}
+// Export for ES6 modules (already exported above)

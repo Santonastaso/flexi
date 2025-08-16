@@ -4,44 +4,37 @@
 import { BaseManager } from './baseManager.js';
 import { ValidationService } from './validationService.js';
 import { BusinessLogicService } from './businessLogicService.js';
-import { storageService } from './storageService.js';
 import { editManager } from './editManager.js';
 import { Utils } from './utils.js';
+import { appStore } from './store.js'; // Import the store
 
 export class BacklogManager extends BaseManager {
     constructor() {
         super(null);
         this.editManager = editManager;
-        this.event_listeners_attached = false; // Flag to prevent duplicate event listeners
+        this.event_listeners_attached = false;
         this.validationService = new ValidationService();
         this.businessLogic = new BusinessLogicService();
-        this.storageService = storageService;
+        this.storageService = null; // No longer used directly
+        this.current_calculation_results = null; // To store calculation results
     }
 
     init(elementMap) {
-        // Set up storage service reference
-        this.storageService = storageService;
-        
-        if (!this.validate_storage_service()) return false;
-        
         if (super.init(elementMap)) {
-            this.load_backlog(); // This is now async but we don't await to avoid blocking
+            // Subscribe to store changes and perform initial render
+            appStore.subscribe(() => this.render());
+            this.render();
+
             this.setup_form_validation();
-            
-            // Attach event listeners for form interactions
             this.attach_event_listeners();
-            
-            // Initialize bag preview
             this.update_bag_preview();
         
-        // Initialize edit functionality
-        if (this.editManager) {
+            if (this.editManager) {
                 const tableBody = document.querySelector('#backlog_table_body');
                 if (tableBody) {
                     this.editManager.init_table_edit(tableBody);
                     this.editManager.register_save_handler(tableBody, (row) => this.save_edit(row));
                     
-                    // Add delete event listener
                     tableBody.addEventListener('deleteRow', async (e) => {
                         const row = e.detail.row;
                         const odpId = row.dataset.odpId;
@@ -51,37 +44,36 @@ export class BacklogManager extends BaseManager {
                     });
                 }
             }
-            
             return true;
         }
-        
         return false;
+    }
+
+    render() {
+        const { odpOrders, isLoading } = appStore.getState();
+        if (isLoading) {
+            this.elements.backlog_table_body.innerHTML = `<tr><td colspan="28" class="text-center" style="padding: 2rem; color: #6b7280;">Loading...</td></tr>`;
+        } else {
+            this.render_backlog(odpOrders);
+        }
     }
 
     get_element_map() {
         const elementIds = [
-            // Form elements
             'odp_number', 'article_code', 'production_lot', 'work_center', 'nome_cliente',
             'description', 'delivery_date', 'bag_height', 'bag_width', 'bag_step',
             'seal_sides', 'product_type', 'quantity', 'department', 'fase',
             'internal_customer_code', 'external_customer_code', 'customer_order_ref',
             'calculate_btn', 'create_task', 'update_statuses_btn', 'debug_events_btn',
             'backlog_table_body',
-            // Preview elements
             'preview_fascia', 'preview_altezza', 'preview_passo'
         ];
-        
-        // Get elements using base class helper
         return this.get_elements_by_id(elementIds);
     }
 
     attach_event_listeners() {
-        // Prevent duplicate event listener attachment
-        if (this.event_listeners_attached) {
-            return;
-        }
+        if (this.event_listeners_attached) return;
 
-        // Event handlers mapping
         const eventHandlers = {
             handle_article_code_change: ['article_code'],
             populate_phases_dropdown: ['department', 'work_center'],
@@ -94,13 +86,11 @@ export class BacklogManager extends BaseManager {
             ]
         };
 
-        // Attach listeners for single-click actions
         if (this.elements.calculate_btn) this.elements.calculate_btn.addEventListener('click', () => this.handle_calculate());
         if (this.elements.create_task) this.elements.create_task.addEventListener('click', () => this.handle_create_task());
         if (this.elements.update_statuses_btn) this.elements.update_statuses_btn.addEventListener('click', () => this.sync_all_odp_with_gantt());
         if (this.elements.debug_events_btn) this.elements.debug_events_btn.addEventListener('click', () => this.debug_scheduled_events());
 
-        // Attach listeners for input/change events that trigger the same handler
         ['input', 'change'].forEach(event => {
             eventHandlers.handle_article_code_change.forEach(id => this.elements[id]?.addEventListener(event, () => this.handle_article_code_change()));
             eventHandlers.validate_form_fields.forEach(id => this.elements[id]?.addEventListener(event, () => this.validate_form_fields()));
@@ -109,14 +99,10 @@ export class BacklogManager extends BaseManager {
         eventHandlers.populate_phases_dropdown.forEach(id => this.elements[id]?.addEventListener('change', () => this.populate_phases_dropdown().catch(console.error)));
         eventHandlers.update_bag_preview.forEach(id => this.elements[id]?.addEventListener('input', () => this.update_bag_preview()));
 
-        // Initial setup
         this.populate_phases_dropdown().catch(console.error);
         this.hide_calculation_results();
-
-        // Mark event listeners as attached
         this.event_listeners_attached = true;
     }
-
 
     setup_form_validation() {
         this.validate_form_fields();
@@ -143,10 +129,8 @@ export class BacklogManager extends BaseManager {
         const formData = this.collect_form_data();
         const validation = this.validationService.validate_odp(formData, { context: 'form', returnFieldMapping: true });
         
-        // Use base class validation method for consistent behavior
         const isValid = this.validate_form_with_button_state(validation, this.elements.create_task);
         
-        // Handle additional buttons if needed
         if (updateButtonState && this.elements.calculate_btn) {
             this.elements.calculate_btn.disabled = !isValid;
         }
@@ -169,17 +153,11 @@ export class BacklogManager extends BaseManager {
         return data;
     }
 
-    // Validation methods now inherited from BaseManager
-
-    /**
-     * Update the bag specification visual preview
-     */
     update_bag_preview() {
         if (this.elements.preview_fascia) this.elements.preview_fascia.textContent = this.elements.bag_width?.value || '-';
         if (this.elements.preview_altezza) this.elements.preview_altezza.textContent = this.elements.bag_height?.value || '-';
         if (this.elements.preview_passo) this.elements.preview_passo.textContent = this.elements.bag_step?.value || '-';
     }
-
 
     async handle_calculate() {
         try {
@@ -194,10 +172,9 @@ export class BacklogManager extends BaseManager {
                 return;
             }
 
-            const phases = await this.storageService.get_phases();
-            console.log('Available phases:', phases, 'Selected phase ID:', selectedPhaseId);
+            // Get phases from the store instead of direct storageService access
+            const { phases } = appStore.getState();
             const selectedPhase = phases.find(phase => phase.id === selectedPhaseId);
-            console.log('Selected phase found:', selectedPhase);
             
             if (!selectedPhase) {
                 this.show_error_message('finding selected phase', new Error('Selected phase not found'));
@@ -208,8 +185,6 @@ export class BacklogManager extends BaseManager {
             const bagStep = parseInt(this.elements.bag_step.value) || 0;
 
             const results = this.calculate_production_metrics(selectedPhase, quantity, bagStep);
-            console.log('Calculation results:', results);
-            
             this.display_calculation_results(results);
             this.show_success_message('Calculation completed successfully');
         } catch (error) {
@@ -225,7 +200,6 @@ export class BacklogManager extends BaseManager {
             totals: { duration: 0, cost: 0 }
         };
 
-        // Calculate printing metrics
         if (phase.department === 'STAMPA' && phase.v_stampa > 0) {
             const metersToPrint = (bagStep * quantity) / 1000;
             results.printing.processing_time = Math.round((metersToPrint / phase.v_stampa) * 100) / 100;
@@ -234,7 +208,6 @@ export class BacklogManager extends BaseManager {
             results.printing.cost = Math.round((results.printing.total_time * (phase.costo_h_stampa || 0)) * 100) / 100;
         }
 
-        // Calculate packaging metrics
         if (phase.department === 'CONFEZIONAMENTO' && phase.v_conf > 0) {
             results.packaging.processing_time = Math.round((quantity / phase.v_conf) * 100) / 100;
             results.packaging.setup_time = Math.round((phase.t_setup_conf || 0) * 100) / 100;
@@ -242,7 +215,6 @@ export class BacklogManager extends BaseManager {
             results.packaging.cost = Math.round((results.packaging.total_time * (phase.costo_h_conf || 0)) * 100) / 100;
         }
 
-        // Calculate totals
         results.totals.duration = Math.round((results.printing.total_time + results.packaging.total_time) * 100) / 100;
         results.totals.cost = Math.round((results.printing.cost + results.packaging.cost) * 100) / 100;
 
@@ -298,7 +270,7 @@ export class BacklogManager extends BaseManager {
             }
 
             const orderData = {
-                ...this.collect_form_data(), // Re-use form data collection
+                ...this.collect_form_data(),
                 delivery_date: this.elements.delivery_date.value,
                 bag_height: parseInt(this.elements.bag_height.value) || 0,
                 bag_width: parseInt(this.elements.bag_width.value) || 0,
@@ -319,12 +291,9 @@ export class BacklogManager extends BaseManager {
                 updated_at: new Date().toISOString()
             };
 
-            if (window.DEBUG) console.log('About to add order to storage:', orderData);
-
-            await this.storageService.add_odp_order(orderData);
+            await appStore.addOdpOrder(orderData);
 
             this.clear_form_fields();
-            this.load_backlog();
             this.show_success_message(`Production order "${orderData.odp_number}" created`);
             this.hide_calculation_results();
             
@@ -336,25 +305,12 @@ export class BacklogManager extends BaseManager {
         }
     }
 
-    async load_backlog() {
-        try {
-            const backlogItems = await this.storageService.get_odp_orders() || [];
-            if (window.DEBUG) console.log('Loading backlog items:', backlogItems);
-            this.render_backlog(backlogItems);
-        } catch (error) {
-            console.error('Error loading backlog:', error);
-            const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
-            this.show_error_message('loading backlog', errorObj);
-            this.render_backlog([]);
-        }
-    }
-
     render_backlog(items) {
         if (!this.elements.backlog_table_body) return;
 
         if (!items || items.length === 0) {
             this.elements.backlog_table_body.innerHTML = `
-                <tr><td colspan="14" class="text-center" style="padding: 2rem; color: #6b7280;">
+                <tr><td colspan="28" class="text-center" style="padding: 2rem; color: #6b7280;">
                         No backlog items found. Create production lots to get started.
                 </td></tr>`;
             return;
@@ -364,6 +320,9 @@ export class BacklogManager extends BaseManager {
     }
 
     create_backlog_row(item) {
+        const { machines } = appStore.getState();
+        const scheduledMachine = item.scheduled_machine_id ? machines.find(m => m.id === item.scheduled_machine_id) : null;
+        const machineName = scheduledMachine ? scheduledMachine.machine_name : '-';
         return `
             <tr data-odp-id="${item.id}">
                 <td class="editable-cell" data-field="id"><span class="static-value">${item.id}</span>${this.editManager ? this.editManager.create_edit_input('text', item.id) : ''}</td>
@@ -379,8 +338,8 @@ export class BacklogManager extends BaseManager {
                 <td class="editable-cell" data-field="seal_sides"><span class="static-value">${item.seal_sides || '-'} sides</span>${this.editManager ? this.editManager.create_edit_input('select', item.seal_sides, { options: [{ value: '3', label: '3 sides' }, { value: '4', label: '4 sides' }] }) : ''}</td>
                 <td class="editable-cell" data-field="product_type"><span class="static-value">${Utils.escape_html(item.product_type || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.product_type) : ''}</td>
                 <td class="editable-cell" data-field="quantity"><span class="static-value">${item.quantity || '-'}</span>${this.editManager ? this.editManager.create_edit_input('number', item.quantity, { min: 0 }) : ''}</td>
-                <td class="editable-cell" data-field="production_start"><span class="static-value">${item.production_start ? this.format_production_start(item.production_start) : '-'}</span>${this.editManager ? this.editManager.create_edit_input('datetime-local', item.production_start) : ''}</td>
-                <td class="editable-cell" data-field="production_end"><span class="static-value">${item.production_end ? this.format_production_end(item.production_end) : '-'}</span>${this.editManager ? this.editManager.create_edit_input('datetime-local', item.production_end) : ''}</td>
+                <td class="editable-cell" data-field="production_start"><span class="static-value">${item.scheduled_start_time ? this.format_production_start(item.scheduled_start_time) : (item.production_start ? this.format_production_start(item.production_start) : '-')}</span>${this.editManager ? this.editManager.create_edit_input('datetime-local', item.production_start) : ''}</td>
+                <td class="editable-cell" data-field="production_end"><span class="static-value">${item.scheduled_end_time ? this.format_production_end(item.scheduled_end_time) : (item.production_end ? this.format_production_end(item.production_end) : '-')}</span>${this.editManager ? this.editManager.create_edit_input('datetime-local', item.production_end) : ''}</td>
                 <td class="editable-cell" data-field="delivery_date"><span class="static-value">${item.delivery_date || '-'}</span>${this.editManager ? this.editManager.create_edit_input('datetime-local', item.delivery_date) : ''}</td>
                 <td class="editable-cell" data-field="internal_customer_code"><span class="static-value">${Utils.escape_html(item.internal_customer_code || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.internal_customer_code) : ''}</td>
                 <td class="editable-cell" data-field="external_customer_code"><span class="static-value">${Utils.escape_html(item.external_customer_code || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.external_customer_code) : ''}</td>
@@ -392,7 +351,7 @@ export class BacklogManager extends BaseManager {
                 <td class="editable-cell" data-field="progress"><span class="static-value">${item.progress || 0}%</span>${this.editManager ? this.editManager.create_edit_input('number', item.progress, { min: 0, max: 100, step: 1 }) : ''}</td>
                 <td class="editable-cell" data-field="priority"><span class="static-value">${Utils.escape_html(item.priority || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.priority) : ''}</td>
                 <td class="editable-cell" data-field="status"><span class="static-value">${Utils.escape_html(item.status || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.status) : ''}</td>
-                <td class="editable-cell" data-field="scheduled_machine"><span class="static-value">${Utils.escape_html(item.machines?.machine_name || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.machines?.machine_name || '') : ''}</td>
+                <td class="editable-cell" data-field="scheduled_machine"><span class="static-value">${machineName}</span></td>
                 <td class="text-center">${this.editManager ? this.editManager.create_action_buttons() : ''}</td>
             </tr>
         `;
@@ -412,13 +371,13 @@ export class BacklogManager extends BaseManager {
         if (!updatedData) return;
 
         try {
-            const currentOrder = await this.storageService.get_odp_order_by_id(odpId);
+            const { odpOrders } = appStore.getState();
+            const currentOrder = odpOrders.find(o => o.id === odpId);
             if (!currentOrder) {
                 this.showMessage('ODP order not found', 'error');
                 return;
             }
 
-            // Clean up datetime fields - convert empty strings to null
             const cleanedData = { ...updatedData };
             ['production_start', 'production_end', 'delivery_date'].forEach(field => {
                 if (cleanedData[field] === '' || cleanedData[field] === null || cleanedData[field] === undefined) {
@@ -426,21 +385,18 @@ export class BacklogManager extends BaseManager {
                 }
             });
 
-            // Clean up numeric fields - convert empty strings to 0
             ['bag_height', 'bag_width', 'bag_step', 'quantity', 'progress', 'duration', 'cost'].forEach(field => {
                 if (cleanedData[field] === '' || cleanedData[field] === null || cleanedData[field] === undefined) {
                     cleanedData[field] = 0;
                 } else if (typeof cleanedData[field] === 'string') {
-                    // Convert string numbers to actual numbers
                     cleanedData[field] = parseFloat(cleanedData[field]) || 0;
                 }
             });
 
             const updatedOrder = { ...currentOrder, ...cleanedData, updated_at: new Date().toISOString() };
-            await this.storageService.update_odp_order(odpId, updatedOrder);
+            await appStore.updateOdpOrder(odpId, updatedOrder);
 
             this.editManager.cancel_edit(row);
-            this.load_backlog();
             this.show_success_message('ODP order updated');
         } catch (error) {
             const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
@@ -449,24 +405,14 @@ export class BacklogManager extends BaseManager {
     }
 
     clear_form_fields() {
-        // Use the base class method to clear all form fields
         super.clear_form_fields();
     }
-
-    /**
-     * Custom form clearing logic for backlog
-     * Called automatically by the base class clear_form_fields method
-     */
+    
     custom_clear_form() {
-        // Clear specific data attributes
         if (this.elements.article_code) delete this.elements.article_code.dataset.department;
         if (this.elements.work_center) this.elements.work_center.value = '';
         if (this.elements.department) this.elements.department.value = '';
-
-        // Reset calculation results
         this.current_calculation_results = null;
-        
-        // Repopulate and update UI
         this.populate_phases_dropdown().catch(console.error);
         this.validate_form_fields();
         this.update_bag_preview();
@@ -474,39 +420,35 @@ export class BacklogManager extends BaseManager {
 
     async populate_phases_dropdown() {
         try {
-            const phases = await this.storageService.get_phases();
+            // Use the store to get phases instead of direct storageService access
+            const { phases } = appStore.getState();
             const faseDropdown = this.elements.fase;
             if (!faseDropdown || !phases?.length) return;
             
-                faseDropdown.innerHTML = '<option value="">Select production phase</option>';
-                const department = this.elements.department.value;
-                const workCenter = this.elements.work_center.value;
+            faseDropdown.innerHTML = '<option value="">Select production phase</option>';
+            const department = this.elements.department.value;
+            const workCenter = this.elements.work_center.value;
                 
             const relevantPhases = (department || workCenter)
                 ? phases.filter(p => (!department || p.department === department) && (!workCenter || p.work_center === workCenter))
                 : phases;
                 
-                relevantPhases.forEach(phase => {
-                    const option = document.createElement('option');
-                    option.value = phase.id;
-                    option.textContent = phase.name;
-                    faseDropdown.appendChild(option);
-                });
+            relevantPhases.forEach(phase => {
+                const option = document.createElement('option');
+                option.value = phase.id;
+                option.textContent = phase.name;
+                faseDropdown.appendChild(option);
+            });
         } catch (error) {
             console.error("Error populating phases dropdown:", error);
         }
     }
 
     async delete_odp_order(odpId) {
-        // Assuming `show_delete_confirmation` is a global helper function.
-        // The original `message` variable was undefined.
         const message = `Are you sure you want to delete ODP Order #${odpId}?`;
-    
-        // This function shows a confirmation dialog and executes the callback if confirmed.
         show_delete_confirmation(message, async () => {
             try {
-                await this.storageService.remove_odp_order(odpId);
-                await this.load_backlog();
+                await appStore.removeOdpOrder(odpId);
                 this.show_success_message('ODP order deleted successfully.');
             } catch (error) {
                 const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
@@ -515,13 +457,9 @@ export class BacklogManager extends BaseManager {
         });
     }
 
-    /**
-     * Sync all ODP orders with current Gantt data
-     */
     async sync_all_odp_with_gantt() {
         try {
-            // Simple refresh - no complex sync needed with machine IDs
-            await this.load_backlog();
+            await appStore.init(); // Re-fetch all data from the source
             this.show_success_message('Backlog refreshed successfully');
         } catch (error) {
             console.error('Error refreshing backlog:', error);
@@ -530,32 +468,22 @@ export class BacklogManager extends BaseManager {
         }
     }
 
-
-
-    /**
-     * Debug method to show current scheduled events and ODP orders
-     */
     async debug_scheduled_events() {
         try {
-            const scheduledEvents = await this.storageService.get_scheduled_events() || [];
-            const allOrders = await this.storageService.get_odp_orders() || [];
+            const { odpOrders } = appStore.getState();
+            const scheduledEvents = odpOrders.filter(o => o.status === 'SCHEDULED');
             
             console.group("Scheduler Debug");
-            console.log('=== SCHEDULED EVENTS ===');
+            console.log('=== SCHEDULED EVENTS (from store) ===');
             console.table(scheduledEvents);
-            console.log('=== ODP ORDERS ===');
-            console.table(allOrders.map(o => ({ id: o.id, odp: o.odp_number, status: o.status, start: o.production_start, end: o.production_end })));
+            console.log('=== ALL ODP ORDERS (from store) ===');
+            console.table(odpOrders.map(o => ({ id: o.id, odp: o.odp_number, status: o.status, start: o.production_start, end: o.production_end })));
             console.groupEnd();
         } catch (error) {
             console.error('Error in debug method:', error);
         }
     }
 
-    /**
-     * Format production start/end timestamp for display
-     * @param {string} timestamp - ISO timestamp string
-     * @returns {string} - Formatted date and time
-     */
     format_timestamp_for_display(timestamp) {
         try {
             if (!timestamp) return '-';

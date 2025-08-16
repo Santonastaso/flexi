@@ -4,30 +4,29 @@
 import { BaseManager } from './baseManager.js';
 import { ValidationService } from './validationService.js';
 import { BusinessLogicService } from './businessLogicService.js';
-import { storageService } from './storageService.js';
 import { editManager } from './editManager.js';
 import { Utils } from './utils.js';
+import { appStore } from './store.js'; // Import the store
 
 export class PhasesManager extends BaseManager {
     constructor() {
-        super(null); // Defer storageService assignment until init
+        super(null);
         this.editManager = editManager;
-        this.event_listeners_attached = false; // Flag to prevent duplicate event listeners
+        this.event_listeners_attached = false;
         this.validationService = new ValidationService();
         this.businessLogic = new BusinessLogicService();
     }
 
     init(elementMap) {
-        this.storageService = storageService;
-        if (!this.validate_storage_service()) return false;
-
         if (super.init(elementMap)) {
-            this.load_phases().catch(error => console.error('Error loading phases:', error));
+            // Subscribe to store updates and render initial state
+            appStore.subscribe(() => this.render());
+            this.render();
+
             this.setup_form_validation();
             this.attach_event_listeners();
-            this.handle_phase_department_change(); // Set initial visibility
+            this.handle_phase_department_change();
 
-            // Initialize edit functionality
             if (this.editManager) {
                 const table = document.querySelector('.modern-table');
                 if (table) {
@@ -44,6 +43,15 @@ export class PhasesManager extends BaseManager {
         return false;
     }
 
+    render() {
+        const { phases, isLoading } = appStore.getState();
+        if (isLoading) {
+            this.elements.phases_table_body.innerHTML = `<tr><td colspan="15" class="text-center" style="padding: 2rem; color: #6b7280;">Loading...</td></tr>`;
+        } else {
+            this.render_phases(phases);
+        }
+    }
+
     get_element_map() {
         const elementIds = [
             'phase_name', 'phase_type', 'numero_persone', 'phase_work_center',
@@ -55,7 +63,6 @@ export class PhasesManager extends BaseManager {
     }
 
     attach_event_listeners() {
-        // Prevent duplicate event listener attachment
         if (this.event_listeners_attached) {
             return;
         }
@@ -82,17 +89,11 @@ export class PhasesManager extends BaseManager {
             }
         });
 
-        // Mark event listeners as attached
         this.event_listeners_attached = true;
     }
 
     setup_form_validation() {
         this.validate_phase_form();
-    }
-
-    async load_phases() {
-        const phases = await this.storageService.get_phases();
-        this.render_phases(phases);
     }
 
     render_phases(phases) {
@@ -102,7 +103,6 @@ export class PhasesManager extends BaseManager {
     }
 
     create_phase_row(phase) {
-        // This function is primarily HTML generation and remains unchanged for brevity.
         const createdDate = phase.created_at ? new Date(phase.created_at).toLocaleDateString() : '-';
         const updatedDate = phase.updated_at ? new Date(phase.updated_at).toLocaleDateString() : '-';
         return `
@@ -149,8 +149,6 @@ export class PhasesManager extends BaseManager {
         return this.validate_form_with_button_state(validation, this.elements.add_phase_btn);
     }
 
-    // Validation methods now inherited from BaseManager
-
     async handle_add_phase() {
         if (this.elements.add_phase_btn.disabled) return;
         this.elements.add_phase_btn.disabled = true;
@@ -160,9 +158,8 @@ export class PhasesManager extends BaseManager {
             if (!this.validate_phase_form()) {
                 throw new Error('Please fill in all required fields correctly.');
             }
-            const newPhase = await this.storageService.add_phase(phaseData);
+            const newPhase = await appStore.addPhase(phaseData); // Use the store
             this.clear_form_fields();
-            await this.load_phases();
             this.show_success_message('Phase added', newPhase.name);
         } catch (error) {
             const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
@@ -201,16 +198,8 @@ export class PhasesManager extends BaseManager {
         return department === 'STAMPA' ? { ...baseData, ...printingData } : { ...baseData, ...packagingData };
     }
 
-
-    /**
-     * Custom form clearing logic for phases
-     * Called automatically by the base class clear_form_fields method
-     */
     custom_clear_form() {
-        // Handle phase-specific section visibility
-        this.handle_phase_department_change(); // Hides sections
-
-        // Set default values for phase-specific fields
+        this.handle_phase_department_change();
         this.elements.numero_persone.value = '1';
         this.elements.phase_work_center.value = 'ZANICA';
         this.elements.v_stampa.value = '6000';
@@ -219,8 +208,6 @@ export class PhasesManager extends BaseManager {
         this.elements.v_conf.value = '1000';
         this.elements.t_setup_conf.value = '0.25';
         this.elements.costo_h_conf.value = '40';
-
-        // Validate the form after clearing
         this.validate_phase_form();
     }
 
@@ -229,25 +216,24 @@ export class PhasesManager extends BaseManager {
         if (!phaseId) return;
 
         const numericFields = ['v_stampa', 't_setup_stampa', 'costo_h_stampa', 'v_conf', 't_setup_conf', 'costo_h_conf'];
-        const labels = { v_stampa: 'V Stampa', t_setup_stampa: 'T Setup Stampa', /*...*/ }; // Simplified for brevity
+        const labels = { v_stampa: 'V Stampa', t_setup_stampa: 'T Setup Stampa' };
         const updatedData = this.validate_edit_row(row, [], numericFields, labels);
 
         if (!updatedData) return;
 
         try {
-            const phase = await this.storageService.get_phase_by_id(phaseId);
+            const { phases } = appStore.getState();
+            const phase = phases.find(p => p.id === phaseId);
             if (!phase) throw new Error('Phase not found');
 
-            // Merge data and ensure numeric types
             const updatedPhase = { ...phase, ...updatedData };
             for (const key of numericFields) {
                 updatedPhase[key] = parseFloat(updatedPhase[key]) || 0;
             }
             updatedPhase.numero_persone = parseInt(updatedPhase.numero_persone, 10) || 1;
 
-            await this.storageService.update_phase(phaseId, updatedPhase);
+            await appStore.updatePhase(phaseId, updatedPhase); // Use the store
             this.editManager.cancel_edit(row);
-            await this.load_phases();
             this.show_success_message('Phase updated');
         } catch (error) {
             const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
@@ -257,14 +243,14 @@ export class PhasesManager extends BaseManager {
 
     async delete_phase(phaseId) {
         try {
-            const phase = await this.storageService.get_phase_by_id(phaseId);
+            const { phases } = appStore.getState();
+            const phase = phases.find(p => p.id === phaseId);
             const phaseName = phase ? phase.name : 'this phase';
             const message = `Are you sure you want to delete "${phaseName}"? This action cannot be undone.`;
             
             show_delete_confirmation(message, async () => {
                 try {
-                    await this.storageService.remove_phase(phaseId);
-                    await this.load_phases();
+                    await appStore.removePhase(phaseId); // Use the store
                     this.show_success_message('Phase deleted');
                 } catch (error) {
                     this.show_error_message('deleting phase', new Error('Failed to delete phase'));

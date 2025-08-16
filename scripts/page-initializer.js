@@ -5,6 +5,7 @@
  */
 
 import { storageService } from './storageService.js';
+import { appStore } from './store.js'; // Import the store
 import { editManager } from './editManager.js';
 import { initialize_navigation } from '../components/navigation.js';
 import { BacklogManager } from './backlog-manager.js';
@@ -12,6 +13,7 @@ import { MachineryManager } from './machinery-manager.js';
 import { PhasesManager } from './phases-manager.js';
 import { BusinessLogicService } from './businessLogicService.js';
 import { Scheduler } from './scheduler.js';
+import { MachineCalendarManager } from './machineCalendarManager.js';
 
 // Page configuration - defines how each page should be initialized
 const PAGE_CONFIGS = {
@@ -40,7 +42,9 @@ const PAGE_CONFIGS = {
     },
     'machine-settings': {
         name: 'Machine Settings Page',
-        type: 'simple',
+        type: 'component',
+        component_class: MachineCalendarManager,
+        global_var_name: 'machineCalendarManager',
         requires_edit_manager: true
     },
     'scheduler': {
@@ -81,6 +85,14 @@ async function initialize_storage() {
         await storageService.init();
         console.log('✅ StorageService initialized');
     }
+}
+
+/**
+ * Initialize the central data store
+ */
+async function initialize_store() {
+    await appStore.init();
+    console.log('✅ AppStore initialized');
 }
 
 /**
@@ -169,64 +181,26 @@ async function initialize_scheduler() {
             return;
         }
         
-        // Make storage service available globally for the scheduler
-        window.storageService = storageService;
-        
-        // Make BusinessLogicService available globally
-        window.BusinessLogicService = BusinessLogicService;
-        
-        // Debug: Check if we have data
-        console.log('🔍 Checking available data for scheduler...');
-        try {
-            const machines = await storageService.get_machines();
-            console.log(`📊 Found ${machines.length} machines:`, machines);
-            
-            const odpOrders = await storageService.get_odp_orders();
-            console.log(`📋 Found ${odpOrders.length} ODP orders:`, odpOrders);
-            
-            // In the consolidated approach, scheduled events come from ODP orders
-            const scheduledOdps = odpOrders.filter(order => order.scheduled_machine);
-            console.log(`📅 Found ${scheduledOdps.length} scheduled ODP orders:`, scheduledOdps);
-        } catch (error) {
-            console.error('❌ Error checking data:', error);
-        }
-        
         // Debug: Check if Scheduler class is available
-        console.log('🔍 Scheduler class:', Scheduler);
-        console.log('🔍 Scheduler constructor:', typeof Scheduler);
-        
         if (typeof Scheduler !== 'function') {
             throw new Error(`Scheduler is not a constructor. Got: ${typeof Scheduler}`);
         }
         
-        // Debug: Check if required DOM elements exist
-        console.log('🔍 Checking required DOM elements...');
-        const requiredElements = ['task_pool', 'calendar_container', 'current_date', 'today_btn', 'prev_day', 'next_day', 'message_container'];
-        requiredElements.forEach(elementId => {
-            const element = document.getElementById(elementId);
-            console.log(`🔍 ${elementId}:`, element ? '✅ Found' : '❌ Missing');
-        });
-        
-        // Force clean initialization - remove any existing incomplete scheduler
-        if (window.scheduler) {
-            delete window.scheduler;
-        }
-        
-        // Create new scheduler instance with proper services
-        window.scheduler = new Scheduler(storageService, BusinessLogicService);
+        // Create new scheduler instance
+        const scheduler = new Scheduler();
         
         // Initialize the scheduler now that DOM is ready
-        if (window.scheduler.init()) {
+        if (scheduler.init()) {
             console.log('✅ Scheduler initialized successfully');
             
             // Add refresh machines button event listener
             const refreshBtn = document.getElementById('refresh_machines_btn');
-            if (refreshBtn && window.scheduler.refresh_machine_data) {
+            if (refreshBtn && scheduler.refresh_machine_data) {
                 refreshBtn.addEventListener('click', async () => {
                     try {
                         refreshBtn.disabled = true;
                         refreshBtn.textContent = '⏳';
-                        await window.scheduler.refresh_machine_data();
+                        await scheduler.refresh_machine_data();
                         refreshBtn.textContent = '🔄';
                     } catch (error) {
                         console.error('Error refreshing machines:', error);
@@ -262,8 +236,9 @@ async function initialize_page() {
         
         console.log(`🚀 Initializing ${config.name}...`);
         
-        // Initialize core services
+        // Initialize core services IN THE CORRECT ORDER
         await initialize_storage();
+        await initialize_store();
         initialize_nav();
         
         // Initialize edit manager if required

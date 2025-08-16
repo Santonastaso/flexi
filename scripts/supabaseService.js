@@ -438,6 +438,103 @@ class SupabaseService {
     }
 
     /**
+     * Set machine unavailability for a date range with specific time windows
+     * @param {string} machineName - Name of the machine
+     * @param {string} startDate - Start date in dd/mm/yyyy format
+     * @param {string} endDate - End date in dd/mm/yyyy format  
+     * @param {string} startTime - Start time in HH:mm format (24-hour)
+     * @param {string} endTime - End time in HH:mm format (24-hour)
+     * @returns {Promise<boolean>} Success status
+     */
+    async setUnavailableHoursForRange(machineName, startDate, endDate, startTime, endTime) {
+        try {
+            // Validate inputs
+            if (!machineName || !startDate || !endDate || !startTime || !endTime) {
+                throw new Error('All parameters are required');
+            }
+
+            // Parse dates from dd/mm/yyyy format
+            const parseDate = (dateStr) => {
+                const [day, month, year] = dateStr.split('/').map(Number);
+                if (!day || !month || !year) {
+                    throw new Error(`Invalid date format: ${dateStr}. Expected dd/mm/yyyy`);
+                }
+                return new Date(year, month - 1, day); // month is 0-indexed
+            };
+
+            // Parse time from HH:mm format
+            const parseTime = (timeStr) => {
+                const [hours, minutes] = timeStr.split(':').map(Number);
+                if (hours === undefined || minutes === undefined || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+                    throw new Error(`Invalid time format: ${timeStr}. Expected HH:mm (24-hour)`);
+                }
+                return { hours, minutes };
+            };
+
+            const startDateTime = parseDate(startDate);
+            const endDateTime = parseDate(endDate);
+            const startTimeObj = parseTime(startTime);
+            const endTimeObj = parseTime(endTime);
+
+            // Validate date range
+            if (startDateTime > endDateTime) {
+                throw new Error('Start date must be before or equal to end date');
+            }
+
+            // Calculate the date range
+            const dates = [];
+            const current = new Date(startDateTime);
+            
+            while (current <= endDateTime) {
+                dates.push(new Date(current));
+                current.setDate(current.getDate() + 1);
+            }
+
+            // Process each date in the range
+            for (const date of dates) {
+                const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format for database
+                
+                // Get existing unavailable hours for this date
+                const existingHours = await this.get_machine_availability_for_date(machineName, dateStr);
+                
+                // Calculate which hours should be unavailable for this specific date
+                let hoursToAdd = [];
+                
+                if (date.toDateString() === startDateTime.toDateString()) {
+                    // First day: from start time to end of day
+                    for (let hour = startTimeObj.hours; hour < 24; hour++) {
+                        hoursToAdd.push(hour);
+                    }
+                } else if (date.toDateString() === endDateTime.toDateString()) {
+                    // Last day: from start of day to end time
+                    for (let hour = 0; hour <= endTimeObj.hours; hour++) {
+                        hoursToAdd.push(hour);
+                    }
+                } else {
+                    // Middle days: full day (0-23)
+                    for (let hour = 0; hour < 24; hour++) {
+                        hoursToAdd.push(hour);
+                    }
+                }
+
+                // Merge with existing hours, remove duplicates, and sort
+                const allHours = [...new Set([...existingHours, ...hoursToAdd])].sort((a, b) => a - b);
+                
+                // Update the database for this date
+                await this.set_machine_availability(machineName, dateStr, allHours);
+            }
+
+            // Clear cache to ensure fresh data
+            this.clear_cache(this.TABLES.MACHINE_AVAILABILITY);
+            
+            return true;
+        } catch (error) {
+            console.error('Error setting machine unavailability for range:', error);
+            throw error;
+        }
+    }
+
+    /**
      * COMPATIBILITY & HELPERS
      */
     async get_next_odp_number() {
