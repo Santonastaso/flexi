@@ -14,9 +14,7 @@ class MachineCalendarManager {
         this.calendarRenderer = null;
         this.viewManager = null;
         this.elements = {};
-        this.init().catch(error => {
-            console.error('Error initializing MachineCalendarManager:', error);
-        });
+        // Don't auto-initialize - let the page initializer handle this
     }
     /**
      * Initialize the calendar system
@@ -191,16 +189,16 @@ class MachineCalendarManager {
             };
             
             // Create calendar renderer with storage wrapper
-            this.calendarRenderer = new CalendarRenderer(this.elements.calendar_container, null, storageWrapper);
+            this.calendarRenderer = new CalendarRenderer(this.elements.calendar_container, storageWrapper, this.machineName);
+            
+            // Initialize the calendar renderer to set up event listeners
+            this.calendarRenderer.init();
             
             // Create view manager with calendar renderer and controls container
             this.viewManager = new ViewManager(this.calendarRenderer, this.elements.controls_container);
             
             // Set up circular reference
             this.calendarRenderer.view_manager = this.viewManager;
-            
-            // Set machine name in renderer
-            this.calendarRenderer.machine_name = this.machineName;
             
             // Defer initial render to avoid initialization errors
             setTimeout(() => {

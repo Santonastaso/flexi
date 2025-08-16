@@ -344,8 +344,8 @@ export class MachineryManager extends BaseManager {
             }
             
             // Collect updated data from the row
-            const updatedData = this.editManager.collect_edit_data(row);
-            if (!updatedData) {
+            const updatedData = this.editManager.collect_edited_values(row);
+            if (!updatedData || Object.keys(updatedData).length === 0) {
                 throw new Error('No changes detected');
             }
             
@@ -354,11 +354,22 @@ export class MachineryManager extends BaseManager {
                 updatedData.status = Utils.normalize_status(updatedData.status);
             }
             
+            // Validate numeric fields
+            const numericFields = ['min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height', 'standard_speed', 'setup_time_standard', 'changeover_color', 'changeover_material'];
+            numericFields.forEach(field => {
+                if (updatedData[field] !== undefined) {
+                    updatedData[field] = parseFloat(updatedData[field]) || 0;
+                }
+            });
+            
             // Create updated machine object
             const updated_machine = { ...currentMachine, ...updatedData };
             
             // Update machine in the store
             await appStore.updateMachine(machine_id, updated_machine);
+            
+            // Cancel edit mode after successful save
+            this.editManager.cancel_edit(row);
             
             // Show success message
             this.show_success_message('Machine updated successfully!');

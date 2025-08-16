@@ -138,6 +138,12 @@ class EditManager {
         const updated_data = {};
         row.querySelectorAll('.editable-cell[data-field]').forEach(cell => {
             const field = cell.dataset.field;
+            
+            // Skip readonly fields
+            if (cell.dataset.readonly === 'true') {
+                return;
+            }
+            
             const input = cell.querySelector('.edit-input, .edit-select');
             if (!input) return;
 

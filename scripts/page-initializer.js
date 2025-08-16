@@ -164,8 +164,8 @@ async function initialize_component(config) {
  * Custom initialization for the scheduler page
  */
 async function initialize_scheduler() {
-    // Check if we're on the scheduler page
-    if (!document.getElementById('calendar_container')) {
+    // Check if we're on the scheduler page - look for scheduler-specific elements
+    if (!document.getElementById('calendar_container') || !document.getElementById('task_pool')) {
         return;
     }
     

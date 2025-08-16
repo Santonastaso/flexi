@@ -13,7 +13,8 @@ const state = {
     odpOrders: [],
     phases: [], // <-- Added phases state
     machineAvailability: {}, // <-- Added machine availability state
-    isLoading: false
+    isLoading: false,
+    isInitialized: false // <-- Added initialization guard
 };
 
 // Private subscribers array to hold callback functions
@@ -62,10 +63,39 @@ export const appStore = {
     },
 
     /**
+     * Check if store is initialized
+     * @returns {boolean} True if store has been initialized
+     */
+    isInitialized() {
+        return state.isInitialized;
+    },
+
+    /**
+     * Reset store state (for testing/debugging)
+     * @returns {void}
+     */
+    reset() {
+        state.machines = [];
+        state.odpOrders = [];
+        state.phases = [];
+        state.machineAvailability = {};
+        state.isLoading = false;
+        state.isInitialized = false;
+        console.log('🔄 [Store] Store state reset');
+    },
+
+    /**
      * Initialize the store by loading initial data from storage service
      * This should be called after storageService is initialized.
      */
     async init() {
+        // Prevent duplicate initialization
+        if (state.isInitialized) {
+            console.log('🔒 [Store] Already initialized, skipping duplicate init');
+            return;
+        }
+        
+        console.log('🚀 [Store] Initializing store...');
         state.isLoading = true;
         _notify(); // Notify that loading has started
         
@@ -85,6 +115,9 @@ export const appStore = {
         this.initializeEmptyMachineAvailability();
         
         state.isLoading = false;
+        state.isInitialized = true; // Mark as initialized
+        
+        console.log('✅ [Store] Store initialization completed');
         
         // Notify subscribers of the new data
         _notify();

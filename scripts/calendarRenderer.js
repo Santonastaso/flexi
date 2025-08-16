@@ -25,8 +25,11 @@ class CalendarRenderer {
     }
     
     init() {
+        console.log('🔧 [CalendarRenderer] Initializing...');
         this.setup_event_listeners();
+        console.log('🔧 [CalendarRenderer] Event listeners set up');
         this.check_storage_service_ready();
+        console.log('🔧 [CalendarRenderer] Initialization complete');
     }
 
     /**
@@ -58,7 +61,9 @@ class CalendarRenderer {
     }
     
     setup_event_listeners() {
+        console.log('🔧 [CalendarRenderer] Setting up click event listener on container:', this.container);
         this.container.addEventListener('click', (e) => this.handle_calendar_click(e));
+        console.log('🔧 [CalendarRenderer] Click event listener attached');
     }
     
     /**
@@ -240,7 +245,7 @@ class CalendarRenderer {
                             <div class="time-label">${hour.toString().padStart(2, '0')}:00</div>
                             ${weekDays.map(day => `
                                 <div class="time-slot" 
-                                     data-date="${this.format_date(day)}" 
+                                     data-date="${Utils.format_date(day)}" 
                                      data-hour="${hour}"
                                      data-machine="${this.machine_name}">
                                     <div class="time-slot-content"></div>
@@ -296,7 +301,11 @@ class CalendarRenderer {
                 const has_events = false; // Will be updated when data loads
                 
                 html += `
-                    <div class="mini-day ${is_current_month ? 'current-month' : ''} ${has_events ? 'has-events' : ''}">
+                    <div class="mini-day ${is_current_month ? 'current-month' : ''} ${has_events ? 'has-events' : ''}"
+                         data-year="${year}" 
+                         data-month="${month}" 
+                         data-day="${current.getDate()}"
+                         data-date="${Utils.format_date(current)}">
                         ${current.getDate()}
                     </div>
                 `;
@@ -328,20 +337,79 @@ class CalendarRenderer {
     
     handle_calendar_click(e) {
         // Find the closest clickable element
-        const target = e.target.closest('[data-date], [data-hour]') || e.target;
+        const target = e.target.closest('[data-date], [data-hour], [data-year], [data-month]') || e.target;
         
-        // Check if we have a valid target with date and hour data
-        if (!target || !target.dataset.date || !target.dataset.hour) {
+        console.log('🔍 Calendar click detected:', { target, dataset: target?.dataset, currentView: this.current_view });
+        
+        // Handle month cell clicks (year view)
+        if (target.classList.contains('month-cell') && target.dataset.year && target.dataset.month) {
+            const year = parseInt(target.dataset.year);
+            const month = parseInt(target.dataset.month);
+            
+            console.log('🔍 Month cell clicked:', { year, month });
+            
+            // Navigate to month view for the clicked month
+            if (this.view_manager) {
+            this.view_manager.set_view('month', new Date(year, month, 1));
+            } else {
+                // Fallback: render month view directly
+                this.render('month', new Date(year, month, 1));
+            }
             return;
         }
         
-        const date = target.dataset.date;
-        const hour = parseInt(target.dataset.hour);
-        
-        // Handle time slot click for week view
-        if (this.current_view === 'week') {
-            this.handle_time_slot_click(date, hour);
+        // Handle mini month day clicks (year view)
+        if (target.classList.contains('mini-day') && target.dataset.year && target.dataset.month) {
+            const year = parseInt(target.dataset.year);
+            const month = parseInt(target.dataset.month);
+            const day = parseInt(target.dataset.day);
+            
+            console.log('🔍 Mini month day clicked:', { year, month, day });
+            
+            // Navigate to month view for the clicked month
+            if (this.view_manager) {
+                this.view_manager.set_view('month', new Date(year, month, day));
+            } else {
+                // Fallback: render month view directly
+                this.render('month', new Date(year, month, day));
+            }
+            return;
         }
+        
+        // Handle day cell clicks (month view)
+        if (target.classList.contains('day-cell') && target.dataset.date && this.current_view === 'month') {
+            const dateStr = target.dataset.date;
+            const clickedDate = new Date(dateStr);
+            
+            console.log('🔍 Day cell clicked:', { dateStr, clickedDate, currentView: this.current_view });
+            
+            // Navigate to week view for the week containing the clicked date
+            if (this.view_manager) {
+                this.view_manager.set_view('week', clickedDate);
+            } else {
+                // Fallback: render week view directly
+                this.render('week', clickedDate);
+            }
+            return;
+        }
+        
+        // Handle time slot clicks (week view)
+        if (target.dataset.date && target.dataset.hour) {
+            const date = target.dataset.date;
+            const hour = parseInt(target.dataset.hour);
+            
+            console.log('🔍 Time slot clicked:', { date, hour, currentView: this.current_view });
+            
+            // Handle time slot click for week view
+            if (this.current_view === 'week') {
+                console.log('🔍 Calling handle_time_slot_click for week view');
+                this.handle_time_slot_click(date, hour);
+            }
+            return;
+        }
+        
+        // Log unhandled clicks for debugging
+        console.log('🔍 Click target missing data or not handled:', { target, dataset: target?.dataset });
     }
     
     /**
@@ -352,10 +420,14 @@ class CalendarRenderer {
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 6);
         
+        // Convert dates to YYYY-MM-DD format for Supabase
+        const weekStartStr = Utils.format_date(weekStart);
+        const weekEndStr = Utils.format_date(weekEnd);
+        
         const availabilityData = await this.storage_service.get_machine_availability_for_week_range(
             this.machine_name,
-            weekStart,
-            weekEnd
+            weekStartStr,
+            weekEndStr
         );
         
         // Update the week view with the loaded data
@@ -387,7 +459,7 @@ class CalendarRenderer {
                     if (slot) {
                         slot.classList.add('unavailable');
                         slot.setAttribute('data-unavailable', 'true');
-                        slot.innerHTML = '<span class="unavailable-indicator">X</span>';
+                        slot.innerHTML = '<div class="time-slot-content"><span class="unavailable-indicator">X</span></div>';
                         slot.title = `Machine unavailable from ${hour}:00 to ${hour + 1}:00`;
                     }
                 });
@@ -440,30 +512,48 @@ class CalendarRenderer {
     }
 
     async handle_time_slot_click(date_str, hour) {
-        if (!this.machine_name || !this.storage_service) return;
+        console.log('🔍 handle_time_slot_click called:', { date_str, hour, machine_name: this.machine_name, storage_service: !!this.storage_service });
         
-        // Ensure we have week availability data loaded
-        await this.load_availability_for_week_view(new Date(date_str));
-        
-        // Get current availability for this date
-        const currentAvailability = await this.storage_service.get_machine_availability_for_date(this.machine_name, date_str);
-        const unavailableHours = currentAvailability || [];
-        
-        // Check if this hour is currently unavailable
-        const isCurrentlyUnavailable = unavailableHours.includes(hour);
-        
-        if (isCurrentlyUnavailable) {
-            // Remove this hour from unavailable hours
-            const newUnavailableHours = unavailableHours.filter(h => h !== hour);
-            await this.storage_service.set_machine_availability(this.machine_name, date_str, newUnavailableHours);
-        } else {
-            // Add this hour to unavailable hours
-            const newUnavailableHours = [...unavailableHours, hour];
-            await this.storage_service.set_machine_availability(this.machine_name, date_str, newUnavailableHours);
+        if (!this.machine_name || !this.storage_service) {
+            console.error('❌ Missing required data:', { machine_name: this.machine_name, storage_service: !!this.storage_service });
+            return;
         }
         
-        // Refresh the week view to show updated availability
-        await this.load_availability_for_week_view(new Date(date_str));
+        try {
+            // Ensure we have week availability data loaded
+            console.log('🔍 Loading week availability data...');
+            await this.load_availability_for_week_view(new Date(date_str));
+            
+            // Get current availability for this date
+            console.log('🔍 Getting current availability for date:', date_str);
+            const currentAvailability = await this.storage_service.get_machine_availability_for_date(this.machine_name, date_str);
+            const unavailableHours = currentAvailability || [];
+            
+            console.log('🔍 Current availability:', { date_str, hour, unavailableHours, isCurrentlyUnavailable: unavailableHours.includes(hour) });
+            
+            // Check if this hour is currently unavailable
+            const isCurrentlyUnavailable = unavailableHours.includes(hour);
+            
+            if (isCurrentlyUnavailable) {
+                // Remove this hour from unavailable hours
+                const newUnavailableHours = unavailableHours.filter(h => h !== hour);
+                console.log('🔍 Making hour available:', { hour, newUnavailableHours });
+                await this.storage_service.set_machine_availability(this.machine_name, date_str, newUnavailableHours);
+            } else {
+                // Add this hour to unavailable hours
+                const newUnavailableHours = [...unavailableHours, hour];
+                console.log('🔍 Making hour unavailable:', { hour, newUnavailableHours });
+                await this.storage_service.set_machine_availability(this.machine_name, date_str, newUnavailableHours);
+            }
+            
+            // Refresh the week view to show updated availability
+            console.log('🔍 Refreshing week view...');
+            await this.load_availability_for_week_view(new Date(date_str));
+            
+            console.log('✅ Time slot click handled successfully');
+        } catch (error) {
+            console.error('❌ Error in handle_time_slot_click:', error);
+        }
     }
     
     // Utility methods

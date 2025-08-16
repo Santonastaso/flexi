@@ -455,7 +455,7 @@ export class BacklogManager extends BaseManager {
                 <td class="editable-cell" data-field="time_remaining"><span class="static-value">${item.time_remaining || item.duration || '-'} h</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
                 <td class="editable-cell" data-field="priority"><span class="static-value">${Utils.escape_html(item.priority || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.priority) : ''}</td>
                 <td class="editable-cell" data-field="status"><span class="static-value">${Utils.escape_html(item.status || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.status) : ''}</td>
-                <td class="editable-cell" data-field="scheduled_machine"><span class="static-value">${machineName}</span></td>
+                <td class="editable-cell" data-field="scheduled_machine" data-readonly="true"><span class="static-value">${machineName}</span></td>
                 <td class="text-center">${this.editManager ? this.editManager.create_action_buttons() : ''}</td>
             </tr>
         `;
@@ -468,11 +468,12 @@ export class BacklogManager extends BaseManager {
             return;
         }
 
-        const updatedData = this.validate_edit_row(
+        // Collect all edited data
+        const allUpdatedData = this.validate_edit_row(
             row, ['odp_number', 'article_code', 'production_lot'], ['bag_height', 'bag_width', 'bag_step', 'quantity', 'quantity_completed'], { bag_height: 'Bag Height', bag_width: 'Bag Width', bag_step: 'Bag Step', quantity: 'Quantity', quantity_completed: 'Quantity Completed' }
         );
 
-        if (!updatedData) return;
+        if (!allUpdatedData) return;
 
         try {
             const { odpOrders } = appStore.getState();
@@ -481,8 +482,36 @@ export class BacklogManager extends BaseManager {
                 this.showMessage('ODP order not found', 'error');
                 return;
             }
+            
+            // Debug logging to see what's in the currentOrder
+            if (window.DEBUG) {
+                console.log('🔍 Current order from store:', currentOrder);
+                console.log('🔍 Current order keys:', Object.keys(currentOrder));
+                console.log('🔍 Current order has machines field:', 'machines' in currentOrder);
+            }
 
-            const cleanedData = { ...updatedData };
+            // Filter out fields that shouldn't be sent to the database
+            const allowedFields = [
+                'odp_number', 'article_code', 'production_lot', 'work_center', 'nome_cliente',
+                'description', 'bag_height', 'bag_width', 'bag_step', 'seal_sides', 'product_type',
+                'quantity', 'quantity_completed', 'quantity_per_box', 'delivery_date',
+                'internal_customer_code', 'external_customer_code', 'customer_order_ref',
+                'department', 'fase', 'duration', 'cost', 'priority', 'status'
+            ];
+            
+            const cleanedData = {};
+            Object.keys(allUpdatedData).forEach(key => {
+                if (allowedFields.includes(key)) {
+                    cleanedData[key] = allUpdatedData[key];
+                }
+            });
+            
+            // Debug logging to help identify field issues
+            if (window.DEBUG) {
+                console.log('🔍 All collected data:', allUpdatedData);
+                console.log('🔍 Filtered data for database:', cleanedData);
+                console.log('🔍 Fields that were filtered out:', Object.keys(allUpdatedData).filter(key => !allowedFields.includes(key)));
+            }
             ['production_start', 'production_end', 'delivery_date'].forEach(field => {
                 if (cleanedData[field] === '' || cleanedData[field] === null || cleanedData[field] === undefined) {
                     cleanedData[field] = null;
@@ -497,7 +526,30 @@ export class BacklogManager extends BaseManager {
                 }
             });
 
-            const updatedOrder = { ...currentOrder, ...cleanedData, updated_at: new Date().toISOString() };
+            // Create a clean base order with only the fields we want to preserve
+            const cleanBaseOrder = {};
+            allowedFields.forEach(field => {
+                if (currentOrder[field] !== undefined) {
+                    cleanBaseOrder[field] = currentOrder[field];
+                }
+            });
+            
+            // Build the final update object with clean data
+            const updatedOrder = { ...cleanBaseOrder, ...cleanedData, updated_at: new Date().toISOString() };
+            
+            // Debug logging to see exactly what's being sent
+            if (window.DEBUG) {
+                console.log('🔍 Clean base order:', cleanBaseOrder);
+                console.log('🔍 Clean base order keys:', Object.keys(cleanBaseOrder));
+                console.log('🔍 Final updatedOrder being sent:', updatedOrder);
+                console.log('🔍 Keys in updatedOrder:', Object.keys(updatedOrder));
+                console.log('🔍 Checking for problematic fields:', {
+                    hasMachines: 'machines' in updatedOrder,
+                    hasScheduledMachine: 'scheduled_machine' in updatedOrder,
+                    hasScheduledMachineId: 'scheduled_machine_id' in updatedOrder
+                });
+            }
+            
             await appStore.updateOdpOrder(odpId, updatedOrder);
 
             this.editManager.cancel_edit(row);

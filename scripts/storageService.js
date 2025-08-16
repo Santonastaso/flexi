@@ -58,7 +58,7 @@ class StorageService {
      */
     log_call(method, feature, ...args) {
         if (this.config && this.config.LOG_SERVICE_CALLS) {
-            console.log(`[StorageService] Calling ${method} for ${feature}`, ...args);
+            console.log(`🔧 [StorageService] Calling ${method} for ${feature}`, ...args);
         }
     }
     
@@ -110,28 +110,28 @@ class StorageService {
     async save_machines(machines) {
         return await this.handle_supabase_operation(
             () => this.supabase_service.save_machines(machines),
-            'save_machines', 'machines', 'Machines saved'
+            'save_machines', 'machines'
         );
     }
     
     async add_machine(machine) {
         return await this.handle_supabase_operation(
             () => this.supabase_service.add_machine(machine),
-            'add_machine', 'machines', 'Machine added'
+            'add_machine', 'machines'
         );
     }
 
     async update_machine(id, updates) {
         return await this.handle_supabase_operation(
             () => this.supabase_service.update_machine(id, updates),
-            'update_machine', 'machines', 'Machine updated'
+            'update_machine', 'machines'
         );
     }
     
     async remove_machine(machine_id) {
         return await this.handle_supabase_operation(
             () => this.supabase_service.remove_machine(machine_id),
-            'remove_machine', 'machines', 'Machine removed'
+            'remove_machine', 'machines'
         );
     }
     
@@ -179,25 +179,25 @@ class StorageService {
 
     async save_odp_orders(orders) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.save_odp_orders(orders), 'save_odp_orders', 'odp_orders', 'ODP orders saved'
+            () => this.supabase_service.save_odp_orders(orders), 'save_odp_orders', 'odp_orders'
         );
     }
 
     async add_odp_order(order) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.add_odp_order(order), 'add_odp_order', 'odp_orders', 'ODP order added'
+            () => this.supabase_service.add_odp_order(order), 'add_odp_order', 'odp_orders'
         );
     }
 
     async update_odp_order(id, updates) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.update_odp_order(id, updates), 'update_odp_order', 'odp_orders', 'ODP order updated'
+            () => this.supabase_service.update_odp_order(id, updates), 'update_odp_order', 'odp_orders'
         );
     }
     
     async remove_odp_order(id) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.remove_odp_order(id), 'remove_odp_order', 'odp_orders', 'ODP order removed'
+            () => this.supabase_service.remove_odp_order(id), 'remove_odp_order', 'odp_orders'
         );
     }
     
@@ -224,25 +224,25 @@ class StorageService {
 
     async save_phases(phases) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.save_phases(phases), 'save_phases', 'phases', 'Phases saved'
+            () => this.supabase_service.save_phases(phases), 'save_phases', 'phases'
         );
     }
 
     async add_phase(phase) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.add_phase(phase), 'add_phase', 'phases', 'Phase added'
+            () => this.supabase_service.add_phase(phase), 'add_phase', 'phases'
         );
     }
 
     async update_phase(id, updates) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.update_phase(id, updates), 'update_phase', 'phases', 'Phase updated'
+            () => this.supabase_service.update_phase(id, updates), 'update_phase', 'phases'
         );
     }
 
     async remove_phase(id) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.remove_phase(id), 'remove_phase', 'phases', 'Phase removed'
+            () => this.supabase_service.remove_phase(id), 'remove_phase', 'phases'
         );
     }
 
