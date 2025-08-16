@@ -70,54 +70,7 @@ class UIComponents {
             </div>
         `;
     }
-    /**
-     * Create modal dialog
-     */
-    static create_modal(id, title, content, buttons = []) {
-        const button_html = buttons.map(btn => 
-            `<button class="btn ${btn.class || 'btn-secondary'}" onclick="${btn.onclick}">${btn.text}</button>`
-        ).join('');
-        return `
-            <div id="${id}" class="modal-overlay" style="display: none;">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>${title}</h3>
-                        <button class="btn-close" onclick="UIComponents.close_modal('${id}')">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        ${content}
-                    </div>
-                    <div class="modal-footer">
-                        ${buttonHtml}
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    /**
-     * Show modal
-     */
-    static show_modal(id) {
-        const modal = document.getElementById(id);
-        if (modal) {
-            modal.style.display = 'flex';
-            modal.classList.add('modal-fade-in');
-        }
-    }
-    /**
-     * Close modal
-     */
-    static close_modal(id) {
-        const modal = document.getElementById(id);
-        if (modal) {
-            modal.classList.remove('modal-fade-in');
-            modal.classList.add('modal-fade-out');
-            setTimeout(() => {
-                modal.style.display = 'none';
-                modal.classList.remove('modal-fade-out');
-            }, 300);
-        }
-    }
+
     /**
      * Create loading spinner
      */
@@ -143,29 +96,7 @@ class UIComponents {
             element.innerHTML = original_text;
         }
     }
-    /**
-     * Create confirmation dialog
-     */
-    static confirm(message, on_confirm, on_cancel = null) {
-        const modalId = 'confirm-modal-' + Date.now();
-        const modal = this.create_modal(modalId, 'Confirm', 
-            `<p>${this.escape_html(message)}</p>`,
-            [
-                {
-                    text: 'Cancel',
-                    class: 'btn-secondary',
-                    onclick: `UIComponents.close_modal('${modalId}'); ${on_cancel ? on_cancel() : ''}`
-                },
-                {
-                    text: 'Confirm',
-                    class: 'btn-danger',
-                    onclick: `UIComponents.close_modal('${modalId}'); ${on_confirm()}`
-                }
-            ]
-        );
-        document.body.insertAdjacentHTML('beforeend', modal);
-        this.show_modal(modalId);
-    }
+
     /**
      * Validate form fields
      */

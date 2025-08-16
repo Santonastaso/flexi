@@ -5,17 +5,31 @@
 export class Navigation {
     constructor(current_page = '') {
         this.current_page = current_page;
-        this.navigation_data = {
+        this.navigation_config = {
             logo: {
                 href: 'index.html'
             },
-                    pages: {
-            home: { href: 'index.html', label: 'Home', icon: '🏠' },
-            machinery: { href: 'machinery-page.html', label: 'Machinery', icon: '⚙️' },
-            phases: { href: 'phases-page.html', label: 'Phases', icon: '🔄' },
-            backlog: { href: 'backlog-page.html', label: 'Backlog', icon: '📝' },
-            scheduler: { href: 'scheduler-page.html', label: 'Scheduler', icon: '📅' }
-        }
+            pages: {
+                home: { href: 'index.html', label: 'Home', icon: '🏠' },
+                machinery: { href: 'machinery-page.html', label: 'Machinery', icon: '⚙️' },
+                phases: { href: 'phases-page.html', label: 'Phases', icon: '🔄' },
+                backlog: { href: 'backlog-page.html', label: 'Backlog', icon: '📝' },
+                scheduler: { href: 'scheduler-page.html', label: 'Scheduler', icon: '📅' }
+            },
+            // Page-specific navigation exclusions
+            page_exclusions: {
+                home: ['home'],
+                machinery: ['machinery'],
+                phases: ['phases'],
+                backlog: ['backlog'],
+                scheduler: ['scheduler'],
+                'machine-settings': ['machine-settings']
+            },
+            // Custom navigation items
+            custom_navigation: {
+                home: [{ href: 'machinery-page.html', label: 'Log in' }],
+                'machine-settings': [{ href: 'machinery-page.html', label: 'Back to Machinery' }]
+            }
         };
     }
     /**
@@ -25,7 +39,7 @@ export class Navigation {
         return `
             <div class="sidebar">
                 <div class="sidebar-logo">
-                    <a href="${this.navigation_data.logo.href}">
+                    <a href="${this.navigation_config.logo.href}">
                         <img src="../assets/logo.svg" alt="Flexi">
                     </a>
                 </div>
@@ -33,7 +47,7 @@ export class Navigation {
                     <div class="sidebar-section-title">Navigation</div>
                     <nav class="sidebar-nav">
                         <ul>
-                            ${Object.entries(this.navigation_data.pages).map(([key, page]) => `
+                            ${Object.entries(this.navigation_config.pages).map(([key, page]) => `
                                 <li>
                                     <a href="${page.href}" class="${key === this.current_page ? 'active' : ''}">
                                         <span class="nav-icon">${page.icon}</span>
@@ -52,49 +66,19 @@ export class Navigation {
     }
     /**
      * Get appropriate navigation links based on current page
+     * Uses configuration-driven approach instead of switch statement
      */
     get_navigation_links() {
-        switch (this.current_page) {
-            case 'home':
-                return [
-                    { href: this.navigation_data.pages.machinery.href, label: 'Log in' }
-                ];
-            case 'machinery':
-                return [
-                    this.navigation_data.pages.phases,
-                    this.navigation_data.pages.backlog,
-                    this.navigation_data.pages.scheduler
-                ];
-            case 'phases':
-                return [
-                    this.navigation_data.pages.machinery,
-                    this.navigation_data.pages.backlog,
-                    this.navigation_data.pages.scheduler
-                ];
-            case 'backlog':
-                return [
-                    this.navigation_data.pages.machinery,
-                    this.navigation_data.pages.phases,
-                    this.navigation_data.pages.scheduler
-                ];
-            case 'scheduler':
-                return [
-                    this.navigation_data.pages.machinery,
-                    this.navigation_data.pages.phases,
-                    this.navigation_data.pages.backlog
-                ];
-            case 'machine-settings':
-                return [
-                    { href: this.navigation_data.pages.machinery.href, label: 'Back to Machinery' },
-                    this.navigation_data.pages.scheduler
-                ];
-            default:
-                return [
-                    this.navigation_data.pages.machinery,
-                    this.navigation_data.pages.backlog,
-                    this.navigation_data.pages.scheduler
-                ];
+        // Check if page has custom navigation
+        if (this.navigation_config.custom_navigation[this.current_page]) {
+            return this.navigation_config.custom_navigation[this.current_page];
         }
+        
+        // Generate navigation by excluding current page
+        const exclusions = this.navigation_config.page_exclusions[this.current_page] || [];
+        return Object.entries(this.navigation_config.pages)
+            .filter(([key, page]) => !exclusions.includes(key))
+            .map(([key, page]) => page);
     }
     /**
      * Inject navigation into a container element

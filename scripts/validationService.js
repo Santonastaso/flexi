@@ -104,7 +104,7 @@ export class ValidationService {
         // Machine type validation
         const validMachineTypes = {
             'STAMPA': ['DIGITAL_PRINT', 'FLEXO_PRINT', 'ROTOGRAVURE'],
-            'CONFEZIONAMENTO': ['DOYPACK', 'PLURI_PIU', 'MONO_PIU','CONFEZIONAMENTO_TRADIZIONALE']
+            'CONFEZIONAMENTO': ['DOYPACK', 'PLURI_PIU', 'MONO_PIU','CONFEZIONAMENTO_TRADIZIONALE','CONFEZIONAMENTO_POLVERI']
         };
         if (machineData.department && machineData.machine_type) {
             const validTypes = validMachineTypes[machineData.department] || [];

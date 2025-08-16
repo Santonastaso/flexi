@@ -32,7 +32,8 @@ export class BusinessLogicService {
             'DOYPACK': 'DOYP',
             'PLURI_PIU': 'PLUR',
             'MONO_PIU': 'MONO',
-            'CONFEZIONAMENTO_TRADIZIONALE': 'CONFTRAD'
+            'CONFEZIONAMENTO_TRADIZIONALE': 'CONFTRAD',
+            'CONFEZIONAMENTO_POLVERI': 'CONFPOL'
         };
         return prefixes[machine_type] || 'MACH';
     }
@@ -43,7 +44,7 @@ export class BusinessLogicService {
     get_valid_machine_types(department) {
         const valid_types = {
             'STAMPA': ['DIGITAL_PRINT', 'FLEXO_PRINT', 'ROTOGRAVURE'],
-            'CONFEZIONAMENTO': ['DOYPACK', 'PLURI_PIU', 'MONO_PIU', 'CONFEZIONAMENTO_TRADIZIONALE']
+            'CONFEZIONAMENTO': ['DOYPACK', 'PLURI_PIU', 'MONO_PIU', 'CONFEZIONAMENTO_TRADIZIONALE','CONFEZIONAMENTO_POLVERI']
         };
         return valid_types[department] || [];
     }

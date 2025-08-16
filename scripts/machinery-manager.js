@@ -45,40 +45,19 @@ export class MachineryManager extends BaseManager {
     }
 
     initialize_edit_functionality() {
-        console.log('🚀 initialize_edit_functionality called');
-        console.log('🔍 Debug: editManager available?', !!this.editManager);
-        console.log('🔍 Debug: editManager type:', typeof this.editManager);
-        console.log('🔍 Debug: editManager methods:', this.editManager ? Object.getOwnPropertyNames(this.editManager) : 'N/A');
-        console.log('🔍 Debug: this.save_edit method exists?', typeof this.save_edit);
-        console.log('🔍 Debug: this.save_edit method:', this.save_edit);
-        
         if (this.editManager) {
             const table = document.querySelector('.modern-table');
-            console.log('🔍 Debug: Table found?', !!table);
-            console.log('🔍 Debug: Table element:', table);
-            console.log('🔍 Debug: Table HTML:', table ? table.outerHTML.substring(0, 200) + '...' : 'N/A');
-            
             if (table) {
-                console.log('🔍 Debug: Initializing table edit...');
                 this.editManager.init_table_edit(table);
-                console.log('🔍 Debug: Registering save handler...');
-                console.log('🔍 Debug: this.save_edit method exists?', typeof this.save_edit);
-                console.log('🔍 Debug: this.save_edit method:', this.save_edit);
-                
                 this.editManager.register_save_handler(table, (row) => {
-                    console.log('🔍 Save handler triggered! Row:', row);
-                    console.log('🔍 Calling this.save_edit...');
                     return this.save_edit(row);
                 });
-                console.log('🔍 Debug: Save handler registered successfully');
-                console.log('🔍 Debug: Adding delete event listener...');
                 table.addEventListener('deleteRow', (e) => {
                     const machineId = e.detail.row.dataset.machineId;
                     if (machineId) {
                         this.delete_machine(machineId).catch(error => console.error('Error deleting machine:', error));
                     }
                 });
-                console.log('🔍 Debug: Edit functionality initialized successfully');
             } else {
                 console.error('❌ Table not found for edit functionality');
             }
@@ -348,34 +327,22 @@ export class MachineryManager extends BaseManager {
     }
 
     async save_edit(row) {
-        console.log('🔍 save_edit called with row:', row);
-        console.log('🔍 Row dataset:', row.dataset);
-        console.log('🔍 Row HTML:', row.outerHTML);
-        
         if (row.dataset.saving === 'true') {
-            console.log('🔍 Already saving, returning early');
             return;
         }
         
         const machine_id = row.dataset.machineId;
-        console.log('🔍 Machine ID from dataset:', machine_id);
         
         if (!machine_id) {
             console.error('❌ No machine ID found in row dataset');
-            console.log('🔍 Available dataset keys:', Object.keys(row.dataset));
             return;
         }
         
-        console.log('🔍 Setting saving flag to true');
         row.dataset.saving = 'true';
 
         try {
-            console.log('🔍 Fetching current machine data for ID:', machine_id);
             const currentMachine = await this.storageService.get_machine_by_id(machine_id);
-            console.log('🔍 Current machine data:', currentMachine);
-            
             const department = currentMachine?.department || 'STAMPA';
-            console.log('🔍 Using department:', department);
 
             const numericFields = ['standard_speed', 'setup_time_standard', department === 'STAMPA' ? 'changeover_color' : 'changeover_material'];
             const field_labels = {
@@ -386,74 +353,43 @@ export class MachineryManager extends BaseManager {
                 changeover_material: 'Material changeover time'
             };
 
-            console.log('🔍 Calling validate_edit_row with:', {
-                row: row,
-                textFields: ['machine_name'],
-                numericFields: numericFields,
-                field_labels: field_labels
-            });
-            
             const updatedData = this.validate_edit_row(row, ['machine_name'], numericFields, field_labels);
-            console.log('🔍 Validation result:', updatedData);
             
             if (!updatedData) {
-                console.log('🔍 Validation failed, returning early');
                 return;
             }
 
             // No need to check for changes; let the update operation handle it.
             const updated_machine = { ...currentMachine, ...updatedData, updated_at: new Date().toISOString() };
-            console.log('🔍 Updated machine data:', updated_machine);
             
             // Re-parse numeric fields to ensure correct type - handle empty strings properly
             ['min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height', 'standard_speed'].forEach(f => {
                 const value = updated_machine[f];
-                console.log(`🔍 Processing integer field ${f}: "${value}" (type: ${typeof value})`);
                 if (value === '' || value === null || value === undefined) {
                     updated_machine[f] = 0;
-                    console.log(`🔍 Set ${f} to 0 (was empty/null)`);
                 } else {
                     updated_machine[f] = parseInt(value, 10) || 0;
-                    console.log(`🔍 Set ${f} to ${updated_machine[f]} (parsed from "${value}")`);
                 }
             });
             ['setup_time_standard', 'changeover_color', 'changeover_material'].forEach(f => {
                 const value = updated_machine[f];
-                console.log(`🔍 Processing float field ${f}: "${value}" (type: ${typeof value})`);
                 if (value === '' || value === null || value === undefined) {
                     updated_machine[f] = 0;
-                    console.log(`🔍 Set ${f} to 0 (was empty/null)`);
                 } else {
                     updated_machine[f] = parseFloat(value) || 0;
-                    console.log(`🔍 Set ${f} to ${updated_machine[f]} (parsed from "${value}")`);
                 }
             });
             
-            console.log('🔍 Machine data after parsing:', updated_machine);
-            console.log('🔍 Calling storageService.update_machine...');
-            
             await this.storageService.update_machine(machine_id, updated_machine);
-            console.log('🔍 Machine updated successfully in storage');
-            
-            console.log('🔍 Calling editManager.cancel_edit...');
             this.editManager.cancel_edit(row);
-            console.log('🔍 Edit cancelled successfully');
-            
-            console.log('🔍 Reloading machinery...');
             await this.load_machinery();
-            console.log('🔍 Machinery reloaded successfully');
-            
-            console.log('🔍 Showing success message...');
             this.show_success_message('Machine updated successfully');
-            console.log('🔍 Save operation completed successfully');
         } catch (error) {
             console.error('❌ Error in save_edit:', error);
             console.error('❌ Error stack:', error.stack);
             this.show_error_message('updating machine', error);
         } finally {
-            console.log('🔍 Cleaning up saving flag');
             delete row.dataset.saving;
-            console.log('🔍 Save operation finished');
         }
     }
 }

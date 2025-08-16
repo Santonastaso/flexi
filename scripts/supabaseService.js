@@ -344,15 +344,18 @@ class SupabaseService {
 
     async add_scheduled_event(event) {
         try {
-            let machineId = event.machine;
-            // If event.machine is a name, not a UUID, look up the ID.
-            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(event.machine)) {
-                const { data: machine } = await this.ensure_client().from('machines').select('id').eq('machine_name', event.machine).single();
-                if (!machine) throw new Error(`Machine not found: "${event.machine}"`);
-                machineId = machine.id;
+            // Validate required fields
+            if (!event.machine || !event.taskId || !event.start_time || !event.end_time) {
+                throw new Error('Missing required fields: machine, taskId, start_time, end_time');
             }
+            
+            // Validate machine is UUID format
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(event.machine)) {
+                throw new Error('Machine must be a valid UUID');
+            }
+            
             const { error } = await this.ensure_client().from(this.TABLES.ODP_ORDERS).update({
-                scheduled_machine_id: machineId,
+                scheduled_machine_id: event.machine,
                 scheduled_start_time: event.start_time,
                 scheduled_end_time: event.end_time,
                 color: event.color,
