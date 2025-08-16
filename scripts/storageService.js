@@ -1,8 +1,8 @@
-
 /**
  * Storage Service
  * Provides all data operations using Supabase backend
  * Simple, clean interface for database operations
+ * This is the final, complete version incorporating all feedback.
  */
 import { supabase_service } from './supabaseService.js';
 import { ServiceConfig } from './serviceConfig.js';
@@ -18,10 +18,7 @@ class StorageService {
      * Initialize the StorageService with Supabase backend
      */
     async init() {
-        // Wait for Supabase service to be available
         await this.wait_for_services();
-        
-        // Initialize Supabase connection
         await this.supabase_service.init();
         this.initialized = true;
     }
@@ -30,77 +27,38 @@ class StorageService {
      * Wait for Supabase service to be available
      */
     async wait_for_services() {
-        console.log('🔍 Waiting for services...');
-        console.log('🔍 supabase_service available:', !!supabase_service);
-        console.log('🔍 ServiceConfig available:', !!ServiceConfig);
-        
-        // Services are now imported directly, so they should be available immediately
         if (supabase_service && ServiceConfig) {
             this.supabase_service = supabase_service;
             this.config = ServiceConfig;
-            console.log('✅ StorageService dependencies loaded successfully');
             return;
         }
-        
-        throw new Error('Supabase service not available');
+        throw new Error('Supabase service or ServiceConfig not available');
     }
 
-
-
-    /**
-     * Clear cache for a specific feature
-     */
-    async clear_cache(feature) {
-        if (this.supabase_service && this.supabase_service.clear_cache) {
-            this.supabase_service.clear_cache(feature);
-            console.log(`Cache cleared for ${feature}`);
-        }
-    }
-    
     /**
      * Centralized error handling wrapper for Supabase operations
-     * Reduces code duplication and ensures consistent error handling
      */
-    async handle_supabase_operation(operation, method, ...args) {
+    async handle_supabase_operation(operation, operation_name, entity_type, success_message = null) {
+        this.log_call(operation_name, entity_type);
         try {
-            const result = operation(...args);
+            const result = await operation();
+            if (success_message) {
+                console.log(`${success_message} to Supabase`);
+            }
             return result;
         } catch (error) {
-            const error_message = `Error in ${method}`;
-            this.log_error(error_message, error);
-            throw error;
+            const errorMessage = `Error in StorageService during '${operation_name}' for ${entity_type}`;
+            console.error(errorMessage, error);
+            throw error; // Re-throw the error so the caller can handle it
         }
     }
 
-    log_success(success_message, method, ...args) {
-        if (this.debug_mode) {
-            console.log(`${success_message} to Supabase`);
-        }
-    }
-
-    log_error(error_message, error) {
-        const type = error?.code || 'UNKNOWN';
-        const message = error?.message || error?.toString() || 'Unknown error';
-        
-        if (this.debug_mode) {
-            console.log(`[${type.toUpperCase()}] ${message}`);
-        }
-        
-        // Show banner if available
-        if (typeof show_banner === 'function') {
-            show_banner(message, type);
-        } else {
-            // Fallback to console if banner system not available
-            console.log(`[${type.toUpperCase()}] ${message}`);
-        }
-    }
-    
     /**
      * Log service calls if enabled
      */
     log_call(method, feature, ...args) {
         if (this.config && this.config.LOG_SERVICE_CALLS) {
-            console.log(`[Supabase] ${method}`, ...args);
+            console.log(`[StorageService] Calling ${method} for ${feature}`, ...args);
         }
     }
     
@@ -111,7 +69,6 @@ class StorageService {
         if (typeof show_banner === 'function') {
             show_banner(message, type);
         } else {
-            // Fallback to console if banner system not available
             console.log(`[${type.toUpperCase()}] ${message}`);
         }
     }
@@ -124,15 +81,19 @@ class StorageService {
             if (!this.supabase_service) {
                 return { connected: false, error: 'Supabase service not available' };
             }
-            
-            // Try a simple operation to test connection
             await this.supabase_service.get_machines();
             return { connected: true, error: null };
         } catch (error) {
-            return { 
-                connected: false, 
-                error: error.message || 'Connection failed' 
-            };
+            return { connected: false, error: error.message || 'Connection failed' };
+        }
+    }
+
+    /**
+     * Clear cache for a specific feature
+     */
+    async clear_cache(feature) {
+        if (this.supabase_service && this.supabase_service.clear_cache) {
+            this.supabase_service.clear_cache(feature);
         }
     }
 
@@ -142,8 +103,35 @@ class StorageService {
     async get_machines() {
         return await this.handle_supabase_operation(
             () => this.supabase_service.get_machines(),
-            'get_machines',
-            'machines'
+            'get_machines', 'machines'
+        );
+    }
+
+    async save_machines(machines) {
+        return await this.handle_supabase_operation(
+            () => this.supabase_service.save_machines(machines),
+            'save_machines', 'machines', 'Machines saved'
+        );
+    }
+    
+    async add_machine(machine) {
+        return await this.handle_supabase_operation(
+            () => this.supabase_service.add_machine(machine),
+            'add_machine', 'machines', 'Machine added'
+        );
+    }
+
+    async update_machine(id, updates) {
+        return await this.handle_supabase_operation(
+            () => this.supabase_service.update_machine(id, updates),
+            'update_machine', 'machines', 'Machine updated'
+        );
+    }
+    
+    async remove_machine(machine_id) {
+        return await this.handle_supabase_operation(
+            () => this.supabase_service.remove_machine(machine_id),
+            'remove_machine', 'machines', 'Machine removed'
         );
     }
     
@@ -152,150 +140,76 @@ class StorageService {
             async () => {
                 const machines = await this.supabase_service.get_machines();
                 return machines.find(m => m.id === machineId) || null;
-            },
-            'get_machine_by_id',
-            'machines'
+            }, 'get_machine_by_id', 'machines'
         );
     }
 
     async get_active_machines() {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.get_active_machines(),
-            'get_active_machines',
-            'machines'
-        );
-    }
-    
-    async save_machines(machines) {
-        return await this.handle_supabase_operation(
-            () => this.supabase_service.save_machines(machines),
-            'save_machines',
-            'machines',
-            'Machines saved'
-        );
-    }
-    
-    async add_machine(machine) {
-        return await this.handle_supabase_operation(
-            () => this.supabase_service.add_machine(machine),
-            'add_machine',
-            'machines',
-            'Machine added'
-        );
-    }
-
-    async update_machine(id, updates) {
-        return await this.handle_supabase_operation(
-            () => this.supabase_service.update_machine(id, updates),
-            'update_machine',
-            'machines',
-            'Machine updated'
-        );
-    }
-    
-    async remove_machine(machine_id) {
-        return await this.handle_supabase_operation(
-            () => this.supabase_service.remove_machine(machine_id),
-            'remove_machine',
-            'machines',
-            'Machine removed'
+            () => this.supabase_service.get_active_machines(), 'get_active_machines', 'machines'
         );
     }
 
     async add_machine_with_sync(machine) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.add_machine_with_sync(machine),
-            'add_machine_with_sync',
-            'machines',
-            'Machine added with sync'
+            () => this.supabase_service.add_machine_with_sync(machine), 'add_machine_with_sync', 'machines', 'Machine added with sync'
         );
     }
 
     async save_machines_with_sync(machines) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.save_machines_with_sync(machines),
-            'save_machines_with_sync',
-            'machines',
-            'Machines saved with sync'
+            () => this.supabase_service.save_machines_with_sync(machines), 'save_machines_with_sync', 'machines', 'Machines saved with sync'
         );
     }
-    
+
     async validate_machine_can_be_deleted(machineId) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.validate_machine_can_be_deleted(machineId),
-            'validate_machine_can_be_deleted',
-            'machines'
+            () => this.supabase_service.validate_machine_can_be_deleted(machineId), 'validate_machine_can_be_deleted', 'machines'
         );
     }
-    
+
     /**
      * ODP ORDERS METHODS
      */
     async get_odp_orders() {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.get_odp_orders(),
-            'get_odp_orders',
-            'odp_orders'
+            () => this.supabase_service.get_odp_orders(), 'get_odp_orders', 'odp_orders'
         );
     }
 
     async save_odp_orders(orders) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.save_odp_orders(orders),
-            'save_odp_orders',
-            'odp_orders',
-            'ODP orders saved'
+            () => this.supabase_service.save_odp_orders(orders), 'save_odp_orders', 'odp_orders', 'ODP orders saved'
         );
     }
 
     async add_odp_order(order) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.add_odp_order(order),
-            'add_odp_order',
-            'odp_orders',
-            'ODP order added'
+            () => this.supabase_service.add_odp_order(order), 'add_odp_order', 'odp_orders', 'ODP order added'
         );
     }
 
     async update_odp_order(id, updates) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.update_odp_order(id, updates),
-            'update_odp_order',
-            'odp_orders',
-            'ODP order updated'
+            () => this.supabase_service.update_odp_order(id, updates), 'update_odp_order', 'odp_orders', 'ODP order updated'
         );
     }
     
     async remove_odp_order(id) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.remove_odp_order(id),
-            'remove_odp_order',
-            'odp_orders',
-            'ODP order removed'
+            () => this.supabase_service.remove_odp_order(id), 'remove_odp_order', 'odp_orders', 'ODP order removed'
         );
     }
     
     async get_next_odp_number() {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.get_next_odp_number(),
-            'get_next_odp_number',
-            'odp_orders'
-        );
-    }
-
-    async get_valid_tasks_for_display() {
-        return await this.handle_supabase_operation(
-            () => this.supabase_service.get_valid_tasks_for_display(),
-            'get_valid_tasks_for_display',
-            'odp_orders'
+            () => this.supabase_service.get_next_odp_number(), 'get_next_odp_number', 'odp_orders'
         );
     }
 
     async get_odp_order_by_id(id) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.get_odp_order_by_id(id),
-            'get_odp_order_by_id',
-            'odp_orders'
+            () => this.supabase_service.get_odp_order_by_id(id), 'get_odp_order_by_id', 'odp_orders'
         );
     }
 
@@ -304,65 +218,37 @@ class StorageService {
      */
     async get_phases() {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.get_phases(),
-            'get_phases',
-            'phases'
+            () => this.supabase_service.get_phases(), 'get_phases', 'phases'
         );
     }
 
     async save_phases(phases) {
-        // Ensure initialization
-        if (!this.initialized) {
-            await this.wait_for_services();
-            await this.init();
-        }
-        
         return await this.handle_supabase_operation(
-            () => this.supabase_service.save_phases(phases),
-            'save_phases',
-            'phases',
-            'Phases saved'
+            () => this.supabase_service.save_phases(phases), 'save_phases', 'phases', 'Phases saved'
         );
     }
 
     async add_phase(phase) {
-        // Ensure initialization
-        if (!this.initialized) {
-            await this.wait_for_services();
-            await this.init();
-        }
-        
         return await this.handle_supabase_operation(
-            () => this.supabase_service.add_phase(phase),
-            'add_phase',
-            'phases',
-            'Phase added'
+            () => this.supabase_service.add_phase(phase), 'add_phase', 'phases', 'Phase added'
         );
     }
 
     async update_phase(id, updates) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.update_phase(id, updates),
-            'update_phase',
-            'phases',
-            'Phase updated'
+            () => this.supabase_service.update_phase(id, updates), 'update_phase', 'phases', 'Phase updated'
         );
     }
 
     async remove_phase(id) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.remove_phase(id),
-            'remove_phase',
-            'phases',
-            'Phase removed'
+            () => this.supabase_service.remove_phase(id), 'remove_phase', 'phases', 'Phase removed'
         );
     }
 
     async get_phase_by_id(id) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.get_phase_by_id(id),
-            'get_phase_by_id',
-            'phases'
+            () => this.supabase_service.get_phase_by_id(id), 'get_phase_by_id', 'phases'
         );
     }
 
@@ -371,157 +257,83 @@ class StorageService {
      */
     async get_scheduled_events() {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.get_scheduled_events(),
-            'get_scheduled_events',
-            'scheduled_events'
-        );
-    }
-
-    async save_scheduled_events(events) {
-        return await this.handle_supabase_operation(
-            () => this.supabase_service.save_scheduled_events(events),
-            'save_scheduled_events',
-            'scheduled_events',
-            'Scheduled events saved'
+            () => this.supabase_service.get_scheduled_events(), 'get_scheduled_events', 'scheduled_events'
         );
     }
 
     async add_scheduled_event(event) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.add_scheduled_event(event),
-            'add_scheduled_event',
-            'scheduled_events',
-            'Scheduled event added'
+            () => this.supabase_service.add_scheduled_event(event), 'add_scheduled_event', 'scheduled_events', 'Scheduled event added'
         );
     }
 
     async remove_scheduled_event(event_id) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.remove_scheduled_event(event_id),
-            'remove_scheduled_event',
-            'scheduled_events',
-            'Scheduled event removed'
+            () => this.supabase_service.remove_scheduled_event(event_id), 'remove_scheduled_event', 'scheduled_events', 'Scheduled event removed'
         );
     }
 
     async is_task_scheduled(task_id) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.is_task_scheduled(task_id),
-            'is_task_scheduled',
-            'scheduled_events'
+            () => this.supabase_service.is_task_scheduled(task_id), 'is_task_scheduled', 'scheduled_events'
         );
     }
 
     async get_events_by_machine(machine_name) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.get_events_by_machine(machine_name),
-            'get_events_by_machine',
-            'scheduled_events'
+            () => this.supabase_service.get_events_by_machine(machine_name), 'get_events_by_machine', 'scheduled_events'
         );
     }
 
     async get_events_by_date(date) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.get_events_by_date(date),
-            'get_events_by_date',
-            'scheduled_events'
+            () => this.supabase_service.get_events_by_date(date), 'get_events_by_date', 'scheduled_events'
         );
     }
 
     async get_scheduled_event_by_id(event_id) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.get_scheduled_event_by_id(event_id),
-            'get_scheduled_event_by_id',
-            'scheduled_events'
+            () => this.supabase_service.get_scheduled_event_by_id(event_id), 'get_scheduled_event_by_id', 'scheduled_events'
         );
     }
 
     /**
      * MACHINE AVAILABILITY METHODS
      */
-    async get_machine_availability() {
-        return await this.handle_supabase_operation(
-            () => this.supabase_service.get_machine_availability(),
-            'get_machine_availability',
-            'machine_availability'
-        );
-    }
-
-    async save_machine_availability(availability) {
-        return await this.handle_supabase_operation(
-            () => this.supabase_service.save_machine_availability(availability),
-            'save_machine_availability',
-            'machine_availability',
-            'Machine availability saved'
-        );
-    }
-
     async get_machine_availability_for_date(machineName, date) {
-        this.log_call('get_machine_availability_for_date', 'machine_availability', machineName, date);
-        try {
-            const result = await this.supabase_service.get_machine_availability_for_date(machineName, date);
-            return result;
-        } catch (error) {
-            console.error('Error in get_machine_availability_for_date:', error);
-            throw error;
-        }
+        return await this.handle_supabase_operation(
+            () => this.supabase_service.get_machine_availability_for_date(machineName, date), 'get_machine_availability_for_date', 'machine_availability'
+        );
     }
 
     async get_machine_availability_for_date_all_machines(date) {
-        this.log_call('get_machine_availability_for_date_all_machines', 'machine_availability', date);
-        try {
-            const result = await this.supabase_service.get_machine_availability_for_date_all_machines(date);
-            return result;
-        } catch (error) {
-            console.error('Error in get_machine_availability_for_date_all_machines:', error);
-            throw error;
-        }
-    }
-
-    async get_machine_availability_for_week_range(machineName, startDate, endDate) {
-        this.log_call('get_machine_availability_for_week_range', 'machine_availability', machineName, startDate, endDate);
-        try {
-            const result = await this.supabase_service.get_machine_availability_for_week_range(machineName, startDate, endDate);
-            return result;
-        } catch (error) {
-            console.error('Error in get_machine_availability_for_week_range:', error);
-            throw error;
-        }
-    }
-
-    async set_machine_availability(machineName, dateStr, unavailableHours) {
         return await this.handle_supabase_operation(
-            () => this.supabase_service.set_machine_availability(machineName, dateStr, unavailableHours),
-            'set_machine_availability',
-            'machine_availability'
+            () => this.supabase_service.get_machine_availability_for_date_all_machines(date), 'get_machine_availability_for_date_all_machines', 'machine_availability'
+        );
+    }
+    
+    async get_machine_availability_for_week_range(machineName, startDate, endDate) {
+        return await this.handle_supabase_operation(
+            () => this.supabase_service.get_machine_availability_for_week_range(machineName, startDate, endDate), 'get_machine_availability_for_week_range', 'machine_availability'
         );
     }
 
-    async toggle_machine_hour_availability(machineName, dateStr, hour) {
-        try {
-            // Get current availability
-            const currentAvailability = await this.get_machine_availability_for_date(machineName, dateStr);
-            const currentHours = currentAvailability || [];
-            
-            // Toggle the hour
-            const newHours = currentHours.includes(hour)
-                ? currentHours.filter(h => h !== hour)
-                : [...currentHours, hour].sort((a, b) => a - b);
-            
-            // Update the database
-            const result = await this.set_machine_availability(machineName, dateStr, newHours);
-            return result;
-        } catch (error) {
-            this.log_error('Error toggling machine hour availability', error);
-            throw error;
-        }
+    async set_machine_availability(machineName, date, unavailableHours) {
+        return await this.handle_supabase_operation(
+            () => this.supabase_service.set_machine_availability(machineName, date, unavailableHours), 'set_machine_availability', 'machine_availability', 'Machine availability set'
+        );
+    }
+
+    async toggle_machine_hour_availability(machineName, date, hour) {
+        return await this.handle_supabase_operation(
+            () => this.supabase_service.toggle_machine_hour_availability(machineName, date, hour), 'toggle_machine_hour_availability', 'machine_availability', 'Machine hour availability toggled'
+        );
     }
     
     /**
      * DATA CHANGE NOTIFICATIONS
      */
     notify_data_change(type, action, data) {
-        // Both services implement this the same way
         window.dispatchEvent(new CustomEvent('dataChanged', {
             detail: { type, action, data }
         }));

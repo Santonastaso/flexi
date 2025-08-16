@@ -7,6 +7,7 @@ import { BusinessLogicService } from './businessLogicService.js';
 import { editManager } from './editManager.js';
 import { Utils } from './utils.js';
 import { appStore } from './store.js'; // Import the store
+import { attachFormValidationListeners } from './utils.js';
 
 export class PhasesManager extends BaseManager {
     constructor() {
@@ -74,20 +75,23 @@ export class PhasesManager extends BaseManager {
             this.validate_phase_form();
         });
 
+        // Attach event listeners to form inputs
         const phaseInputs = [
-            this.elements.phase_name, this.elements.phase_type, this.elements.numero_persone,
-            this.elements.phase_work_center, this.elements.v_stampa, this.elements.t_setup_stampa,
+            this.elements.phase_name, this.elements.phase_type, this.elements.phase_work_center, 
+            this.elements.v_stampa, this.elements.t_setup_stampa,
             this.elements.costo_h_stampa, this.elements.v_conf, this.elements.t_setup_conf,
             this.elements.costo_h_conf, this.elements.contenuto_fase
         ];
 
-        phaseInputs.forEach(input => {
-            if (input) {
-                const handler = () => this.validate_phase_form();
-                input.addEventListener('input', handler);
-                input.addEventListener('change', handler);
-            }
-        });
+        // Attach validation listeners using utility
+        attachFormValidationListeners(
+            this.elements,
+            ['phase_name', 'phase_type', 'phase_work_center', 'v_stampa', 't_setup_stampa',
+             'costo_h_stampa', 'v_conf', 't_setup_conf', 'costo_h_conf', 'contenuto_fase'],
+            ['input', 'change'],
+            () => this.validate_phase_form(),
+            this
+        );
 
         this.event_listeners_attached = true;
     }

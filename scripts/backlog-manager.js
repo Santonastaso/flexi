@@ -7,6 +7,7 @@ import { BusinessLogicService } from './businessLogicService.js';
 import { editManager } from './editManager.js';
 import { Utils } from './utils.js';
 import { appStore } from './store.js'; // Import the store
+import { attachEventListeners, attachFormValidationListeners } from './utils.js';
 
 export class BacklogManager extends BaseManager {
     constructor() {
@@ -73,6 +74,7 @@ export class BacklogManager extends BaseManager {
     attach_event_listeners() {
         if (this.event_listeners_attached) return;
 
+        // Define event handlers mapping
         const eventHandlers = {
             handle_article_code_change: ['article_code'],
             populate_phases_dropdown: ['department', 'work_center'],
@@ -86,19 +88,53 @@ export class BacklogManager extends BaseManager {
             ]
         };
 
+        // Attach button click handlers
         if (this.elements.calculate_btn) this.elements.calculate_btn.addEventListener('click', () => this.handle_calculate());
         if (this.elements.create_task) this.elements.create_task.addEventListener('click', () => this.handle_create_task());
         if (this.elements.update_statuses_btn) this.elements.update_statuses_btn.addEventListener('click', () => this.sync_all_odp_with_gantt());
         if (this.elements.debug_events_btn) this.elements.debug_events_btn.addEventListener('click', () => this.debug_scheduled_events());
 
-        ['input', 'change'].forEach(event => {
-            eventHandlers.handle_article_code_change.forEach(id => this.elements[id]?.addEventListener(event, () => this.handle_article_code_change()));
-            eventHandlers.validate_form_fields.forEach(id => this.elements[id]?.addEventListener(event, () => this.validate_form_fields()));
-        });
+        // Attach form validation listeners using utility
+        attachFormValidationListeners(
+            this.elements, 
+            eventHandlers.validate_form_fields, 
+            ['input', 'change'], 
+            () => this.validate_form_fields(),
+            this
+        );
 
-        eventHandlers.populate_phases_dropdown.forEach(id => this.elements[id]?.addEventListener('change', () => this.populate_phases_dropdown().catch(console.error)));
-        eventHandlers.update_bag_preview.forEach(id => this.elements[id]?.addEventListener('input', () => this.update_bag_preview()));
-        eventHandlers.update_bag_specs.forEach(id => this.elements[id]?.addEventListener('input', () => this.update_bag_specs_display()));
+        // Attach specific field listeners
+        attachFormValidationListeners(
+            this.elements,
+            eventHandlers.handle_article_code_change,
+            ['input', 'change'],
+            () => this.handle_article_code_change(),
+            this
+        );
+
+        attachFormValidationListeners(
+            this.elements,
+            eventHandlers.populate_phases_dropdown,
+            ['change'],
+            () => this.populate_phases_dropdown().catch(console.error),
+            this
+        );
+
+        attachFormValidationListeners(
+            this.elements,
+            eventHandlers.update_bag_preview,
+            ['input'],
+            () => this.update_bag_preview(),
+            this
+        );
+
+        attachFormValidationListeners(
+            this.elements,
+            eventHandlers.update_bag_specs,
+            ['input'],
+            () => this.update_bag_specs_display(),
+            this
+        );
 
         this.populate_phases_dropdown().catch(console.error);
         this.hide_calculation_results();

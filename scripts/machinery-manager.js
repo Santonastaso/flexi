@@ -10,6 +10,7 @@ import { BusinessLogicService } from './businessLogicService.js';
 import { editManager } from './editManager.js';
 import { Utils } from './utils.js';
 import { appStore } from './store.js'; // Import the store
+import { attachFormValidationListeners } from './utils.js';
 
 export class MachineryManager extends BaseManager {
     constructor() {
@@ -122,7 +123,10 @@ export class MachineryManager extends BaseManager {
             this.elements.machine_department.addEventListener('change', update_machine_types);
             update_machine_types(); // Initial call
         }
+    }
 
+    setup_form_validation() {
+        // Get all input fields that need validation
         const allInputs = [
             this.elements.machine_type, this.elements.machine_name, this.elements.machine_work_center,
             this.elements.machine_department, this.elements.min_web_width, this.elements.max_web_width,
@@ -130,20 +134,21 @@ export class MachineryManager extends BaseManager {
             this.elements.setup_time_standard, this.elements.changeover_color, this.elements.changeover_material
         ];
 
-        allInputs.forEach(input => {
-            if (input) {
-                input.addEventListener('input', () => this.validate_form_fields());
-                input.addEventListener('change', () => this.validate_form_fields());
-            }
-        });
+        // Attach validation listeners to all inputs using utility
+        attachFormValidationListeners(
+            this.elements,
+            ['machine_type', 'machine_name', 'machine_work_center', 'machine_department', 
+             'min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height', 
+             'standard_speed', 'setup_time_standard', 'changeover_color', 'changeover_material'],
+            ['input', 'change'],
+            () => this.validate_form_fields(),
+            this
+        );
 
+        // Attach validation listeners to checkboxes
         this.elements.active_shifts.forEach(checkbox => {
             checkbox.addEventListener('change', () => this.validate_form_fields());
         });
-    }
-
-    setup_form_validation() {
-        this.validate_form_fields();
     }
 
     validate_form_fields() {

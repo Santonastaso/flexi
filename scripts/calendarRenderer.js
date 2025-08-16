@@ -3,21 +3,25 @@
  * Implements Google Calendar-style layout and behavior
  */
 import { Utils } from './utils.js';
+import { asyncHandler } from './utils.js';
 
 class CalendarRenderer {
-    constructor(container, view_manager, storage_service) {
+    constructor(container, storage_service, machine_name) {
         this.container = container;
-        this.view_manager = view_manager;
         this.storage_service = storage_service;
-        this.current_view = 'month';
+        this.machine_name = machine_name;
         this.current_date = new Date();
-        this.machine_name = null;
-        
-        // Time range for week view
+        this.current_view = 'month';
         this.start_hour = 0;
         this.end_hour = 24;
         
-        this.init();
+        // Bind methods to preserve context
+        this.handle_calendar_click = this.handle_calendar_click.bind(this);
+        this.load_availability_for_week_view = asyncHandler(
+            this._load_availability_for_week_view.bind(this),
+            'load_availability_for_week_view',
+            { rethrow: false, fallback: null }
+        );
     }
     
     init() {
@@ -343,23 +347,19 @@ class CalendarRenderer {
     /**
      * Load availability data for the week view only when needed
      */
-    async load_availability_for_week_view(date = this.current_date) {
-        try {
-            const weekStart = this._get_start_of_week(date);
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekEnd.getDate() + 6);
-            
-            const availabilityData = await this.storage_service.get_machine_availability_for_week_range(
-                this.machine_name,
-                weekStart,
-                weekEnd
-            );
-            
-            // Update the week view with the loaded data
-            this.update_week_view_with_data(availabilityData);
-        } catch (error) {
-            console.error('Could not load availability for week view:', error);
-        }
+    async _load_availability_for_week_view(date = this.current_date) {
+        const weekStart = this.get_start_of_week(date);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        
+        const availabilityData = await this.storage_service.get_machine_availability_for_week_range(
+            this.machine_name,
+            weekStart,
+            weekEnd
+        );
+        
+        // Update the week view with the loaded data
+        this.update_week_view_with_data(availabilityData);
     }
 
     /**
@@ -401,77 +401,69 @@ class CalendarRenderer {
     async update_time_slots_with_data() {
         if (!this.machine_name || !this.storage_service || this.current_view !== 'week') return;
         
-        try {
-            const timeSlots = this.container.querySelectorAll('.time-slot');
+        const timeSlots = this.container.querySelectorAll('.time-slot');
+        
+        for (const slot of timeSlots) {
+            const dateStr = slot.dataset.date;
+            const hour = parseInt(slot.dataset.hour);
             
-            for (const slot of timeSlots) {
-                const dateStr = slot.dataset.date;
-                const hour = parseInt(slot.dataset.hour);
+            // Get events and availability data
+            const [events, unavailableHours] = await Promise.all([
+                this.storage_service.get_events_by_date(dateStr),
+                this.storage_service.get_machine_availability_for_date(this.machine_name, dateStr)
+            ]);
+            
+            const machineEvents = events.filter(e => 
+                e.machine === this.machine_name && hour >= e.startHour && hour < e.endHour
+            );
+            const isUnavailable = unavailableHours.includes(hour);
+            
+            // Update slot content
+            const contentDiv = slot.querySelector('.time-slot-content');
+            if (contentDiv) {
+                let html = '';
                 
-                // Get events and availability data
-                const [events, unavailableHours] = await Promise.all([
-                    this.storage_service.get_events_by_date(dateStr),
-                    this.storage_service.get_machine_availability_for_date(this.machine_name, dateStr)
-                ]);
-                
-                const machineEvents = events.filter(e => 
-                    e.machine === this.machine_name && hour >= e.startHour && hour < e.endHour
-                );
-                const isUnavailable = unavailableHours.includes(hour);
-                
-                // Update slot content
-                const contentDiv = slot.querySelector('.time-slot-content');
-                if (contentDiv) {
-                    let html = '';
-                    
-                    if (isUnavailable) {
-                        html += '<span class="unavailable-indicator">✕</span>';
-                    }
-                    
-                    if (machineEvents.length > 0) {
-                        html += this.render_time_slot_events(machineEvents);
-                    }
-                    
-                    contentDiv.innerHTML = html;
+                if (isUnavailable) {
+                    html += '<span class="unavailable-indicator">✕</span>';
                 }
                 
-                // Update slot classes
-                slot.className = `time-slot ${isUnavailable ? 'unavailable' : ''} ${machineEvents.length > 0 ? 'has-events' : ''}`;
+                if (machineEvents.length > 0) {
+                    html += this.render_time_slot_events(machineEvents);
+                }
+                
+                contentDiv.innerHTML = html;
             }
-        } catch (error) {
-            console.error('Error updating time slots with data:', error);
+            
+            // Update slot classes
+            slot.className = `time-slot ${isUnavailable ? 'unavailable' : ''} ${machineEvents.length > 0 ? 'has-events' : ''}`;
         }
     }
 
     async handle_time_slot_click(date_str, hour) {
         if (!this.machine_name || !this.storage_service) return;
         
-        try {
-            // Ensure we have week availability data loaded
-            await this.load_availability_for_week_view(new Date(date_str));
-            
-            // Get current availability for this date
-            const currentAvailability = await this.storage_service.get_machine_availability_for_date(this.machine_name, date_str);
-            const unavailableHours = currentAvailability || [];
-            
-            // Check if this hour is currently unavailable
-            const isCurrentlyUnavailable = unavailableHours.includes(hour);
-            
-            if (isCurrentlyUnavailable) {
-                // Remove this hour from unavailable hours
-                const newUnavailableHours = unavailableHours.filter(h => h !== hour);
-                await this.storage_service.set_machine_availability(this.machine_name, date_str, newUnavailableHours);
-            } else {
-                // Add this hour to unavailable hours
-                const newUnavailableHours = [...unavailableHours, hour];
-                await this.storage_service.set_machine_availability(this.machine_name, date_str, newUnavailableHours);
-            }
-            
-            // Refresh the week view to show updated availability
-            await this.load_availability_for_week_view(new Date(date_str));
-        } catch (error) {
-            console.error('Error toggling machine availability:', error);
+        // Ensure we have week availability data loaded
+        await this.load_availability_for_week_view(new Date(date_str));
+        
+        // Get current availability for this date
+        const currentAvailability = await this.storage_service.get_machine_availability_for_date(this.machine_name, date_str);
+        const unavailableHours = currentAvailability || [];
+        
+        // Check if this hour is currently unavailable
+        const isCurrentlyUnavailable = unavailableHours.includes(hour);
+        
+        if (isCurrentlyUnavailable) {
+            // Remove this hour from unavailable hours
+            const newUnavailableHours = unavailableHours.filter(h => h !== hour);
+            await this.storage_service.set_machine_availability(this.machine_name, date_str, newUnavailableHours);
+        } else {
+            // Add this hour to unavailable hours
+            const newUnavailableHours = [...unavailableHours, hour];
+            await this.storage_service.set_machine_availability(this.machine_name, date_str, newUnavailableHours);
         }
+        
+        // Refresh the week view to show updated availability
+        await this.load_availability_for_week_view(new Date(date_str));
     }
     
     // Utility methods

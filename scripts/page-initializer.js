@@ -14,6 +14,7 @@ import { PhasesManager } from './phases-manager.js';
 import { BusinessLogicService } from './businessLogicService.js';
 import { Scheduler } from './scheduler.js';
 import { MachineCalendarManager } from './machineCalendarManager.js';
+import { asyncHandler } from './utils.js';
 
 // Page configuration - defines how each page should be initialized
 const PAGE_CONFIGS = {
@@ -129,25 +130,13 @@ async function initialize_component(config) {
         return true; // Return true for pages without components
     }
     
-    try {
-        const component_instance = new component_class();
-        
-        // Get element map and initialize if the component supports it
-        if (typeof component_instance.get_element_map === 'function') {
-            const element_map = component_instance.get_element_map();
-            if (element_map) {
-                const init_success = await component_instance.init(element_map);
-                if (init_success) {
-                    // Make component available globally for debugging if specified
-                    if (global_var_name) {
-                        window[global_var_name] = component_instance;
-                    }
-                    return true;
-                }
-            }
-        } else if (typeof component_instance.init === 'function') {
-            // Try to initialize without element map
-            const init_success = await component_instance.init();
+    const component_instance = new component_class();
+    
+    // Get element map and initialize if the component supports it
+    if (typeof component_instance.get_element_map === 'function') {
+        const element_map = component_instance.get_element_map();
+        if (element_map) {
+            const init_success = await component_instance.init(element_map);
             if (init_success) {
                 // Make component available globally for debugging if specified
                 if (global_var_name) {
@@ -156,54 +145,56 @@ async function initialize_component(config) {
                 return true;
             }
         }
-        
-        return false;
-    } catch (error) {
-        console.error(`❌ Failed to initialize ${component_class.name}:`, error);
-        return false;
+    } else if (typeof component_instance.init === 'function') {
+        // Try to initialize without element map
+        const init_success = await component_instance.init();
+        if (init_success) {
+            // Make component available globally for debugging if specified
+            if (global_var_name) {
+                window[global_var_name] = component_instance;
+            }
+            return true;
+        }
     }
+    
+    return false;
 }
 
 /**
  * Custom initialization for the scheduler page
  */
 async function initialize_scheduler() {
-    try {
-        // Check if we're on the scheduler page
-        if (!document.getElementById('calendar_container')) {
-            return;
+    // Check if we're on the scheduler page
+    if (!document.getElementById('calendar_container')) {
+        return;
+    }
+    
+    // Wait for the Scheduler class to be available
+    if (typeof Scheduler !== 'function') {
+        throw new Error(`Scheduler is not a constructor. Got: ${typeof Scheduler}`);
+    }
+    
+    // Create new scheduler instance
+    const scheduler = new Scheduler();
+    
+    // Initialize the scheduler now that DOM is ready
+    if (scheduler.init()) {
+        // Set up refresh button if it exists
+        const refreshBtn = document.getElementById('refresh_machines');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', asyncHandler(async () => {
+                refreshBtn.disabled = true;
+                refreshBtn.textContent = '⏳';
+                await scheduler.refresh_machine_data();
+                refreshBtn.textContent = '🔄';
+            }, 'refresh machines', { rethrow: false }));
+            
+            // Ensure button is re-enabled on error
+            refreshBtn.addEventListener('error', () => {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = '🔄';
+            });
         }
-        
-        // Wait for the Scheduler class to be available
-        if (typeof Scheduler !== 'function') {
-            throw new Error(`Scheduler is not a constructor. Got: ${typeof Scheduler}`);
-        }
-        
-        // Create new scheduler instance
-        const scheduler = new Scheduler();
-        
-        // Initialize the scheduler now that DOM is ready
-        if (scheduler.init()) {
-            // Set up refresh button if it exists
-            const refreshBtn = document.getElementById('refresh_machines');
-            if (refreshBtn) {
-                refreshBtn.addEventListener('click', async () => {
-                    try {
-                        refreshBtn.disabled = true;
-                        refreshBtn.textContent = '⏳';
-                        await scheduler.refresh_machine_data();
-                        refreshBtn.textContent = '🔄';
-                    } catch (error) {
-                        console.error('Error refreshing machines:', error);
-                        refreshBtn.textContent = '🔄';
-                    } finally {
-                        refreshBtn.disabled = false;
-                    }
-                });
-            }
-        }
-    } catch (error) {
-        console.error('❌ Failed to initialize scheduler:', error);
     }
 }
 
@@ -211,53 +202,48 @@ async function initialize_scheduler() {
  * Main page initialization function
  */
 async function initialize_page() {
-    try {
-        const page_key = detect_page();
-        const config = PAGE_CONFIGS[page_key];
-        
-        console.log('🔍 Initializing page:', page_key);
-        console.log('🔍 Page config:', config);
-        
-        if (!config) {
-            console.error(`❌ No configuration found for page: ${page_key}`);
-            return;
-        }
-        
-        // Initialize storage and store first
-        await initialize_storage();
-        await initialize_store();
-        
-        // Initialize navigation
-        initialize_nav();
-        
-        // Initialize edit manager for tables if needed
-        if (config.requires_edit_manager) {
-            console.log('🔍 Initializing edit manager');
-            initialize_edit_manager();
-        }
-        
-        // Initialize component if this page has one
-        if (config.type === 'component') {
-            console.log('🔍 Initializing component:', config.component_class.name);
-            await initialize_component(config);
-        } else {
-            console.log('🔍 No component to initialize for page type:', config.type);
-        }
-        
-        // Run custom initialization if this is a complex page
-        if (config.type === 'complex' && config.custom_init) {
-            console.log('🔍 Running custom initialization');
-            await config.custom_init();
-        }
-        
-        // Initialize scheduler if needed
-        await initialize_scheduler();
-        
-        console.log('✅ Page initialization completed successfully');
-        
-    } catch (error) {
-        console.error('❌ Error during page initialization:', error);
+    const page_key = detect_page();
+    const config = PAGE_CONFIGS[page_key];
+    
+    console.log('🔍 Initializing page:', page_key);
+    console.log('🔍 Page config:', config);
+    
+    if (!config) {
+        console.error(`❌ No configuration found for page: ${page_key}`);
+        return;
     }
+    
+    // Initialize storage and store first
+    await initialize_storage();
+    await initialize_store();
+    
+    // Initialize navigation
+    initialize_nav();
+    
+    // Initialize edit manager for tables if needed
+    if (config.requires_edit_manager) {
+        console.log('🔍 Initializing edit manager');
+        initialize_edit_manager();
+    }
+    
+    // Initialize component if this page has one
+    if (config.type === 'component') {
+        console.log('🔍 Initializing component:', config.component_class.name);
+        await initialize_component(config);
+    } else {
+        console.log('🔍 No component to initialize for page type:', config.type);
+    }
+    
+    // Run custom initialization if this is a complex page
+    if (config.type === 'complex' && config.custom_init) {
+        console.log('🔍 Running custom initialization');
+        await config.custom_init();
+    }
+    
+    // Initialize scheduler if needed
+    await initialize_scheduler();
+    
+    console.log('✅ Page initialization completed successfully');
 }
 
 // Auto-initialize when DOM is loaded

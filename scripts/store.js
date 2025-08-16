@@ -5,6 +5,7 @@
  */
 
 import { storageService } from './storageService.js';
+import { asyncHandler } from './utils.js';
 
 // Private state object
 const state = {
@@ -24,11 +25,7 @@ const subscribers = [];
  */
 function _notify() {
     subscribers.forEach(callback => {
-        try {
-            callback(state);
-        } catch (error) {
-            console.error('Error in store subscriber callback:', error);
-        }
+        callback(state);
     });
 }
 
@@ -69,140 +66,133 @@ export const appStore = {
      * This should be called after storageService is initialized.
      */
     async init() {
-        try {
-            state.isLoading = true;
-            _notify(); // Notify that loading has started
-            
-            // Load all initial data in parallel
-            const [machines, odpOrders, phases] = await Promise.all([
-                storageService.get_machines(),
-                storageService.get_odp_orders(),
-                storageService.get_phases() // <-- Load phases
-            ]);
-            
-            // Update state
-            state.machines = machines || [];
-            state.odpOrders = odpOrders || [];
-            state.phases = phases || []; // <-- Set phases state
-            
-            // Initialize empty machine availability data (no database calls)
-            this.initializeEmptyMachineAvailability();
-            
-            state.isLoading = false;
-            
-            // Notify subscribers of the new data
-            _notify();
-            
-        } catch (error) {
-            console.error('❌ Error initializing store:', error);
-            state.isLoading = false;
-            _notify();
-            throw error;
-        }
+        state.isLoading = true;
+        _notify(); // Notify that loading has started
+        
+        // Load all initial data in parallel
+        const [machines, odpOrders, phases] = await Promise.all([
+            storageService.get_machines(),
+            storageService.get_odp_orders(),
+            storageService.get_phases() // <-- Load phases
+        ]);
+        
+        // Update state
+        state.machines = machines || [];
+        state.odpOrders = odpOrders || [];
+        state.phases = phases || []; // <-- Set phases state
+        
+        // Initialize empty machine availability data (no database calls)
+        this.initializeEmptyMachineAvailability();
+        
+        state.isLoading = false;
+        
+        // Notify subscribers of the new data
+        _notify();
     },
 
     // --- Machine Actions ---
+    /**
+     * Add a new machine to the store
+     * @param {Object} newMachine - The machine object to add
+     * @returns {Object} The added machine
+     */
     async addMachine(newMachine) {
-        try {
-            const addedMachine = await storageService.add_machine(newMachine);
-            state.machines.push(addedMachine);
-            _notify();
-            return addedMachine;
-        } catch (error) {
-            console.error('❌ Error adding machine:', error);
-            throw error;
-        }
+        const addedMachine = await storageService.add_machine(newMachine);
+        state.machines.push(addedMachine);
+        _notify();
+        return addedMachine;
     },
 
+    /**
+     * Update an existing machine in the store
+     * @param {string} id - The machine ID to update
+     * @param {Object} updates - The updates to apply
+     * @returns {Object} The updated machine
+     */
     async updateMachine(id, updates) {
-        try {
-            const updatedMachine = await storageService.update_machine(id, updates);
-            const machineIndex = state.machines.findIndex(machine => machine.id === id);
-            if (machineIndex !== -1) {
-                state.machines[machineIndex] = { ...state.machines[machineIndex], ...updatedMachine };
-            }
-            _notify();
-            return updatedMachine;
-        } catch (error) {
-            console.error('❌ Error updating machine:', error);
-            throw error;
+        const updatedMachine = await storageService.update_machine(id, updates);
+        const machineIndex = state.machines.findIndex(machine => machine.id === id);
+        if (machineIndex !== -1) {
+            state.machines[machineIndex] = { ...state.machines[machineIndex], ...updatedMachine };
         }
+        _notify();
+        return updatedMachine;
     },
 
     // --- ODP Order Actions ---
+    /**
+     * Add a new ODP order to the store
+     * @param {Object} newOrder - The order object to add
+     * @returns {Object} The added order
+     */
     async addOdpOrder(newOrder) {
-        try {
-            const addedOrder = await storageService.add_odp_order(newOrder);
-            state.odpOrders.push(addedOrder);
-            _notify();
-            return addedOrder;
-        } catch (error) {
-            console.error('❌ Error adding ODP order:', error);
-            throw error;
-        }
+        const addedOrder = await storageService.add_odp_order(newOrder);
+        state.odpOrders.push(addedOrder);
+        _notify();
+        return addedOrder;
     },
+
+    /**
+     * Update an existing ODP order in the store
+     * @param {string} id - The order ID to update
+     * @param {Object} updates - The updates to apply
+     * @returns {Object} The updated order
+     */
     async updateOdpOrder(id, updates) {
-        try {
-            const updatedOrder = await storageService.update_odp_order(id, updates);
-            const orderIndex = state.odpOrders.findIndex(order => order.id === id);
-            if (orderIndex !== -1) {
-                state.odpOrders[orderIndex] = { ...state.odpOrders[orderIndex], ...updatedOrder };
-            }
-            _notify();
-            return updatedOrder;
-        } catch (error) {
-            console.error('❌ Error updating ODP order:', error);
-            throw error;
+        const updatedOrder = await storageService.update_odp_order(id, updates);
+        const orderIndex = state.odpOrders.findIndex(order => order.id === id);
+        if (orderIndex !== -1) {
+            state.odpOrders[orderIndex] = { ...state.odpOrders[orderIndex], ...updatedOrder };
         }
+        _notify();
+        return updatedOrder;
     },
     async removeOdpOrder(id) {
-        try {
-            await storageService.remove_odp_order(id);
-            state.odpOrders = state.odpOrders.filter(order => order.id !== id);
-            _notify();
-            return true;
-        } catch (error) {
-            console.error('❌ Error removing ODP order:', error);
-            throw error;
-        }
+        await storageService.remove_odp_order(id);
+        state.odpOrders = state.odpOrders.filter(order => order.id !== id);
+        _notify();
+        return true;
     },
 
     // --- Phase Actions ---
+    /**
+     * Add a new phase to the store
+     * @param {Object} newPhase - The phase object to add
+     * @returns {Object} The added phase
+     */
     async addPhase(newPhase) {
-        try {
-            const addedPhase = await storageService.add_phase(newPhase);
-            state.phases.push(addedPhase);
-            _notify();
-            return addedPhase;
-        } catch (error) {
-            console.error('❌ Error adding phase:', error);
-            throw error;
-        }
+        const addedPhase = await storageService.add_phase(newPhase);
+        state.phases.push(addedPhase);
+        _notify();
+        return addedPhase;
     },
+
+    /**
+     * Update an existing phase in the store
+     * @param {string} id - The phase ID to update
+     * @param {Object} updates - The updates to apply
+     * @returns {Object} The updated phase
+     */
     async updatePhase(id, updates) {
-        try {
-            const updatedPhase = await storageService.update_phase(id, updates);
-            const phaseIndex = state.phases.findIndex(phase => phase.id === id);
-            if (phaseIndex !== -1) {
-                state.phases[phaseIndex] = { ...state.phases[phaseIndex], ...updatedPhase };
-            }
-            _notify();
-            return updatedPhase;
-        } catch (error) {
-            console.error('❌ Error updating phase:', error);
-            throw error;
+        const updatedPhase = await storageService.update_phase(id, updates);
+        const phaseIndex = state.phases.findIndex(phase => phase.id === id);
+        if (phaseIndex !== -1) {
+            state.phases[phaseIndex] = { ...state.phases[phaseIndex], ...updatedPhase };
         }
+        _notify();
+        return updatedPhase;
     },
+
+    /**
+     * Remove a phase from the store
+     * @param {string} id - The phase ID to remove
+     * @returns {boolean} True if successful
+     */
     async removePhase(id) {
-        try {
-            await storageService.remove_phase(id);
-            state.phases = state.phases.filter(phase => phase.id !== id);
-            _notify();
-            return true;
-        } catch (error) {
-            console.error('❌ Error removing phase:', error);
-            throw error;
-        }
+        await storageService.remove_phase(id);
+        state.phases = state.phases.filter(phase => phase.id !== id);
+        _notify();
+        return true;
     },
 
     // --- Scheduler Actions ---

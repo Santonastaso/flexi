@@ -283,4 +283,148 @@ export class Utils {
     }
 }
 
+/**
+ * Safe async handler that wraps functions with consistent error handling
+ * @param {Function} fn - The async function to wrap
+ * @param {string} errorContext - Context for error messages
+ * @param {Object} options - Additional options
+ * @returns {Function} Wrapped function with error handling
+ */
+export const asyncHandler = (fn, errorContext = '', options = {}) => {
+    const { 
+        logError = true, 
+        rethrow = true, 
+        fallback = null,
+        onError = null 
+    } = options;
+    
+    return async (...args) => {
+        try {
+            return await fn(...args);
+        } catch (error) {
+            if (logError) {
+                console.error(`❌ Error in ${errorContext}:`, error);
+            }
+            
+            if (onError) {
+                onError(error, errorContext, args);
+            }
+            
+            if (rethrow) {
+                throw error;
+            }
+            
+            return fallback;
+        }
+    };
+};
+
+/**
+ * Safe sync handler for non-async functions
+ * @param {Function} fn - The function to wrap
+ * @param {string} errorContext - Context for error messages
+ * @param {Object} options - Additional options
+ * @returns {Function} Wrapped function with error handling
+ */
+export const safeHandler = (fn, errorContext = '', options = {}) => {
+    const { 
+        logError = true, 
+        rethrow = true, 
+        fallback = null,
+        onError = null 
+    } = options;
+    
+    return (...args) => {
+        try {
+            return fn(...args);
+        } catch (error) {
+            if (logError) {
+                console.error(`❌ Error in ${errorContext}:`, error);
+            }
+            
+            if (onError) {
+                onError(error, errorContext, args);
+            }
+            
+            if (rethrow) {
+                throw error;
+            }
+            
+            return fallback;
+        }
+    };
+};
+
+/**
+ * Event Listener Manager - Consolidates repetitive event listener patterns
+ * @param {Object} elements - Object containing DOM elements
+ * @param {Object} eventMap - Map of event types to handlers
+ * @param {Object} options - Additional options
+ */
+export const attachEventListeners = (elements, eventMap, options = {}) => {
+    const { 
+        context = null, 
+        preventDefault = false,
+        stopPropagation = false,
+        once = false 
+    } = options;
+    
+    Object.entries(eventMap).forEach(([eventType, handlers]) => {
+        if (Array.isArray(handlers)) {
+            // Handle array of element IDs with same handler
+            handlers.forEach(({ selector, handler, events = [eventType] }) => {
+                const element = elements[selector];
+                if (element) {
+                    events.forEach(event => {
+                        const boundHandler = context ? handler.bind(context) : handler;
+                        element.addEventListener(event, boundHandler, { once });
+                    });
+                }
+            });
+        } else if (typeof handlers === 'function') {
+            // Handle single handler for multiple elements
+            Object.keys(elements).forEach(selector => {
+                const element = elements[selector];
+                if (element) {
+                    const boundHandler = context ? handlers.bind(context) : handlers;
+                    element.addEventListener(eventType, boundHandler, { once });
+                }
+            });
+        }
+    });
+};
+
+/**
+ * Quick event listener for single element
+ * @param {HTMLElement} element - DOM element
+ * @param {string} eventType - Event type
+ * @param {Function} handler - Event handler
+ * @param {Object} options - Event options
+ */
+export const addEventListener = (element, eventType, handler, options = {}) => {
+    if (element) {
+        element.addEventListener(eventType, handler, options);
+    }
+};
+
+/**
+ * Batch event listeners for form validation
+ * @param {Object} elements - Object containing form elements
+ * @param {Array} elementIds - Array of element IDs to attach events to
+ * @param {Array} eventTypes - Array of event types
+ * @param {Function} handler - Event handler function
+ * @param {Object} context - Context to bind the handler to
+ */
+export const attachFormValidationListeners = (elements, elementIds, eventTypes, handler, context = null) => {
+    elementIds.forEach(id => {
+        const element = elements[id];
+        if (element) {
+            eventTypes.forEach(eventType => {
+                const boundHandler = context ? handler.bind(context) : handler;
+                element.addEventListener(eventType, boundHandler);
+            });
+        }
+    });
+};
+
 // Export for ES6 modules (already exported above)
