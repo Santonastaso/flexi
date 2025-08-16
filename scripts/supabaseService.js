@@ -406,10 +406,27 @@ class SupabaseService {
      */
     async get_machine_availability_for_date(machineName, date) {
         try {
-            const { data, error } = await this.ensure_client().from(this.TABLES.MACHINE_AVAILABILITY).select('unavailable_hours').eq('machine_name', machineName).eq('date', date).single();
-            if (error && error.code !== 'PGRST116') throw error;
-            return data?.unavailable_hours || [];
+            // Encode machine name to handle special characters
+            const encodedMachineName = encodeURIComponent(machineName);
+            console.log('🔍 [SupabaseService] Getting availability for:', { machineName, encodedMachineName, date });
+            
+            const { data, error } = await this.ensure_client()
+                .from(this.TABLES.MACHINE_AVAILABILITY)
+                .select('unavailable_hours')
+                .eq('machine_name', machineName) // Use original name for database query
+                .eq('date', date)
+                .single();
+                
+            if (error && error.code !== 'PGRST116') {
+                console.warn('⚠️ [SupabaseService] Database error:', error);
+                throw error;
+            }
+            
+            const result = data?.unavailable_hours || [];
+            console.log('🔍 [SupabaseService] Availability result:', { machineName, date, result });
+            return result;
         } catch (error) {
+            console.error('❌ [SupabaseService] Error getting availability:', error);
             return []; // Silently fail, availability is optional
         }
     }

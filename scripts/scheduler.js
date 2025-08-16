@@ -1,11 +1,11 @@
 /**
- * Production Scheduler - Refactored to use a centralized store
+ * Production Scheduler - Now uses unified CalendarRenderer
  * Optimized for performance and maintainability.
- * CORRECTED: Restored the calendar header rendering logic.
  */
 import { BusinessLogicService } from './businessLogicService.js';
 import { Utils } from './utils.js';
 import { appStore } from './store.js'; // Import the store
+import { CalendarRenderer } from './calendarRenderer.js'; // Import unified calendar renderer
 
 export class Scheduler {
     constructor() {
@@ -21,6 +21,9 @@ export class Scheduler {
             dragged_data: null
         };
 
+        // Calendar renderer for unified calendar functionality
+        this.calendarRenderer = null;
+
         // Debounce availability refresh
         this.availability_refresh_timeout = null;
         this._availability_load_timeout = null;
@@ -32,6 +35,7 @@ export class Scheduler {
             return false;
         }
 
+        this._setup_calendar_renderer();
         this._attach_event_listeners();
         this.update_date_display();
 
@@ -122,6 +126,33 @@ export class Scheduler {
         const elementIds = ['task_pool', 'calendar_container', 'current_date', 'today_btn', 'prev_day', 'next_day', 'message_container'];
         elementIds.forEach(id => this.elements[id] = document.getElementById(id));
         return elementIds.every(id => this.elements[id]);
+    }
+
+    /**
+     * Setup the unified calendar renderer
+     */
+    _setup_calendar_renderer() {
+        const { machines } = appStore.getState();
+        const activeMachines = machines.filter(m => m.status === 'ACTIVE');
+        
+        const calendarConfig = {
+            mode: 'scheduler',
+            views: ['week'], // Scheduler only needs week view
+            machines: activeMachines,
+            showMachines: true,
+            interactive: true,
+            enableDragDrop: true,
+            startHour: 0,
+            endHour: 24,
+            onSlotClick: this._handle_slot_click.bind(this),
+            onSlotDrop: this._handle_task_drop.bind(this),
+            onSlotHover: this._handle_slot_hover.bind(this)
+        };
+        
+        this.calendarRenderer = new CalendarRenderer(this.elements.calendar_container, calendarConfig);
+        this.calendarRenderer.init();
+        
+        console.log('🔧 [Scheduler] Calendar renderer initialized in scheduler mode');
     }
 
     _attach_event_listeners() {
@@ -457,5 +488,29 @@ export class Scheduler {
         messageEl.textContent = message;
         messageEl.style.display = 'block';
         setTimeout(() => messageEl.style.display = 'none', 3000);
+    }
+
+    /**
+     * Handle slot click events from the calendar renderer
+     */
+    _handle_slot_click(slotData) {
+        console.log('🔍 [Scheduler] Slot clicked:', slotData);
+        // Handle slot clicks if needed
+    }
+
+    /**
+     * Handle task drop events from the calendar renderer
+     */
+    _handle_task_drop(dropData) {
+        console.log('🔍 [Scheduler] Task dropped:', dropData);
+        // Handle task drops if needed
+    }
+
+    /**
+     * Handle slot hover events from the calendar renderer
+     */
+    _handle_slot_hover(hoverData) {
+        console.log('🔍 [Scheduler] Slot hover:', hoverData);
+        // Handle slot hover if needed
     }
 }

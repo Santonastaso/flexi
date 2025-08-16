@@ -188,17 +188,29 @@ class MachineCalendarManager {
                 }
             };
             
-            // Create calendar renderer with storage wrapper
-            this.calendarRenderer = new CalendarRenderer(this.elements.calendar_container, storageWrapper, this.machineName);
+            // Create calendar renderer with configuration
+            const calendarConfig = {
+                mode: 'machine-settings',
+                views: ['year', 'month', 'week'],
+                storageService: storageWrapper,
+                machineName: this.machineName,
+                showMachines: false,
+                interactive: true,
+                enableDragDrop: false,
+                onSlotClick: this.handle_availability_toggle.bind(this),
+                onViewChange: this.handle_view_change.bind(this)
+            };
             
-            // Initialize the calendar renderer to set up event listeners
+            this.calendarRenderer = new CalendarRenderer(this.elements.calendar_container, calendarConfig);
+            
+            // Initialize the calendar renderer
             this.calendarRenderer.init();
             
             // Create view manager with calendar renderer and controls container
             this.viewManager = new ViewManager(this.calendarRenderer, this.elements.controls_container);
             
             // Set up circular reference
-            this.calendarRenderer.view_manager = this.viewManager;
+            this.calendarRenderer.set_view_manager(this.viewManager);
             
             // Defer initial render to avoid initialization errors
             setTimeout(() => {
@@ -396,6 +408,23 @@ class MachineCalendarManager {
         });
     }
 
+    /**
+     * Handle availability toggle for time slots
+     */
+    handle_availability_toggle(slotData) {
+        console.log('🔍 Availability toggle requested:', slotData);
+        // The actual toggle logic is now handled in the CalendarRenderer
+        // This method can be used for additional logging or side effects
+    }
+
+    /**
+     * Handle view change events
+     */
+    handle_view_change(viewData) {
+        console.log('🔍 View change requested:', viewData);
+        // This method can be used for additional logging or side effects
+        // The actual view change is handled by the ViewManager
+    }
 
 }
 
