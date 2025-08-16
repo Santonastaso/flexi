@@ -220,7 +220,7 @@ class MachineCalendarManager {
             setTimeout(() => {
                 try {
                     console.log('🔍 Attempting initial render...');
-                    this.viewManager.set_view('month', new Date());
+            this.viewManager.set_view('month', new Date());
                     console.log('🔍 Initial render completed successfully');
                 } catch (error) {
                     console.error('Error in deferred initial render:', error);

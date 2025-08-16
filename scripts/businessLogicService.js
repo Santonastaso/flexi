@@ -73,6 +73,60 @@ export class BusinessLogicService {
         return article_code.startsWith('P0') ? 'CONFEZIONAMENTO' : 'STAMPA';
     }
 
+    /**
+     * Calculate completion rate based on quantity and quantity_completed
+     * Note: This is now handled by the database computed column, but kept for validation
+     */
+    calculate_completion_rate(quantity, quantity_completed) {
+        if (!quantity || quantity === 0) return 0;
+        return Math.round((quantity_completed * 100.0) / quantity);
+    }
+
+    /**
+     * Calculate time remaining based on duration and progress
+     * Note: This is now handled by the database computed column, but kept for validation
+     */
+    calculate_time_remaining(duration, progress_percentage) {
+        if (!duration || duration === 0) return 0;
+        if (!progress_percentage || progress_percentage === 0) return duration;
+        return Math.round((duration * (1 - (progress_percentage / 100))) * 100) / 100; // Round to 2 decimal places
+    }
+
+    /**
+     * Validate quantity_completed against total quantity
+     */
+    validate_quantity_completed(quantity, quantity_completed) {
+        if (quantity_completed < 0) return false;
+        if (quantity_completed > quantity) return false;
+        return true;
+    }
+
+    /**
+     * Calculate the number of boxes needed for a given quantity and quantity per box
+     * @param {number} quantity - Total quantity needed
+     * @param {number} quantity_per_box - Quantity that fits in each box
+     * @returns {number} Number of boxes needed (rounded up)
+     */
+    calculate_n_boxes(quantity, quantity_per_box) {
+        if (!quantity_per_box || quantity_per_box <= 0) return 0;
+        return Math.ceil(quantity / quantity_per_box);
+    }
+
+    /**
+     * Validate that quantity_per_box is reasonable
+     * @param {number} quantity_per_box - Quantity per box to validate
+     * @returns {Object} Validation result with isValid boolean and message
+     */
+    validate_quantity_per_box(quantity_per_box) {
+        if (!quantity_per_box || quantity_per_box <= 0) {
+            return { isValid: false, message: 'Quantity per box must be greater than 0' };
+        }
+        if (quantity_per_box > 10000) {
+            return { isValid: false, message: 'Quantity per box seems unreasonably high' };
+        }
+        return { isValid: true };
+    }
+
     // ===== UTILITY METHODS =====
     /**
      * Normalize name (trim, uppercase, replace spaces with underscores)

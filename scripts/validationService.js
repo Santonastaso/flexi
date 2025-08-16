@@ -273,7 +273,7 @@ export class ValidationService {
         }
         
         // Numeric field validation
-        const numericFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'progress'];
+        const numericFields = ['bag_height', 'bag_width', 'bag_step', 'quantity', 'quantity_per_box', 'quantity_completed'];
         numericFields.forEach(field => {
             if (odpData[field] && odpData[field].toString().trim() !== '') {
                 const numValue = parseInt(odpData[field]);
@@ -286,6 +286,20 @@ export class ValidationService {
                 }
             }
         });
+
+        // Quantity completed validation (must not exceed total quantity)
+        if (odpData.quantity_completed !== undefined && odpData.quantity_completed !== '' && 
+            odpData.quantity !== undefined && odpData.quantity !== '') {
+            const completed = parseInt(odpData.quantity_completed);
+            const total = parseInt(odpData.quantity);
+            if (!isNaN(completed) && !isNaN(total) && completed > total) {
+                const errorMessage = 'Quantity completed cannot exceed total quantity';
+                errors.push(errorMessage);
+                if (returnFieldMapping) {
+                    fieldErrors.quantity_completed = errorMessage;
+                }
+            }
+        }
         
         // Bag dimensions relationship validation
         if (odpData.bag_width && odpData.bag_step) {

@@ -324,7 +324,8 @@ class SupabaseService {
                 machineId: odp.scheduled_machine_id,
                 start_time: odp.scheduled_start_time,
                 end_time: odp.scheduled_end_time,
-                duration: odp.duration,
+                // Use time_remaining instead of duration for accurate remaining work display
+                duration: odp.time_remaining || odp.duration,
                 color: odp.color || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 cost: odp.cost,
                 progress: odp.progress,

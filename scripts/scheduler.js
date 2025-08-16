@@ -233,11 +233,54 @@ export class Scheduler {
         visibleEvents.forEach(event => this._render_event(event));
     }
     
+    /**
+     * Validate that a task can be scheduled on a specific machine based on work center compatibility
+     * @param {Object} taskData - The ODP order data
+     * @param {Object} machineData - The machine data
+     * @returns {Object} Validation result with isValid boolean and reason if invalid
+     */
+    _validate_work_center_compatibility(taskData, machineData) {
+        // Check if both task and machine have work center information
+        if (!taskData.work_center || !machineData.work_center) {
+            return { 
+                isValid: false, 
+                reason: 'Missing work center information for task or machine' 
+            };
+        }
+        
+        // Check if work centers match
+        if (taskData.work_center !== machineData.work_center) {
+            return { 
+                isValid: false, 
+                reason: `Task work center (${taskData.work_center}) does not match machine work center (${machineData.work_center})` 
+            };
+        }
+        
+        return { isValid: true };
+    }
+    
     async schedule_task(taskId, taskData, slot) {
         const machineId = slot.dataset.machine;
         const hour = parseInt(slot.dataset.hour);
         const minute = parseInt(slot.dataset.minute) || 0;
-        const duration = parseFloat(taskData.duration) || 1;
+        // Use time_remaining instead of duration for accurate remaining work scheduling
+        const duration = parseFloat(taskData.time_remaining) || parseFloat(taskData.duration) || 1;
+
+        // Get machine data for work center validation
+        const { machines } = appStore.getState();
+        const machineData = machines.find(m => m.id === machineId);
+        
+        if (!machineData) {
+            this.show_message('Cannot schedule task: Machine not found', 'error');
+            return;
+        }
+
+        // Validate work center compatibility
+        const workCenterValidation = this._validate_work_center_compatibility(taskData, machineData);
+        if (!workCenterValidation.isValid) {
+            this.show_message(`Cannot schedule task: ${workCenterValidation.reason}`, 'error');
+            return;
+        }
 
         // Check if the slot is unavailable
         if (slot.dataset.unavailable === 'true') {
@@ -287,9 +330,25 @@ export class Scheduler {
     }
 
     async reschedule_event(taskId, newSlot) {
-        const { odpOrders } = appStore.getState();
+        const { odpOrders, machines } = appStore.getState();
         const taskData = odpOrders.find(o => o.id === taskId);
         if (taskData) {
+            // Get machine data for work center validation
+            const machineId = newSlot.dataset.machine;
+            const machineData = machines.find(m => m.id === machineId);
+            
+            if (!machineData) {
+                this.show_message('Cannot reschedule task: Machine not found', 'error');
+                return;
+            }
+
+            // Validate work center compatibility
+            const workCenterValidation = this._validate_work_center_compatibility(taskData, machineData);
+            if (!workCenterValidation.isValid) {
+                this.show_message(`Cannot reschedule task: ${workCenterValidation.reason}`, 'error');
+                return;
+            }
+
             // Check if the new slot is available
             if (newSlot.dataset.unavailable === 'true') {
                 this.show_message('Cannot reschedule task: This time slot is marked as unavailable', 'error');
@@ -297,9 +356,9 @@ export class Scheduler {
             }
 
             // Check if any of the required hours are unavailable
-            const machineName = newSlot.dataset.machineName;
             const hour = parseInt(newSlot.dataset.hour);
-            const duration = parseFloat(taskData.duration) || 1;
+            // Use time_remaining instead of duration for accurate remaining work scheduling
+            const duration = parseFloat(taskData.time_remaining) || parseFloat(taskData.duration) || 1;
             
             const requiredHours = [];
             for (let i = 0; i < Math.ceil(duration); i++) {
@@ -307,7 +366,7 @@ export class Scheduler {
                 requiredHours.push(checkHour);
             }
 
-            const hasUnavailableHours = requiredHours.some(h => this._is_slot_unavailable(machineName, h));
+            const hasUnavailableHours = requiredHours.some(h => this._is_slot_unavailable(machineData.machine_name, h));
             if (hasUnavailableHours) {
                 this.show_message('Cannot reschedule task: Some required time slots are marked as unavailable', 'error');
                 return;
@@ -326,14 +385,24 @@ export class Scheduler {
     }
 
     _create_task_element(task) {
-        const duration = parseFloat(task.duration) || 1;
+        // Use time_remaining instead of duration for accurate remaining work display
+        const duration = parseFloat(task.time_remaining) || parseFloat(task.duration) || 1;
         const taskElement = this._createElement('div', {
             className: 'task-item',
             dataset: { taskId: task.id }
         });
         taskElement.draggable = true;
         taskElement.style.background = task.color || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-        taskElement.innerHTML = `<span>${task.odp_number || 'Unknown Task'}</span><span class="task-duration">${duration}h</span>`;
+        
+        // Add work center information to help users understand compatibility
+        const workCenterInfo = task.work_center ? ` (${task.work_center})` : '';
+        taskElement.innerHTML = `<span>${task.odp_number || 'Unknown Task'}${workCenterInfo}</span><span class="task-duration">${duration}h</span>`;
+        
+        // Add tooltip with work center information
+        if (task.work_center) {
+            taskElement.title = `Work Center: ${task.work_center} - Only schedule on machines in the same work center`;
+        }
+        
         taskElement.addEventListener('dragstart', (e) => this._on_drag_start(e, taskElement, 'task', task));
         taskElement.addEventListener('dragend', () => this._on_drag_end(taskElement));
         this.elements.task_pool.appendChild(taskElement);
@@ -461,12 +530,40 @@ export class Scheduler {
         slot.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
+            
+            // Check work center compatibility for immediate feedback
+            if (this.drag_state.drag_type === 'task' && this.drag_state.dragged_data) {
+                const { odpOrders, machines } = appStore.getState();
+                const machineId = slot.dataset.machine;
+                const machineData = machines.find(m => m.id === machineId);
+                
+                if (machineData && this.drag_state.dragged_data.work_center) {
+                    const isCompatible = machineData.work_center === this.drag_state.dragged_data.work_center;
+                    
+                    if (isCompatible) {
+                        slot.classList.add('drag-over', 'drag-compatible');
+                        slot.classList.remove('drag-incompatible');
+                    } else {
+                        slot.classList.add('drag-over', 'drag-incompatible');
+                        slot.classList.remove('drag-compatible');
+                    }
+                } else {
+                    slot.classList.add('drag-over');
+                    slot.classList.remove('drag-compatible', 'drag-incompatible');
+                }
+            } else {
             slot.classList.add('drag-over');
+                slot.classList.remove('drag-compatible', 'drag-incompatible');
+            }
         });
-        slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+        
+        slot.addEventListener('dragleave', () => {
+            slot.classList.remove('drag-over', 'drag-compatible', 'drag-incompatible');
+        });
+        
         slot.addEventListener('drop', (e) => {
             e.preventDefault();
-            slot.classList.remove('drag-over');
+            slot.classList.remove('drag-over', 'drag-compatible', 'drag-incompatible');
             const taskId = e.dataTransfer.getData('text/plain');
             if (this.drag_state.drag_type === 'task') {
                 this.schedule_task(taskId, this.drag_state.dragged_data, slot);

@@ -514,12 +514,12 @@ class CalendarRenderer {
                 const has_scheduled_events = scheduled_events.some(e => 
                     e.machine === this.machine_name && hour >= e.startHour && hour < e.endHour
                 );
-                
-                if (has_scheduled_events) {
-                    alert('This slot is occupied by a scheduled task. You cannot mark it as unavailable.');
-                    return;
-                }
-                
+            
+        if (has_scheduled_events) {
+            alert('This slot is occupied by a scheduled task. You cannot mark it as unavailable.');
+            return;
+        }
+        
                 // Add the hour to unavailable hours
                 const newHours = [...unavailableHours, hour].sort((a, b) => a - b);
                 await this.storage_service.set_machine_availability(this.machine_name, date_str, newHours);

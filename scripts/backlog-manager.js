@@ -61,12 +61,11 @@ export class BacklogManager extends BaseManager {
     get_element_map() {
         const elementIds = [
             'odp_number', 'article_code', 'production_lot', 'work_center', 'nome_cliente',
-            'description', 'delivery_date', 'bag_height', 'bag_width', 'bag_step',
-            'seal_sides', 'product_type', 'quantity', 'department', 'fase',
-            'internal_customer_code', 'external_customer_code', 'customer_order_ref',
+            'bag_height', 'bag_width', 'bag_step', 'quantity', 'quantity_per_box', 'quantity_completed', 
+            'seal_sides', 'product_type', 'delivery_date', 'department', 'fase', 
+            'internal_customer_code', 'external_customer_code', 'customer_order_ref', 
             'calculate_btn', 'create_task', 'update_statuses_btn', 'debug_events_btn',
-            'backlog_table_body',
-            'preview_fascia', 'preview_altezza', 'preview_passo'
+            'backlog_table_body', 'preview_fascia', 'preview_altezza', 'preview_passo'
         ];
         return this.get_elements_by_id(elementIds);
     }
@@ -78,10 +77,11 @@ export class BacklogManager extends BaseManager {
             handle_article_code_change: ['article_code'],
             populate_phases_dropdown: ['department', 'work_center'],
             update_bag_preview: ['bag_width', 'bag_height', 'bag_step'],
+            update_bag_specs: ['quantity', 'quantity_per_box'],
             validate_form_fields: [
                 'odp_number', 'article_code', 'production_lot', 'work_center', 'nome_cliente',
-                'description', 'delivery_date', 'bag_height', 'bag_width', 'bag_step',
-                'seal_sides', 'product_type', 'quantity', 'department', 'fase',
+                'bag_height', 'bag_width', 'bag_step', 'quantity', 'quantity_per_box', 'quantity_completed', 
+                'seal_sides', 'product_type', 'delivery_date', 'department', 'fase', 
                 'internal_customer_code', 'external_customer_code', 'customer_order_ref'
             ]
         };
@@ -98,9 +98,19 @@ export class BacklogManager extends BaseManager {
 
         eventHandlers.populate_phases_dropdown.forEach(id => this.elements[id]?.addEventListener('change', () => this.populate_phases_dropdown().catch(console.error)));
         eventHandlers.update_bag_preview.forEach(id => this.elements[id]?.addEventListener('input', () => this.update_bag_preview()));
+        eventHandlers.update_bag_specs.forEach(id => this.elements[id]?.addEventListener('input', () => this.update_bag_specs_display()));
 
         this.populate_phases_dropdown().catch(console.error);
         this.hide_calculation_results();
+        this.update_bag_specs_display(); // Initialize the bag specs display
+        
+        // Debug: Check what phases are available
+        const { phases } = appStore.getState();
+        if (window.DEBUG) console.log(`Available phases in store:`, phases);
+        
+        // Initialize button states
+        this.validate_form_fields(true);
+        
         this.event_listeners_attached = true;
     }
 
@@ -112,45 +122,112 @@ export class BacklogManager extends BaseManager {
         const articleCode = this.elements.article_code.value.trim();
         if (!articleCode) return;
         
-            const department = this.businessLogic.auto_determine_department(articleCode);
-            const workCenter = this.businessLogic.auto_determine_work_center(articleCode);
-            
+        const department = this.businessLogic.auto_determine_department(articleCode);
+        const workCenter = this.businessLogic.auto_determine_work_center(articleCode);
+        
         if (this.elements.work_center) this.elements.work_center.value = workCenter;
         if (this.elements.department) this.elements.department.value = department;
         if (this.elements.article_code) this.elements.article_code.dataset.department = department;
 
+        if (window.DEBUG) console.log(`Article code changed: ${articleCode}`);
         if (window.DEBUG) console.log(`Set department to: ${department}`);
+        if (window.DEBUG) console.log(`Set work_center to: ${workCenter}`);
 
         this.populate_phases_dropdown().catch(error => console.error('Error populating phases dropdown:', error));
-            this.validate_form_fields();
+        this.validate_form_fields();
+    }
+
+    update_button_states(validation, hasCalculatedValues) {
+        // Update Calculate button state - enabled when form validation passes
+        if (this.elements.calculate_btn) {
+            this.elements.calculate_btn.disabled = !validation.isValid;
+            if (!validation.isValid) {
+                this.elements.calculate_btn.title = 'Please fill in all required fields first';
+                this.elements.calculate_btn.classList.add('btn-disabled');
+            } else {
+                this.elements.calculate_btn.title = 'Click to calculate duration and cost';
+                this.elements.calculate_btn.classList.remove('btn-disabled');
+            }
+        }
+        
+        // Update Create Task button state - enabled when BOTH validation passes AND calculation is done
+        if (this.elements.create_task) {
+            const isCreateTaskEnabled = validation.isValid && hasCalculatedValues;
+            this.elements.create_task.disabled = !isCreateTaskEnabled;
+            
+            if (!isCreateTaskEnabled) {
+                if (!hasCalculatedValues && validation.isValid) {
+                    this.elements.create_task.title = 'Please click Calculate button first to compute duration and cost';
+                    this.elements.create_task.classList.add('btn-waiting');
+                    this.elements.create_task.classList.remove('btn-disabled');
+                } else if (!validation.isValid) {
+                    this.elements.create_task.title = 'Please fill in all required fields';
+                    this.elements.create_task.classList.add('btn-disabled');
+                    this.elements.create_task.classList.remove('btn-waiting');
+                }
+            } else {
+                this.elements.create_task.title = 'Ready to create ODP';
+                this.elements.create_task.classList.remove('btn-disabled', 'btn-waiting');
+            }
+        }
     }
 
     validate_form_fields(updateButtonState = true) {
         const formData = this.collect_form_data();
         const validation = this.validationService.validate_odp(formData, { context: 'form', returnFieldMapping: true });
         
-        const isValid = this.validate_form_with_button_state(validation, this.elements.create_task);
+        // Check if duration and cost have been calculated
+        const hasCalculatedValues = this.current_calculation_results?.totals?.duration > 0 && 
+                                   this.current_calculation_results?.totals?.cost >= 0;
         
-        if (updateButtonState && this.elements.calculate_btn) {
-            this.elements.calculate_btn.disabled = !isValid;
+        // Calculate button is enabled when form validation passes
+        // Create Task button is enabled when BOTH validation passes AND calculation is done
+        const isCalculateEnabled = validation.isValid;
+        const isCreateTaskEnabled = validation.isValid && hasCalculatedValues;
+        
+        if (updateButtonState) {
+            this.update_button_states(validation, hasCalculatedValues);
         }
 
-        if (window.DEBUG) console.log(`Form validation result: ${isValid}`, validation.errors);
+        if (window.DEBUG) console.log(`Form validation result: ${validation.isValid}`, validation.errors);
+        if (window.DEBUG) console.log(`Calculate button enabled: ${isCalculateEnabled}`);
+        if (window.DEBUG) console.log(`Create Task button enabled: ${isCreateTaskEnabled}`);
+        if (window.DEBUG) console.log(`Has calculated values: ${hasCalculatedValues}`, this.current_calculation_results);
         
-        return isValid;
+        // Return true if form validation passes (for Calculate button)
+        // Create Task button will be enabled separately when calculation is done
+        return validation.isValid;
     }
 
     collect_form_data() {
-        const data = {};
-        const fields = [
-            'odp_number', 'article_code', 'production_lot', 'work_center', 'nome_cliente',
-            'delivery_date', 'bag_height', 'bag_width', 'bag_step', 'seal_sides',
-            'product_type', 'quantity', 'fase', 'department'
-        ];
-        fields.forEach(field => {
-            data[field] = this.elements[field]?.value?.trim() || '';
-        });
-        return data;
+        const formData = {
+            odp_number: this.elements.odp_number.value.trim(),
+            article_code: this.elements.article_code.value.trim(),
+            production_lot: this.elements.production_lot.value.trim(),
+            work_center: this.elements.work_center.value.trim(),
+            nome_cliente: this.elements.nome_cliente.value.trim(),
+            bag_height: parseFloat(this.elements.bag_height.value) || 0,
+            bag_width: parseFloat(this.elements.bag_width.value) || 0,
+            bag_step: parseFloat(this.elements.bag_step.value) || 0,
+            quantity: parseInt(this.elements.quantity.value) || 0,
+            quantity_per_box: parseInt(this.elements.quantity_per_box.value) || 0,
+            quantity_completed: parseInt(this.elements.quantity_completed.value) || 0,
+            seal_sides: this.elements.seal_sides.value,
+            product_type: this.elements.product_type.value,
+            delivery_date: this.elements.delivery_date.value,
+            duration: 0, // Will be calculated by the calculate button
+            cost: 0, // Will be calculated by the calculate button
+            internal_customer_code: this.elements.internal_customer_code.value.trim(),
+            external_customer_code: this.elements.external_customer_code.value.trim(),
+            customer_order_ref: this.elements.customer_order_ref.value.trim(),
+            department: this.elements.department.value.trim(),
+            fase: this.elements.fase.value.trim()
+        };
+        
+        // Calculate n_boxes
+        formData.n_boxes = formData.quantity_per_box > 0 ? Math.ceil(formData.quantity / formData.quantity_per_box) : 0;
+        
+        return formData;
     }
 
     update_bag_preview() {
@@ -237,6 +314,9 @@ export class BacklogManager extends BaseManager {
         this.update_result_field('packaging_cost', results.packaging.cost.toFixed(2));
         this.update_result_field('total_duration', results.totals.duration.toFixed(2));
         this.update_result_field('total_cost', results.totals.cost.toFixed(2));
+        
+        // Re-validate form to enable Create Task button now that duration and cost are calculated
+        this.validate_form_fields(true);
     }
 
     update_result_field(fieldId, value) {
@@ -260,33 +340,15 @@ export class BacklogManager extends BaseManager {
         }
         
         try {
-            const formData = this.collect_form_data();
-            const validation = this.validationService.validate_odp(formData, { context: 'submission' });
-            
-            if (!validation.isValid) {
-                this.show_error_message('validating production order', new Error('Validation failed: ' + validation.errors.join(', ')));
-                this.elements.create_task.disabled = false;
-                return;
-            }
-
             const orderData = {
                 ...this.collect_form_data(),
-                delivery_date: this.elements.delivery_date.value,
-                bag_height: parseInt(this.elements.bag_height.value) || 0,
-                bag_width: parseInt(this.elements.bag_width.value) || 0,
-                bag_step: parseInt(this.elements.bag_step.value) || 0,
-                seal_sides: this.elements.seal_sides.value,
-                product_type: this.elements.product_type.value,
-                quantity: parseInt(this.elements.quantity.value) || 0,
-                internal_customer_code: this.elements.internal_customer_code.value.trim(),
-                external_customer_code: this.elements.external_customer_code.value.trim(),
-                customer_order_ref: this.elements.customer_order_ref.value.trim(),
+                quantity_completed: 0, // Initialize to 0 - progress and time_remaining will auto-calculate
                 duration: this.current_calculation_results?.totals.duration || 0,
                 cost: this.current_calculation_results?.totals.cost || 0,
                 status: 'NOT SCHEDULED',
                 production_start: null,
                 production_end: null,
-                progress: 0,
+                // Note: progress and time_remaining are now computed columns in the database
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             };
@@ -338,6 +400,11 @@ export class BacklogManager extends BaseManager {
                 <td class="editable-cell" data-field="seal_sides"><span class="static-value">${item.seal_sides || '-'} sides</span>${this.editManager ? this.editManager.create_edit_input('select', item.seal_sides, { options: [{ value: '3', label: '3 sides' }, { value: '4', label: '4 sides' }] }) : ''}</td>
                 <td class="editable-cell" data-field="product_type"><span class="static-value">${Utils.escape_html(item.product_type || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.product_type) : ''}</td>
                 <td class="editable-cell" data-field="quantity"><span class="static-value">${item.quantity || '-'}</span>${this.editManager ? this.editManager.create_edit_input('number', item.quantity, { min: 0 }) : ''}</td>
+                <td class="editable-cell" data-field="quantity_completed"><span class="static-value">${item.quantity_completed || 0}</span>${this.editManager ? this.editManager.create_edit_input('number', item.quantity_completed, { min: 0, max: item.quantity || 999999 }) : ''}</td>
+                <td class="editable-cell" data-field="quantity_per_box"><span class="static-value">${item.quantity_per_box || '-'}</span>${this.editManager ? this.editManager.create_edit_input('number', item.quantity_per_box, { min: 1 }) : ''}</td>
+                <td class="editable-cell" data-field="n_boxes"><span class="static-value">${item.n_boxes || '-'}</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
+                <td class="editable-cell" data-field="progress"><span class="static-value">${item.progress || 0}%</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
+                <td class="editable-cell" data-field="time_remaining"><span class="static-value">${item.time_remaining || item.duration || '-'} h</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
                 <td class="editable-cell" data-field="production_start"><span class="static-value">${item.scheduled_start_time ? this.format_production_start(item.scheduled_start_time) : (item.production_start ? this.format_production_start(item.production_start) : '-')}</span>${this.editManager ? this.editManager.create_edit_input('datetime-local', item.production_start) : ''}</td>
                 <td class="editable-cell" data-field="production_end"><span class="static-value">${item.scheduled_end_time ? this.format_production_end(item.scheduled_end_time) : (item.production_end ? this.format_production_end(item.production_end) : '-')}</span>${this.editManager ? this.editManager.create_edit_input('datetime-local', item.production_end) : ''}</td>
                 <td class="editable-cell" data-field="delivery_date"><span class="static-value">${item.delivery_date || '-'}</span>${this.editManager ? this.editManager.create_edit_input('datetime-local', item.delivery_date) : ''}</td>
@@ -348,7 +415,8 @@ export class BacklogManager extends BaseManager {
                 <td class="editable-cell" data-field="fase"><span class="static-value">${Utils.escape_html(item.fase || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.fase) : ''}</td>
                 <td class="editable-cell" data-field="duration"><span class="static-value">${item.duration || '-'} h</span>${this.editManager ? this.editManager.create_edit_input('number', item.duration, { min: 0, step: 0.1 }) : ''}</td>
                 <td class="editable-cell" data-field="cost"><span class="static-value">€${item.cost || '-'}</span>${this.editManager ? this.editManager.create_edit_input('number', item.cost, { min: 0, step: 0.01 }) : ''}</td>
-                <td class="editable-cell" data-field="progress"><span class="static-value">${item.progress || 0}%</span>${this.editManager ? this.editManager.create_edit_input('number', item.progress, { min: 0, max: 100, step: 1 }) : ''}</td>
+                <td class="editable-cell" data-field="progress"><span class="static-value">${item.progress || 0}%</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
+                <td class="editable-cell" data-field="time_remaining"><span class="static-value">${item.time_remaining || item.duration || '-'} h</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
                 <td class="editable-cell" data-field="priority"><span class="static-value">${Utils.escape_html(item.priority || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.priority) : ''}</td>
                 <td class="editable-cell" data-field="status"><span class="static-value">${Utils.escape_html(item.status || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.status) : ''}</td>
                 <td class="editable-cell" data-field="scheduled_machine"><span class="static-value">${machineName}</span></td>
@@ -365,7 +433,7 @@ export class BacklogManager extends BaseManager {
         }
 
         const updatedData = this.validate_edit_row(
-            row, ['odp_number', 'article_code', 'production_lot'], ['bag_height', 'bag_width', 'bag_step', 'quantity', 'progress'], { bag_height: 'Bag Height', bag_width: 'Bag Width', bag_step: 'Bag Step', quantity: 'Quantity', progress: 'Progress' }
+            row, ['odp_number', 'article_code', 'production_lot'], ['bag_height', 'bag_width', 'bag_step', 'quantity', 'quantity_completed'], { bag_height: 'Bag Height', bag_width: 'Bag Width', bag_step: 'Bag Step', quantity: 'Quantity', quantity_completed: 'Quantity Completed' }
         );
 
         if (!updatedData) return;
@@ -385,7 +453,7 @@ export class BacklogManager extends BaseManager {
                 }
             });
 
-            ['bag_height', 'bag_width', 'bag_step', 'quantity', 'progress', 'duration', 'cost'].forEach(field => {
+            ['bag_height', 'bag_width', 'bag_step', 'quantity', 'quantity_completed', 'duration', 'cost'].forEach(field => {
                 if (cleanedData[field] === '' || cleanedData[field] === null || cleanedData[field] === undefined) {
                     cleanedData[field] = 0;
                 } else if (typeof cleanedData[field] === 'string') {
@@ -409,13 +477,17 @@ export class BacklogManager extends BaseManager {
     }
     
     custom_clear_form() {
-        if (this.elements.article_code) delete this.elements.article_code.dataset.department;
-        if (this.elements.work_center) this.elements.work_center.value = '';
-        if (this.elements.department) this.elements.department.value = '';
-        this.current_calculation_results = null;
-        this.populate_phases_dropdown().catch(console.error);
-        this.validate_form_fields();
-        this.update_bag_preview();
+        // Clear specific fields that need custom handling
+        if (this.elements.quantity_completed) this.elements.quantity_completed.value = '0';
+        if (this.elements.quantity_per_box) this.elements.quantity_per_box.value = '';
+        
+        // Clear other form fields
+        if (this.elements.seal_sides) this.elements.seal_sides.value = '';
+        if (this.elements.product_type) this.elements.product_type.value = '';
+        if (this.elements.delivery_date) this.elements.delivery_date.value = '';
+        
+        // Update the display
+        this.update_bag_specs_display();
     }
 
     async populate_phases_dropdown() {
@@ -426,9 +498,10 @@ export class BacklogManager extends BaseManager {
             if (!faseDropdown || !phases?.length) return;
             
             faseDropdown.innerHTML = '<option value="">Select production phase</option>';
-            const department = this.elements.department.value;
-            const workCenter = this.elements.work_center.value;
+            const department = this.elements.department?.value;
+            const workCenter = this.elements.work_center?.value;
                 
+            // If department or work_center is set, filter phases; otherwise show all phases
             const relevantPhases = (department || workCenter)
                 ? phases.filter(p => (!department || p.department === department) && (!workCenter || p.work_center === workCenter))
                 : phases;
@@ -439,6 +512,8 @@ export class BacklogManager extends BaseManager {
                 option.textContent = phase.name;
                 faseDropdown.appendChild(option);
             });
+            
+            if (window.DEBUG) console.log(`Populated phases dropdown with ${relevantPhases.length} phases (department: ${department}, work_center: ${workCenter})`);
         } catch (error) {
             console.error("Error populating phases dropdown:", error);
         }
@@ -509,5 +584,20 @@ export class BacklogManager extends BaseManager {
 
     format_production_end(timestamp) {
         return this.format_timestamp_for_display(timestamp);
+    }
+
+    update_bag_specs_display() {
+        const quantity = parseInt(this.elements.quantity.value) || 0;
+        const quantityPerBox = parseInt(this.elements.quantity_per_box.value) || 0;
+        const nBoxes = quantityPerBox > 0 ? Math.ceil(quantity / quantityPerBox) : 0;
+
+        // Update the display fields
+        const displayQuantity = document.getElementById('previewNumeroBuste');
+        const displayQuantityPerBox = document.getElementById('previewPezziScatola');
+        const displayNBoxes = document.getElementById('previewTotalBoxes');
+
+        if (displayQuantity) displayQuantity.textContent = quantity || '-';
+        if (displayQuantityPerBox) displayQuantityPerBox.textContent = quantityPerBox || '-';
+        if (displayNBoxes) displayNBoxes.textContent = nBoxes || '-';
     }
 }

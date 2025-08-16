@@ -108,9 +108,17 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label for="quantity">Quantity *</label>
-                                        <input type="number" id="quantity" placeholder="e.g., 5000" min="0" required>
-            
+                                        <label for="quantity">Quantity</label>
+                                        <input type="number" id="quantity" placeholder="e.g., 1000" min="0" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="quantity_per_box">Quantity per Box</label>
+                                        <input type="number" id="quantity_per_box" placeholder="e.g., 100" min="1" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="quantity_completed">Quantity Completed</label>
+                                        <input type="number" id="quantity_completed" placeholder="e.g., 0" min="0" value="0">
+                                        <small class="form-help">Leave as 0 for new orders - will auto-calculate progress</small>
                                     </div>
                                 </div>
                                 <!-- Visual preview moved inside here -->
@@ -254,6 +262,11 @@
                                 <th>Seal Sides</th>
                                 <th>Product Type</th>
                                 <th>Quantity</th>
+                                <th>Quantity Completed</th>
+                                <th>Quantity per Box</th>
+                                <th>N Boxes</th>
+                                <th>Progress (%)</th>
+                                <th>Time Remaining (h)</th>
                                 
                                 <!-- PIANIFICAZIONE (Planning) -->
                                 <th>Production Start</th>
@@ -273,6 +286,7 @@
                                 <th>Duration (h)</th>
                                 <th>Cost (€)</th>
                                 <th>Progress (%)</th>
+                                <th>Time Remaining (h)</th>
                                 
                                 <!-- Additional fields -->
                                 <th>Priority</th>

@@ -292,6 +292,59 @@ main {
 .btn-cancel { background: #fff3e0; border-color: var(--accent-orange); color: var(--accent-orange); }
 .btn-delete { background: #ffebee; border-color: var(--danger-red); color: var(--danger-red); }
 
+/* Button States for Form Validation */
+.btn-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #9ca3af !important;
+    border-color: #9ca3af !important;
+}
+
+.btn-waiting {
+    opacity: 0.8;
+    cursor: wait;
+    background-color: #f59e0b !important;
+    border-color: #f59e0b !important;
+}
+
+.btn-waiting:hover {
+    background-color: #d97706 !important;
+    border-color: #d97706 !important;
+}
+
+/* Enhanced button tooltips */
+button[title] {
+    position: relative;
+}
+
+button[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #1f2937;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 8px;
+}
+
+button[title]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #1f2937;
+    margin-bottom: 3px;
+    z-index: 1000;
+}
+
 /* ===== TABLE COMPONENTS ===== */
 .table-container {
     background: white;
@@ -1091,6 +1144,80 @@ tr.editing td {
 /* ===== UTILITY & RESPONSIVE ===== */
 .empty-state { text-align: center; color: var(--text-light); font-style: italic; padding: 40px; }
 .machine-inactive { opacity: 0.6; }
+
+/* Drag and Drop Visual Feedback for Work Center Compatibility */
+.time-slot.drag-over {
+    background-color: rgba(59, 130, 246, 0.2);
+    border: 2px dashed #3b82f6;
+}
+
+.time-slot.drag-compatible {
+    background-color: rgba(34, 197, 94, 0.2);
+    border: 2px dashed #22c55e;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+}
+
+.time-slot.drag-incompatible {
+    background-color: rgba(239, 68, 68, 0.2);
+    border: 2px dashed #ef4444;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+.time-slot.drag-incompatible::after {
+    content: "❌";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
+    color: #ef4444;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.time-slot.drag-compatible::after {
+    content: "✅";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
+    color: #22c55e;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Task Pool Work Center Display */
+.task-item {
+    position: relative;
+}
+
+.task-item .work-center-info {
+    font-size: 11px;
+    color: #6b7280;
+    font-style: italic;
+    margin-left: 8px;
+}
+
+/* Machine Work Center Display Enhancement */
+.machine-city {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+/* Enhanced error message styling */
+.message.error {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 8px 0;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 
 @media (max-width: 1024px) {
     .sidebar { width: 240px; }
