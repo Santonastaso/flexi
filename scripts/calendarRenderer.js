@@ -12,8 +12,6 @@ class CalendarRenderer {
         this.machine_name = machine_name;
         this.current_date = new Date();
         this.current_view = 'month';
-        this.start_hour = 0;
-        this.end_hour = 24;
         
         // Bind methods to preserve context
         this.handle_calendar_click = this.handle_calendar_click.bind(this);
@@ -118,7 +116,6 @@ class CalendarRenderer {
         
         for (let month = 0; month < 12; month++) {
             const is_current_month = year === current_year && month === current_month;
-            const month_events = this.get_month_event_count(year, month);
             
             html += `
                 <div class="month-cell ${is_current_month ? 'current-month' : ''}" 
@@ -127,7 +124,6 @@ class CalendarRenderer {
                     <div class="month-mini-calendar">
                         ${this.render_mini_month(year, month)}
                     </div>
-                    ${month_events > 0 ? `<div class="event-indicator">${month_events} events</div>` : ''}
                 </div>
             `;
         }
@@ -186,7 +182,7 @@ class CalendarRenderer {
                             ${is_partially_unavailable ? '<span class="partially-unavailable-indicator">⚠</span>' : ''}
                         </div>
                         <div class="day-events">
-                            ${this.render_day_events(events)}
+                            ${events.length > 0 ? `<div class="day-event">${events.length} event(s)</div>` : ""}
                         </div>
                     </div>
                 `;
@@ -235,7 +231,7 @@ class CalendarRenderer {
                     ${weekDays.map(day => `
                         <div class="day-column-header">
                             <div class="day-name">${day.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                            <div class="day-number ${this.is_today(day) ? 'today' : ''}">${day.getDate()}</div>
+                            <div class="day-number ${Utils.is_date_today(day) ? 'today' : ''}">${day.getDate()}</div>
                         </div>
                     `).join('')}
                 </div>
@@ -263,27 +259,7 @@ class CalendarRenderer {
         this.load_availability_for_week_view(date);
     }
     
-    render_week_time_slots(days) {
-        let html = '';
-        
-        for (let hour = this.start_hour; hour < this.end_hour; hour++) {
-            html += `
-                <div class="time-row" data-hour="${hour}">
-                    <div class="time-label">${this.format_hour(hour)}</div>
-                    ${days.map(day => {
-                        const date_str = Utils.format_date(day);
-                        return `
-                            <div class="time-slot" data-date="${date_str}" data-hour="${hour}">
-                                <div class="time-slot-content"></div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            `;
-        }
-        
-        return html;
-    }
+
     
     render_mini_month(year, month) {
         const first_day = new Date(year, month, 1);
@@ -297,11 +273,9 @@ class CalendarRenderer {
         for (let week = 0; week < 6; week++) {
             for (let day = 0; day < 7; day++) {
                 const is_current_month = current.getMonth() === month;
-                // For mini month, we'll use placeholder data to avoid async calls during render
-                const has_events = false; // Will be updated when data loads
                 
                 html += `
-                    <div class="mini-day ${is_current_month ? 'current-month' : ''} ${has_events ? 'has-events' : ''}"
+                    <div class="mini-day ${is_current_month ? 'current-month' : ''}"
                          data-year="${year}" 
                          data-month="${month}" 
                          data-day="${current.getDate()}"
@@ -319,21 +293,9 @@ class CalendarRenderer {
         return html;
     }
     
-    render_day_events(events) {
-        return events.slice(0, 3).map(event => `
-            <div class="day-event ${event.type}" title="${event.title}">
-                ${event.title}
-            </div>
-        `).join('') + (events.length > 3 ? `<div class="more-events">+${events.length - 3} more</div>` : '');
-    }
+
     
-    render_time_slot_events(events) {
-        return events.map(event => `
-            <div class="time-slot-event ${event.type}" title="${event.title}">
-                ${event.title}
-            </div>
-        `).join('');
-    }
+
     
     handle_calendar_click(e) {
         // Find the closest clickable element
@@ -500,7 +462,7 @@ class CalendarRenderer {
                 }
                 
                 if (machineEvents.length > 0) {
-                    html += this.render_time_slot_events(machineEvents);
+                    html += `<div class="time-slot-event">${machineEvents.length} event(s)</div>`;
                 }
                 
                 contentDiv.innerHTML = html;
@@ -559,24 +521,6 @@ class CalendarRenderer {
     // Utility methods
     get_start_of_week(date) {
         return Utils.get_start_of_week(date);
-    }
-    
-    get_month_event_count(year, month) {
-        if (!this.machine_name) return 0;
-        // For now, return 0 to avoid async calls during render
-        return 0;
-    }
-    
-    format_hour(hour) {
-        return Utils.format_hour(hour);
-    }
-    
-    get_day_name(day_index, short = false) {
-        return Utils.get_day_of_week_name(day_index, short);
-    }
-    
-    is_today(date) {
-        return Utils.is_date_today(date);
     }
 }
 

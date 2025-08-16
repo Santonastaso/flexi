@@ -11,7 +11,6 @@ import { initialize_navigation } from '../components/navigation.js';
 import { BacklogManager } from './backlog-manager.js';
 import { MachineryManager } from './machinery-manager.js';
 import { PhasesManager } from './phases-manager.js';
-import { BusinessLogicService } from './businessLogicService.js';
 import { Scheduler } from './scheduler.js';
 import { MachineCalendarManager } from './machineCalendarManager.js';
 import { asyncHandler } from './utils.js';
