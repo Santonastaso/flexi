@@ -769,6 +769,13 @@ tr.editing td {
 .unavailable-indicator { 
     color: var(--danger-red); 
     font-weight: 800; 
+    font-size: 24px; 
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 .partially-unavailable-indicator { 
@@ -871,13 +878,23 @@ tr.editing td {
     border-radius: 12px; 
     overflow: hidden; 
     border: 1px solid var(--border-color); 
+    width: 100%;
 }
 
 .week-header { 
-    display: grid; 
-    grid-template-columns: 80px repeat(7, 1fr); 
+    display: flex !important; 
     background: var(--bg-color); 
     border-bottom: 1px solid var(--border-color); 
+    width: 100%;
+}
+
+.week-header > * {
+    flex: 1;
+    min-width: 0;
+}
+
+.week-header > *:first-child {
+    flex: 0 0 80px;
 }
 
 .time-column-header { 
@@ -931,17 +948,23 @@ tr.editing td {
 .week-body { 
     display: flex; 
     flex-direction: column; 
+    width: 100%;
 }
 
 .time-row { 
-    display: grid; 
-    grid-template-columns: 80px repeat(7, 1fr); 
+    display: flex !important; 
     border-bottom: 1px solid var(--border-color); 
     min-height: 60px; 
+    width: 100%;
 }
 
-.time-row:last-child { 
-    border-bottom: none; 
+.time-row > * {
+    flex: 1;
+    min-width: 0;
+}
+
+.time-row > *:first-child {
+    flex: 0 0 80px;
 }
 
 .time-label { 
@@ -960,6 +983,12 @@ tr.editing td {
     position: relative; 
     cursor: pointer; 
     transition: background-color 0.2s ease; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
 }
 
 .time-slot:last-child { 
@@ -972,16 +1001,40 @@ tr.editing td {
 
 .time-slot.unavailable { 
     background-color: rgba(239, 68, 68, 0.1); 
+    cursor: pointer; /* Make unavailable slots clickable for toggling */
+    border: 1px solid rgba(239, 68, 68, 0.3); /* Subtle border to show it's interactive */
+    transition: all 0.2s ease; /* Smooth transitions for hover effects */
+}
+
+.time-slot.unavailable:hover { 
+    background-color: rgba(239, 68, 68, 0.2); /* Darker on hover to show it's clickable */
+    border-color: rgba(239, 68, 68, 0.6); /* Darker border on hover */
+    transform: scale(1.02); /* Slight scale effect on hover */
 }
 
 .time-slot.has-events { 
     background-color: rgba(37, 99, 235, 0.1); 
 }
 
+.time-slot-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60px;
+    box-sizing: border-box;
+}
+
 .unavailable-indicator { 
     color: var(--danger-red); 
     font-weight: 800; 
     font-size: 16px; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
 }
 
 .time-slot-event { 
@@ -1028,8 +1081,8 @@ tr.editing td {
 .time-slot:nth-child(4n+1) { border-right: 2px solid var(--border-color); background: var(--gray-light); }
 .time-slot:hover { background: rgba(37, 99, 235, 0.05); }
 .time-slot.drag-over { background: rgba(37, 99, 235, 0.2); border: 2px solid var(--primary-blue); transform: scale(1.02); }
-.time-slot.unavailable { background: rgba(239, 68, 68, 0.1); cursor: not-allowed; }
-.time-slot.unavailable::before { content: '×'; position: absolute; inset: 0; display: grid; place-content: center; color: var(--danger-red); font-weight: 800; font-size: 16px; }
+.time-slot.unavailable { background: rgba(239, 68, 68, 0.1); cursor: pointer; }
+/* Removed old Gantt-style unavailable indicator */
 /* --- Scheduled Event --- */
 .scheduled-event { position: absolute; top: 4px; bottom: 4px; left: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; padding: 8px; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: grab; user-select: none; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s ease; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; z-index: 10; }
 .scheduled-event:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }

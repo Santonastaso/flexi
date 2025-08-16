@@ -230,6 +230,19 @@ class CalendarRenderer {
         `;
         
         this.container.innerHTML = html;
+        
+        // Debug: Log the actual HTML structure
+        console.log('🔍 Rendered week view HTML:', this.container.innerHTML);
+        console.log('🔍 Time slots found:', this.container.querySelectorAll('.time-slot').length);
+        console.log('🔍 Day headers found:', this.container.querySelectorAll('.day-column-header').length);
+        
+        // Debug: Check grid layout
+        const header = this.container.querySelector('.week-header');
+        const firstRow = this.container.querySelector('.time-row');
+        if (header && firstRow) {
+            console.log('🔍 Header grid columns:', getComputedStyle(header).gridTemplateColumns);
+            console.log('🔍 Time row grid columns:', getComputedStyle(firstRow).gridTemplateColumns);
+        }
     }
     
     render_week_time_slots(days) {
@@ -241,6 +254,7 @@ class CalendarRenderer {
                     <div class="time-label">${this.format_hour(hour)}</div>
                     ${days.map(day => {
                         const date_str = Utils.format_date(day);
+                        console.log(`🔍 Rendering time slot for ${date_str} at hour ${hour}`);
                         return `
                             <div class="time-slot" data-date="${date_str}" data-hour="${hour}">
                                 <div class="time-slot-content"></div>
@@ -301,9 +315,17 @@ class CalendarRenderer {
     }
     
     handle_calendar_click(e) {
+        console.log('🔍 Calendar click detected:', e.target);
+        console.log('🔍 Target dataset:', e.target.dataset);
+        console.log('🔍 Closest data-date:', e.target.closest('[data-date]'));
+        console.log('🔍 Closest data-hour:', e.target.closest('[data-hour]'));
+        
         const target = e.target.closest('[data-year][data-month]') || 
                       e.target.closest('[data-week]') ||
                       e.target.closest('[data-date]');
+        
+        console.log('🔍 Final target:', target);
+        console.log('🔍 Target dataset:', target?.dataset);
         
         if (!target) return;
         
@@ -322,6 +344,7 @@ class CalendarRenderer {
             }
         } else if (target.dataset.date && target.dataset.hour) {
             // Time slot click - toggle availability
+            console.log('🔍 Time slot clicked:', target.dataset.date, target.dataset.hour);
             this.handle_time_slot_click(target.dataset.date, parseInt(target.dataset.hour));
         }
     }
@@ -371,7 +394,18 @@ class CalendarRenderer {
         
         console.log('🔍 Updating week view with availability data');
         
-        // For each availability record, mark the time slots as unavailable
+        // First, clear all unavailable indicators from the current week
+        const allTimeSlots = this.container.querySelectorAll('.time-slot');
+        allTimeSlots.forEach(slot => {
+            slot.classList.remove('unavailable');
+            slot.dataset.unavailable = 'false';
+            const content = slot.querySelector('.time-slot-content');
+            if (content) {
+                content.innerHTML = '';
+            }
+        });
+        
+        // Then, mark the currently unavailable slots
         availabilityData.forEach(record => {
             const { date, unavailable_hours } = record;
             
