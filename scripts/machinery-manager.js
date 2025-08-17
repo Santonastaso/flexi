@@ -11,6 +11,7 @@ import { editManager } from './editManager.js';
 import { Utils, renderDiff } from './utils.js';
 import { appStore } from './store.js'; // Import the store
 import { attachFormValidationListeners } from './utils.js';
+import { show_delete_confirmation } from './banner.js'; // Import delete confirmation
 
 export class MachineryManager extends BaseManager {
     constructor() {
@@ -338,18 +339,14 @@ export class MachineryManager extends BaseManager {
             // await storageService.validate_machine_can_be_deleted(machineId); // This would also become a store action
             const message = `Are you sure you want to delete "${machine_name}"? This action cannot be undone.`;
 
-            if (typeof window.show_delete_confirmation === 'function') {
-                window.show_delete_confirmation(message, async () => {
-                    try {
-                        // await appStore.removeMachine(machineId); // The future refactored call
-                        this.show_success_message('Machine deleted successfully');
-                    } catch (error) {
-                        this.show_error_message('deleting machine', new Error('Failed to delete machine'));
-                    }
-                });
-            } else {
-                throw new Error('Delete confirmation dialog not available');
-            }
+            show_delete_confirmation(message, async () => {
+                try {
+                    await appStore.removeMachine(machineId);
+                    this.show_success_message('Machine deleted successfully');
+                } catch (error) {
+                    this.show_error_message('deleting machine', new Error('Failed to delete machine'));
+                }
+            });
         } catch (error) {
             this.show_error_message('deleting machine', error);
         }

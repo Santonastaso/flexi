@@ -231,6 +231,18 @@ export const appStore = {
         return true;
     },
 
+    /**
+     * Remove a machine from the store
+     * @param {string} id - The machine ID to remove
+     * @returns {boolean} True if successful
+     */
+    async removeMachine(id) {
+        await storageService.remove_machine(id);
+        state.machines = state.machines.filter(machine => machine.id !== id);
+        _notify();
+        return true;
+    },
+
     // --- Scheduler Actions ---
     async scheduleTask(taskId, eventData) {
         try {

@@ -8,6 +8,7 @@ import { editManager } from './editManager.js';
 import { Utils } from './utils.js';
 import { appStore } from './store.js'; // Import the store
 import { attachEventListeners, attachFormValidationListeners, renderDiff } from './utils.js'; // Import renderDiff
+import { show_delete_confirmation } from './banner.js'; // Import delete confirmation
 
 export class BacklogManager extends BaseManager {
     constructor() {
