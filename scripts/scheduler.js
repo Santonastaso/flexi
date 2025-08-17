@@ -1,11 +1,13 @@
 /**
  * Production Scheduler - Now uses unified CalendarRenderer
  * Optimized for performance and maintainability.
+ * Enhanced with component system for better UI management.
  */
 import { BusinessLogicService } from './businessLogicService.js';
 import { Utils } from './utils.js';
 import { appStore } from './store.js'; // Import the store
 import { CalendarRenderer } from './calendarRenderer.js'; // Import unified calendar renderer
+import { schedulerComponents } from './schedulerComponents.js'; // Import scheduler components
 
 export class Scheduler {
     constructor() {
@@ -62,8 +64,16 @@ export class Scheduler {
         this.currentOdpOrders = odpOrders;
 
         if (isLoading) {
-            this.elements.task_pool.innerHTML = '<div class="empty-state">Loading...</div>';
-            this.elements.calendar_container.innerHTML = '<div class="empty-state">Loading...</div>';
+            // Use component system for loading states
+            const loadingData = { message: 'Loading...' };
+            this.elements.task_pool.innerHTML = '';
+            this.elements.calendar_container.innerHTML = '';
+            
+            const taskPoolLoading = schedulerComponents.render('loading-state', loadingData);
+            const calendarLoading = schedulerComponents.render('loading-state', loadingData);
+            
+            this.elements.task_pool.appendChild(taskPoolLoading);
+            this.elements.calendar_container.appendChild(calendarLoading);
             return;
         }
 
@@ -295,77 +305,92 @@ export class Scheduler {
     
     _create_task_element(task) {
         const duration = parseFloat(task.time_remaining) || parseFloat(task.duration) || 1;
-        const taskElement = this._createElement('div', { className: 'task-item', dataset: { taskId: task.id }});
+        
+        // Use component system instead of manual DOM creation
+        const taskData = {
+            id: task.id,
+            odp_number: task.odp_number || 'Unknown Task',
+            work_center: task.work_center,
+            duration: duration,
+            color: task.color || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+        };
+        
+        const taskElement = schedulerComponents.render('task-element', taskData);
+        
+        // Add drag functionality
         taskElement.draggable = true;
-        taskElement.style.background = task.color || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-        
-        const workCenterInfo = task.work_center ? ` (${task.work_center})` : '';
-        taskElement.innerHTML = `<span>${task.odp_number || 'Unknown Task'}${workCenterInfo}</span><span class="task-duration">${duration}h</span>`;
-        if (task.work_center) {
-            taskElement.title = `Work Center: ${task.work_center}`;
-        }
-        
         taskElement.addEventListener('dragstart', (e) => this._start_drag(e, taskElement, 'task', task));
         taskElement.addEventListener('dragend', () => this._end_drag(taskElement));
+        
         return taskElement;
     }
     
     // --- [RESTORED] Method to create the calendar header ---
     _create_calendar_header(container) {
-        const headerRow = this._createElement('div', { className: 'calendar-header-row' });
-        headerRow.appendChild(this._createElement('div', { className: 'machine-label-header', textContent: 'Machines' }));
-        const timeHeader = this._createElement('div', { className: 'time-header' });
-        for (let slot = 0; slot < 96; slot++) {
-            const minute = (slot % 4) * 15;
-            const textContent = minute === 0 ? `${Math.floor(slot / 4)}`.padStart(2, '0') : '';
-            timeHeader.appendChild(this._createElement('div', { className: 'time-slot-header', textContent }));
-        }
-        headerRow.appendChild(timeHeader);
-        container.appendChild(headerRow);
+        // Use component system instead of manual DOM creation
+        const headerElement = schedulerComponents.render('calendar-header');
+        container.appendChild(headerElement);
     }
 
     _create_machine_row(machine, odpOrders, machineAvailability, machines) {
         const allScheduledEvents = this._mapOdpToEvents(odpOrders.filter(order => order.status === 'SCHEDULED'), machines);
 
-        const machineRow = this._createElement('div', { className: 'machine-row', dataset: { machine: machine.id, machineName: machine.machine_name } });
-        const machineLabel = this._createElement('div', { className: 'machine-label' });
-        machineLabel.innerHTML = `<div class="machine-name">${machine.machine_name}</div><div class="machine-city">${machine.work_center || ''}</div>`;
-        machineRow.appendChild(machineLabel);
-
-        const machineSlots = this._createElement('div', { className: 'machine-slots' });
+        // Prepare data for component rendering
+        const slots = [];
         for (let slotIdx = 0; slotIdx < 96; slotIdx++) {
             const hour = Math.floor(slotIdx / 4);
             const isUnavailable = this._is_slot_unavailable(machine.machine_name, hour, machineAvailability);
-            const slot = this._createElement('div', {
-                className: `time-slot ${isUnavailable ? 'unavailable' : ''}`,
-                dataset: { hour, minute: (slotIdx % 4) * 15, machine: machine.id, machineName: machine.machine_name, workCenter: machine.work_center, unavailable: isUnavailable }
+            slots.push({
+                hour,
+                minute: (slotIdx % 4) * 15,
+                machineId: machine.id,
+                machineName: machine.machine_name,
+                workCenter: machine.work_center,
+                isUnavailable
             });
-            if (isUnavailable) {
-                slot.innerHTML = '<span class="unavailable-indicator">X</span>';
-                slot.title = `Machine unavailable from ${hour}:00 to ${hour + 1}:00`;
-            }
-            this._setup_slot_drop_zone(slot, machines);
-            machineSlots.appendChild(slot);
         }
-        
-        allScheduledEvents
+
+        // Prepare scheduled events data
+        const scheduledEvents = allScheduledEvents
             .filter(event => event.machineId === machine.id && this._is_event_visible(event))
-            .forEach(event => {
+            .map(event => {
                 const position = this._calculate_event_position(event);
-                if (!position || position.width <= 0) return;
-                const eventElement = this._createElement('div', {
-                    className: 'scheduled-event',
-                    dataset: { eventId: event.id, taskId: event.taskId },
-                    textContent: event.taskTitle
-                });
-                Object.assign(eventElement.style, { background: event.color, left: `${position.left}%`, width: `${position.width}%` });
+                if (!position || position.width <= 0) return null;
+                return {
+                    id: event.id,
+                    taskId: event.taskId,
+                    taskTitle: event.taskTitle,
+                    color: event.color,
+                    position: position
+                };
+            })
+            .filter(Boolean);
+
+        // Use component system instead of manual DOM creation
+        const machineData = {
+            machine: machine,
+            slots: slots,
+            scheduledEvents: scheduledEvents
+        };
+
+        const machineRow = schedulerComponents.render('scheduler-machine-row', machineData);
+
+        // Setup drop zones for slots and events
+        const timeSlots = machineRow.querySelectorAll('.time-slot');
+        timeSlots.forEach((slot, index) => {
+            this._setup_slot_drop_zone(slot, machines);
+        });
+
+        const scheduledEventElements = machineRow.querySelectorAll('.scheduled-event');
+        scheduledEventElements.forEach((eventElement, index) => {
+            const event = scheduledEvents[index];
+            if (event) {
                 eventElement.draggable = true;
                 eventElement.addEventListener('dragstart', (e) => this._start_drag(e, eventElement, 'event', event));
                 eventElement.addEventListener('dragend', () => this._end_drag(eventElement));
-                machineSlots.appendChild(eventElement);
-            });
+            }
+        });
 
-        machineRow.appendChild(machineSlots);
         return machineRow;
     }
     

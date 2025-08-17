@@ -1,11 +1,13 @@
 /**
- * Dashboard Manager
+ * Enhanced Dashboard Manager
  * 
  * Manages the production dashboard display and calculations
- * Uses existing data structures without modification
+ * Uses the new component system for declarative rendering
+ * Replaces HTML injection with reusable components
  */
 import { appStore } from './store.js';
 import { Utils } from './utils.js';
+import { dashboardComponents } from './dashboardComponents.js';
 
 class DashboardManager {
     constructor() {
@@ -32,7 +34,8 @@ class DashboardManager {
             'active_machines', 'avg_utilization', 'peak_hours', 'idle_machines',
             'on_time_delivery', 'avg_cycle_time', 'setup_time', 'quality_rate',
             'printing_performance', 'packaging_performance', 'assembly_performance', 'quality_performance',
-            'production_trends_chart', 'machine_status_chart', 'recent_activity_list'
+            'production_trends_chart', 'machine_status_chart', 'recent_activity_list',
+            'metrics_grid', 'charts_section'
         ];
         
         elementIds.forEach(id => this.elements[id] = document.getElementById(id));
@@ -73,10 +76,11 @@ class DashboardManager {
             // Calculate metrics
             const metrics = this._calculate_metrics(state);
             
-            // Update UI
-            this._update_metrics_display(metrics);
-            this._update_charts(state);
-            this._update_recent_activity(state);
+            // Prepare component data
+            const componentData = this._prepare_component_data(metrics, state);
+            
+            // Update UI using components
+            this._update_dashboard_with_components(componentData);
             
             console.log('✅ [Dashboard] Dashboard data loaded successfully');
         } catch (error) {
@@ -300,6 +304,202 @@ class DashboardManager {
         });
         
         return performance;
+    }
+
+    /**
+     * Prepare data for component rendering
+     * @param {Object} metrics - Calculated metrics
+     * @param {Object} state - Application state
+     * @returns {Object} Component data structure
+     */
+    _prepare_component_data(metrics, state) {
+        // Prepare metrics grid data
+        const metricsData = [
+            {
+                type: 'production-overview',
+                title: 'Production Overview',
+                period: 'This Month',
+                metrics: [
+                    { label: 'Total Orders', value: metrics.production.totalOrders },
+                    { label: 'Completed', value: metrics.production.completedOrders },
+                    { label: 'In Progress', value: metrics.production.inProgressOrders },
+                    { label: 'Completion Rate', value: metrics.production.completionRate }
+                ]
+            },
+            {
+                type: 'machine-utilization',
+                title: 'Machine Utilization',
+                period: 'Current Week',
+                metrics: [
+                    { label: 'Active Machines', value: metrics.machines.activeMachines },
+                    { label: 'Avg. Utilization', value: metrics.machines.avgUtilization },
+                    { label: 'Peak Hours', value: metrics.machines.peakHours },
+                    { label: 'Idle Machines', value: metrics.machines.idleMachines }
+                ]
+            },
+            {
+                type: 'efficiency-metrics',
+                title: 'Efficiency Metrics',
+                period: 'Last 30 Days',
+                metrics: [
+                    { label: 'On-Time Delivery', value: metrics.efficiency.onTimeDelivery },
+                    { label: 'Avg. Cycle Time', value: metrics.efficiency.avgCycleTime },
+                    { label: 'Setup Time', value: metrics.efficiency.setupTime },
+                    { label: 'Quality Rate', value: metrics.efficiency.qualityRate }
+                ]
+            },
+            {
+                type: 'department-performance',
+                title: 'Department Performance',
+                period: 'Current Period',
+                metrics: [
+                    { label: 'Printing', value: metrics.departments.printing },
+                    { label: 'Packaging', value: metrics.departments.packaging },
+                    { label: 'Assembly', value: metrics.departments.assembly },
+                    { label: 'Quality Control', value: metrics.departments.quality }
+                ]
+            }
+        ];
+
+        // Prepare production trends data
+        const ordersByStatus = {
+            'PENDING': state.odpOrders.filter(o => o.status === 'PENDING').length,
+            'IN_PROGRESS': state.odpOrders.filter(o => o.status === 'IN_PROGRESS').length,
+            'SCHEDULED': state.odpOrders.filter(o => o.status === 'SCHEDULED').length,
+            'COMPLETED': state.odpOrders.filter(o => o.status === 'COMPLETED').length
+        };
+
+        const totalOrders = state.odpOrders.length;
+        const completionRate = totalOrders > 0 ? (ordersByStatus.COMPLETED / totalOrders * 100).toFixed(1) : 0;
+
+        const productionTrendsData = {
+            ordersByStatus,
+            completionRate,
+            totalOrders
+        };
+
+        // Prepare machine status data
+        const machineStatus = {
+            'ACTIVE': state.machines.filter(m => m.status === 'ACTIVE').length,
+            'INACTIVE': state.machines.filter(m => m.status === 'INACTIVE').length,
+            'MAINTENANCE': state.machines.filter(m => m.status === 'MAINTENANCE').length || 0
+        };
+
+        const totalMachines = state.machines.length;
+        const utilizationRate = totalMachines > 0 ? (machineStatus.ACTIVE / totalMachines * 100).toFixed(1) : 0;
+
+        const machineStatusData = {
+            machineStatus,
+            utilizationRate,
+            totalMachines
+        };
+
+        // Prepare recent activity data
+        const recentOrders = state.odpOrders
+            .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+            .slice(0, 5);
+
+        const activityData = {
+            activities: recentOrders
+        };
+
+        // Prepare header data
+        const headerData = {
+            title: 'Production Dashboard',
+            dateFrom: Utils.format_date(this.currentDateRange.from),
+            dateTo: Utils.format_date(this.currentDateRange.to)
+        };
+
+        return {
+            header: headerData,
+            metrics: metricsData,
+            charts: {
+                productionTrends: productionTrendsData,
+                machineStatus: machineStatusData
+            },
+            activity: activityData
+        };
+    }
+
+    /**
+     * Update dashboard using component system
+     * @param {Object} componentData - Prepared component data
+     */
+    _update_dashboard_with_components(componentData) {
+        try {
+            // Update metrics grid
+            if (this.elements.metrics_grid) {
+                dashboardComponents.updateContainer(
+                    this.elements.metrics_grid,
+                    'metric-card',
+                    componentData.metrics
+                );
+            }
+
+            // Update charts section
+            if (this.elements.charts_section) {
+                dashboardComponents.updateContainer(
+                    this.elements.charts_section,
+                    'charts-section',
+                    [componentData.charts]
+                );
+            }
+
+            // Update recent activity
+            if (this.elements.recent_activity_list) {
+                dashboardComponents.updateContainer(
+                    this.elements.recent_activity_list,
+                    'activity-item',
+                    componentData.activity.activities
+                );
+            }
+
+            console.log('✅ [Dashboard] Dashboard updated with components successfully');
+        } catch (error) {
+            console.error('❌ [Dashboard] Error updating dashboard with components:', error);
+            // Fallback to old method if components fail
+            this._fallback_update_method(componentData);
+        }
+    }
+
+    /**
+     * Fallback update method if components fail
+     * @param {Object} componentData - Component data
+     */
+    _fallback_update_method(componentData) {
+        console.log('⚠️ [Dashboard] Using fallback update method');
+        
+        // Extract metrics for fallback
+        const metrics = {
+            production: {
+                totalOrders: componentData.metrics[0].metrics[0].value,
+                completedOrders: componentData.metrics[0].metrics[1].value,
+                inProgressOrders: componentData.metrics[0].metrics[2].value,
+                completionRate: componentData.metrics[0].metrics[3].value
+            },
+            machines: {
+                activeMachines: componentData.metrics[1].metrics[0].value,
+                avgUtilization: componentData.metrics[1].metrics[1].value,
+                peakHours: componentData.metrics[1].metrics[2].value,
+                idleMachines: componentData.metrics[1].metrics[3].value
+            },
+            efficiency: {
+                onTimeDelivery: componentData.metrics[2].metrics[0].value,
+                avgCycleTime: componentData.metrics[2].metrics[1].value,
+                setupTime: componentData.metrics[2].metrics[2].value,
+                qualityRate: componentData.metrics[2].metrics[3].value
+            },
+            departments: {
+                printing: componentData.metrics[3].metrics[0].value,
+                packaging: componentData.metrics[3].metrics[1].value,
+                assembly: componentData.metrics[3].metrics[2].value,
+                quality: componentData.metrics[3].metrics[3].value
+            }
+        };
+
+        this._update_metrics_display(metrics);
+        this._update_charts_fallback(componentData.charts);
+        this._update_recent_activity_fallback(componentData.activity);
     }
 
     _update_metrics_display(metrics) {
@@ -995,6 +1195,102 @@ class DashboardManager {
                 </div>
             </div>
         `;
+    }
+
+    /**
+     * Fallback chart update method
+     * @param {Object} chartsData - Charts data
+     */
+    _update_charts_fallback(chartsData) {
+        // Update production trends chart
+        if (this.elements.production_trends_chart) {
+            const { productionTrends } = chartsData;
+            this.elements.production_trends_chart.innerHTML = `
+                <div style="padding: 1.5rem;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                        <div style="text-align: center; padding: 1rem; background: #f3f4f6; border-radius: 8px;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #059669;">${productionTrends.ordersByStatus.COMPLETED}</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Completed</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: #f3f4f6; border-radius: 8px;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #dc2626;">${productionTrends.ordersByStatus.IN_PROGRESS}</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">In Progress</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: #f3f4f6; border-radius: 8px;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #2563eb;">${productionTrends.ordersByStatus.SCHEDULED}</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Scheduled</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: #f3f4f6; border-radius: 8px;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #7c3aed;">${productionTrends.ordersByStatus.PENDING}</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Pending</div>
+                        </div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: #dbeafe; border-radius: 8px;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: #1d4ed8;">Completion Rate: ${productionTrends.completionRate}%</div>
+                        <div style="font-size: 0.875rem; color: var(--text-light);">${productionTrends.totalOrders} total orders</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update machine status chart
+        if (this.elements.machine_status_chart) {
+            const { machineStatus } = chartsData;
+            this.elements.machine_status_chart.innerHTML = `
+                <div style="padding: 1.5rem;">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                        <div style="text-align: center; padding: 1rem; background: #dcfce7; border-radius: 8px;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #059669;">${machineStatus.machineStatus.ACTIVE}</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Active</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: #fef2f2; border-radius: 8px;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #dc2626;">${machineStatus.machineStatus.INACTIVE}</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Inactive</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: #fef3c7; border-radius: 8px;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #d97706;">${machineStatus.machineStatus.MAINTENANCE}</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Maintenance</div>
+                        </div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: #dbeafe; border-radius: 8px;">
+                        <div style="font-size: 1.25rem; font-weight: 700; color: #1d4ed8;">Utilization: ${machineStatus.utilizationRate}%</div>
+                        <div style="font-size: 0.875rem; color: var(--text-light);">${machineStatus.totalMachines} total machines</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Fallback recent activity update method
+     * @param {Object} activityData - Activity data
+     */
+    _update_recent_activity_fallback(activityData) {
+        if (!this.elements.recent_activity_list) return;
+        
+        const { activities } = activityData;
+        
+        if (activities.length === 0) {
+            this.elements.recent_activity_list.innerHTML = '<div class="empty-state">No recent activity</div>';
+            return;
+        }
+        
+        const activityHTML = activities.map(order => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-bottom: 1px solid var(--border-color);">
+                <div>
+                    <div style="font-weight: 600; color: var(--text-dark);">${order.odp_number || 'N/A'}</div>
+                    <div style="font-size: 0.875rem; color: var(--text-light);">${order.article_code || 'N/A'}</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.875rem; color: var(--text-dark);">${order.status || 'N/A'}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-light);">
+                        ${order.created_at ? Utils.format_date(new Date(order.created_at)) : 'N/A'}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        this.elements.recent_activity_list.innerHTML = activityHTML;
     }
 }
 

@@ -12,6 +12,7 @@ import { Utils, renderDiff } from './utils.js';
 import { appStore } from './store.js'; // Import the store
 import { attachFormValidationListeners } from './utils.js';
 import { show_delete_confirmation } from './banner.js'; // Import delete confirmation
+import { machineryComponents } from './machineryComponents.js';
 
 export class MachineryManager extends BaseManager {
     constructor() {
@@ -37,7 +38,10 @@ export class MachineryManager extends BaseManager {
             this.update_changeover_field_visibility();
 
             // Subscribe to store updates and render initial state
-            appStore.subscribe(() => this.render());
+            appStore.subscribe(() => {
+                console.log('🔄 Store updated, re-rendering machinery table');
+                this.render();
+            });
             this.render();
             
             this.initialize_edit_functionality();
@@ -247,7 +251,13 @@ export class MachineryManager extends BaseManager {
     render() {
         const { machines, isLoading } = appStore.getState();
         if (isLoading) {
-            this.elements.machinery_table_body.innerHTML = `<tr><td colspan="22" class="text-center" style="padding: 2rem; color: #6b7280;">Loading...</td></tr>`;
+            // Use component system for loading state
+            const loadingData = { message: 'Loading...' };
+            machineryComponents.updateContainer(
+                this.elements.machinery_table_body,
+                'loading-state',
+                [loadingData]
+            );
         } else {
             this.render_machinery(machines);
         }
@@ -255,67 +265,33 @@ export class MachineryManager extends BaseManager {
 
     render_machinery(machines) {
         if (!machines || !Array.isArray(machines) || machines.length === 0) {
-            this.elements.machinery_table_body.innerHTML = `<tr><td colspan="22" class="text-center" style="padding: 2rem; color: #6b7280;">No machines available. Add machines to get started.</td></tr>`;
+            // Use component system for empty state
+            const emptyStateData = { message: 'No machines available. Add machines to get started.' };
+            machineryComponents.updateContainer(
+                this.elements.machinery_table_body,
+                'empty-state',
+                [emptyStateData]
+            );
             return;
         }
         
-        // Use DOM diffing for efficient updates
-        renderDiff(
+        // Use component system for efficient updates
+        machineryComponents.updateContainer(
             this.elements.machinery_table_body,
-            machines,
-            (machine) => `machine-${machine.id}`,
-            (machine) => this.create_machine_row(machine)
+            'machinery-machine-row',
+            machines.map(machine => ({ machine, editManager: this.editManager }))
         );
     }
 
     create_machine_row(machine) {
-        // Create DOM element instead of HTML string for better performance
-        const created_date = machine.created_at ? new Date(machine.created_at).toLocaleDateString() : '-';
-        const updated_date = machine.updated_at ? new Date(machine.updated_at).toLocaleDateString() : '-';
-        const display_name = machine.machine_name || machine.id || 'Unknown Machine';
-        const is_active = machine.status === 'ACTIVE';
+        // Use component system instead of manual DOM creation
+        const rowData = {
+            machine: machine,
+            editManager: this.editManager
+        };
         
-        const row = document.createElement('tr');
-        row.className = !is_active ? 'machine-inactive' : '';
-        row.dataset.machineId = machine.id;
-        
-        // Create table cells
-        const cells = [
-            { field: 'machine_id', content: `<strong>${machine.machine_id || machine.id}</strong>`, input: this.editManager.create_edit_input('text', machine.machine_id || machine.id) },
-            { field: 'machine_type', content: machine.machine_type || '-', input: this.editManager.create_edit_input('select', machine.machine_type, { options: [{ value: 'DIGITAL_PRINT', label: 'Digital Print' }, { value: 'FLEXO_PRINT', label: 'Flexo Print' }, { value: 'ROTOGRAVURE', label: 'Rotogravure' }, { value: 'PACKAGING', label: 'Packaging' }, { value: 'DOYPACK', label: 'Doypack' }] }) },
-            { field: 'machine_name', content: display_name || '-', input: this.editManager.create_edit_input('text', display_name) },
-            { field: 'work_center', content: machine.work_center || '-', input: this.editManager.create_edit_input('select', machine.work_center, { options: [{ value: 'ZANICA', label: 'ZANICA' }, { value: 'BUSTO_GAROLFO', label: 'BUSTO GAROLFO' }] }) },
-            { field: 'department', content: `<span class="btn btn-primary" style="font-size:12px;padding:6px 12px;min-height:28px;">${machine.department || '-'}</span>`, input: this.editManager.create_edit_input('select', machine.department, { options: [{ value: 'STAMPA', label: 'STAMPA' }, { value: 'CONFEZIONAMENTO', label: 'CONFEZIONAMENTO' }] }) },
-            { field: 'status', content: `<span class="status-badge status-active">${machine.status || 'ACTIVE'}</span>`, input: this.editManager.create_edit_input('select', machine.status || 'ACTIVE', { options: [{ value: 'ACTIVE', label: 'Active' }, { value: 'MAINTENANCE', label: 'Maintenance' }, { value: 'INACTIVE', label: 'Inactive' }] }) },
-            { field: 'min_web_width', content: machine.min_web_width || 0, input: this.editManager.create_edit_input('number', machine.min_web_width || 0, { min: 0 }) },
-            { field: 'max_web_width', content: machine.max_web_width || 0, input: this.editManager.create_edit_input('number', machine.max_web_width || 0, { min: 0 }) },
-            { field: 'min_bag_height', content: machine.min_bag_height || 0, input: this.editManager.create_edit_input('number', machine.min_bag_height || 0, { min: 0 }) },
-            { field: 'max_bag_height', content: machine.max_bag_height || 0, input: this.editManager.create_edit_input('number', machine.max_bag_height || 0, { min: 0 }) },
-            { field: 'standard_speed', content: machine.standard_speed || 0, input: this.editManager.create_edit_input('number', machine.standard_speed || 0, { min: 1 }) },
-            { field: 'setup_time_standard', content: `${machine.setup_time_standard || 0} h`, input: this.editManager.create_edit_input('number', machine.setup_time_standard || 0, { min: 0, step: 0.1 }) },
-            { field: 'changeover_color', content: `${machine.changeover_color || 0} h`, input: this.editManager.create_edit_input('number', machine.changeover_color || 0, { min: 0, step: 0.1 }) },
-            { field: 'changeover_material', content: `${machine.changeover_material || 0} h`, input: this.editManager.create_edit_input('number', machine.changeover_material || 0, { min: 0, step: 0.1 }) },
-            { field: 'active_shifts', content: Array.isArray(machine.active_shifts) ? machine.active_shifts.join(', ') : machine.active_shifts || '-', input: this.editManager.create_edit_input('shifts', machine.active_shifts) },
-            { field: 'created_at', content: created_date, input: this.editManager.create_edit_input('datetime-local', machine.created_at) },
-            { field: 'updated_at', content: updated_date, input: this.editManager.create_edit_input('datetime-local', machine.updated_at) },
-            { field: 'settings', content: `<a href="machine-settings-page.html?machine=${encodeURIComponent(machine.machine_name)}" class="btn btn-secondary btn-small">📅</a>`, input: '' },
-            { field: 'actions', content: '', input: this.editManager.create_action_buttons() }
-        ];
-        
-        cells.forEach(cell => {
-            const td = document.createElement('td');
-            if (cell.field === 'settings' || cell.field === 'actions') {
-                td.className = 'text-center';
-                td.innerHTML = cell.content + cell.input;
-            } else {
-                td.className = 'editable-cell';
-                td.dataset.field = cell.field;
-                td.innerHTML = `<span class="static-value">${cell.content}</span>${cell.input}`;
-            }
-            row.appendChild(td);
-        });
-        
-        return row;
+        const rowElement = machineryComponents.render('machinery-machine-row', rowData);
+        return rowElement;
     }
 
     async editMachine(machineId) {
@@ -389,7 +365,9 @@ export class MachineryManager extends BaseManager {
             const updated_machine = { ...currentMachine, ...updatedData };
             
             // Update machine in the store
+            console.log('💾 Updating machine in store:', machine_id, updatedData);
             await appStore.updateMachine(machine_id, updated_machine);
+            console.log('✅ Machine updated in store successfully');
             
             // Cancel edit mode after successful save
             this.editManager.cancel_edit(row);

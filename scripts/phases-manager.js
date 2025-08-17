@@ -9,6 +9,7 @@ import { Utils } from './utils.js';
 import { appStore } from './store.js'; // Import the store
 import { attachFormValidationListeners, renderDiff } from './utils.js'; // Import renderDiff
 import { show_delete_confirmation } from './banner.js'; // Import delete confirmation
+import { phasesComponents } from './phasesComponents.js';
 
 export class PhasesManager extends BaseManager {
     constructor() {
@@ -48,7 +49,13 @@ export class PhasesManager extends BaseManager {
     render() {
         const { phases, isLoading } = appStore.getState();
         if (isLoading) {
-            this.elements.phases_table_body.innerHTML = `<tr><td colspan="15" class="text-center" style="padding: 2rem; color: #6b7280;">Loading...</td></tr>`;
+            // Use component system for loading state
+            const loadingData = { message: 'Loading...' };
+            phasesComponents.updateContainer(
+                this.elements.phases_table_body,
+                'loading-state',
+                [loadingData]
+            );
         } else {
             this.render_phases(phases);
         }
@@ -97,40 +104,32 @@ export class PhasesManager extends BaseManager {
         if (!this.elements.phases_table_body) return;
 
         if (!phases || phases.length === 0) {
-            this.elements.phases_table_body.innerHTML = `<tr><td colspan="15" class="text-center" style="padding: 2rem; color: #6b7280;">No phases found. Add phases to get started.</td></tr>`;
+            // Use component system for empty state
+            const emptyStateData = { message: 'No phases found. Add phases to get started.' };
+            phasesComponents.updateContainer(
+                this.elements.phases_table_body,
+                'empty-state',
+                [emptyStateData]
+            );
             return;
         }
 
-        renderDiff(
+        // Use component system for efficient updates
+        phasesComponents.updateContainer(
             this.elements.phases_table_body,
-            phases,
-            (phase) => `phase-${phase.id}`,
-            (phase) => this.create_phase_row(phase)
+            'phases-phase-row',
+            phases.map(phase => ({ phase, editManager: this.editManager }))
         );
     }
 
     create_phase_row(phase) {
-        const createdDate = phase.created_at ? new Date(phase.created_at).toLocaleDateString() : '-';
-        const updatedDate = phase.updated_at ? new Date(phase.updated_at).toLocaleDateString() : '-';
-        const rowElement = document.createElement('tr');
-        rowElement.dataset.phaseId = phase.id;
-        rowElement.innerHTML = `
-            <td class="editable-cell" data-field="id"><span class="static-value">${phase.id}</span>${this.editManager.create_edit_input('text', phase.id)}</td>
-            <td class="editable-cell" data-field="name"><span class="static-value">${Utils.escape_html(phase.name||'-')}</span>${this.editManager.create_edit_input('text',phase.name)}</td>
-            <td class="editable-cell" data-field="department"><span class="static-value"><span class="btn btn-primary" style="font-size:12px;padding:6px 12px;min-height:28px;">${Utils.escape_html(phase.department||'-')}</span></span>${this.editManager.create_edit_input('select',phase.department,{options:[{value:'STAMPA',label:'STAMPA'},{value:'CONFEZIONAMENTO',label:'CONFEZIONAMENTO'}]})}</td>
-            <td class="editable-cell" data-field="work_center"><span class="static-value">${Utils.escape_html(phase.work_center||'-')}</span>${this.editManager.create_edit_input('select',phase.work_center,{options:[{value:'ZANICA',label:'ZANICA'},{value:'BUSTO_GAROLFO',label:'BUSTO GAROLFO'}]})}</td>
-            <td class="editable-cell" data-field="v_stampa"><span class="static-value">${phase.v_stampa||0} mt/h</span>${this.editManager.create_edit_input('number',phase.v_stampa||0,{min:0})}</td>
-            <td class="editable-cell" data-field="t_setup_stampa"><span class="static-value">${phase.t_setup_stampa||0} h</span>${this.editManager.create_edit_input('number',phase.t_setup_stampa||0,{min:0})}</td>
-            <td class="editable-cell" data-field="costo_h_stampa"><span class="static-value">€${phase.costo_h_stampa||0}/h</span>${this.editManager.create_edit_input('number',phase.costo_h_stampa||0,{min:0,step:0.01})}</td>
-            <td class="editable-cell" data-field="v_conf"><span class="static-value">${phase.v_conf||0} pz/h</span>${this.editManager.create_edit_input('number',phase.v_conf||0,{min:0})}</td>
-            <td class="editable-cell" data-field="t_setup_conf"><span class="static-value">${phase.t_setup_conf||0} h</span>${this.editManager.create_edit_input('number',phase.t_setup_conf||0,{min:0})}</td>
-            <td class="editable-cell" data-field="costo_h_conf"><span class="static-value">€${phase.costo_h_conf||0}/h</span>${this.editManager.create_edit_input('number',phase.costo_h_conf||0,{min:0,step:0.01})}</td>
-            <td class="editable-cell" data-field="contenuto_fase"><span class="static-value">${Utils.escape_html(phase.contenuto_fase||'-')}</span>${this.editManager.create_edit_input('text',phase.contenuto_fase)}</td>
-            <td class="editable-cell" data-field="numero_persone"><span class="static-value">${phase.numero_persone||'-'}</span>${this.editManager.create_edit_input('number',phase.numero_persone||1,{min:1})}</td>
-            <td class="editable-cell" data-field="created_at"><span class="static-value">${createdDate}</span>${this.editManager.create_edit_input('datetime-local',phase.created_at)}</td>
-            <td class="editable-cell" data-field="updated_at"><span class="static-value">${updatedDate}</span>${this.editManager.create_edit_input('datetime-local',phase.updated_at)}</td>
-            <td class="text-center">${this.editManager.create_action_buttons()}</td>
-        `;
+        // Use component system instead of manual DOM creation
+        const rowData = {
+            phase: phase,
+            editManager: this.editManager
+        };
+        
+        const rowElement = phasesComponents.render('phases-phase-row', rowData);
         return rowElement;
     }
 
