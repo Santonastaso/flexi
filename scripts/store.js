@@ -59,7 +59,7 @@ export const appStore = {
      * @returns {Object} Current state object
      */
     getState() {
-        return { ...state }; // Return copy to prevent direct mutation
+        return structuredClone(state); // Return deep clone to prevent any mutation
     },
 
     /**
@@ -131,7 +131,7 @@ export const appStore = {
      */
     async addMachine(newMachine) {
         const addedMachine = await storageService.add_machine(newMachine);
-        state.machines.push(addedMachine);
+        state.machines = [...state.machines, addedMachine];
         _notify();
         return addedMachine;
     },
@@ -144,10 +144,11 @@ export const appStore = {
      */
     async updateMachine(id, updates) {
         const updatedMachine = await storageService.update_machine(id, updates);
-        const machineIndex = state.machines.findIndex(machine => machine.id === id);
-        if (machineIndex !== -1) {
-            state.machines[machineIndex] = { ...state.machines[machineIndex], ...updatedMachine };
-        }
+        state.machines = state.machines.map(machine => 
+            machine.id === id 
+                ? { ...machine, ...updatedMachine }
+                : machine
+        );
         _notify();
         return updatedMachine;
     },
@@ -160,7 +161,7 @@ export const appStore = {
      */
     async addOdpOrder(newOrder) {
         const addedOrder = await storageService.add_odp_order(newOrder);
-        state.odpOrders.push(addedOrder);
+        state.odpOrders = [...state.odpOrders, addedOrder];
         _notify();
         return addedOrder;
     },
@@ -173,10 +174,11 @@ export const appStore = {
      */
     async updateOdpOrder(id, updates) {
         const updatedOrder = await storageService.update_odp_order(id, updates);
-        const orderIndex = state.odpOrders.findIndex(order => order.id === id);
-        if (orderIndex !== -1) {
-            state.odpOrders[orderIndex] = { ...state.odpOrders[orderIndex], ...updatedOrder };
-        }
+        state.odpOrders = state.odpOrders.map(order => 
+            order.id === id 
+                ? { ...order, ...updatedOrder }
+                : order
+        );
         _notify();
         return updatedOrder;
     },
@@ -195,7 +197,7 @@ export const appStore = {
      */
     async addPhase(newPhase) {
         const addedPhase = await storageService.add_phase(newPhase);
-        state.phases.push(addedPhase);
+        state.phases = [...state.phases, addedPhase];
         _notify();
         return addedPhase;
     },
@@ -208,10 +210,11 @@ export const appStore = {
      */
     async updatePhase(id, updates) {
         const updatedPhase = await storageService.update_phase(id, updates);
-        const phaseIndex = state.phases.findIndex(phase => phase.id === id);
-        if (phaseIndex !== -1) {
-            state.phases[phaseIndex] = { ...state.phases[phaseIndex], ...updatedPhase };
-        }
+        state.phases = state.phases.map(phase => 
+            phase.id === id 
+                ? { ...phase, ...updatedPhase }
+                : phase
+        );
         _notify();
         return updatedPhase;
     },

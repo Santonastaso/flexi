@@ -57,6 +57,9 @@ export class Scheduler {
 
     async render() {
         const { odpOrders, machines, isLoading, machineAvailability } = appStore.getState();
+        this.currentMachineAvailability = machineAvailability;
+        this.currentMachines = machines;
+        this.currentOdpOrders = odpOrders;
 
         if (isLoading) {
             this.elements.task_pool.innerHTML = '<div class="empty-state">Loading...</div>';
@@ -83,7 +86,7 @@ export class Scheduler {
         const activeMachines = machines.filter(m => m.status === 'ACTIVE');
 
         this._render_diff(this.elements.task_pool, unscheduledTasks, (task) => `task-${task.id}`, (task) => this._create_task_element(task));
-        this._render_diff(this.elements.machine_container, activeMachines, (machine) => `machine-row-${machine.id}`, (machine) => this._create_machine_row(machine));
+        this._render_diff(this.elements.machine_container, activeMachines, (machine) => `machine-row-${machine.id}`, (machine) => this._create_machine_row(machine, odpOrders, machineAvailability, machines));
     }
 
     _render_diff(container, data, keyFn, renderFn) {
@@ -132,8 +135,7 @@ export class Scheduler {
      * Setup the unified calendar renderer
      */
     _setup_calendar_renderer() {
-        const { machines } = appStore.getState();
-        const activeMachines = machines.filter(m => m.status === 'ACTIVE');
+        const activeMachines = this.currentMachines?.filter(m => m.status === 'ACTIVE') || [];
         
         const calendarConfig = {
             mode: 'scheduler',
@@ -162,8 +164,7 @@ export class Scheduler {
         this._setup_task_pool_drop_zone();
     }
 
-    _mapOdpToEvents(scheduledOdps) {
-        const { machines } = appStore.getState();
+    _mapOdpToEvents(scheduledOdps, machines) {
         const machineMap = new Map(machines.map(m => [m.id, m.machine_name]));
         return scheduledOdps.map(odp => ({
             id: `event_${odp.id}`,
@@ -210,7 +211,7 @@ export class Scheduler {
         this.elements.current_date.textContent = isToday ? 'Today' : this.current_date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
     }
 
-    _validate_slot_for_scheduling(taskData, machineData, slot) {
+    _validate_slot_for_scheduling(taskData, machineData, slot, machineAvailability) {
         const taskWorkCenter = this.business_logic.auto_determine_work_center(taskData.article_code);
         if (taskWorkCenter !== machineData.work_center) {
             this.show_message(`Task work center (${taskWorkCenter}) does not match machine's (${machineData.work_center})`, 'error');
@@ -225,7 +226,7 @@ export class Scheduler {
         const duration = parseFloat(taskData.time_remaining) || parseFloat(taskData.duration) || 1;
         const startHour = parseInt(slot.dataset.hour);
         for (let i = 0; i < Math.ceil(duration); i++) {
-            if (this._is_slot_unavailable(machineData.machine_name, startHour + i)) {
+            if (this._is_slot_unavailable(machineData.machine_name, startHour + i, machineAvailability)) {
                 this.show_message('Cannot schedule: Task overlaps with an unavailable time slot', 'error');
                 return false;
             }
@@ -234,9 +235,8 @@ export class Scheduler {
     }
 
     async schedule_task(taskId, taskData, slot) {
-        const { machines } = appStore.getState();
-        const machineData = machines.find(m => m.id === slot.dataset.machine);
-        if (!machineData || !this._validate_slot_for_scheduling(taskData, machineData, slot)) return;
+        const machineData = this.currentMachines?.find(m => m.id === slot.dataset.machine);
+        if (!machineData || !this._validate_slot_for_scheduling(taskData, machineData, slot, this.currentMachineAvailability)) return;
 
         const hour = parseInt(slot.dataset.hour);
         const minute = parseInt(slot.dataset.minute) || 0;
@@ -270,8 +270,7 @@ export class Scheduler {
     }
 
     async reschedule_event(taskId, newSlot) {
-        const { odpOrders } = appStore.getState();
-        const taskData = odpOrders.find(o => o.id === taskId);
+        const taskData = this.currentOdpOrders?.find(o => o.id === taskId);
         if (taskData) {
             await this.schedule_task(taskId, taskData, newSlot);
         }
@@ -316,9 +315,8 @@ export class Scheduler {
         container.appendChild(headerRow);
     }
 
-    _create_machine_row(machine) {
-        const { odpOrders } = appStore.getState();
-        const allScheduledEvents = this._mapOdpToEvents(odpOrders.filter(order => order.status === 'SCHEDULED'));
+    _create_machine_row(machine, odpOrders, machineAvailability, machines) {
+        const allScheduledEvents = this._mapOdpToEvents(odpOrders.filter(order => order.status === 'SCHEDULED'), machines);
 
         const machineRow = this._createElement('div', { className: 'machine-row', dataset: { machine: machine.id, machineName: machine.machine_name } });
         const machineLabel = this._createElement('div', { className: 'machine-label' });
@@ -328,16 +326,16 @@ export class Scheduler {
         const machineSlots = this._createElement('div', { className: 'machine-slots' });
         for (let slotIdx = 0; slotIdx < 96; slotIdx++) {
             const hour = Math.floor(slotIdx / 4);
-            const isUnavailable = this._is_slot_unavailable(machine.machine_name, hour);
+            const isUnavailable = this._is_slot_unavailable(machine.machine_name, hour, machineAvailability);
             const slot = this._createElement('div', {
                 className: `time-slot ${isUnavailable ? 'unavailable' : ''}`,
-                dataset: { hour, minute: (slotIdx % 4) * 15, machine: machine.id, machineName: machine.machine_name, unavailable: isUnavailable }
+                dataset: { hour, minute: (slotIdx % 4) * 15, machine: machine.id, machineName: machine.machine_name, workCenter: machine.work_center, unavailable: isUnavailable }
             });
             if (isUnavailable) {
                 slot.innerHTML = '<span class="unavailable-indicator">X</span>';
                 slot.title = `Machine unavailable from ${hour}:00 to ${hour + 1}:00`;
             }
-            this._setup_slot_drop_zone(slot);
+            this._setup_slot_drop_zone(slot, machines);
             machineSlots.appendChild(slot);
         }
         
@@ -396,14 +394,13 @@ export class Scheduler {
         });
     }
 
-    _setup_slot_drop_zone(slot) {
+    _setup_slot_drop_zone(slot, machines) {
         slot.addEventListener('dragover', e => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
             slot.classList.add('drag-over');
 
             if (this.drag_state.drag_type === 'task') {
-                const { machines } = appStore.getState();
                 const machineData = machines.find(m => m.id === slot.dataset.machine);
                 if (machineData) {
                     const isCompatible = this.business_logic.auto_determine_work_center(this.drag_state.dragged_data.article_code) === machineData.work_center;
@@ -441,8 +438,7 @@ export class Scheduler {
         return Utils.format_date(this.current_date);
     }
 
-    _is_slot_unavailable(machineName, hour) {
-        const { machineAvailability } = appStore.getState();
+    _is_slot_unavailable(machineName, hour, machineAvailability) {
         const dateData = machineAvailability[this._get_date_string()];
         const availabilityRow = dateData?.find(row => row.machine_name === machineName);
         return availabilityRow?.unavailable_hours.includes(hour) || false;
@@ -450,8 +446,7 @@ export class Scheduler {
 
     async _load_machine_availability_for_date() {
         const currentDate = this._get_date_string();
-        const { machineAvailability } = appStore.getState();
-        if (machineAvailability[currentDate]?._loading || Array.isArray(machineAvailability[currentDate])) {
+        if (this.currentMachineAvailability[currentDate]?._loading || Array.isArray(this.currentMachineAvailability[currentDate])) {
             return;
         }
 
