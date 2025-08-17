@@ -15,7 +15,7 @@
 
         <main>
             <div class="content-section">
-                <h2>Create Production Lot</h2>
+                <h2>Create ODP</h2>
                 <div class="form-layout">
                     <!-- All form sections are now direct children here -->
                     <div class="form-inputs">
@@ -36,7 +36,7 @@
             
                                     </div>
                                     <div class="form-group">
-                                        <label for="production_lot">Production Lot *</label>
+                                        <label for="production_lot">External Article Code *</label>
                                         <input type="text" id="production_lot" placeholder="e.g., AAPU001" required>
             
                                     </div>
@@ -159,12 +159,12 @@
                                 <h3 class="section-title">💼 Dati Commerciali</h3>
                                 <div class="form-grid form-grid--3-cols">
                                     <div class="form-group">
-                                        <label for="internal_customer_code">Internal Customer Code</label>
-                                        <input type="text" id="internal_customer_code" placeholder="Internal code">
+                                        <label for="internal_customer_code">Lotto Articolo FLEXI</label>
+                                        <input type="text" id="internal_customer_code" placeholder="FLEXI article lot">
                                     </div>
                                     <div class="form-group">
-                                        <label for="external_customer_code">External Customer Code</label>
-                                        <input type="text" id="external_customer_code" placeholder="External code">
+                                        <label for="external_customer_code">Lotto Articolo Cliente</label>
+                                        <input type="text" id="external_customer_code" placeholder="Customer article lot">
                                     </div>
                                     <div class="form-group">
                                         <label for="customer_order_ref">Customer Order Reference</label>
@@ -299,7 +299,7 @@
                                 <th>ID</th>
                                 <th>ODP Number</th>
                                 <th>Article Code</th>
-                                <th>Production Lot</th>
+                                <th>External Article Code</th>
                                 <th>Work Center</th>
                                 <th>Nome Cliente</th>
                                 <th>Description</th>
@@ -323,8 +323,8 @@
                                 <th>Delivery Date</th>
                                 
                                 <!-- DATI COMMERCIALI (Commercial Data) -->
-                                <th>Internal Customer Code</th>
-                                <th>External Customer Code</th>
+                                <th>Lotto Articolo FLEXI</th>
+                                <th>Lotto Articolo Cliente</th>
                                 <th>Customer Order Ref</th>
                                 
                                 <!-- DATI LAVORAZIONE (Processing Data) -->

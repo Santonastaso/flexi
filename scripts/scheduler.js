@@ -87,6 +87,9 @@ export class Scheduler {
 
         this._render_diff(this.elements.task_pool, unscheduledTasks, (task) => `task-${task.id}`, (task) => this._create_task_element(task));
         this._render_diff(this.elements.machine_container, activeMachines, (machine) => `machine-row-${machine.id}`, (machine) => this._create_machine_row(machine, odpOrders, machineAvailability, machines));
+        
+        // Populate filter dropdowns
+        this._populate_filter_dropdowns(machines);
     }
 
     _render_diff(container, data, keyFn, renderFn) {
@@ -126,7 +129,7 @@ export class Scheduler {
     }
 
     _bind_elements() {
-        const elementIds = ['task_pool', 'calendar_container', 'current_date', 'today_btn', 'prev_day', 'next_day', 'message_container'];
+        const elementIds = ['task_pool', 'calendar_container', 'current_date', 'today_btn', 'prev_day', 'next_day', 'message_container', 'work_center_filter', 'department_filter', 'clear_filters_btn'];
         elementIds.forEach(id => this.elements[id] = document.getElementById(id));
         return elementIds.every(id => this.elements[id]);
     }
@@ -161,6 +164,12 @@ export class Scheduler {
         this.elements.today_btn.addEventListener('click', () => this._navigate_date('today'));
         this.elements.prev_day.addEventListener('click', () => this._navigate_date('prev'));
         this.elements.next_day.addEventListener('click', () => this._navigate_date('next'));
+        
+        // Add filter event listeners
+        this.elements.work_center_filter.addEventListener('change', () => this._apply_machine_filters());
+        this.elements.department_filter.addEventListener('change', () => this._apply_machine_filters());
+        this.elements.clear_filters_btn.addEventListener('click', () => this._clear_machine_filters());
+        
         this._setup_task_pool_drop_zone();
     }
 
@@ -507,5 +516,69 @@ export class Scheduler {
     _handle_slot_hover(hoverData) {
         console.log('🔍 [Scheduler] Slot hover:', hoverData);
         // Handle slot hover if needed
+    }
+
+    /**
+     * Populate the filter dropdowns with available work centers and departments
+     */
+    _populate_filter_dropdowns(machines) {
+        const workCenters = [...new Set(machines.map(m => m.work_center).filter(Boolean))].sort();
+        const departments = [...new Set(machines.map(m => m.department).filter(Boolean))].sort();
+
+        // Populate work center filter
+        const workCenterFilter = this.elements.work_center_filter;
+        workCenterFilter.innerHTML = '<option value="">All Work Centers</option>';
+        workCenters.forEach(workCenter => {
+            const option = document.createElement('option');
+            option.value = workCenter;
+            option.textContent = workCenter;
+            workCenterFilter.appendChild(option);
+        });
+
+        // Populate department filter
+        const departmentFilter = this.elements.department_filter;
+        departmentFilter.innerHTML = '<option value="">All Departments</option>';
+        departments.forEach(department => {
+            const option = document.createElement('option');
+            option.value = department;
+            option.textContent = department;
+            departmentFilter.appendChild(option);
+        });
+    }
+
+    /**
+     * Apply machine filters based on selected work center and department
+     */
+    _apply_machine_filters() {
+        const selectedWorkCenter = this.elements.work_center_filter.value;
+        const selectedDepartment = this.elements.department_filter.value;
+
+        // Filter machines based on selections
+        const filteredMachines = this.currentMachines.filter(machine => {
+            const workCenterMatch = !selectedWorkCenter || machine.work_center === selectedWorkCenter;
+            const departmentMatch = !selectedDepartment || machine.department === selectedDepartment;
+            return workCenterMatch && departmentMatch;
+        });
+
+        // Re-render only the machine rows with filtered machines
+        const activeFilteredMachines = filteredMachines.filter(m => m.status === 'ACTIVE');
+        this._render_diff(this.elements.machine_container, activeFilteredMachines, 
+            (machine) => `machine-row-${machine.id}`, 
+            (machine) => this._create_machine_row(machine, this.currentOdpOrders, this.currentMachineAvailability, this.currentMachines)
+        );
+
+        // Update calendar renderer with filtered machines
+        if (this.calendarRenderer) {
+            this.calendarRenderer.updateMachines(activeFilteredMachines);
+        }
+    }
+
+    /**
+     * Clear all machine filters and show all machines
+     */
+    _clear_machine_filters() {
+        this.elements.work_center_filter.value = '';
+        this.elements.department_filter.value = '';
+        this._apply_machine_filters();
     }
 }

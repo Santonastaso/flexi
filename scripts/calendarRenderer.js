@@ -1173,6 +1173,18 @@ class CalendarRenderer {
             getMachineSummary: (start, end) => this.get_machine_summary(start, end)
         };
     }
+
+    /**
+     * Update machines configuration and re-render if needed
+     */
+    updateMachines(machines) {
+        this.config.machines = machines;
+        
+        // If in scheduler mode, re-render the machine rows
+        if (this.config.mode === 'scheduler' && this.view_manager) {
+            this.view_manager.render();
+        }
+    }
 }
 
 // Export for ES6 modules

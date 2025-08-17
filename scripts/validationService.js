@@ -100,9 +100,8 @@ const validationConfig = {
         },
         numericNonNegative: ['bag_height', 'bag_width', 'bag_step', 'quantity', 'quantity_per_box', 'quantity_completed'],
         patterns: {
-            odp_number: { rule: /^OP\d{6}$/, message: 'ODP number must follow format: OP000001', context: 'submission' },
-            article_code: { rule: /^(P0|ISP0)\w+$/, message: 'Article code must start with P0 or ISP0' },
-            production_lot: { rule: /^[A-Z]{2,4}\d{3,6}$/, message: 'Production lot must follow format: AAPU001' }
+            odp_number: { rule: /^OP/, message: 'ODP number must start with OP', context: 'submission' },
+            article_code: { rule: /^(P0|ISP0)\w+$/, message: 'Article code must start with P0 or ISP0' }
         },
         custom: [
             function(data, errors) {
