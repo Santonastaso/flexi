@@ -12,7 +12,7 @@ import { BacklogManager } from './backlog-manager.js';
 import { MachineryManager } from './machinery-manager.js';
 import { PhasesManager } from './phases-manager.js';
 import { Scheduler } from './scheduler.js';
-import { MachineCalendarManager } from './machineCalendarManager.js';
+import { CalendarRenderer } from './calendarRenderer.js';
 import { asyncHandler } from './utils.js';
 
 // Page configuration - defines how each page should be initialized
@@ -43,9 +43,10 @@ const PAGE_CONFIGS = {
     'machine-settings': {
         name: 'Machine Settings Page',
         type: 'component',
-        component_class: MachineCalendarManager,
+        component_class: CalendarRenderer,
         global_var_name: 'machineCalendarManager',
-        requires_edit_manager: true
+        requires_edit_manager: true,
+        custom_init: initialize_machine_settings
     },
     'scheduler': {
         name: 'Scheduler Page',
@@ -198,51 +199,144 @@ async function initialize_scheduler() {
 }
 
 /**
+ * Initialize machine settings page with unified CalendarRenderer
+ */
+async function initialize_machine_settings() {
+    try {
+        // Get machine name from URL or default
+        const urlParams = new URLSearchParams(window.location.search);
+        const machineName = urlParams.get('machine') || 'Default Machine';
+        
+        // Get DOM elements
+        const calendarContainer = document.getElementById('calendar_container');
+        const controlsContainer = document.getElementById('calendar_controls_container');
+        
+        if (!calendarContainer) {
+            throw new Error('Calendar container not found');
+        }
+        
+        // Create calendar configuration
+        const calendarConfig = {
+            mode: 'machine-settings',
+            views: ['year', 'month', 'week'],
+            machineName: machineName,
+            showMachines: false,
+            interactive: true,
+            enableDragDrop: false
+        };
+        
+        // Create unified CalendarRenderer
+        const calendar = new CalendarRenderer(calendarContainer, calendarConfig);
+        
+        // Create view manager for navigation
+        const ViewManager = await import('./viewManager.js').then(m => m.ViewManager);
+        const viewManager = new ViewManager(calendar, controlsContainer);
+        
+        // Set up circular reference
+        calendar.set_view_manager(viewManager);
+        
+        // Store globally for debugging
+        window.machineCalendarManager = calendar;
+        
+        // Expose debug interface
+        window.machineCalendarDebug = calendar.getDebugInterface();
+        
+        console.log('🚀 [PageInitializer] Machine settings initialized with unified CalendarRenderer');
+        
+        // Defer initial render to avoid initialization errors
+        setTimeout(() => {
+            try {
+                viewManager.set_view('month', new Date());
+            } catch (error) {
+                console.error('Error in deferred initial render:', error);
+            }
+        }, 100);
+        
+    } catch (error) {
+        console.error('❌ Failed to initialize machine settings:', error);
+        throw error;
+    }
+}
+
+// Add initialization guard to prevent multiple initializations
+let is_initializing = false;
+let has_initialized = false;
+
+/**
  * Main page initialization function
  */
 async function initialize_page() {
-    const page_key = detect_page();
-    const config = PAGE_CONFIGS[page_key];
-    
-    console.log('🔍 Initializing page:', page_key);
-    console.log('🔍 Page config:', config);
-    
-    if (!config) {
-        console.error(`❌ No configuration found for page: ${page_key}`);
+    // Prevent multiple simultaneous initializations
+    if (is_initializing) {
+        console.log('🔍 Page initialization already in progress, skipping...');
         return;
     }
     
-    // Initialize storage and store first
-    await initialize_storage();
-    await initialize_store();
-    
-    // Initialize navigation
-    initialize_nav();
-    
-    // Initialize edit manager for tables if needed
-    if (config.requires_edit_manager) {
-        console.log('🔍 Initializing edit manager');
-        initialize_edit_manager();
+    // Prevent multiple initializations of the same page
+    if (has_initialized) {
+        console.log('🔍 Page already initialized, skipping...');
+        return;
     }
     
-    // Initialize component if this page has one
-    if (config.type === 'component') {
-        console.log('🔍 Initializing component:', config.component_class.name);
-        await initialize_component(config);
-    } else {
-        console.log('🔍 No component to initialize for page type:', config.type);
+    is_initializing = true;
+    
+    try {
+        const page_key = detect_page();
+        const config = PAGE_CONFIGS[page_key];
+        
+        console.log('🔍 Initializing page:', page_key);
+        console.log('🔍 Page config:', config);
+        
+        if (!config) {
+            console.error(`❌ No configuration found for page: ${page_key}`);
+            return;
+        }
+        
+        // Initialize storage and store first
+        await initialize_storage();
+        await initialize_store();
+        
+        // Initialize navigation
+        initialize_nav();
+        
+        // Initialize edit manager for tables if needed
+        if (config.requires_edit_manager) {
+            console.log('🔍 Initializing edit manager');
+            initialize_edit_manager();
+        }
+        
+        // Initialize component if this page has one
+        if (config.type === 'component') {
+            console.log('🔍 Initializing component:', config.component_class.name);
+            
+            // Check if this component has custom initialization
+            if (config.custom_init) {
+                console.log('🔍 Running custom initialization for component');
+                await config.custom_init();
+            } else {
+                await initialize_component(config);
+            }
+        } else {
+            console.log('🔍 No component to initialize for page type:', config.type);
+        }
+        
+        // Run custom initialization if this is a complex page
+        if (config.type === 'complex' && config.custom_init) {
+            console.log('🔍 Running custom initialization');
+            await config.custom_init();
+        }
+        
+        // Initialize scheduler if needed
+        await initialize_scheduler();
+        
+        has_initialized = true;
+        console.log('✅ Page initialization completed successfully');
+    } catch (error) {
+        console.error('❌ Error during page initialization:', error);
+        throw error;
+    } finally {
+        is_initializing = false;
     }
-    
-    // Run custom initialization if this is a complex page
-    if (config.type === 'complex' && config.custom_init) {
-        console.log('🔍 Running custom initialization');
-        await config.custom_init();
-    }
-    
-    // Initialize scheduler if needed
-    await initialize_scheduler();
-    
-    console.log('✅ Page initialization completed successfully');
 }
 
 // Auto-initialize when DOM is loaded
@@ -254,10 +348,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Also try to initialize immediately if DOM is already loaded
+// Only initialize immediately if DOM is already loaded AND we haven't initialized yet
 if (document.readyState === 'loading') {
     console.log('🔍 DOM still loading, waiting for DOMContentLoaded event');
-} else {
+} else if (!has_initialized) {
     console.log('🔍 DOM already loaded, initializing immediately');
     initialize_page().catch(error => {
         console.error('❌ Error in immediate initialization:', error);
