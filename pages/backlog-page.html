@@ -193,6 +193,54 @@
                                 </div>
                             </div>
                         </div>
+                        
+
+            </div>
+            
+            <!-- Phase Parameters Display -->
+            <div class="content-section" id="phase_parameters_section" style="display: none;">
+                <h3>Selected Phase Parameters</h3>
+
+                
+                <!-- Printing Parameters -->
+                <div id="printing_params_display" style="display: none;">
+                    <h4>🖨️ Printing Parameters</h4>
+                    <div class="form-grid form-grid--3-cols">
+                        <div class="form-group">
+                            <label>Printing Speed (mt/h)</label>
+                            <input type="number" id="phase_v_stampa_display" min="0" step="0.01" style="background-color: white;">
+                        </div>
+                        <div class="form-group">
+                            <label>Setup Time (h)</label>
+                            <input type="number" id="phase_t_setup_stampa_display" min="0" step="0.01" style="background-color: white;">
+                        </div>
+                        <div class="form-group">
+                            <label>Hourly Cost (€/h)</label>
+                            <input type="number" id="phase_costo_h_stampa_display" min="0" step="0.01" style="background-color: white;">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Packaging Parameters -->
+                <div id="packaging_params_display" style="display: none;">
+                    <h4>📦 Packaging Parameters</h4>
+                    <div class="form-grid form-grid--3-cols">
+                        <div class="form-group">
+                            <label>Packaging Speed (pz/h)</label>
+                            <input type="number" id="phase_v_conf_display" min="0" step="0.01" style="background-color: white;">
+                        </div>
+                        <div class="form-group">
+                            <label>Setup Time (h)</label>
+                            <input type="number" id="phase_t_setup_conf_display" min="0" step="0.01" style="background-color: white;">
+                        </div>
+                        <div class="form-group">
+                            <label>Hourly Cost (€/h)</label>
+                            <input type="number" id="phase_costo_h_conf_display" min="0" step="0.01" style="background-color: white;">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Phase Content</label>
+                        <input type="text" id="phase_contenuto_fase_display" style="background-color: white;">
                     </div>
                 </div>
             </div>

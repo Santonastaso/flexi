@@ -134,6 +134,38 @@ export class BusinessLogicService {
     normalize_name(name) {
         return String(name || '').trim().toUpperCase().replace(/\s+/g, '_');
     }
+
+    // ===== PHASE CALCULATION LOGIC =====
+    /**
+     * Calculate production metrics based on selected phase and quantity
+     */
+    calculate_production_metrics(phase, quantity, bagStep) {
+        const results = {
+            printing: { processing_time: 0, setup_time: 0, total_time: 0, cost: 0 },
+            packaging: { processing_time: 0, setup_time: 0, total_time: 0, cost: 0 },
+            totals: { duration: 0, cost: 0 }
+        };
+
+        if (phase.department === 'STAMPA' && phase.v_stampa > 0) {
+            const metersToPrint = (bagStep * quantity) / 1000;
+            results.printing.processing_time = Math.round((metersToPrint / phase.v_stampa) * 100) / 100;
+            results.printing.setup_time = Math.round((phase.t_setup_stampa || 0) * 100) / 100;
+            results.printing.total_time = results.printing.processing_time + results.printing.setup_time;
+            results.printing.cost = Math.round((results.printing.total_time * (phase.costo_h_stampa || 0)) * 100) / 100;
+        }
+
+        if (phase.department === 'CONFEZIONAMENTO' && phase.v_conf > 0) {
+            results.packaging.processing_time = Math.round((quantity / phase.v_conf) * 100) / 100;
+            results.packaging.setup_time = Math.round((phase.t_setup_conf || 0) * 100) / 100;
+            results.packaging.total_time = results.packaging.processing_time + results.packaging.setup_time;
+            results.packaging.cost = Math.round((results.packaging.total_time * (phase.costo_h_conf || 0)) * 100) / 100;
+        }
+
+        results.totals.duration = Math.round((results.printing.total_time + results.packaging.total_time) * 100) / 100;
+        results.totals.cost = Math.round((results.printing.cost + results.packaging.cost) * 100) / 100;
+
+        return results;
+    }
 }
 
 // Export for use in other modules

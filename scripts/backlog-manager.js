@@ -69,7 +69,11 @@ export class BacklogManager extends BaseManager {
             'seal_sides', 'product_type', 'delivery_date', 'department', 'fase', 'fase_search', 'fase_dropdown',
             'internal_customer_code', 'external_customer_code', 'customer_order_ref', 
             'calculate_btn', 'create_task', 'update_statuses_btn', 'debug_events_btn',
-            'backlog_table_body', 'preview_fascia', 'preview_altezza', 'preview_passo'
+            'backlog_table_body', 'preview_fascia', 'preview_altezza', 'preview_passo',
+            'phase_parameters_section',
+            'printing_params_display', 'phase_v_stampa_display', 'phase_t_setup_stampa_display', 'phase_costo_h_stampa_display',
+            'packaging_params_display', 'phase_v_conf_display', 'phase_t_setup_conf_display', 'phase_costo_h_conf_display',
+            'phase_contenuto_fase_display'
         ];
         return this.get_elements_by_id(elementIds);
     }
@@ -300,7 +304,9 @@ export class BacklogManager extends BaseManager {
             const quantity = parseInt(this.elements.quantity.value) || 0;
             const bagStep = parseInt(this.elements.bag_step.value) || 0;
 
-            const results = this.businessLogic.calculate_production_metrics(selectedPhase, quantity, bagStep);
+            // Get the current values from the editable phase parameter fields
+            const currentPhaseParams = this.get_current_phase_parameters(selectedPhase);
+            const results = this.businessLogic.calculate_production_metrics(currentPhaseParams, quantity, bagStep);
             this.display_calculation_results(results);
             this.show_success_message('Calculation completed successfully');
         } catch (error) {
@@ -557,6 +563,11 @@ export class BacklogManager extends BaseManager {
         if (this.elements.fase_search) this.elements.fase_search.value = '';
         if (this.elements.fase) this.elements.fase.value = '';
         
+        // Hide phase parameters section
+        if (this.elements.phase_parameters_section) {
+            this.elements.phase_parameters_section.style.display = 'none';
+        }
+        
         // Update the display
         this.update_bag_specs_display();
     }
@@ -679,8 +690,89 @@ export class BacklogManager extends BaseManager {
         // Hide the dropdown
         faseDropdown.style.display = 'none';
         
+        // Populate the phase parameter display fields
+        this.populatePhaseParameters(phase);
+        
         // Trigger validation
         this.validate_form_fields();
+    }
+
+    populatePhaseParameters(phase) {
+        // Show the phase parameters section
+        if (this.elements.phase_parameters_section) {
+            this.elements.phase_parameters_section.style.display = 'block';
+        }
+        
+
+        
+        // Show/hide and populate printing parameters
+        if (this.elements.printing_params_display) {
+            const isPrinting = phase.department === 'STAMPA';
+            this.elements.printing_params_display.style.display = isPrinting ? 'block' : 'none';
+            
+            if (isPrinting) {
+                if (this.elements.phase_v_stampa_display) {
+                    this.elements.phase_v_stampa_display.value = phase.v_stampa || '';
+                }
+                if (this.elements.phase_t_setup_stampa_display) {
+                    this.elements.phase_t_setup_stampa_display.value = phase.t_setup_stampa || '';
+                }
+                if (this.elements.phase_costo_h_stampa_display) {
+                    this.elements.phase_costo_h_stampa_display.value = phase.costo_h_stampa || '';
+                }
+            }
+        }
+        
+        // Show/hide and populate packaging parameters
+        if (this.elements.packaging_params_display) {
+            const isPackaging = phase.department === 'CONFEZIONAMENTO';
+            this.elements.packaging_params_display.style.display = isPackaging ? 'block' : 'none';
+            
+            if (isPackaging) {
+                if (this.elements.phase_v_conf_display) {
+                    this.elements.phase_v_conf_display.value = phase.v_conf || '';
+                }
+                if (this.elements.phase_t_setup_conf_display) {
+                    this.elements.phase_t_setup_conf_display.value = phase.t_setup_conf || '';
+                }
+                if (this.elements.phase_costo_h_conf_display) {
+                    this.elements.phase_costo_h_conf_display.value = phase.costo_h_conf || '';
+                }
+                if (this.elements.phase_contenuto_fase_display) {
+                    this.elements.phase_contenuto_fase_display.value = phase.contenuto_fase || '';
+                }
+            }
+        }
+    }
+
+    get_current_phase_parameters(originalPhase) {
+        // Create a copy of the original phase with current editable values
+        const currentParams = { ...originalPhase };
+        
+        // Update with current values from editable fields
+        if (this.elements.phase_v_stampa_display && this.elements.phase_v_stampa_display.style.display !== 'none') {
+            currentParams.v_stampa = parseFloat(this.elements.phase_v_stampa_display.value) || 0;
+        }
+        if (this.elements.phase_t_setup_stampa_display && this.elements.phase_t_setup_stampa_display.style.display !== 'none') {
+            currentParams.t_setup_stampa = parseFloat(this.elements.phase_t_setup_stampa_display.value) || 0;
+        }
+        if (this.elements.phase_costo_h_stampa_display && this.elements.phase_costo_h_stampa_display.style.display !== 'none') {
+            currentParams.costo_h_stampa = parseFloat(this.elements.phase_costo_h_stampa_display.value) || 0;
+        }
+        if (this.elements.phase_v_conf_display && this.elements.phase_v_conf_display.style.display !== 'none') {
+            currentParams.v_conf = parseFloat(this.elements.phase_v_conf_display.value) || 0;
+        }
+        if (this.elements.phase_t_setup_conf_display && this.elements.phase_t_setup_conf_display.style.display !== 'none') {
+            currentParams.t_setup_conf = parseFloat(this.elements.phase_t_setup_conf_display.value) || 0;
+        }
+        if (this.elements.phase_costo_h_conf_display && this.elements.phase_costo_h_conf_display.style.display !== 'none') {
+            currentParams.costo_h_conf = parseFloat(this.elements.phase_costo_h_conf_display.value) || 0;
+        }
+        if (this.elements.phase_contenuto_fase_display && this.elements.phase_contenuto_fase_display.style.display !== 'none') {
+            currentParams.contenuto_fase = this.elements.phase_contenuto_fase_display.value || '';
+        }
+        
+        return currentParams;
     }
 
     async delete_odp_order(odpId) {
