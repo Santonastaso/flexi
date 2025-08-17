@@ -11,6 +11,7 @@ export class Navigation {
             },
             pages: {
                 home: { href: 'index.html', label: 'Home', icon: '🏠' },
+                dashboard: { href: 'dashboard-page.html', label: 'Dashboard', icon: '📊' },
                 machinery: { href: 'machinery-page.html', label: 'Machinery', icon: '⚙️' },
                 phases: { href: 'phases-page.html', label: 'Phases', icon: '🔄' },
                 backlog: { href: 'backlog-page.html', label: 'Backlog', icon: '📝' },
@@ -19,6 +20,7 @@ export class Navigation {
             // Page-specific navigation exclusions
             page_exclusions: {
                 home: ['home'],
+                dashboard: ['dashboard'],
                 machinery: ['machinery'],
                 phases: ['phases'],
                 backlog: ['backlog'],

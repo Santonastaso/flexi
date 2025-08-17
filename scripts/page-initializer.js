@@ -13,6 +13,7 @@ import { MachineryManager } from './machinery-manager.js';
 import { PhasesManager } from './phases-manager.js';
 import { Scheduler } from './scheduler.js';
 import { CalendarRenderer } from './calendarRenderer.js';
+import { DashboardManager } from './dashboard-manager.js';
 import { asyncHandler } from './utils.js';
 
 // Page configuration - defines how each page should be initialized
@@ -53,6 +54,12 @@ const PAGE_CONFIGS = {
         type: 'complex',
         requires_edit_manager: true,
         custom_init: initialize_scheduler
+    },
+    'dashboard': {
+        name: 'Dashboard Page',
+        type: 'component',
+        component_class: DashboardManager,
+        global_var_name: 'dashboardManager'
     }
 };
 
@@ -77,6 +84,7 @@ function detect_page() {
     else if (path.includes('phases')) detectedPage = 'phases';
     else if (path.includes('machine-settings')) detectedPage = 'machine-settings';
     else if (path.includes('scheduler')) detectedPage = 'scheduler';
+    else if (path.includes('dashboard')) detectedPage = 'dashboard';
     
     console.log('🔍 Page detected from URL path:', detectedPage, '(path:', path, ')');
     return detectedPage;
