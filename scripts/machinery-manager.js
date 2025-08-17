@@ -8,7 +8,7 @@ import { BaseManager } from './baseManager.js';
 import { ValidationService } from './validationService.js';
 import { BusinessLogicService } from './businessLogicService.js';
 import { editManager } from './editManager.js';
-import { Utils } from './utils.js';
+import { Utils, renderDiff } from './utils.js';
 import { appStore } from './store.js'; // Import the store
 import { attachFormValidationListeners } from './utils.js';
 
@@ -257,38 +257,64 @@ export class MachineryManager extends BaseManager {
             this.elements.machinery_table_body.innerHTML = `<tr><td colspan="22" class="text-center" style="padding: 2rem; color: #6b7280;">No machines available. Add machines to get started.</td></tr>`;
             return;
         }
-        this.elements.machinery_table_body.innerHTML = machines.map(m => this.create_machine_row(m)).join('');
+        
+        // Use DOM diffing for efficient updates
+        renderDiff(
+            this.elements.machinery_table_body,
+            machines,
+            (machine) => `machine-${machine.id}`,
+            (machine) => this.create_machine_row(machine)
+        );
     }
 
     create_machine_row(machine) {
-        // This function is primarily HTML generation and remains unchanged for brevity.
+        // Create DOM element instead of HTML string for better performance
         const created_date = machine.created_at ? new Date(machine.created_at).toLocaleDateString() : '-';
         const updated_date = machine.updated_at ? new Date(machine.updated_at).toLocaleDateString() : '-';
         const display_name = machine.machine_name || machine.id || 'Unknown Machine';
         const is_active = machine.status === 'ACTIVE';
-        return `
-            <tr data-machine-id="${machine.id}" class="${!is_active ? 'machine-inactive' : ''}">
-                <td class="editable-cell" data-field="machine_id"><span class="static-value"><strong>${machine.machine_id || machine.id}</strong></span>${this.editManager.create_edit_input('text', machine.machine_id || machine.id)}</td>
-                <td class="editable-cell" data-field="machine_type"><span class="static-value">${machine.machine_type||'-'}</span>${this.editManager.create_edit_input('select',machine.machine_type,{options:[{value:'DIGITAL_PRINT',label:'Digital Print'},{value:'FLEXO_PRINT',label:'Flexo Print'},{value:'ROTOGRAVURE',label:'Rotogravure'},{value:'PACKAGING',label:'Packaging'},{value:'DOYPACK',label:'Doypack'}]})}</td>
-                <td class="editable-cell" data-field="machine_name"><span class="static-value">${display_name||'-'}</span>${this.editManager.create_edit_input('text',display_name)}</td>
-                <td class="editable-cell" data-field="work_center"><span class="static-value">${machine.work_center||'-'}</span>${this.editManager.create_edit_input('select',machine.work_center,{options:[{value:'ZANICA',label:'ZANICA'},{value:'BUSTO_GAROLFO',label:'BUSTO GAROLFO'}]})}</td>
-                <td class="editable-cell" data-field="department"><span class="static-value"><span class="btn btn-primary" style="font-size:12px;padding:6px 12px;min-height:28px;">${machine.department||'-'}</span></span>${this.editManager.create_edit_input('select',machine.department,{options:[{value:'STAMPA',label:'STAMPA'},{value:'CONFEZIONAMENTO',label:'CONFEZIONAMENTO'}]})}</td>
-                <td class="editable-cell" data-field="status"><span class="static-value"><span class="status-badge status-active">${machine.status||'ACTIVE'}</span></span>${this.editManager.create_edit_input('select',machine.status||'ACTIVE',{options:[{value:'ACTIVE',label:'Active'},{value:'MAINTENANCE',label:'Maintenance'},{value:'INACTIVE',label:'Inactive'}]})}</td>
-                <td class="editable-cell" data-field="min_web_width"><span class="static-value">${machine.min_web_width||0}</span>${this.editManager.create_edit_input('number',machine.min_web_width||0,{min:0})}</td>
-                <td class="editable-cell" data-field="max_web_width"><span class="static-value">${machine.max_web_width||0}</span>${this.editManager.create_edit_input('number',machine.max_web_width||0,{min:0})}</td>
-                <td class="editable-cell" data-field="min_bag_height"><span class="static-value">${machine.min_bag_height||0}</span>${this.editManager.create_edit_input('number',machine.min_bag_height||0,{min:0})}</td>
-                <td class="editable-cell" data-field="max_bag_height"><span class="static-value">${machine.max_bag_height||0}</span>${this.editManager.create_edit_input('number',machine.max_bag_height||0,{min:0})}</td>
-                <td class="editable-cell" data-field="standard_speed"><span class="static-value">${machine.standard_speed||0}</span>${this.editManager.create_edit_input('number',machine.standard_speed||0,{min:1})}</td>
-                <td class="editable-cell" data-field="setup_time_standard"><span class="static-value">${machine.setup_time_standard||0} h</span>${this.editManager.create_edit_input('number',machine.setup_time_standard||0,{min:0,step:0.1})}</td>
-                <td class="editable-cell" data-field="changeover_color"><span class="static-value">${machine.changeover_color||0} h</span>${this.editManager.create_edit_input('number',machine.changeover_color||0,{min:0,step:0.1})}</td>
-                <td class="editable-cell" data-field="changeover_material"><span class="static-value">${machine.changeover_material||0} h</span>${this.editManager.create_edit_input('number',machine.changeover_material||0,{min:0,step:0.1})}</td>
-                <td class="editable-cell" data-field="active_shifts"><span class="static-value">${Array.isArray(machine.active_shifts)?machine.active_shifts.join(', '):machine.active_shifts||'-'}</span>${this.editManager.create_edit_input('shifts',machine.active_shifts)}</td>
-                <td class="editable-cell" data-field="created_at"><span class="static-value">${created_date}</span>${this.editManager.create_edit_input('datetime-local',machine.created_at)}</td>
-                <td class="editable-cell" data-field="updated_at"><span class="static-value">${updated_date}</span>${this.editManager.create_edit_input('datetime-local',machine.updated_at)}</td>
-                <td class="text-center"><a href="machine-settings-page.html?machine=${encodeURIComponent(machine.machine_name)}" class="btn btn-secondary btn-small">📅</a></td>
-                <td class="text-center">${this.editManager.create_action_buttons()}</td>
-            </tr>
-        `;
+        
+        const row = document.createElement('tr');
+        row.className = !is_active ? 'machine-inactive' : '';
+        row.dataset.machineId = machine.id;
+        
+        // Create table cells
+        const cells = [
+            { field: 'machine_id', content: `<strong>${machine.machine_id || machine.id}</strong>`, input: this.editManager.create_edit_input('text', machine.machine_id || machine.id) },
+            { field: 'machine_type', content: machine.machine_type || '-', input: this.editManager.create_edit_input('select', machine.machine_type, { options: [{ value: 'DIGITAL_PRINT', label: 'Digital Print' }, { value: 'FLEXO_PRINT', label: 'Flexo Print' }, { value: 'ROTOGRAVURE', label: 'Rotogravure' }, { value: 'PACKAGING', label: 'Packaging' }, { value: 'DOYPACK', label: 'Doypack' }] }) },
+            { field: 'machine_name', content: display_name || '-', input: this.editManager.create_edit_input('text', display_name) },
+            { field: 'work_center', content: machine.work_center || '-', input: this.editManager.create_edit_input('select', machine.work_center, { options: [{ value: 'ZANICA', label: 'ZANICA' }, { value: 'BUSTO_GAROLFO', label: 'BUSTO GAROLFO' }] }) },
+            { field: 'department', content: `<span class="btn btn-primary" style="font-size:12px;padding:6px 12px;min-height:28px;">${machine.department || '-'}</span>`, input: this.editManager.create_edit_input('select', machine.department, { options: [{ value: 'STAMPA', label: 'STAMPA' }, { value: 'CONFEZIONAMENTO', label: 'CONFEZIONAMENTO' }] }) },
+            { field: 'status', content: `<span class="status-badge status-active">${machine.status || 'ACTIVE'}</span>`, input: this.editManager.create_edit_input('select', machine.status || 'ACTIVE', { options: [{ value: 'ACTIVE', label: 'Active' }, { value: 'MAINTENANCE', label: 'Maintenance' }, { value: 'INACTIVE', label: 'Inactive' }] }) },
+            { field: 'min_web_width', content: machine.min_web_width || 0, input: this.editManager.create_edit_input('number', machine.min_web_width || 0, { min: 0 }) },
+            { field: 'max_web_width', content: machine.max_web_width || 0, input: this.editManager.create_edit_input('number', machine.max_web_width || 0, { min: 0 }) },
+            { field: 'min_bag_height', content: machine.min_bag_height || 0, input: this.editManager.create_edit_input('number', machine.min_bag_height || 0, { min: 0 }) },
+            { field: 'max_bag_height', content: machine.max_bag_height || 0, input: this.editManager.create_edit_input('number', machine.max_bag_height || 0, { min: 0 }) },
+            { field: 'standard_speed', content: machine.standard_speed || 0, input: this.editManager.create_edit_input('number', machine.standard_speed || 0, { min: 1 }) },
+            { field: 'setup_time_standard', content: `${machine.setup_time_standard || 0} h`, input: this.editManager.create_edit_input('number', machine.setup_time_standard || 0, { min: 0, step: 0.1 }) },
+            { field: 'changeover_color', content: `${machine.changeover_color || 0} h`, input: this.editManager.create_edit_input('number', machine.changeover_color || 0, { min: 0, step: 0.1 }) },
+            { field: 'changeover_material', content: `${machine.changeover_material || 0} h`, input: this.editManager.create_edit_input('number', machine.changeover_material || 0, { min: 0, step: 0.1 }) },
+            { field: 'active_shifts', content: Array.isArray(machine.active_shifts) ? machine.active_shifts.join(', ') : machine.active_shifts || '-', input: this.editManager.create_edit_input('shifts', machine.active_shifts) },
+            { field: 'created_at', content: created_date, input: this.editManager.create_edit_input('datetime-local', machine.created_at) },
+            { field: 'updated_at', content: updated_date, input: this.editManager.create_edit_input('datetime-local', machine.updated_at) },
+            { field: 'settings', content: `<a href="machine-settings-page.html?machine=${encodeURIComponent(machine.machine_name)}" class="btn btn-secondary btn-small">📅</a>`, input: '' },
+            { field: 'actions', content: '', input: this.editManager.create_action_buttons() }
+        ];
+        
+        cells.forEach(cell => {
+            const td = document.createElement('td');
+            if (cell.field === 'settings' || cell.field === 'actions') {
+                td.className = 'text-center';
+                td.innerHTML = cell.content + cell.input;
+            } else {
+                td.className = 'editable-cell';
+                td.dataset.field = cell.field;
+                td.innerHTML = `<span class="static-value">${cell.content}</span>${cell.input}`;
+            }
+            row.appendChild(td);
+        });
+        
+        return row;
     }
 
     async editMachine(machineId) {

@@ -7,7 +7,7 @@ import { BusinessLogicService } from './businessLogicService.js';
 import { editManager } from './editManager.js';
 import { Utils } from './utils.js';
 import { appStore } from './store.js'; // Import the store
-import { attachEventListeners, attachFormValidationListeners } from './utils.js';
+import { attachEventListeners, attachFormValidationListeners, renderDiff } from './utils.js'; // Import renderDiff
 
 export class BacklogManager extends BaseManager {
     constructor() {
@@ -51,11 +51,13 @@ export class BacklogManager extends BaseManager {
     }
 
     render() {
-        const { odpOrders, isLoading } = appStore.getState();
+        const { odpOrders, machines, isLoading } = appStore.getState();
         if (isLoading) {
             this.elements.backlog_table_body.innerHTML = `<tr><td colspan="28" class="text-center" style="padding: 2rem; color: #6b7280;">Loading...</td></tr>`;
         } else {
-            this.render_backlog(odpOrders);
+            // Create the lookup map once for performance
+            const machineNameMap = new Map(machines.map(m => [m.id, m.machine_name]));
+            this.render_backlog(odpOrders, machineNameMap);
         }
     }
 
@@ -297,41 +299,13 @@ export class BacklogManager extends BaseManager {
             const quantity = parseInt(this.elements.quantity.value) || 0;
             const bagStep = parseInt(this.elements.bag_step.value) || 0;
 
-            const results = this.calculate_production_metrics(selectedPhase, quantity, bagStep);
+            const results = this.businessLogic.calculate_production_metrics(selectedPhase, quantity, bagStep);
             this.display_calculation_results(results);
             this.show_success_message('Calculation completed successfully');
         } catch (error) {
             const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
             this.show_error_message('calculating production metrics', errorObj);
         }
-    }
-
-    calculate_production_metrics(phase, quantity, bagStep) {
-        const results = {
-            printing: { processing_time: 0, setup_time: 0, total_time: 0, cost: 0 },
-            packaging: { processing_time: 0, setup_time: 0, total_time: 0, cost: 0 },
-            totals: { duration: 0, cost: 0 }
-        };
-
-        if (phase.department === 'STAMPA' && phase.v_stampa > 0) {
-            const metersToPrint = (bagStep * quantity) / 1000;
-            results.printing.processing_time = Math.round((metersToPrint / phase.v_stampa) * 100) / 100;
-            results.printing.setup_time = Math.round((phase.t_setup_stampa || 0) * 100) / 100;
-            results.printing.total_time = results.printing.processing_time + results.printing.setup_time;
-            results.printing.cost = Math.round((results.printing.total_time * (phase.costo_h_stampa || 0)) * 100) / 100;
-        }
-
-        if (phase.department === 'CONFEZIONAMENTO' && phase.v_conf > 0) {
-            results.packaging.processing_time = Math.round((quantity / phase.v_conf) * 100) / 100;
-            results.packaging.setup_time = Math.round((phase.t_setup_conf || 0) * 100) / 100;
-            results.packaging.total_time = results.packaging.processing_time + results.packaging.setup_time;
-            results.packaging.cost = Math.round((results.packaging.total_time * (phase.costo_h_conf || 0)) * 100) / 100;
-        }
-
-        results.totals.duration = Math.round((results.printing.total_time + results.packaging.total_time) * 100) / 100;
-        results.totals.cost = Math.round((results.printing.cost + results.packaging.cost) * 100) / 100;
-
-        return results;
     }
 
     display_calculation_results(results) {
@@ -403,7 +377,7 @@ export class BacklogManager extends BaseManager {
         }
     }
 
-    render_backlog(items) {
+    render_backlog(items, machineNameMap) {
         if (!this.elements.backlog_table_body) return;
 
         if (!items || items.length === 0) {
@@ -414,51 +388,55 @@ export class BacklogManager extends BaseManager {
             return;
         }
         
-        this.elements.backlog_table_body.innerHTML = items.map(item => this.create_backlog_row(item)).join('');
+        renderDiff(
+            this.elements.backlog_table_body,
+            items,
+            (item) => `backlog-item-${item.id}`,
+            (item) => this.create_backlog_row(item, machineNameMap)
+        );
     }
 
-    create_backlog_row(item) {
-        const { machines } = appStore.getState();
-        const scheduledMachine = item.scheduled_machine_id ? machines.find(m => m.id === item.scheduled_machine_id) : null;
-        const machineName = scheduledMachine ? scheduledMachine.machine_name : '-';
-        return `
-            <tr data-odp-id="${item.id}">
-                <td class="editable-cell" data-field="id"><span class="static-value">${item.id}</span>${this.editManager ? this.editManager.create_edit_input('text', item.id) : ''}</td>
-                <td class="editable-cell" data-field="odp_number"><span class="static-value">${Utils.escape_html(item.odp_number || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.odp_number) : ''}</td>
-                <td class="editable-cell" data-field="article_code"><span class="static-value">${Utils.escape_html(item.article_code || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.article_code) : ''}</td>
-                <td class="editable-cell" data-field="production_lot"><span class="static-value">${Utils.escape_html(item.production_lot || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.production_lot) : ''}</td>
-                <td class="editable-cell" data-field="work_center"><span class="static-value">${Utils.escape_html(item.work_center || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.work_center) : ''}</td>
-                <td class="editable-cell" data-field="nome_cliente"><span class="static-value">${Utils.escape_html(item.nome_cliente || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.nome_cliente) : ''}</td>
-                <td class="editable-cell" data-field="description"><span class="static-value">${Utils.escape_html(item.description || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.description) : ''}</td>
-                <td class="editable-cell" data-field="bag_height"><span class="static-value">${item.bag_height || '-'} mm</span>${this.editManager ? this.editManager.create_edit_input('number', item.bag_height, { min: 0 }) : ''}</td>
-                <td class="editable-cell" data-field="bag_width"><span class="static-value">${item.bag_width || '-'} mm</span>${this.editManager ? this.editManager.create_edit_input('number', item.bag_width, { min: 0 }) : ''}</td>
-                <td class="editable-cell" data-field="bag_step"><span class="static-value">${item.bag_step || '-'} mm</span>${this.editManager ? this.editManager.create_edit_input('number', item.bag_step, { min: 0 }) : ''}</td>
-                <td class="editable-cell" data-field="seal_sides"><span class="static-value">${item.seal_sides || '-'} sides</span>${this.editManager ? this.editManager.create_edit_input('select', item.seal_sides, { options: [{ value: '3', label: '3 sides' }, { value: '4', label: '4 sides' }] }) : ''}</td>
-                <td class="editable-cell" data-field="product_type"><span class="static-value">${Utils.escape_html(item.product_type || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.product_type) : ''}</td>
-                <td class="editable-cell" data-field="quantity"><span class="static-value">${item.quantity || '-'}</span>${this.editManager ? this.editManager.create_edit_input('number', item.quantity, { min: 0 }) : ''}</td>
-                <td class="editable-cell" data-field="quantity_completed"><span class="static-value">${item.quantity_completed || 0}</span>${this.editManager ? this.editManager.create_edit_input('number', item.quantity_completed, { min: 0, max: item.quantity || 999999 }) : ''}</td>
-                <td class="editable-cell" data-field="quantity_per_box"><span class="static-value">${item.quantity_per_box || '-'}</span>${this.editManager ? this.editManager.create_edit_input('number', item.quantity_per_box, { min: 1 }) : ''}</td>
-                <td class="editable-cell" data-field="n_boxes"><span class="static-value">${item.n_boxes || '-'}</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
-                <td class="editable-cell" data-field="progress"><span class="static-value">${item.progress || 0}%</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
-                <td class="editable-cell" data-field="time_remaining"><span class="static-value">${item.time_remaining || item.duration || '-'} h</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
-                <td class="editable-cell" data-field="production_start"><span class="static-value">${item.scheduled_start_time ? this.format_production_start(item.scheduled_start_time) : (item.production_start ? this.format_production_start(item.production_start) : '-')}</span>${this.editManager ? this.editManager.create_edit_input('datetime-local', item.production_start) : ''}</td>
-                <td class="editable-cell" data-field="production_end"><span class="static-value">${item.scheduled_end_time ? this.format_production_end(item.scheduled_end_time) : (item.production_end ? this.format_production_end(item.production_end) : '-')}</span>${this.editManager ? this.editManager.create_edit_input('datetime-local', item.production_end) : ''}</td>
-                <td class="editable-cell" data-field="delivery_date"><span class="static-value">${item.delivery_date || '-'}</span>${this.editManager ? this.editManager.create_edit_input('datetime-local', item.delivery_date) : ''}</td>
-                <td class="editable-cell" data-field="internal_customer_code"><span class="static-value">${Utils.escape_html(item.internal_customer_code || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.internal_customer_code) : ''}</td>
-                <td class="editable-cell" data-field="external_customer_code"><span class="static-value">${Utils.escape_html(item.external_customer_code || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.external_customer_code) : ''}</td>
-                <td class="editable-cell" data-field="customer_order_ref"><span class="static-value">${Utils.escape_html(item.customer_order_ref || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.customer_order_ref) : ''}</td>
-                <td class="editable-cell" data-field="department"><span class="static-value"><span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">${Utils.escape_html(item.department || '-')}</span></span>${this.editManager ? this.editManager.create_edit_input('text', item.department) : ''}</td>
-                <td class="editable-cell" data-field="fase"><span class="static-value">${Utils.escape_html(item.fase || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.fase) : ''}</td>
-                <td class="editable-cell" data-field="duration"><span class="static-value">${item.duration || '-'} h</span>${this.editManager ? this.editManager.create_edit_input('number', item.duration, { min: 0, step: 0.1 }) : ''}</td>
-                <td class="editable-cell" data-field="cost"><span class="static-value">€${item.cost || '-'}</span>${this.editManager ? this.editManager.create_edit_input('number', item.cost, { min: 0, step: 0.01 }) : ''}</td>
-                <td class="editable-cell" data-field="progress"><span class="static-value">${item.progress || 0}%</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
-                <td class="editable-cell" data-field="time_remaining"><span class="static-value">${item.time_remaining || item.duration || '-'} h</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
-                <td class="editable-cell" data-field="priority"><span class="static-value">${Utils.escape_html(item.priority || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.priority) : ''}</td>
-                <td class="editable-cell" data-field="status"><span class="static-value">${Utils.escape_html(item.status || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.status) : ''}</td>
-                <td class="editable-cell" data-field="scheduled_machine" data-readonly="true"><span class="static-value">${machineName}</span></td>
-                <td class="text-center">${this.editManager ? this.editManager.create_action_buttons() : ''}</td>
-            </tr>
+    create_backlog_row(item, machineNameMap) {
+        const machineName = machineNameMap.get(item.scheduled_machine_id) || '-';
+        const rowElement = document.createElement('tr');
+        rowElement.dataset.odpId = item.id;
+        rowElement.innerHTML = `
+            <td class="editable-cell" data-field="id"><span class="static-value">${item.id}</span>${this.editManager ? this.editManager.create_edit_input('text', item.id) : ''}</td>
+            <td class="editable-cell" data-field="odp_number"><span class="static-value">${Utils.escape_html(item.odp_number || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.odp_number) : ''}</td>
+            <td class="editable-cell" data-field="article_code"><span class="static-value">${Utils.escape_html(item.article_code || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.article_code) : ''}</td>
+            <td class="editable-cell" data-field="production_lot"><span class="static-value">${Utils.escape_html(item.production_lot || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.production_lot) : ''}</td>
+            <td class="editable-cell" data-field="work_center"><span class="static-value">${Utils.escape_html(item.work_center || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.work_center) : ''}</td>
+            <td class="editable-cell" data-field="nome_cliente"><span class="static-value">${Utils.escape_html(item.nome_cliente || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.nome_cliente) : ''}</td>
+            <td class="editable-cell" data-field="description"><span class="static-value">${Utils.escape_html(item.description || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.description) : ''}</td>
+            <td class="editable-cell" data-field="bag_height"><span class="static-value">${item.bag_height || '-'} mm</span>${this.editManager ? this.editManager.create_edit_input('number', item.bag_height, { min: 0 }) : ''}</td>
+            <td class="editable-cell" data-field="bag_width"><span class="static-value">${item.bag_width || '-'} mm</span>${this.editManager ? this.editManager.create_edit_input('number', item.bag_width, { min: 0 }) : ''}</td>
+            <td class="editable-cell" data-field="bag_step"><span class="static-value">${item.bag_step || '-'} mm</span>${this.editManager ? this.editManager.create_edit_input('number', item.bag_step, { min: 0 }) : ''}</td>
+            <td class="editable-cell" data-field="seal_sides"><span class="static-value">${item.seal_sides || '-'} sides</span>${this.editManager ? this.editManager.create_edit_input('select', item.seal_sides, { options: [{ value: '3', label: '3 sides' }, { value: '4', label: '4 sides' }] }) : ''}</td>
+            <td class="editable-cell" data-field="product_type"><span class="static-value">${Utils.escape_html(item.product_type || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.product_type) : ''}</td>
+            <td class="editable-cell" data-field="quantity"><span class="static-value">${item.quantity || '-'}</span>${this.editManager ? this.editManager.create_edit_input('number', item.quantity, { min: 0 }) : ''}</td>
+            <td class="editable-cell" data-field="quantity_completed"><span class="static-value">${item.quantity_completed || 0}</span>${this.editManager ? this.editManager.create_edit_input('number', item.quantity_completed, { min: 0, max: item.quantity || 999999 }) : ''}</td>
+            <td class="editable-cell" data-field="quantity_per_box"><span class="static-value">${item.quantity_per_box || '-'}</span>${this.editManager ? this.editManager.create_edit_input('number', item.quantity_per_box, { min: 1 }) : ''}</td>
+            <td class="editable-cell" data-field="n_boxes"><span class="static-value">${item.n_boxes || '-'}</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
+            <td class="editable-cell" data-field="progress"><span class="static-value">${item.progress || 0}%</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
+            <td class="editable-cell" data-field="time_remaining"><span class="static-value">${item.time_remaining || item.duration || '-'} h</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
+            <td class="editable-cell" data-field="production_start"><span class="static-value">${item.scheduled_start_time ? this.format_production_start(item.scheduled_start_time) : (item.production_start ? this.format_production_start(item.production_start) : '-')}</span>${this.editManager ? this.editManager.create_edit_input('datetime-local', item.production_start) : ''}</td>
+            <td class="editable-cell" data-field="production_end"><span class="static-value">${item.scheduled_end_time ? this.format_production_end(item.scheduled_end_time) : (item.production_end ? this.format_production_end(item.production_end) : '-')}</span>${this.editManager ? this.editManager.create_edit_input('datetime-local', item.production_end) : ''}</td>
+            <td class="editable-cell" data-field="delivery_date"><span class="static-value">${item.delivery_date || '-'}</span>${this.editManager ? this.editManager.create_edit_input('datetime-local', item.delivery_date) : ''}</td>
+            <td class="editable-cell" data-field="internal_customer_code"><span class="static-value">${Utils.escape_html(item.internal_customer_code || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.internal_customer_code) : ''}</td>
+            <td class="editable-cell" data-field="external_customer_code"><span class="static-value">${Utils.escape_html(item.external_customer_code || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.external_customer_code) : ''}</td>
+            <td class="editable-cell" data-field="customer_order_ref"><span class="static-value">${Utils.escape_html(item.customer_order_ref || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.customer_order_ref) : ''}</td>
+            <td class="editable-cell" data-field="department"><span class="static-value"><span class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; min-height: 28px;">${Utils.escape_html(item.department || '-')}</span></span>${this.editManager ? this.editManager.create_edit_input('text', item.department) : ''}</td>
+            <td class="editable-cell" data-field="fase"><span class="static-value">${Utils.escape_html(item.fase || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.fase) : ''}</td>
+            <td class="editable-cell" data-field="duration"><span class="static-value">${item.duration || '-'} h</span>${this.editManager ? this.editManager.create_edit_input('number', item.duration, { min: 0, step: 0.1 }) : ''}</td>
+            <td class="editable-cell" data-field="cost"><span class="static-value">€${item.cost || '-'}</span>${this.editManager ? this.editManager.create_edit_input('number', item.cost, { min: 0, step: 0.01 }) : ''}</td>
+            <td class="editable-cell" data-field="progress"><span class="static-value">${item.progress || 0}%</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
+            <td class="editable-cell" data-field="time_remaining"><span class="static-value">${item.time_remaining || item.duration || '-'} h</span><span class="text-muted" style="font-size: 11px;"> (computed)</span></td>
+            <td class="editable-cell" data-field="priority"><span class="static-value">${Utils.escape_html(item.priority || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.priority) : ''}</td>
+            <td class="editable-cell" data-field="status"><span class="static-value">${Utils.escape_html(item.status || '-')}</span>${this.editManager ? this.editManager.create_edit_input('text', item.status) : ''}</td>
+            <td class="editable-cell" data-field="scheduled_machine" data-readonly="true"><span class="static-value">${machineName}</span></td>
+            <td class="text-center">${this.editManager ? this.editManager.create_action_buttons() : ''}</td>
         `;
+        return rowElement;
     }
 
     async save_edit(row) {

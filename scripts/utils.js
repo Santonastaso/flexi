@@ -428,3 +428,47 @@ export const attachFormValidationListeners = (elements, elementIds, eventTypes, 
 };
 
 // Export for ES6 modules (already exported above)
+
+/**
+ * Efficiently updates a container using DOM diffing
+ * Only updates elements that have actually changed
+ * @param {HTMLElement} container - The container to update
+ * @param {Array} data - Array of data items
+ * @param {Function} keyFn - Function to generate unique keys for items
+ * @param {Function} renderFn - Function to render individual items
+ */
+export function renderDiff(container, data, keyFn, renderFn) {
+    if (!container) return;
+
+    const existingElements = new Map();
+    for (const child of container.children) {
+        existingElements.set(child.dataset.key, child);
+    }
+
+    const newKeys = new Set();
+    data.forEach((item, index) => {
+        const key = keyFn(item);
+        newKeys.add(key);
+
+        const newItemElement = renderFn(item);
+        newItemElement.dataset.key = key;
+
+        const existingElement = existingElements.get(key);
+        if (existingElement) {
+            if (existingElement.innerHTML !== newItemElement.innerHTML) {
+                container.replaceChild(newItemElement, existingElement);
+            }
+        } else {
+            const nextItem = data[index + 1];
+            const nextKey = nextItem ? keyFn(nextItem) : null;
+            const nextElement = nextKey ? existingElements.get(nextKey) : null;
+            container.insertBefore(newItemElement, nextElement);
+        }
+    });
+
+    for (const [key, element] of existingElements.entries()) {
+        if (!newKeys.has(key)) {
+            container.removeChild(element);
+        }
+    }
+}
