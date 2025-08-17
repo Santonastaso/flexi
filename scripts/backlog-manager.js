@@ -66,7 +66,7 @@ export class BacklogManager extends BaseManager {
         const elementIds = [
             'odp_number', 'article_code', 'production_lot', 'work_center', 'nome_cliente',
             'bag_height', 'bag_width', 'bag_step', 'quantity', 'quantity_per_box', 'quantity_completed', 
-            'seal_sides', 'product_type', 'delivery_date', 'department', 'fase', 
+            'seal_sides', 'product_type', 'delivery_date', 'department', 'fase', 'fase_search', 'fase_dropdown',
             'internal_customer_code', 'external_customer_code', 'customer_order_ref', 
             'calculate_btn', 'create_task', 'update_statuses_btn', 'debug_events_btn',
             'backlog_table_body', 'preview_fascia', 'preview_altezza', 'preview_passo'
@@ -553,6 +553,10 @@ export class BacklogManager extends BaseManager {
         if (this.elements.product_type) this.elements.product_type.value = '';
         if (this.elements.delivery_date) this.elements.delivery_date.value = '';
         
+        // Clear phase selection
+        if (this.elements.fase_search) this.elements.fase_search.value = '';
+        if (this.elements.fase) this.elements.fase.value = '';
+        
         // Update the display
         this.update_bag_specs_display();
     }
@@ -561,10 +565,12 @@ export class BacklogManager extends BaseManager {
         try {
             // Use the store to get phases instead of direct storageService access
             const { phases } = appStore.getState();
-            const faseDropdown = this.elements.fase;
-            if (!faseDropdown || !phases?.length) return;
+            const faseSearch = this.elements.fase_search;
+            const faseHidden = this.elements.fase;
+            const faseDropdown = this.elements.fase_dropdown;
             
-            faseDropdown.innerHTML = '<option value="">Select production phase</option>';
+            if (!faseSearch || !faseHidden || !faseDropdown || !phases?.length) return;
+            
             const department = this.elements.department?.value;
             const workCenter = this.elements.work_center?.value;
                 
@@ -572,18 +578,109 @@ export class BacklogManager extends BaseManager {
             const relevantPhases = (department || workCenter)
                 ? phases.filter(p => (!department || p.department === department) && (!workCenter || p.work_center === workCenter))
                 : phases;
-                
-            relevantPhases.forEach(phase => {
-                const option = document.createElement('option');
-                option.value = phase.id;
-                option.textContent = phase.name;
-                faseDropdown.appendChild(option);
-            });
+            
+            // Store phases for search functionality
+            this.availablePhases = relevantPhases;
+            
+            // Set up search functionality
+            this.setup_phase_search();
             
             if (window.DEBUG) console.log(`Populated phases dropdown with ${relevantPhases.length} phases (department: ${department}, work_center: ${workCenter})`);
         } catch (error) {
             console.error("Error populating phases dropdown:", error);
         }
+    }
+
+    setup_phase_search() {
+        const faseSearch = this.elements.fase_search;
+        const faseHidden = this.elements.fase;
+        const faseDropdown = this.elements.fase_dropdown;
+        
+        if (!faseSearch || !faseHidden || !faseDropdown) return;
+        
+        // Clear previous event listeners
+        faseSearch.removeEventListener('input', this.handlePhaseSearch);
+        faseSearch.removeEventListener('focus', this.showPhaseDropdown);
+        faseSearch.removeEventListener('blur', this.hidePhaseDropdown);
+        
+        // Add new event listeners
+        this.handlePhaseSearch = (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            this.filterAndShowPhases(searchTerm);
+        };
+        
+        this.showPhaseDropdown = () => {
+            if (this.availablePhases?.length) {
+                this.filterAndShowPhases(faseSearch.value.toLowerCase());
+            }
+        };
+        
+        this.hidePhaseDropdown = () => {
+            // Delay hiding to allow click events on dropdown options
+            setTimeout(() => {
+                faseDropdown.style.display = 'none';
+            }, 150);
+        };
+        
+        faseSearch.addEventListener('input', this.handlePhaseSearch);
+        faseSearch.addEventListener('focus', this.showPhaseDropdown);
+        faseSearch.addEventListener('blur', this.hidePhaseDropdown);
+    }
+
+    filterAndShowPhases(searchTerm) {
+        const faseDropdown = this.elements.fase_dropdown;
+        const faseHidden = this.elements.fase;
+        
+        if (!faseDropdown || !this.availablePhases) return;
+        
+        const filteredPhases = this.availablePhases.filter(phase => 
+            phase.name.toLowerCase().includes(searchTerm) || 
+            (phase.contenuto_fase && phase.contenuto_fase.toLowerCase().includes(searchTerm))
+        );
+        
+        faseDropdown.innerHTML = '';
+        
+        if (filteredPhases.length === 0) {
+            faseDropdown.innerHTML = '<div class="dropdown-option">No phases found</div>';
+        } else {
+            filteredPhases.forEach(phase => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-option';
+                option.dataset.phaseId = phase.id;
+                option.innerHTML = `
+                    <span class="phase-name">${Utils.escape_html(phase.name)}</span>
+                    <span class="phase-description">${Utils.escape_html(phase.contenuto_fase || 'No description')}</span>
+                `;
+                
+                option.addEventListener('click', () => {
+                    this.selectPhase(phase);
+                });
+                
+                faseDropdown.appendChild(option);
+            });
+        }
+        
+        faseDropdown.style.display = 'block';
+    }
+
+    selectPhase(phase) {
+        const faseSearch = this.elements.fase_search;
+        const faseHidden = this.elements.fase;
+        const faseDropdown = this.elements.fase_dropdown;
+        
+        if (!faseSearch || !faseHidden || !faseDropdown) return;
+        
+        // Update the search input to show selected phase
+        faseSearch.value = phase.name;
+        
+        // Update the hidden input with the phase ID
+        faseHidden.value = phase.id;
+        
+        // Hide the dropdown
+        faseDropdown.style.display = 'none';
+        
+        // Trigger validation
+        this.validate_form_fields();
     }
 
     async delete_odp_order(odpId) {

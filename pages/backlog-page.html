@@ -184,10 +184,11 @@
                                     </div>
                                     <div class="form-group">
                                         <label for="fase">Production Phase</label>
-                                        <select id="fase" required>
-                                            <option value="">Select production phase</option>
-                                        </select>
-            
+                                        <div class="searchable-dropdown">
+                                            <input type="text" id="fase_search" placeholder="Search phases..." autocomplete="off">
+                                            <input type="hidden" id="fase" required>
+                                            <div id="fase_dropdown" class="dropdown-options" style="display: none;"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

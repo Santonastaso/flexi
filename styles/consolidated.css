@@ -1259,3 +1259,68 @@ tr.editing td {
     .main-content { margin-left: 0; }
     .form-grid--4-cols, .form-grid--5-cols, .form-grid--6-cols, .form-grid--3-cols, .form-grid--2-cols { grid-template-columns: 1fr; }
 }
+
+/* ===== SEARCHABLE DROPDOWN STYLES ===== */
+.searchable-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.searchable-dropdown input[type="text"] {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: white;
+}
+
+.searchable-dropdown input[type="text"]:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.dropdown-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.dropdown-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.dropdown-option:hover {
+    background-color: #f3f4f6;
+}
+
+.dropdown-option.selected {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.dropdown-option .phase-name {
+    font-weight: 500;
+    display: block;
+}
+
+.dropdown-option .phase-description {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+.dropdown-option.selected .phase-description {
+    color: #e5e7eb;
+}
