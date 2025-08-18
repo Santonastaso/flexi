@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { useStore } from '../store/useStore';
+import { toDateString, isTaskOverlapping } from '../utils/dateUtils';
 
 // A single time slot on the calendar that can receive a dropped task
 function TimeSlot({ machine, hour, isUnavailable, hasScheduledTask }) {
@@ -117,21 +118,13 @@ function MachineRow({ machine, scheduledEvents, currentDate, unavailableByMachin
       </div>
       <div className="machine-slots">
         {hours.map(hour => {
-          const setForMachine = unavailableByMachine[machine.machine_name];
+          const setForMachine = unavailableByMachine[machine.id];
           const isUnavailable = setForMachine ? setForMachine.has(hour.toString()) : false;
           
           // Check if there's a scheduled task at this hour
-          const hasScheduledTask = scheduledEvents.some(event => {
-            const eventStart = new Date(event.scheduled_start_time);
-            const eventEnd = new Date(event.scheduled_end_time);
-            const slotStart = new Date(currentDate);
-            slotStart.setHours(hour, 0, 0, 0);
-            const slotEnd = new Date(slotStart);
-            slotEnd.setHours(hour + 1, 0, 0, 0);
-            
-            // Check if the event overlaps with this hour slot
-            return eventStart < slotEnd && eventEnd > slotStart;
-          });
+          const hasScheduledTask = scheduledEvents.some(event => 
+            isTaskOverlapping(event, toDateString(currentDate), hour)
+          );
           
           return (
             <TimeSlot 
@@ -163,7 +156,7 @@ function GanttChart({ machines, tasks, currentDate }) {
   const loadMachineAvailabilityForDate = useStore(state => state.loadMachineAvailabilityForDate);
   const machineAvailability = useStore(state => state.machineAvailability);
 
-  const dateStr = useMemo(() => currentDate.toISOString().split('T')[0], [currentDate]);
+  const dateStr = useMemo(() => toDateString(currentDate), [currentDate]);
 
   useEffect(() => {
     loadMachineAvailabilityForDate(dateStr);
@@ -174,7 +167,7 @@ function GanttChart({ machines, tasks, currentDate }) {
     const map = {};
     if (Array.isArray(dayData)) {
       dayData.forEach(row => {
-        map[row.machine_name] = new Set((row.unavailable_hours || []).map(h => h.toString()));
+        map[row.machine_id] = new Set((row.unavailable_hours || []).map(h => h.toString()));
       });
     }
     return map;

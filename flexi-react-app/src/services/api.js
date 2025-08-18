@@ -213,12 +213,12 @@ class ApiService {
 
   // ===== MACHINE AVAILABILITY =====
   
-  async getMachineAvailabilityForDateRange(machineName, startDate, endDate) {
+  async getMachineAvailabilityForDateRange(machineId, startDate, endDate) {
     try {
       const { data, error } = await supabase
         .from('machine_availability')
         .select('*')
-        .eq('machine_name', machineName)
+        .eq('machine_id', machineId)
         .gte('date', startDate)
         .lte('date', endDate)
         .order('date');
@@ -230,12 +230,12 @@ class ApiService {
     }
   }
 
-  async getMachineAvailabilityForDate(machineName, dateStr) {
+  async getMachineAvailabilityForDate(machineId, dateStr) {
     try {
       const { data, error } = await supabase
         .from('machine_availability')
         .select('*')
-        .eq('machine_name', machineName)
+        .eq('machine_id', machineId)
         .eq('date', dateStr)
         .maybeSingle();
         
@@ -246,15 +246,15 @@ class ApiService {
     }
   }
 
-  async setMachineAvailability(machineName, dateStr, unavailableHours) {
+  async setMachineAvailability(machineId, dateStr, unavailableHours) {
     try {
       const { data, error } = await supabase
         .from('machine_availability')
         .upsert([{
-          machine_name: machineName,
+          machine_id: machineId,
           date: dateStr,
           unavailable_hours: unavailableHours
-        }], { onConflict: 'machine_name,date' })
+        }], { onConflict: 'machine_id,date' })
         .select()
         .single();
         
@@ -293,15 +293,11 @@ class ApiService {
     }
   }
 
-  async setUnavailableHoursForRange(machineName, startDate, endDate, startTime, endTime) {
-    try {
-      // This would need to be implemented based on your specific requirements
-      // For now, returning a placeholder
-      console.log('Setting unavailable hours for range:', { machineName, startDate, endDate, startTime, endTime });
-      return true;
-    } catch (error) {
-      throw new Error(`Failed to set unavailable hours: ${handleSupabaseError(error)}`);
-    }
+  async setUnavailableHoursForRange(machineId, startDate, endDate, startTime, endTime) {
+    // This would need to be implemented based on your specific requirements
+    // For now, returning a placeholder
+    console.log('Setting unavailable hours for range:', { machineId, startDate, endDate, startTime, endTime });
+    return true;
   }
 
   // ===== snake_case aliases for backward compatibility and consistency =====
@@ -320,12 +316,12 @@ class ApiService {
   async update_phase(id, updates) { return this.updatePhase(id, updates); }
   async remove_phase(id) { return this.removePhase(id); }
 
-  async get_machine_availability_for_date_range(machineName, startDate, endDate) { return this.getMachineAvailabilityForDateRange(machineName, startDate, endDate); }
-  async get_machine_availability_for_date(machineName, dateStr) { return this.getMachineAvailabilityForDate(machineName, dateStr); }
-  async set_machine_availability(machineName, dateStr, unavailableHours) { return this.setMachineAvailability(machineName, dateStr, unavailableHours); }
+  async get_machine_availability_for_date_range(machineId, startDate, endDate) { return this.getMachineAvailabilityForDateRange(machineId, startDate, endDate); }
+  async get_machine_availability_for_date(machineId, dateStr) { return this.getMachineAvailabilityForDate(machineId, dateStr); }
+  async set_machine_availability(machineId, dateStr, unavailableHours) { return this.setMachineAvailability(machineId, dateStr, unavailableHours); }
   async get_machine_availability_for_date_all_machines(dateStr) { return this.getMachineAvailabilityForDateAllMachines(dateStr); }
   async get_events_by_date(dateStr) { return this.getEventsByDate(dateStr); }
-  async set_unavailable_hours_for_range(machineName, startDate, endDate, startTime, endTime) { return this.setUnavailableHoursForRange(machineName, startDate, endDate, startTime, endTime); }
+  async set_unavailable_hours_for_range(machineId, startDate, endDate, startTime, endTime) { return this.setUnavailableHoursForRange(machineId, startDate, endDate, startTime, endTime); }
 }
 
 // Create and export singleton instance

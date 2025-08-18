@@ -1,17 +1,27 @@
 /* ===== ERROR BOUNDARY STYLES ===== */
 
-/* Main Error Boundary */
-.error-boundary {
+/* Common error boundary styles */
+.error-boundary,
+.async-error-boundary {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 20px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.error-boundary__container {
+.error-boundary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.async-error-boundary {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+/* Common container styles */
+.error-boundary__container,
+.async-error-boundary__container {
   background: white;
   border-radius: 16px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
@@ -22,13 +32,24 @@
   animation: slideInUp 0.6s ease-out;
 }
 
-.error-boundary__icon {
+/* Common icon styles */
+.error-boundary__icon,
+.async-error-boundary__icon {
   font-size: 64px;
   margin-bottom: 24px;
+}
+
+.error-boundary__icon {
   animation: bounce 2s infinite;
 }
 
-.error-boundary__title {
+.async-error-boundary__icon {
+  animation: pulse 2s infinite;
+}
+
+/* Common title styles */
+.error-boundary__title,
+.async-error-boundary__title {
   font-size: 28px;
   font-weight: 700;
   color: #1a202c;
@@ -36,14 +57,28 @@
   line-height: 1.2;
 }
 
-.error-boundary__message {
+/* Common message styles */
+.error-boundary__message,
+.async-error-boundary__message {
   font-size: 16px;
   color: #4a5568;
   margin-bottom: 32px;
   line-height: 1.6;
 }
 
-.error-boundary__details {
+.async-error-boundary__retry-info {
+  font-size: 14px;
+  color: #e53e3e;
+  margin-bottom: 32px;
+  padding: 12px;
+  background: #fed7d7;
+  border-radius: 8px;
+  border: 1px solid #feb2b2;
+}
+
+/* Common details styles */
+.error-boundary__details,
+.async-error-boundary__details {
   background: #f7fafc;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -51,7 +86,8 @@
   text-align: left;
 }
 
-.error-boundary__details summary {
+.error-boundary__details summary,
+.async-error-boundary__details summary {
   padding: 16px;
   cursor: pointer;
   font-weight: 600;
@@ -59,11 +95,13 @@
   border-bottom: 1px solid #e2e8f0;
 }
 
-.error-boundary__details summary:hover {
+.error-boundary__details summary:hover,
+.async-error-boundary__details summary:hover {
   background: #edf2f7;
 }
 
-.error-boundary__error-info {
+.error-boundary__error-info,
+.async-error-boundary__error-info {
   padding: 16px;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 14px;
@@ -80,7 +118,9 @@
   margin-top: 12px;
 }
 
-.error-boundary__actions {
+/* Common actions styles */
+.error-boundary__actions,
+.async-error-boundary__actions {
   display: flex;
   gap: 12px;
   justify-content: center;
@@ -88,7 +128,9 @@
   margin-bottom: 32px;
 }
 
-.error-boundary__button {
+/* Common button styles */
+.error-boundary__button,
+.async-error-boundary__button {
   padding: 12px 24px;
   border: none;
   border-radius: 8px;
@@ -102,6 +144,7 @@
   gap: 8px;
 }
 
+/* Button variants */
 .error-boundary__button--primary {
   background: #4299e1;
   color: white;
@@ -123,132 +166,6 @@
   background: #e2e8f0;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.error-boundary__footer {
-  border-top: 1px solid #e2e8f0;
-  padding-top: 24px;
-}
-
-.error-boundary__error-id {
-  font-size: 14px;
-  color: #718096;
-  margin-bottom: 8px;
-}
-
-.error-boundary__error-id code {
-  background: #f7fafc;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  color: #2d3748;
-}
-
-.error-boundary__help {
-  font-size: 14px;
-  color: #a0aec0;
-  line-height: 1.5;
-}
-
-/* Async Error Boundary */
-.async-error-boundary {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  padding: 20px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.async-error-boundary__container {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  padding: 40px;
-  max-width: 600px;
-  width: 100%;
-  text-align: center;
-  animation: slideInUp 0.6s ease-out;
-}
-
-.async-error-boundary__icon {
-  font-size: 64px;
-  margin-bottom: 24px;
-  animation: pulse 2s infinite;
-}
-
-.async-error-boundary__title {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1a202c;
-  margin-bottom: 16px;
-  line-height: 1.2;
-}
-
-.async-error-boundary__message {
-  font-size: 16px;
-  color: #4a5568;
-  margin-bottom: 16px;
-  line-height: 1.6;
-}
-
-.async-error-boundary__retry-info {
-  font-size: 14px;
-  color: #e53e3e;
-  margin-bottom: 32px;
-  padding: 12px;
-  background: #fed7d7;
-  border-radius: 8px;
-  border: 1px solid #feb2b2;
-}
-
-.async-error-boundary__details {
-  background: #f7fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  margin-bottom: 32px;
-  text-align: left;
-}
-
-.async-error-boundary__details summary {
-  padding: 16px;
-  cursor: pointer;
-  font-weight: 600;
-  color: #2d3748;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.async-error-boundary__details summary:hover {
-  background: #edf2f7;
-}
-
-.async-error-boundary__error-info {
-  padding: 16px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 14px;
-}
-
-.async-error-boundary__actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-bottom: 32px;
-}
-
-.async-error-boundary__button {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .async-error-boundary__button--primary {
@@ -274,11 +191,28 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+/* Common footer styles */
+.error-boundary__footer,
 .async-error-boundary__footer {
   border-top: 1px solid #e2e8f0;
   padding-top: 24px;
 }
 
+.error-boundary__error-id {
+  font-size: 14px;
+  color: #718096;
+  margin-bottom: 8px;
+}
+
+.error-boundary__error-id code {
+  background: #f7fafc;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  color: #2d3748;
+}
+
+.error-boundary__help,
 .async-error-boundary__help {
   font-size: 14px;
   color: #a0aec0;
@@ -383,6 +317,7 @@
   margin-bottom: 32px;
 }
 
+/* Common error test button styles */
 .error-test__button {
   padding: 16px 24px;
   border: none;
@@ -398,6 +333,11 @@
   text-decoration: none;
 }
 
+.error-test__button:hover {
+  transform: translateY(-2px);
+}
+
+/* Button color variants */
 .error-test__button--danger {
   background: #e53e3e;
   color: white;
@@ -405,7 +345,6 @@
 
 .error-test__button--danger:hover {
   background: #c53030;
-  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(229, 62, 62, 0.4);
 }
 
@@ -416,7 +355,6 @@
 
 .error-test__button--warning:hover {
   background: #b7791f;
-  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(214, 158, 46, 0.4);
 }
 
@@ -427,7 +365,6 @@
 
 .error-test__button--info:hover {
   background: #2c5aa0;
-  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(49, 130, 206, 0.4);
 }
 
@@ -438,7 +375,6 @@
 
 .error-test__button--secondary:hover {
   background: #4a5568;
-  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(113, 128, 150, 0.4);
 }
 

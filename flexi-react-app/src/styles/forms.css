@@ -2,6 +2,7 @@
 .form-section, .content-section h2 {
     margin-bottom: 24px;
 }
+
 .form-section {
     padding: 20px;
     background: white;
@@ -9,16 +10,20 @@
     border: 1px solid var(--border-color);
     height: 100%;
 }
+
 .form-grid {
     display: grid;
     gap: var(--spacing-md);
 }
+
+/* Form grid variations - consolidated approach */
 .form-grid--2-cols { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .form-grid--3-cols { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .form-grid--4-cols { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .form-grid--5-cols { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .form-grid--6-cols { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 
+/* Common form element styles */
 .form-group label {
     display: block;
     font-weight: 600;
@@ -26,6 +31,7 @@
     margin-bottom: 8px;
     font-size: 14px;
 }
+
 .form-group input,
 .form-group select,
 .form-group textarea {
@@ -38,20 +44,26 @@
     transition: all 0.2s ease;
     font-family: inherit;
 }
+
+/* Common focus state */
 .form-group input:focus,
 .form-group select:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.form-select:focus {
     outline: none;
     border-color: var(--primary-blue);
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
 }
+
 .form-group input[readonly] {
     background-color: var(--bg-color);
     cursor: not-allowed;
 }
+
 .form-group input[readonly]:focus {
     box-shadow: none;
 }
+
 .form-actions {
     display: flex;
     gap: 12px;
@@ -68,20 +80,12 @@
     cursor: pointer;
 }
 
-.form-select:focus {
-    outline: none;
-    border-color: var(--primary-blue);
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
-}
-
 /* Parameter and Result Value Display */
 .parameter-value,
 .result-value {
-    background: var(--gray-light);
     padding: 8px 12px;
     border-radius: var(--border-radius);
     font-weight: 600;
-    color: var(--text-dark);
     border: 1px solid var(--border-color);
     min-height: 36px;
     display: flex;
@@ -135,22 +139,41 @@
     gap: 6px;
     min-height: 36px;
 }
+
 .btn:hover {
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
+
 .btn:active {
     transform: translateY(0);
 }
+
 .btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
 }
-.btn-primary { background: var(--primary-blue); color: white; }
-.btn-primary:hover { background: var(--primary-blue-hover); }
-.btn-secondary { background: var(--gray-light); color: var(--text-dark); border: 1px solid var(--border-color); }
-.btn-secondary:hover { background: var(--border-color); }
+
+/* Button variants */
+.btn-primary { 
+    background: var(--primary-blue); 
+    color: white; 
+}
+
+.btn-primary:hover { 
+    background: var(--primary-blue-hover); 
+}
+
+.btn-secondary { 
+    background: var(--gray-light); 
+    color: var(--text-dark); 
+    border: 1px solid var(--border-color); 
+}
+
+.btn-secondary:hover { 
+    background: var(--border-color); 
+}
 
 /* In-table action buttons */
 .btn-action, .btn-edit, .btn-save, .btn-cancel, .btn-delete {
@@ -163,14 +186,36 @@
     margin: 0 1px;
     border: 1px solid;
 }
+
 .btn-action:hover, .btn-edit:hover, .btn-save:hover, .btn-cancel:hover, .btn-delete:hover {
     transform: translateY(-1px);
     box-shadow: var(--shadow-sm);
 }
-.btn-edit { background: var(--secondary-blue); border-color: var(--primary-blue); color: var(--primary-blue); }
-.btn-save { background: #e8f5e8; border-color: var(--success-green); color: var(--success-green); }
-.btn-cancel { background: #fff3e0; border-color: var(--accent-orange); color: var(--accent-orange); }
-.btn-delete { background: #ffebee; border-color: var(--danger-red); color: var(--danger-red); }
+
+/* Button color variants */
+.btn-edit { 
+    background: var(--secondary-blue); 
+    border-color: var(--primary-blue); 
+    color: var(--primary-blue); 
+}
+
+.btn-save { 
+    background: #e8f5e8; 
+    border-color: var(--success-green); 
+    color: var(--success-green); 
+}
+
+.btn-cancel { 
+    background: #fff3e0; 
+    border-color: var(--accent-orange); 
+    color: var(--accent-orange); 
+}
+
+.btn-delete { 
+    background: #ffebee; 
+    border-color: var(--danger-red); 
+    color: var(--danger-red); 
+}
 
 /* Button States for Form Validation */
 .btn-disabled {
@@ -183,8 +228,8 @@
 .btn-waiting {
     opacity: 0.8;
     cursor: wait;
-    background-color: #f59e0b !important;
-    border-color: #f59e0b !important;
+    background-color: var(--warning-orange) !important;
+    border-color: var(--warning-orange) !important;
 }
 
 .btn-waiting:hover {

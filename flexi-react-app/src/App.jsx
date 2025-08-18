@@ -7,7 +7,11 @@ import PhasesPage from './pages/PhasesPage';
 import BacklogPage from './pages/BacklogPage';
 import SchedulerPage from './pages/SchedulerPage';
 import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ErrorBoundary from './components/ErrorBoundary';
+import ProtectedRoute from './auth/ProtectedRoute';
 
 // This component creates the main layout with the sidebar
 const AppLayout = () => (
@@ -25,16 +29,24 @@ function App() {
   return (
     <ErrorBoundary>
       <Routes>
-        <Route path="/" element={<AppLayout />}>
-          {/* Define the component for the home page */}
-          <Route index element={<HomePage />} />
-          
-          {/* Add routes for your migrated pages */}
-          <Route path="machinery" element={<MachineryPage />} />
-          <Route path="machinery/:machineId/calendar" element={<MachineCalendarPage />} />
-          <Route path="phases" element={<PhasesPage />} />
-          <Route path="backlog" element={<BacklogPage />} />
-          <Route path="scheduler" element={<SchedulerPage />} />
+        {/* Public authentication routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        
+        {/* Protected application routes */}
+        <Route path="/" element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
+            {/* Define the component for the home page */}
+            <Route index element={<HomePage />} />
+            
+            {/* Add routes for your migrated pages */}
+            <Route path="machinery" element={<MachineryPage />} />
+            <Route path="machinery/:machineId/calendar" element={<MachineCalendarPage />} />
+            <Route path="phases" element={<PhasesPage />} />
+            <Route path="backlog" element={<BacklogPage />} />
+            <Route path="scheduler" element={<SchedulerPage />} />
+          </Route>
         </Route>
       </Routes>
     </ErrorBoundary>

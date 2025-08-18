@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
+import { validation } from '../utils';
 
 /**
  * Custom hook for order validation logic
- * Replaces imperative validation methods with React-idiomatic patterns
+ * Uses consolidated validation system to eliminate duplication
  */
 export const useOrderValidation = () => {
   
@@ -10,74 +11,11 @@ export const useOrderValidation = () => {
    * Validate ODP order data before saving
    */
   const validateOrder = useCallback((order) => {
-    const errors = [];
-
-    // Required field validation
-    if (!order.odp_number?.trim()) {
-      errors.push('ODP Number is required');
-    }
-
-    if (!order.article_code?.trim()) {
-      errors.push('Article Code is required');
-    }
-
-    if (!order.production_lot?.trim()) {
-      errors.push('External Article Code is required');
-    }
-
-    if (!order.bag_height || parseFloat(order.bag_height) <= 0) {
-      errors.push('Bag Height must be greater than 0');
-    }
-
-    if (!order.bag_width || parseFloat(order.bag_width) <= 0) {
-      errors.push('Bag Width must be greater than 0');
-    }
-
-    if (!order.bag_step || parseFloat(order.bag_step) <= 0) {
-      errors.push('Bag Step must be greater than 0');
-    }
-
-    if (!order.product_type) {
-      errors.push('Product Type is required');
-    }
-
-    if (!order.quantity || parseFloat(order.quantity) <= 0) {
-      errors.push('Quantity must be greater than 0');
-    }
-
-    if (!order.delivery_date) {
-      errors.push('Delivery Date is required');
-    }
-
-    // Logical validations
-    if (order.bag_width !== undefined && order.bag_step !== undefined) {
-      if (parseFloat(order.bag_width) < parseFloat(order.bag_step)) {
-        errors.push('Bag width cannot be less than bag step');
-      }
-    }
-
-    // Quantity validations
-    if (order.quantity_completed !== undefined) {
-      if (order.quantity_completed < 0) {
-        errors.push('Quantity completed cannot be negative');
-      }
-      
-      if (order.quantity && order.quantity_completed > parseFloat(order.quantity)) {
-        errors.push('Quantity completed cannot exceed total quantity');
-      }
-    }
-
-    // Date validations
-    if (order.delivery_date && order.scheduled_start_time) {
-      const deliveryDate = new Date(order.delivery_date);
-      const startDate = new Date(order.scheduled_start_time);
-      
-      if (startDate > deliveryDate) {
-        errors.push('Production start cannot be after delivery date');
-      }
-    }
-
-    return errors;
+    // Use the consolidated validation system
+    const errors = validation.validateAll(order, validation.VALIDATION_CONFIGS.ORDER);
+    
+    // Convert object errors to array format for backward compatibility
+    return Object.values(errors);
   }, []);
 
   /**
@@ -101,30 +39,9 @@ export const useOrderValidation = () => {
       errors.push(`Selected phase is for ${phase.work_center} work center, but order is for ${order.work_center}`);
     }
 
-    // Check if phase has required parameters
-    if (phase.department === 'STAMPA') {
-      if (!phase.v_stampa || phase.v_stampa <= 0) {
-        errors.push('Selected printing phase has invalid speed parameter');
-      }
-      if (phase.t_setup_stampa < 0) {
-        errors.push('Selected printing phase has invalid setup time');
-      }
-      if (phase.costo_h_stampa < 0) {
-        errors.push('Selected printing phase has invalid cost parameter');
-      }
-    }
-
-    if (phase.department === 'CONFEZIONAMENTO') {
-      if (!phase.v_conf || phase.v_conf <= 0) {
-        errors.push('Selected packaging phase has invalid speed parameter');
-      }
-      if (phase.t_setup_conf < 0) {
-        errors.push('Selected packaging phase has invalid setup time');
-      }
-      if (phase.costo_h_conf < 0) {
-        errors.push('Selected packaging phase has invalid cost parameter');
-      }
-    }
+    // Check if phase has required parameters using the validation schema
+    const phaseErrors = validation.validateDepartmentFields(phase, phase.department, 'PHASE');
+    Object.values(phaseErrors).forEach(error => errors.push(error));
 
     return errors;
   }, []);

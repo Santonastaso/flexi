@@ -1,67 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 
-function OffTimeForm({ machineName, currentDate }) {
+function OffTimeForm({ machineId, currentDate }) {
   const [startDate, setStartDate] = useState('');
-  const [startTime, setStartTime] = useState('00:00');
   const [endDate, setEndDate] = useState('');
-  const [endTime, setEndTime] = useState('23:59');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [status, setStatus] = useState('');
-
+  const [message, setMessage] = useState('');
+  
   const setMachineUnavailability = useStore(state => state.setMachineUnavailability);
+  const machines = useStore(state => state.machines);
+  
+  const machine = machines.find(m => m.id === machineId);
+  const machineName = machine?.machine_name || 'Unknown Machine';
 
-  // Set default dates based on current date
-  React.useEffect(() => {
+  useEffect(() => {
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     
     setStartDate(today.toISOString().split('T')[0]);
     setEndDate(tomorrow.toISOString().split('T')[0]);
+    setStartTime('09:00');
+    setEndTime('17:00');
   }, [currentDate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setStatus('');
+    setMessage('');
 
     try {
-      // Validate dates
-      if (new Date(startDate) > new Date(endDate)) {
-        setStatus('warning: End date must be after start date');
-        return;
-      }
-
-      if (startDate === endDate && startTime >= endTime) {
-        setStatus('warning: End time must be after start time on the same day');
-        return;
-      }
-
-      await setMachineUnavailability(machineName, startDate, endDate, startTime, endTime);
-      setStatus('success: Off-time period set successfully');
+      await setMachineUnavailability(machineId, startDate, endDate, startTime, endTime);
+      setMessage('Machine unavailability set successfully!');
       
       // Reset form
       setStartDate('');
-      setStartTime('00:00');
       setEndDate('');
-      setEndTime('23:59');
+      setStartTime('');
+      setEndTime('');
     } catch (error) {
-      setStatus(`error: Failed to set off-time: ${error.message}`);
+      setMessage(`Error: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const getStatusClass = () => {
-    if (status.startsWith('success:')) return 'success';
-    if (status.startsWith('warning:')) return 'warning';
-    if (status.startsWith('error:')) return 'error';
+    if (message.startsWith('success:')) return 'success';
+    if (message.startsWith('warning:')) return 'warning';
+    if (message.startsWith('error:')) return 'error';
     return '';
   };
 
   const getStatusMessage = () => {
-    return status.replace(/^(success|warning|error):\s*/, '');
+    return message.replace(/^(success|warning|error):\s*/, '');
   };
 
   return (
@@ -130,7 +124,7 @@ function OffTimeForm({ machineName, currentDate }) {
         </div>
       </form>
       
-      {status && (
+      {message && (
         <div className={`off-time-status ${getStatusClass()}`}>
           {getStatusMessage()}
         </div>

@@ -1,4 +1,6 @@
 /* ===== MODAL & BANNER COMPONENTS ===== */
+
+/* Common modal styles */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -11,10 +13,12 @@
     visibility: hidden;
     transition: all 0.3s ease;
 }
+
 .modal-overlay.modal-fade-in {
     opacity: 1;
     visibility: visible;
 }
+
 .modal-content {
     background: white;
     border-radius: var(--border-radius-large);
@@ -24,20 +28,27 @@
     transform: translateY(20px);
     transition: transform 0.3s ease;
 }
+
 .modal-fade-in .modal-content {
     transform: translateY(0);
 }
+
+/* Common modal section styles */
+.modal-header,
+.modal-body,
+.modal-footer {
+    padding: 24px;
+}
+
 .modal-header {
-    padding: 24px 24px 0;
+    padding-bottom: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
-.modal-body {
-    padding: 24px;
-}
+
 .modal-footer {
-    padding: 0 24px 24px;
+    padding-top: 0;
     display: flex;
     gap: 12px;
     justify-content: flex-end;
@@ -52,10 +63,27 @@
     font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
+    border: 1px solid;
 }
-.status-badge.status-active { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
-.status-badge.status-maintenance { background-color: #fffbeb; color: #92400e; border: 1px solid #fcd34d; }
-.status-badge.status-inactive { background-color: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+
+/* Status variants */
+.status-badge.status-active { 
+    background-color: #dcfce7; 
+    color: #166534; 
+    border-color: #86efac; 
+}
+
+.status-badge.status-maintenance { 
+    background-color: #fffbeb; 
+    color: #92400e; 
+    border-color: #fcd34d; 
+}
+
+.status-badge.status-inactive { 
+    background-color: #fef2f2; 
+    color: #991b1b; 
+    border-color: #fca5a5; 
+}
 
 /* ===== SEARCHABLE DROPDOWN STYLES ===== */
 .searchable-dropdown {

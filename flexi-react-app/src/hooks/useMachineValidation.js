@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
+import { validation } from '../utils';
 
 /**
  * Custom hook for machine validation logic
- * Replaces imperative validation methods with React-idiomatic patterns
+ * Uses consolidated validation system to eliminate duplication
  */
 export const useMachineValidation = () => {
   
@@ -10,73 +11,11 @@ export const useMachineValidation = () => {
    * Validate machine data before saving
    */
   const validateMachine = useCallback((machine) => {
-    const errors = [];
-
-    // Required fields
-    if (!machine.machine_name?.trim()) {
-      errors.push('Machine name is required');
-    }
-
-    if (!machine.machine_type) {
-      errors.push('Machine type is required');
-    }
-
-    if (!machine.department) {
-      errors.push('Department is required');
-    }
-
-    if (!machine.work_center) {
-      errors.push('Work center is required');
-    }
-
-    // Numeric validations
-    if (machine.min_web_width !== undefined && machine.min_web_width < 0) {
-      errors.push('Minimum web width cannot be negative');
-    }
-
-    if (machine.max_web_width !== undefined && machine.max_web_width < 0) {
-      errors.push('Maximum web width cannot be negative');
-    }
-
-    if (machine.min_bag_height !== undefined && machine.min_bag_height < 0) {
-      errors.push('Minimum bag height cannot be negative');
-    }
-
-    if (machine.max_bag_height !== undefined && machine.max_bag_height < 0) {
-      errors.push('Maximum bag height cannot be negative');
-    }
-
-    // Logical validations
-    if (machine.min_web_width !== undefined && machine.max_web_width !== undefined) {
-      if (machine.min_web_width > machine.max_web_width) {
-        errors.push('Minimum web width cannot exceed maximum web width');
-      }
-    }
-
-    if (machine.min_bag_height !== undefined && machine.max_bag_height !== undefined) {
-      if (machine.min_bag_height > machine.max_bag_height) {
-        errors.push('Minimum bag height cannot exceed maximum bag height');
-      }
-    }
-
-    // Performance validations
-    if (machine.standard_speed !== undefined && machine.standard_speed < 0) {
-      errors.push('Standard speed cannot be negative');
-    }
-
-    if (machine.setup_time_standard !== undefined && machine.setup_time_standard < 0) {
-      errors.push('Setup time cannot be negative');
-    }
-
-    if (machine.changeover_color !== undefined && machine.changeover_color < 0) {
-      errors.push('Color changeover time cannot be negative');
-    }
-
-    if (machine.changeover_material !== undefined && machine.changeover_material < 0) {
-      errors.push('Material changeover time cannot be negative');
-    }
-
-    return errors;
+    // Use the consolidated validation system
+    const errors = validation.validateAll(machine, validation.VALIDATION_CONFIGS.MACHINE);
+    
+    // Convert object errors to array format for backward compatibility
+    return Object.values(errors);
   }, []);
 
   /**

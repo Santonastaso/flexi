@@ -55,12 +55,12 @@ function MachineCalendarPage() {
         />
         
         <OffTimeForm
-          machineName={machine.machine_name}
+          machineId={machine.id}
           currentDate={currentDate}
         />
         
         <CalendarGrid
-          machineName={machine.machine_name}
+          machineId={machine.id}
           currentDate={currentDate}
           currentView={currentView}
         />

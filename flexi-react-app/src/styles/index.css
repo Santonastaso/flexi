@@ -1,0 +1,27 @@
+/* ===== CSS IMPORTS ===== */
+/* Import CSS files in logical order */
+
+/* Base styles and variables */
+@import './base.css';
+
+/* Layout and navigation */
+@import './layout.css';
+
+/* Forms and components */
+@import './forms.css';
+@import './components.css';
+
+/* Tables and data display */
+@import './tables.css';
+
+/* Scheduler and calendar */
+@import './scheduler.css';
+
+/* Dashboard and metrics */
+@import './dashboard.css';
+
+/* Authentication */
+@import './auth.css';
+
+/* Error handling */
+@import './error.css';

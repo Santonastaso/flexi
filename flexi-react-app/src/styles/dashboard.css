@@ -1,4 +1,24 @@
 /* ===== DASHBOARD STYLES ===== */
+
+/* Common card styles */
+.metric-card,
+.chart-container,
+.chart-section,
+.recent-activity {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+.metric-card:hover,
+.chart-container:hover,
+.chart-section:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
 .dashboard-container {
     padding: 2rem;
     max-width: 1400px;
@@ -61,17 +81,7 @@
 }
 
 .metric-card {
-    background: white;
-    border-radius: 12px;
     padding: 1.5rem;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
-    transition: all 0.3s ease;
-}
-
-.metric-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
 }
 
 .metric-header {
@@ -130,11 +140,7 @@
 }
 
 .chart-container {
-    background: white;
-    border-radius: 12px;
     padding: 1.5rem;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
 }
 
 .chart-container h3 {
@@ -161,11 +167,7 @@
 
 /* Recent Activity */
 .recent-activity {
-    background: white;
-    border-radius: 12px;
     padding: 1.5rem;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
 }
 
 .recent-activity h3 {
@@ -197,18 +199,8 @@
 }
 
 .metric-card {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
     padding: 20px;
     text-align: center;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.metric-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .metric-card h3 {
@@ -244,11 +236,7 @@
 }
 
 .chart-section {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
     padding: 20px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .chart-section h3 {

@@ -1,4 +1,16 @@
 /* ===== SCHEDULER & CALENDAR STYLES ===== */
+
+/* Common calendar container styles */
+.calendar-container,
+.calendar-section,
+.task-pool-section {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border: 1px solid var(--border-color);
+}
+
 /* --- Layout --- */
 .scheduler-container { 
     display: flex; 
@@ -9,21 +21,8 @@
 }
 
 .calendar-section { 
-    background: white; 
-    border-radius: 16px; 
-    padding: 24px; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
-    border: 1px solid var(--border-color); 
     flex: 1; 
     overflow: hidden; 
-}
-
-.task-pool-section { 
-    background: white; 
-    border-radius: 16px; 
-    padding: 24px; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
-    border: 1px solid var(--border-color); 
 }
 
 .task-pool-section h2 {
@@ -42,11 +41,6 @@
 /* ===== MACHINE AVAILABILITY CALENDAR STYLES ===== */
 /* --- Calendar Container --- */
 .calendar-container { 
-    background: white; 
-    border-radius: 16px; 
-    padding: 24px; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
-    border: 1px solid var(--border-color); 
     overflow: hidden; 
 }
 
@@ -66,6 +60,7 @@
     gap: 12px; 
 }
 
+/* Common nav button styles */
 .nav-btn { 
     background: white; 
     border: 1px solid var(--border-color); 
@@ -270,10 +265,7 @@
 
 /* --- Calendar Grid Styles --- */
 .calendar-month-grid { 
-    background: white; 
-    border-radius: 12px; 
     overflow: hidden; 
-    border: 1px solid var(--border-color); 
 }
 
 .weekday-headers { 

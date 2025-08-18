@@ -3,6 +3,209 @@
  * Pure functions that can be used anywhere in the application
  */
 
+// ===== VALIDATION SCHEMAS =====
+export const VALIDATION_SCHEMAS = {
+  // Department-specific validation rules
+  PHASE: {
+    STAMPA: {
+      v_stampa: { min: 0, message: 'Printing speed must be greater than 0' },
+      t_setup_stampa: { min: 0, message: 'Setup time cannot be negative' },
+      costo_h_stampa: { min: 0, message: 'Hourly cost cannot be negative' }
+    },
+    CONFEZIONAMENTO: {
+      v_conf: { min: 0, message: 'Packaging speed must be greater than 0' },
+      t_setup_conf: { min: 0, message: 'Setup time cannot be negative' },
+      costo_h_conf: { min: 0, message: 'Hourly cost cannot be negative' }
+    }
+  },
+  
+  // Machine validation rules
+  MACHINE: {
+    min_web_width: { min: 0, message: 'Minimum web width cannot be negative' },
+    max_web_width: { min: 0, message: 'Maximum web width cannot be negative' },
+    min_bag_height: { min: 0, message: 'Minimum bag height cannot be negative' },
+    max_bag_height: { min: 0, message: 'Maximum bag height cannot be negative' },
+    standard_speed: { min: 0, message: 'Standard speed cannot be negative' },
+    setup_time_standard: { min: 0, message: 'Setup time cannot be negative' },
+    changeover_color: { min: 0, message: 'Color changeover time cannot be negative' },
+    changeover_material: { min: 0, message: 'Material changeover time cannot be negative' }
+  },
+  
+  // Order validation rules
+  ORDER: {
+    bag_height: { min: 0, message: 'Bag height must be greater than 0' },
+    bag_width: { min: 0, message: 'Bag width must be greater than 0' },
+    bag_step: { min: 0, message: 'Bag step must be greater than 0' },
+    quantity: { min: 0, message: 'Quantity must be greater than 0' },
+    quantity_per_box: { min: 0, message: 'Quantity per box cannot be negative' },
+    quantity_completed: { min: 0, message: 'Quantity completed cannot be negative' }
+  }
+};
+
+// ===== GENERIC VALIDATION FUNCTIONS =====
+
+/**
+ * Validate required fields and return field-specific errors
+ * @param {Object} data - The data object to validate
+ * @param {Array} requiredFields - Array of required field names
+ * @returns {Object} Object with field names as keys and error messages as values
+ */
+export const validateRequiredFields = (data, requiredFields) => {
+  const errors = {};
+  requiredFields.forEach(field => {
+    if (!isNotEmpty(data[field])) {
+      // Convert field name to user-friendly label
+      const label = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      errors[field] = `${label} is required`;
+    }
+  });
+  return errors;
+};
+
+/**
+ * Validate numeric fields against a schema
+ * @param {Object} data - The data object to validate
+ * @param {Object} schema - Validation schema with field rules
+ * @returns {Object} Object with field names as keys and error messages as values
+ */
+export const validateNumericFields = (data, schema) => {
+  const errors = {};
+  Object.entries(schema).forEach(([field, rules]) => {
+    if (data[field] !== undefined && data[field] !== null && data[field] !== '') {
+      if (!isValidNumber(data[field], rules.min, rules.max)) {
+        errors[field] = rules.message;
+      }
+    }
+  });
+  return errors;
+};
+
+/**
+ * Validate department-specific fields
+ * @param {Object} data - The data object to validate
+ * @param {string} department - The department to validate against
+ * @param {string} schemaType - The schema type (e.g., 'PHASE')
+ * @returns {Object} Object with field names as keys and error messages as values
+ */
+export const validateDepartmentFields = (data, department, schemaType = 'PHASE') => {
+  const schema = VALIDATION_SCHEMAS[schemaType]?.[department];
+  if (!schema) return {};
+  
+  return validateNumericFields(data, schema);
+};
+
+/**
+ * Validate logical relationships between fields
+ * @param {Object} data - The data object to validate
+ * @param {Array} logicalRules - Array of logical validation rules
+ * @returns {Object} Object with field names as keys and error messages as values
+ */
+export const validateLogicalRelations = (data, logicalRules) => {
+  const errors = {};
+  logicalRules.forEach(rule => {
+    const { condition, errorField, message } = rule;
+    if (condition(data)) {
+      errors[errorField] = message;
+    }
+  });
+  return errors;
+};
+
+/**
+ * Comprehensive validation function that combines all validation types
+ * @param {Object} data - The data object to validate
+ * @param {Object} validationConfig - Configuration object for validation
+ * @returns {Object} Object with field names as keys and error messages as values
+ */
+export const validateAll = (data, validationConfig) => {
+  const errors = {};
+  
+  // Required fields
+  if (validationConfig.required) {
+    Object.assign(errors, validateRequiredFields(data, validationConfig.required));
+  }
+  
+  // Numeric fields
+  if (validationConfig.numeric) {
+    Object.assign(errors, validateNumericFields(data, validationConfig.numeric));
+  }
+  
+  // Department-specific fields
+  if (validationConfig.department && data.department) {
+    Object.assign(errors, validateDepartmentFields(data, data.department, validationConfig.departmentSchema));
+  }
+  
+  // Logical relationships
+  if (validationConfig.logical) {
+    Object.assign(errors, validateLogicalRelations(data, validationConfig.logical));
+  }
+  
+  return errors;
+};
+
+// ===== PREDEFINED VALIDATION CONFIGS =====
+
+export const VALIDATION_CONFIGS = {
+  // Phase validation configuration
+  PHASE: {
+    required: ['name', 'department', 'work_center'],
+    numeric: {
+      numero_persone: { min: 1, message: 'Number of people must be at least 1' }
+    },
+    departmentSchema: 'PHASE',
+    logical: [
+      {
+        condition: (data) => data.bag_width && data.bag_step && parseFloat(data.bag_width) < parseFloat(data.bag_step),
+        errorField: 'bag_width',
+        message: 'Bag width cannot be less than bag step'
+      }
+    ]
+  },
+  
+  // Machine validation configuration
+  MACHINE: {
+    required: ['machine_name', 'machine_type', 'department', 'work_center'],
+    numeric: VALIDATION_SCHEMAS.MACHINE,
+    logical: [
+      {
+        condition: (data) => data.min_web_width && data.max_web_width && parseFloat(data.min_web_width) > parseFloat(data.max_web_width),
+        errorField: 'min_web_width',
+        message: 'Minimum web width cannot exceed maximum web width'
+      },
+      {
+        condition: (data) => data.min_bag_height && data.max_bag_height && parseFloat(data.min_bag_height) > parseFloat(data.max_bag_height),
+        errorField: 'min_bag_height',
+        message: 'Minimum bag height cannot exceed maximum bag height'
+      }
+    ]
+  },
+  
+  // Order validation configuration
+  ORDER: {
+    required: ['odp_number', 'article_code', 'production_lot', 'bag_height', 'bag_width', 'bag_step', 'product_type', 'quantity', 'delivery_date'],
+    numeric: VALIDATION_SCHEMAS.ORDER,
+    logical: [
+      {
+        condition: (data) => data.bag_width && data.bag_step && parseFloat(data.bag_width) < parseFloat(data.bag_step),
+        errorField: 'bag_width',
+        message: 'Bag width cannot be less than bag step'
+      },
+      {
+        condition: (data) => data.quantity && data.quantity_completed && parseFloat(data.quantity_completed) > parseFloat(data.quantity),
+        errorField: 'quantity_completed',
+        message: 'Quantity completed cannot exceed total quantity'
+      },
+      {
+        condition: (data) => data.delivery_date && data.scheduled_start_time && new Date(data.scheduled_start_time) > new Date(data.delivery_date),
+        errorField: 'scheduled_start_time',
+        message: 'Production start cannot be after delivery date'
+      }
+    ]
+  }
+};
+
+// ===== EXISTING VALIDATION FUNCTIONS (KEPT FOR BACKWARD COMPATIBILITY) =====
+
 /**
  * Check if value is not empty (string, array, object)
  */
@@ -219,6 +422,16 @@ export const validateFormData = (data, schema) => {
 };
 
 export default {
+  // New consolidated validation functions
+  validateRequiredFields,
+  validateNumericFields,
+  validateDepartmentFields,
+  validateLogicalRelations,
+  validateAll,
+  VALIDATION_CONFIGS,
+  VALIDATION_SCHEMAS,
+  
+  // Existing validation functions
   isNotEmpty,
   isValidEmail,
   isValidPhone,

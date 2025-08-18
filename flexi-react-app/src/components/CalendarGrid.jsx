@@ -1,57 +1,33 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
+import { toDateString, isTaskOverlapping } from '../utils/dateUtils';
 
-function CalendarGrid({ machineName, currentDate, currentView }) {
+function CalendarGrid({ machineId, currentDate, currentView }) {
   const [availabilityData, setAvailabilityData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   
-  const loadMachineAvailabilityForDateRange = useStore(state => state.loadMachineAvailabilityForDateRange);
-  const toggleMachineHourAvailability = useStore(state => state.toggleMachineHourAvailability);
-  const getMachineAvailability = useStore(state => state.getMachineAvailability);
-  const odpOrders = useStore(state => state.odpOrders);
   const machines = useStore(state => state.machines);
+  const odpOrders = useStore(state => state.odpOrders);
+  const getMachineAvailability = useStore(state => state.getMachineAvailability);
+  const toggleMachineHourAvailability = useStore(state => state.toggleMachineHourAvailability);
+  
+  const machine = machines.find(m => m.id === machineId);
+  const machineName = machine?.machine_name || 'Unknown Machine';
 
+  // Load availability data for the current view
   useEffect(() => {
     const loadData = async () => {
+      if (!machineId) return;
+      
       setIsLoading(true);
       try {
-        let startDate, endDate;
-        
-        if (currentView === 'Month') {
-          startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-          endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-        } else if (currentView === 'Week') {
-          const startOfWeek = new Date(currentDate);
-          startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
-          startDate = startOfWeek;
-          const endOfWeek = new Date(startOfWeek);
-          endOfWeek.setDate(startOfWeek.getDate() + 6);
-          endDate = endOfWeek;
-        } else if (currentView === 'Year') {
-          startDate = new Date(currentDate.getFullYear(), 0, 1);
-          endDate = new Date(currentDate.getFullYear(), 11, 31);
+        const data = await getMachineAvailability(machineId, dateStr);
+        if (data && Array.isArray(data)) {
+          setAvailabilityData(prev => ({
+            ...prev,
+            [dateStr]: data
+          }));
         }
-        
-        // Load data for each date individually to ensure proper structure
-        const availabilityByDate = {};
-        const current = new Date(startDate);
-        
-        while (current <= endDate) {
-          const dateStr = current.toISOString().split('T')[0];
-          try {
-            const data = await getMachineAvailability(machineName, dateStr);
-            // Ensure we always have strings for comparison
-            availabilityByDate[dateStr] = (data || []).map(h => h.toString());
-            console.log(`Loaded data for ${dateStr}:`, data);
-          } catch (error) {
-            console.warn(`Failed to load data for ${dateStr}:`, error);
-            availabilityByDate[dateStr] = [];
-          }
-          current.setDate(current.getDate() + 1);
-        }
-        
-        console.log('Final availability data:', availabilityByDate);
-        setAvailabilityData(availabilityByDate);
       } catch (error) {
         console.error('Error loading availability data:', error);
       } finally {
@@ -60,11 +36,10 @@ function CalendarGrid({ machineName, currentDate, currentView }) {
     };
     
     loadData();
-  }, [machineName, currentDate, currentView, getMachineAvailability]);
+  }, [machineId, currentDate, currentView, getMachineAvailability]);
 
   // Check if a time slot has scheduled tasks
   const hasScheduledTask = (dateStr, hour) => {
-    const machine = machines.find(m => m.machine_name === machineName);
     if (!machine) return false;
     
     const scheduledTasks = odpOrders.filter(task => 
@@ -72,17 +47,16 @@ function CalendarGrid({ machineName, currentDate, currentView }) {
       task.scheduled_machine_id === machine.id
     );
     
-    return scheduledTasks.some(task => {
-      const taskStart = new Date(task.scheduled_start_time);
-      const taskEnd = new Date(task.scheduled_end_time);
-      const slotStart = new Date(dateStr);
-      slotStart.setHours(hour, 0, 0, 0);
-      const slotEnd = new Date(slotStart);
-      slotEnd.setHours(hour + 1, 0, 0, 0);
-      
-      // Check if the task overlaps with this hour slot
-      return taskStart < slotEnd && taskEnd > slotStart;
-    });
+    // Debug logging for the first few hours
+    if (hour < 3 && scheduledTasks.length > 0) {
+      console.log(`CalendarGrid: Checking scheduled tasks for ${dateStr} hour ${hour}`);
+      console.log(`CalendarGrid: Found ${scheduledTasks.length} scheduled tasks`);
+      scheduledTasks.forEach(task => {
+        console.log(`CalendarGrid: Task ${task.odp_number}: ${task.scheduled_start_time} to ${task.scheduled_end_time}`);
+      });
+    }
+    
+    return scheduledTasks.some(task => isTaskOverlapping(task, dateStr, hour));
   };
 
   const handleTimeSlotClick = async (dateStr, hour) => {
@@ -93,8 +67,13 @@ function CalendarGrid({ machineName, currentDate, currentView }) {
     }
     
     try {
-      console.log(`Toggling hour ${hour} for ${dateStr} on machine ${machineName}`);
-      await toggleMachineHourAvailability(machineName, dateStr, hour);
+      if (!machine) {
+        console.error('Machine not found:', machineId);
+        return;
+      }
+      
+      console.log(`Toggling hour ${hour} for ${dateStr} on machine ${machine.id}`);
+      await toggleMachineHourAvailability(machine.id, dateStr, hour);
       
       // Update local state immediately for responsive UI
       setAvailabilityData(prev => {
@@ -147,7 +126,7 @@ function CalendarGrid({ machineName, currentDate, currentView }) {
         
         <div className="calendar-days-grid">
           {days.map((date, index) => {
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = toDateString(date);
             const unavailableHours = availabilityData[dateStr] || [];
             const isCurrentMonth = date.getMonth() === month;
             const isToday = date.toDateString() === new Date().toDateString();
@@ -216,16 +195,16 @@ function CalendarGrid({ machineName, currentDate, currentView }) {
           <div key={hour} className="time-row">
             <div className="time-label">{hour.toString().padStart(2, '0')}:00</div>
             {days.map(day => {
-              const dateStr = day.toISOString().split('T')[0];
+              const dateStr = toDateString(day);
               const unavailableHours = availabilityData[dateStr] || [];
               // Convert hour to string for comparison since the database stores them as strings
               const hourStr = hour.toString();
               const isUnavailable = unavailableHours.includes(hourStr);
               const hasScheduled = hasScheduledTask(dateStr, hour);
               
-              // Debug logging for the first few hours
-              if (hour < 3) {
-                console.log(`Hour ${hour} for ${dateStr}: unavailableHours=${unavailableHours}, hourStr=${hourStr}, isUnavailable=${isUnavailable}, hasScheduled=${hasScheduled}`);
+              // Debug logging for the first few hours and first few days
+              if (hour < 3 && days.indexOf(day) < 3) {
+                console.log(`CalendarGrid: Day ${day.toDateString()} -> dateStr: ${dateStr}, hour: ${hour}, hasScheduled: ${hasScheduled}`);
               }
               
               let slotClass = 'time-slot';
@@ -282,7 +261,7 @@ function CalendarGrid({ machineName, currentDate, currentView }) {
                     return <div key={index} className="mini-day empty"></div>;
                   }
                   
-                  const dateStr = new Date(year, monthIndex, day).toISOString().split('T')[0];
+                  const dateStr = toDateString(new Date(year, monthIndex, day));
                   const unavailableHours = availabilityData[dateStr] || [];
                   const hasUnavailableHours = unavailableHours.length > 0;
                   

@@ -144,23 +144,20 @@ export const useStore = create((set, get) => ({
   },
 
   // Machine availability
-  loadMachineAvailabilityForDateRange: async (machineName, startDate, endDate) => {
+  loadMachineAvailabilityForDateRange: async (machineId, startDate, endDate) => {
+    const cacheKey = `${machineId}_${startDate}_${endDate}`;
+    const { machineAvailability } = get();
+    if (machineAvailability[cacheKey]) return machineAvailability[cacheKey];
+    
+    set(state => ({ 
+      machineAvailability: { 
+        ...state.machineAvailability, 
+        [cacheKey]: { _loading: true } 
+      } 
+    }));
+    
     try {
-      const { machineAvailability } = get();
-      const cacheKey = `${machineName}_${startDate}_${endDate}`;
-      
-      // Check if we already have this data cached
-      if (machineAvailability[cacheKey]?._loading) return;
-      if (machineAvailability[cacheKey] && !machineAvailability[cacheKey]._loading) return;
-      
-      set(state => ({ 
-        machineAvailability: { 
-          ...state.machineAvailability, 
-          [cacheKey]: { _loading: true } 
-        } 
-      }));
-      
-      const data = await apiService.get_machine_availability_for_date_range(machineName, startDate, endDate);
+      const data = await apiService.get_machine_availability_for_date_range(machineId, startDate, endDate);
       
       set(state => ({ 
         machineAvailability: { 
@@ -176,24 +173,24 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  getMachineAvailabilityForDate: async (machineName, dateStr) => {
+  getMachineAvailabilityForDate: async (machineId, dateStr) => {
     try {
-      return await apiService.get_machine_availability_for_date(machineName, dateStr);
+      return await apiService.get_machine_availability_for_date(machineId, dateStr);
     } catch (e) {
       console.error('Error get_machine_availability_for_date:', e);
       return [];
     }
   },
 
-  setMachineAvailability: async (machineName, dateStr, unavailableHours) => {
+  setMachineAvailability: async (machineId, dateStr, unavailableHours) => {
     try {
-      await apiService.set_machine_availability(machineName, dateStr, unavailableHours);
+      await apiService.set_machine_availability(machineId, dateStr, unavailableHours);
       set(state => {
         const next = { ...state.machineAvailability };
         if (!next[dateStr]) next[dateStr] = [];
-        const row = next[dateStr].find(r => r.machine_name === machineName);
+        const row = next[dateStr].find(r => r.machine_id === machineId);
         if (row) row.unavailable_hours = unavailableHours;
-        else next[dateStr].push({ machine_name: machineName, date: dateStr, unavailable_hours: unavailableHours });
+        else next[dateStr].push({ machine_id: machineId, date: dateStr, unavailable_hours: unavailableHours });
         return { machineAvailability: next };
       });
       return true;
@@ -203,10 +200,10 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  toggleMachineHourAvailability: async (machineName, dateStr, hour) => {
+  toggleMachineHourAvailability: async (machineId, dateStr, hour) => {
     try {
-      console.log(`Store: Toggling hour ${hour} for ${dateStr} on machine ${machineName}`);
-      const currentUnavailableHours = await get().getMachineAvailability(machineName, dateStr);
+      console.log(`Store: Toggling hour ${hour} for ${dateStr} on machine ${machineId}`);
+      const currentUnavailableHours = await get().getMachineAvailability(machineId, dateStr);
       console.log(`Store: Current unavailable hours:`, currentUnavailableHours);
       
       // Convert hour to string for comparison since the database stores them as strings
@@ -224,7 +221,7 @@ export const useStore = create((set, get) => ({
         console.log(`Store: Adding hour ${hourStr}, new array:`, newUnavailableHours);
       }
       
-      await get().setMachineAvailability(machineName, dateStr, newUnavailableHours);
+      await get().setMachineAvailability(machineId, dateStr, newUnavailableHours);
       console.log(`Store: Successfully updated availability`);
       return true;
     } catch (e) {
@@ -251,7 +248,7 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  loadMachineAvailabilityForMachine: async (machineName, startDate, endDate) => {
+  loadMachineAvailabilityForMachine: async (machineId, startDate, endDate) => {
     const result = {};
     try {
       try {
@@ -269,7 +266,7 @@ export const useStore = create((set, get) => ({
         }
         const dayData = get().machineAvailability[dateStr];
         if (Array.isArray(dayData)) {
-          const row = dayData.find(r => r.machine_name === machineName);
+          const row = dayData.find(r => r.machine_id === machineId);
           if (row) result[dateStr] = row.unavailable_hours || [];
         }
         current.setDate(current.getDate() + 1);
@@ -281,16 +278,16 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  getMachineAvailability: async (machineName, dateStr) => {
+  getMachineAvailability: async (machineId, dateStr) => {
     try {
-      console.log(`Store: Getting availability for ${machineName} on ${dateStr}`);
+      console.log(`Store: Getting availability for machine ${machineId} on ${dateStr}`);
       
       // First check if we have cached data
       const dateData = get().machineAvailability[dateStr];
       console.log(`Store: Cached dateData for ${dateStr}:`, dateData);
       
       if (dateData && Array.isArray(dateData)) {
-        const row = dateData.find(r => r.machine_name === machineName);
+        const row = dateData.find(r => r.machine_id === machineId);
         console.log(`Store: Found cached row:`, row);
         if (row) {
           console.log(`Store: Returning cached unavailable_hours:`, row.unavailable_hours);
@@ -304,7 +301,7 @@ export const useStore = create((set, get) => ({
       console.log(`Store: No cached data, fetching from API...`);
       
       // If no cached data, fetch from API
-      const data = await apiService.get_machine_availability_for_date(machineName, dateStr);
+      const data = await apiService.get_machine_availability_for_date(machineId, dateStr);
       console.log(`Store: API returned data:`, data);
       
       if (data) {
@@ -314,7 +311,7 @@ export const useStore = create((set, get) => ({
         set(state => {
           const next = { ...state.machineAvailability };
           if (!next[dateStr]) next[dateStr] = [];
-          const existingRow = next[dateStr].find(r => r.machine_name === machineName);
+          const existingRow = next[dateStr].find(r => r.machine_id === machineId);
           
           console.log(`Store: Before cache update - data.unavailable_hours:`, data.unavailable_hours);
           console.log(`Store: Before cache update - type:`, typeof data.unavailable_hours);
@@ -325,7 +322,7 @@ export const useStore = create((set, get) => ({
             console.log(`Store: Updated existing row - unavailable_hours:`, existingRow.unavailable_hours);
           } else {
             next[dateStr].push({
-              machine_name: machineName,
+              machine_id: machineId,
               date: dateStr,
               unavailable_hours: normalizedHours
             });
@@ -333,8 +330,8 @@ export const useStore = create((set, get) => ({
           }
           
           console.log(`Store: Updated cache for ${dateStr}:`, next[dateStr]);
-          console.log(`Store: Cache row unavailable_hours type:`, typeof next[dateStr].find(r => r.machine_name === machineName)?.unavailable_hours);
-          console.log(`Store: Cache row unavailable_hours isArray:`, Array.isArray(next[dateStr].find(r => r.machine_name === machineName)?.unavailable_hours));
+          console.log(`Store: Cache row unavailable_hours type:`, typeof next[dateStr].find(r => r.machine_id === machineId)?.unavailable_hours);
+          console.log(`Store: Cache row unavailable_hours isArray:`, Array.isArray(next[dateStr].find(r => r.machine_id === machineId)?.unavailable_hours));
           
           return { machineAvailability: next };
         });
@@ -347,8 +344,8 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  isTimeSlotUnavailable: async (machineName, dateStr, hour) => {
-    const hours = await get().getMachineAvailability(machineName, dateStr);
+  isTimeSlotUnavailable: async (machineId, dateStr, hour) => {
+    const hours = await get().getMachineAvailability(machineId, dateStr);
     return hours.includes(hour.toString());
   },
 
@@ -357,8 +354,8 @@ export const useStore = create((set, get) => ({
     const { machines, machineAvailability } = get();
     const next = { ...machineAvailability };
     machines.forEach(machine => {
-      if (!next[machine.machine_name]) {
-        next[machine.machine_name] = {};
+      if (!next[machine.id]) {
+        next[machine.id] = {};
       }
     });
     set({ machineAvailability: next });
@@ -373,16 +370,16 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  setMachineUnavailability: async (machineName, startDate, endDate, startTime, endTime) => {
+  setMachineUnavailability: async (machineId, startDate, endDate, startTime, endTime) => {
     try {
       const isAccessible = await get().isMachineAvailabilityAccessible();
       if (!isAccessible) {
         throw new Error('Machine availability table is not accessible.');
       }
-      await apiService.setUnavailableHoursForRange(machineName, startDate, endDate, startTime, endTime);
+      await apiService.setUnavailableHoursForRange(machineId, startDate, endDate, startTime, endTime);
       const startDateObj = new Date(startDate.split('/').reverse().join('-'));
       const endDateObj = new Date(endDate.split('/').reverse().join('-'));
-      await get().loadMachineAvailabilityForMachine(machineName, startDateObj, endDateObj);
+      await get().loadMachineAvailabilityForMachine(machineId, startDateObj, endDateObj);
       return true;
     } catch (e) {
       console.error('Error setting machine unavailability:', e);
