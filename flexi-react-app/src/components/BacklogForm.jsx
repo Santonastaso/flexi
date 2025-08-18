@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { appStore } from '../scripts/store';
+import { useStore } from '../store/useStore';
 import { BusinessLogicService } from '../scripts/businessLogicService';
 
 function BacklogForm() {
@@ -13,7 +13,6 @@ function BacklogForm() {
   };
 
   const [formData, setFormData] = useState(initialFormData);
-  const [phases, setPhases] = useState([]);
   const [selectedPhase, setSelectedPhase] = useState(null);
   const [editablePhaseParams, setEditablePhaseParams] = useState({});
   const [calculationResults, setCalculationResults] = useState(null);
@@ -24,10 +23,14 @@ function BacklogForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const businessLogic = new BusinessLogicService();
+  
+  // Get state and actions from Zustand store
+  const phases = useStore(state => state.phases);
+  const addOdpOrder = useStore(state => state.addOdpOrder);
 
   useEffect(() => {
-    const state = appStore.getState();
-    setPhases(state.phases || []);
+    // Phases are now automatically available from the store
+    // No need to manually set them
   }, []);
 
   useEffect(() => {
@@ -186,7 +189,7 @@ function BacklogForm() {
         status: 'NOT SCHEDULED',
       };
       
-      await appStore.addOdpOrder(orderData);
+      await addOdpOrder(orderData);
       
       // Reset form
       setFormData(initialFormData);

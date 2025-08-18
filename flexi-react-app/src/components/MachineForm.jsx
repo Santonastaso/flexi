@@ -1,5 +1,5 @@
 import React,  { useState, useEffect } from 'react';
-import { appStore } from '../scripts/store';
+import { useStore } from '../store/useStore';
 import { BusinessLogicService } from '../scripts/businessLogicService';
 
 function MachineForm() {
@@ -23,6 +23,9 @@ function MachineForm() {
   const [formData, setFormData] = useState(initialFormData);
   const [validMachineTypes, setValidMachineTypes] = useState([]);
   const businessLogic = new BusinessLogicService();
+  
+  // Get addMachine action from Zustand store
+  const addMachine = useStore(state => state.addMachine);
 
   useEffect(() => {
     const types = businessLogic.get_valid_machine_types(formData.department);
@@ -51,7 +54,7 @@ function MachineForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    appStore.addMachine(formData);
+    addMachine(formData);
     setFormData(initialFormData); // Reset form
   };
 

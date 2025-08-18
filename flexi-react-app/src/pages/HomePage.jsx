@@ -1,30 +1,18 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { appStore } from '../scripts/store';
+import React, { useMemo, useEffect } from 'react';
+import { useStore } from '../store/useStore';
 
 function HomePage() {
-  const [machines, setMachines] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const machines = useStore(state => state.machines);
+  const orders = useStore(state => state.odpOrders);
+  const isLoading = useStore(state => state.isLoading);
+  const isInitialized = useStore(state => state.isInitialized);
+  const init = useStore(state => state.init);
 
   useEffect(() => {
-    async function fetchData() {
-      if (!appStore.isInitialized()) {
-        await appStore.init();
-      }
-      const state = appStore.getState();
-      setMachines(state.machines);
-      setOrders(state.odpOrders);
-      setIsLoading(false);
-
-      const unsubscribe = appStore.subscribe((newState) => {
-        setMachines(newState.machines);
-        setOrders(newState.odpOrders);
-      });
-
-      return () => unsubscribe();
+    if (!isInitialized) {
+      init();
     }
-    fetchData();
-  }, []);
+  }, [init, isInitialized]);
 
   // Calculate metrics
   const metrics = useMemo(() => {

@@ -1,30 +1,24 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import DataTable from '../components/DataTable';
 import BacklogForm from '../components/BacklogForm';
 import EditableCell from '../components/EditableCell';
-import { appStore } from '../scripts/store';
+import { useStore } from '../store/useStore';
 
 function BacklogPage() {
-  const [orders, setOrders] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Use Zustand store to select state and actions
+  const orders = useStore(state => state.odpOrders);
+  const isLoading = useStore(state => state.isLoading);
+  const isInitialized = useStore(state => state.isInitialized);
+  const init = useStore(state => state.init);
+  const updateOdpOrder = useStore(state => state.updateOdpOrder);
+  const removeOdpOrder = useStore(state => state.removeOdpOrder);
 
+  // Initialize store on component mount
   useEffect(() => {
-    async function fetchData() {
-      if (!appStore.isInitialized()) {
-        await appStore.init();
-      }
-      const state = appStore.getState();
-      setOrders(state.odpOrders);
-      setIsLoading(false);
-
-      const unsubscribe = appStore.subscribe((newState) => {
-        setOrders(newState.odpOrders);
-      });
-
-      return () => unsubscribe();
+    if (!isInitialized) {
+      init();
     }
-    fetchData();
-  }, []);
+  }, [init, isInitialized]);
 
   const columns = useMemo(() => [
     // Identificazione
@@ -148,7 +142,7 @@ function BacklogPage() {
         console.log('Machine assignment updated:', updatedOrder.scheduled_machine_id);
       }
 
-      await appStore.updateOdpOrder(updatedOrder.id, updatedOrder);
+      await updateOdpOrder(updatedOrder.id, updatedOrder);
     } catch (error) {
       console.error('Error updating order:', error);
       alert('Failed to update order. Please try again.');
@@ -158,7 +152,7 @@ function BacklogPage() {
   const handleDeleteOrder = async (orderToDelete) => {
     if (window.confirm(`Are you sure you want to delete ODP ${orderToDelete.odp_number}?`)) {
       try {
-        await appStore.removeOdpOrder(orderToDelete.id);
+        await removeOdpOrder(orderToDelete.id);
       } catch (error) {
         console.error('Error deleting order:', error);
         alert('Failed to delete order. Please try again.');

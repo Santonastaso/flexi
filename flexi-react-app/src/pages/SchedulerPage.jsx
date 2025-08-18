@@ -2,55 +2,52 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import TaskPool from '../components/TaskPool';
 import GanttChart from '../components/GanttChart';
-import { appStore } from '../scripts/store';
+import { useStore } from '../store/useStore';
 
 function SchedulerPage() {
-  const [tasks, setTasks] = useState([]);
-  const [machines, setMachines] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Select state and actions from Zustand store
+  const tasks = useStore(state => state.odpOrders);
+  const machines = useStore(state => state.machines);
+  const isLoading = useStore(state => state.isLoading);
+  const isInitialized = useStore(state => state.isInitialized);
+  const init = useStore(state => state.init);
+  const scheduleTask = useStore(state => state.scheduleTask);
+  const unscheduleTask = useStore(state => state.unscheduleTask);
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeDragItem, setActiveDragItem] = useState(null);
   const [workCenterFilter, setWorkCenterFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
 
+  // Initialize store on mount
   useEffect(() => {
-    async function fetchData() {
-      if (!appStore.isInitialized()) {
-        await appStore.init();
-      }
-      const state = appStore.getState();
-      setTasks(state.odpOrders);
-      setMachines(state.machines.filter(m => m.status === 'ACTIVE'));
-      setIsLoading(false);
-
-      const unsubscribe = appStore.subscribe((newState) => {
-        setTasks(newState.odpOrders);
-        setMachines(newState.machines.filter(m => m.status === 'ACTIVE'));
-      });
-      return () => unsubscribe();
+    if (!isInitialized) {
+      init();
     }
-    fetchData();
-  }, []);
+  }, [init, isInitialized]);
+
+  // Use only ACTIVE machines for scheduling-related UI
+  const activeMachines = useMemo(() => machines.filter(m => m.status === 'ACTIVE'), [machines]);
 
   // Get unique work centers and departments for filter dropdowns
   const workCenters = useMemo(() => {
-    const centers = [...new Set(machines.map(m => m.work_center).filter(Boolean))].sort();
+    const centers = [...new Set(activeMachines.map(m => m.work_center).filter(Boolean))].sort();
     return centers;
-  }, [machines]);
+  }, [activeMachines]);
 
   const departments = useMemo(() => {
-    const depts = [...new Set(machines.map(m => m.department).filter(Boolean))].sort();
+    const depts = [...new Set(activeMachines.map(m => m.department).filter(Boolean))].sort();
     return depts;
-  }, [machines]);
+  }, [activeMachines]);
 
   // Apply filters to machines
   const filteredMachines = useMemo(() => {
-    return machines.filter(machine => {
+    return activeMachines.filter(machine => {
       const workCenterMatch = !workCenterFilter || machine.work_center === workCenterFilter;
       const departmentMatch = !departmentFilter || machine.department === departmentFilter;
       return workCenterMatch && departmentMatch;
     });
-  }, [machines, workCenterFilter, departmentFilter]);
+  }, [activeMachines, workCenterFilter, departmentFilter]);
 
   const navigateDate = (direction) => {
     const newDate = new Date(currentDate);
@@ -69,7 +66,7 @@ function SchedulerPage() {
     const today = new Date();
     const isToday = currentDate.toDateString() === today.toDateString();
     return isToday ? 'Today' : currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-  };
+    };
 
   const clearFilters = () => {
     setWorkCenterFilter('');
@@ -108,17 +105,17 @@ function SchedulerPage() {
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
       };
-      appStore.scheduleTask(task.id, scheduleData);
+      scheduleTask(task.id, scheduleData);
     }
 
     // Case 2: Dragging an existing scheduled event to a new slot (rescheduling)
     if (draggedItem.type === 'event' && dropZone.type === 'slot') {
-      const event = draggedItem.event;
+      const eventItem = draggedItem.event;
       const { machine, hour } = dropZone;
       
       const startDate = new Date(currentDate);
       startDate.setHours(hour, 0, 0, 0);
-      const durationHours = event.duration || 1;
+      const durationHours = eventItem.duration || 1;
       const endDate = new Date(startDate.getTime() + durationHours * 3600 * 1000);
 
       const scheduleData = {
@@ -126,13 +123,13 @@ function SchedulerPage() {
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
       };
-      appStore.scheduleTask(event.id, scheduleData);
+      scheduleTask(eventItem.id, scheduleData);
     }
 
     // Case 3: Dragging an event back to the task pool (unscheduling)
     if (draggedItem.type === 'event' && dropZone.type === 'pool') {
       const eventToUnschedule = draggedItem.event;
-      appStore.unscheduleTask(eventToUnschedule.id);
+      unscheduleTask(eventToUnschedule.id);
     }
   };
 

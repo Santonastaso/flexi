@@ -1,24 +1,24 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import DataTable from '../components/DataTable';
 import MachineForm from '../components/MachineForm';
 import EditableCell from '../components/EditableCell';
-import { appStore } from '../scripts/store';
+import { useStore } from '../store/useStore';
 
 function MachineryPage() {
-  const [machines, setMachines] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Use Zustand store to select state and actions
+  const machines = useStore(state => state.machines);
+  const isLoading = useStore(state => state.isLoading);
+  const isInitialized = useStore(state => state.isInitialized);
+  const init = useStore(state => state.init);
+  const updateMachine = useStore(state => state.updateMachine);
+  const removeMachine = useStore(state => state.removeMachine);
 
+  // Initialize store on component mount
   useEffect(() => {
-    async function fetchData() {
-      if (!appStore.isInitialized()) await appStore.init();
-      const state = appStore.getState();
-      setMachines(state.machines);
-      setIsLoading(false);
-      const unsubscribe = appStore.subscribe((newState) => setMachines(newState.machines));
-      return () => unsubscribe();
+    if (!isInitialized) {
+      init();
     }
-    fetchData();
-  }, []);
+  }, [init, isInitialized]);
 
   const columns = useMemo(() => [
     // Identificazione
@@ -59,12 +59,12 @@ function MachineryPage() {
 
   const handleSaveMachine = (updatedMachine) => {
     // Here you would add validation logic before updating
-    appStore.updateMachine(updatedMachine.id, updatedMachine);
+    updateMachine(updatedMachine.id, updatedMachine);
   };
 
   const handleDeleteMachine = (machineToDelete) => {
     if (window.confirm(`Are you sure you want to delete ${machineToDelete.machine_name}?`)) {
-      appStore.removeMachine(machineToDelete.id);
+      removeMachine(machineToDelete.id);
     }
   };
 
