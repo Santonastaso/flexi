@@ -1,0 +1,836 @@
+/**
+ * Backlog Manager - Manages production orders (ODP) in the backlog
+ */
+import { BaseManager } from './baseManager.js';
+import { ValidationService } from './validationService.js';
+import { BusinessLogicService } from './businessLogicService.js';
+import { editManager } from './editManager.js';
+import { Utils } from './utils.js';
+import { appStore } from './store.js'; // Import the store
+import { attachEventListeners, attachFormValidationListeners, renderDiff } from './utils.js'; // Import renderDiff
+import { show_delete_confirmation } from './banner.js'; // Import delete confirmation
+import { backlogComponents } from './backlogComponents.js';
+
+export class BacklogManager extends BaseManager {
+    constructor() {
+        super(null);
+        this.editManager = editManager;
+        this.event_listeners_attached = false;
+        this.validationService = new ValidationService();
+        this.businessLogic = new BusinessLogicService();
+        this.storageService = null; // No longer used directly
+        this.current_calculation_results = null; // To store calculation results
+    }
+
+    init(elementMap) {
+        if (super.init(elementMap)) {
+            // Subscribe to store changes and perform initial render
+            appStore.subscribe(() => this.render());
+            this.render();
+
+            this.setup_form_validation();
+            this.attach_event_listeners();
+            this.update_bag_preview();
+        
+            if (this.editManager) {
+                const tableBody = document.querySelector('#backlog_table_body');
+                if (tableBody) {
+                    this.editManager.init_table_edit(tableBody);
+                    this.editManager.register_save_handler(tableBody, (row) => this.save_edit(row));
+                    
+                    tableBody.addEventListener('deleteRow', async (e) => {
+                        const row = e.detail.row;
+                        const odpId = row.dataset.odpId;
+                        if (odpId) {
+                            await this.delete_odp_order(odpId);
+                        }
+                    });
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    render() {
+        const { odpOrders, machines, isLoading } = appStore.getState();
+        if (isLoading) {
+            // Use component system for loading state
+            const loadingData = { message: 'Loading...' };
+            backlogComponents.updateContainer(
+                this.elements.backlog_table_body,
+                'loading-state',
+                [loadingData]
+            );
+        } else {
+            // Create the lookup map once for performance
+            const machineNameMap = new Map(machines.map(m => [m.id, m.machine_name]));
+            this.render_backlog(odpOrders, machineNameMap);
+        }
+    }
+
+    get_element_map() {
+        const elementIds = [
+            'odp_number', 'article_code', 'production_lot', 'work_center', 'nome_cliente',
+            'bag_height', 'bag_width', 'bag_step', 'quantity', 'quantity_per_box', 'quantity_completed', 
+            'seal_sides', 'product_type', 'delivery_date', 'department', 'fase', 'fase_search', 'fase_dropdown',
+            'internal_customer_code', 'external_customer_code', 'customer_order_ref', 
+            'calculate_btn', 'create_task', 'update_statuses_btn', 'debug_events_btn',
+            'backlog_table_body', 'preview_fascia', 'preview_altezza', 'preview_passo',
+            'phase_parameters_section',
+            'printing_params_display', 'phase_v_stampa_display', 'phase_t_setup_stampa_display', 'phase_costo_h_stampa_display',
+            'packaging_params_display', 'phase_v_conf_display', 'phase_t_setup_conf_display', 'phase_costo_h_conf_display',
+            'phase_contenuto_fase_display'
+        ];
+        return this.get_elements_by_id(elementIds);
+    }
+
+    attach_event_listeners() {
+        if (this.event_listeners_attached) return;
+
+        // Define event handlers mapping
+        const eventHandlers = {
+            handle_article_code_change: ['article_code'],
+            populate_phases_dropdown: ['department', 'work_center'],
+            update_bag_preview: ['bag_width', 'bag_height', 'bag_step'],
+            update_bag_specs: ['quantity', 'quantity_per_box'],
+            validate_form_fields: [
+                'odp_number', 'article_code', 'production_lot', 'work_center', 'nome_cliente',
+                'bag_height', 'bag_width', 'bag_step', 'quantity', 'quantity_per_box', 'quantity_completed', 
+                'seal_sides', 'product_type', 'delivery_date', 'department', 'fase', 
+                'internal_customer_code', 'external_customer_code', 'customer_order_ref'
+            ]
+        };
+
+        // Attach button click handlers
+        if (this.elements.calculate_btn) this.elements.calculate_btn.addEventListener('click', () => this.handle_calculate());
+        if (this.elements.create_task) this.elements.create_task.addEventListener('click', () => this.handle_create_task());
+        if (this.elements.update_statuses_btn) this.elements.update_statuses_btn.addEventListener('click', () => this.sync_all_odp_with_gantt());
+        if (this.elements.debug_events_btn) this.elements.debug_events_btn.addEventListener('click', () => this.debug_scheduled_events());
+
+        // Attach form validation listeners using utility
+        attachFormValidationListeners(
+            this.elements, 
+            eventHandlers.validate_form_fields, 
+            ['input', 'change'], 
+            () => this.validate_form_fields(),
+            this
+        );
+
+        // Attach specific field listeners
+        attachFormValidationListeners(
+            this.elements,
+            eventHandlers.handle_article_code_change,
+            ['input', 'change'],
+            () => this.handle_article_code_change(),
+            this
+        );
+
+        attachFormValidationListeners(
+            this.elements,
+            eventHandlers.populate_phases_dropdown,
+            ['change'],
+            () => this.populate_phases_dropdown().catch(console.error),
+            this
+        );
+
+        attachFormValidationListeners(
+            this.elements,
+            eventHandlers.update_bag_preview,
+            ['input'],
+            () => this.update_bag_preview(),
+            this
+        );
+
+        attachFormValidationListeners(
+            this.elements,
+            eventHandlers.update_bag_specs,
+            ['input'],
+            () => this.update_bag_specs_display(),
+            this
+        );
+
+        this.populate_phases_dropdown().catch(console.error);
+        this.hide_calculation_results();
+        this.update_bag_specs_display(); // Initialize the bag specs display
+        
+        // Debug: Check what phases are available
+        const { phases } = appStore.getState();
+        if (window.DEBUG) console.log(`Available phases in store:`, phases);
+        
+        // Initialize button states
+        this.validate_form_fields(true);
+        
+        this.event_listeners_attached = true;
+    }
+
+    setup_form_validation() {
+        this.validate_form_fields();
+    }
+
+    handle_article_code_change() {
+        const articleCode = this.elements.article_code.value.trim();
+        if (!articleCode) return;
+        
+        const department = this.businessLogic.auto_determine_department(articleCode);
+        const workCenter = this.businessLogic.auto_determine_work_center(articleCode);
+        
+        if (this.elements.work_center) this.elements.work_center.value = workCenter;
+        if (this.elements.department) this.elements.department.value = department;
+        if (this.elements.article_code) this.elements.article_code.dataset.department = department;
+
+        if (window.DEBUG) console.log(`Article code changed: ${articleCode}`);
+        if (window.DEBUG) console.log(`Set department to: ${department}`);
+        if (window.DEBUG) console.log(`Set work_center to: ${workCenter}`);
+
+        this.populate_phases_dropdown().catch(error => console.error('Error populating phases dropdown:', error));
+        this.validate_form_fields();
+    }
+
+    update_button_states(validation, hasCalculatedValues) {
+        // Update Calculate button state - enabled when form validation passes
+        if (this.elements.calculate_btn) {
+            this.elements.calculate_btn.disabled = !validation.isValid;
+            if (!validation.isValid) {
+                this.elements.calculate_btn.title = 'Please fill in all required fields first';
+                this.elements.calculate_btn.classList.add('btn-disabled');
+            } else {
+                this.elements.calculate_btn.title = 'Click to calculate duration and cost';
+                this.elements.calculate_btn.classList.remove('btn-disabled');
+            }
+        }
+        
+        // Update Create Task button state - enabled when BOTH validation passes AND calculation is done
+        if (this.elements.create_task) {
+            const isCreateTaskEnabled = validation.isValid && hasCalculatedValues;
+            this.elements.create_task.disabled = !isCreateTaskEnabled;
+            
+            if (!isCreateTaskEnabled) {
+                if (!hasCalculatedValues && validation.isValid) {
+                    this.elements.create_task.title = 'Please click Calculate button first to compute duration and cost';
+                    this.elements.create_task.classList.add('btn-waiting');
+                    this.elements.create_task.classList.remove('btn-disabled');
+                } else if (!validation.isValid) {
+                    this.elements.create_task.title = 'Please fill in all required fields';
+                    this.elements.create_task.classList.add('btn-disabled');
+                    this.elements.create_task.classList.remove('btn-waiting');
+                }
+            } else {
+                this.elements.create_task.title = 'Ready to create ODP';
+                this.elements.create_task.classList.remove('btn-disabled', 'btn-waiting');
+            }
+        }
+    }
+
+    validate_form_fields(updateButtonState = true) {
+        const formData = this.collect_form_data();
+        const validation = this.validationService.validate_odp(formData, { context: 'form', returnFieldMapping: true });
+        
+        // Check if duration and cost have been calculated
+        const hasCalculatedValues = this.current_calculation_results?.totals?.duration > 0 && 
+                                   this.current_calculation_results?.totals?.cost >= 0;
+        
+        // Calculate button is enabled when form validation passes
+        // Create Task button is enabled when BOTH validation passes AND calculation is done
+        const isCalculateEnabled = validation.isValid;
+        const isCreateTaskEnabled = validation.isValid && hasCalculatedValues;
+        
+        if (updateButtonState) {
+            this.update_button_states(validation, hasCalculatedValues);
+        }
+
+        if (window.DEBUG) console.log(`Form validation result: ${validation.isValid}`, validation.errors);
+        if (window.DEBUG) console.log(`Calculate button enabled: ${isCalculateEnabled}`);
+        if (window.DEBUG) console.log(`Create Task button enabled: ${isCreateTaskEnabled}`);
+        if (window.DEBUG) console.log(`Has calculated values: ${hasCalculatedValues}`, this.current_calculation_results);
+        
+        // Return true if form validation passes (for Calculate button)
+        // Create Task button will be enabled separately when calculation is done
+        return validation.isValid;
+    }
+
+    collect_form_data() {
+        const formData = {
+            odp_number: this.elements.odp_number.value.trim(),
+            article_code: this.elements.article_code.value.trim(),
+            production_lot: this.elements.production_lot.value.trim(),
+            work_center: this.elements.work_center.value.trim(),
+            nome_cliente: this.elements.nome_cliente.value.trim(),
+            bag_height: parseFloat(this.elements.bag_height.value) || 0,
+            bag_width: parseFloat(this.elements.bag_width.value) || 0,
+            bag_step: parseFloat(this.elements.bag_step.value) || 0,
+            quantity: parseInt(this.elements.quantity.value) || 0,
+            quantity_per_box: parseInt(this.elements.quantity_per_box.value) || 0,
+            quantity_completed: parseInt(this.elements.quantity_completed.value) || 0,
+            seal_sides: this.elements.seal_sides.value,
+            product_type: this.elements.product_type.value,
+            delivery_date: this.elements.delivery_date.value,
+            duration: 0, // Will be calculated by the calculate button
+            cost: 0, // Will be calculated by the calculate button
+            internal_customer_code: this.elements.internal_customer_code.value.trim(),
+            external_customer_code: this.elements.external_customer_code.value.trim(),
+            customer_order_ref: this.elements.customer_order_ref.value.trim(),
+            department: this.elements.department.value.trim(),
+            fase: this.elements.fase.value.trim()
+        };
+        
+        // Calculate n_boxes
+        formData.n_boxes = formData.quantity_per_box > 0 ? Math.ceil(formData.quantity / formData.quantity_per_box) : 0;
+        
+        return formData;
+    }
+
+    update_bag_preview() {
+        if (this.elements.preview_fascia) this.elements.preview_fascia.textContent = this.elements.bag_width?.value || '-';
+        if (this.elements.preview_altezza) this.elements.preview_altezza.textContent = this.elements.bag_height?.value || '-';
+        if (this.elements.preview_passo) this.elements.preview_passo.textContent = this.elements.bag_step?.value || '-';
+    }
+
+    async handle_calculate() {
+        try {
+            if (!this.validate_form_fields()) {
+                this.show_error_message('validating form fields', new Error('Please fill in all required fields'));
+                return;
+            }
+
+            const selectedPhaseId = this.elements.fase.value;
+            if (!selectedPhaseId) {
+                this.show_error_message('validating phase selection', new Error('Please select a production phase'));
+                return;
+            }
+
+            // Get phases from the store instead of direct storageService access
+            const { phases } = appStore.getState();
+            const selectedPhase = phases.find(phase => phase.id === selectedPhaseId);
+            
+            if (!selectedPhase) {
+                this.show_error_message('finding selected phase', new Error('Selected phase not found'));
+                return;
+            }
+
+            const quantity = parseInt(this.elements.quantity.value) || 0;
+            const bagStep = parseInt(this.elements.bag_step.value) || 0;
+
+            // Get the current values from the editable phase parameter fields
+            const currentPhaseParams = this.get_current_phase_parameters(selectedPhase);
+            const results = this.businessLogic.calculate_production_metrics(currentPhaseParams, quantity, bagStep);
+            this.display_calculation_results(results);
+            this.show_success_message('Calculation completed successfully');
+        } catch (error) {
+            const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
+            this.show_error_message('calculating production metrics', errorObj);
+        }
+    }
+
+    display_calculation_results(results) {
+        this.current_calculation_results = results;
+        
+        const calculationResultsEl = document.getElementById('calculation_results');
+        if (calculationResultsEl) calculationResultsEl.style.display = 'block';
+
+        this.update_result_field('printing_processing_time', results.printing.processing_time.toFixed(2));
+        this.update_result_field('printing_setup_time', results.printing.setup_time.toFixed(2));
+        this.update_result_field('printing_total_time', results.printing.total_time.toFixed(2));
+        this.update_result_field('printing_cost', results.printing.cost.toFixed(2));
+        this.update_result_field('packaging_processing_time', results.packaging.processing_time.toFixed(2));
+        this.update_result_field('packaging_setup_time', results.packaging.setup_time.toFixed(2));
+        this.update_result_field('packaging_total_time', results.packaging.total_time.toFixed(2));
+        this.update_result_field('packaging_cost', results.packaging.cost.toFixed(2));
+        this.update_result_field('total_duration', results.totals.duration.toFixed(2));
+        this.update_result_field('total_cost', results.totals.cost.toFixed(2));
+        
+        // Re-validate form to enable Create Task button now that duration and cost are calculated
+        this.validate_form_fields(true);
+    }
+
+    update_result_field(fieldId, value) {
+        const field = document.getElementById(fieldId);
+        if (field) field.textContent = value;
+    }
+
+    hide_calculation_results() {
+        const calculationResults = document.getElementById('calculation_results');
+        if (calculationResults) calculationResults.style.display = 'none';
+    }
+
+    async handle_create_task() {
+        if (this.elements.create_task.disabled) return;
+        this.elements.create_task.disabled = true;
+        
+        if (!this.validate_form_fields(false)) {
+            this.show_error_message('validating form fields', new Error('Please fill in all required fields'));
+            this.elements.create_task.disabled = false;
+            return;
+        }
+        
+        try {
+            const orderData = {
+                ...this.collect_form_data(),
+                quantity_completed: 0, // Initialize to 0 - progress and time_remaining will auto-calculate
+                duration: this.current_calculation_results?.totals.duration || 0,
+                cost: this.current_calculation_results?.totals.cost || 0,
+                status: 'NOT SCHEDULED',
+                production_start: null,
+                production_end: null,
+                // Note: progress and time_remaining are now computed columns in the database
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+
+            await appStore.addOdpOrder(orderData);
+
+            this.clear_form_fields();
+            this.show_success_message(`Production order "${orderData.odp_number}" created`);
+            this.hide_calculation_results();
+            
+        } catch (error) {
+            const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
+            this.show_error_message('creating production order', errorObj);
+        } finally {
+            if (this.elements.create_task) this.elements.create_task.disabled = false;
+        }
+    }
+
+    render_backlog(items, machineNameMap) {
+        if (!this.elements.backlog_table_body) return;
+
+        if (!items || items.length === 0) {
+            // Use component system for empty state
+            const emptyStateData = { message: 'No backlog items found. Create production lots to get started.' };
+            backlogComponents.updateContainer(
+                this.elements.backlog_table_body,
+                'empty-state',
+                [emptyStateData]
+            );
+            return;
+        }
+        
+        // Use component system for efficient updates
+        backlogComponents.updateContainer(
+            this.elements.backlog_table_body,
+            'backlog-row',
+            items.map(item => ({ item, machineNameMap, editManager: this.editManager }))
+        );
+    }
+
+    create_backlog_row(item, machineNameMap) {
+        // Use component system instead of manual DOM creation
+        const rowData = {
+            item: item,
+            machineNameMap: machineNameMap,
+            editManager: this.editManager
+        };
+        
+        const rowElement = backlogComponents.render('backlog-row', rowData);
+        return rowElement;
+    }
+
+    async save_edit(row) {
+        const odpId = row.dataset.odpId;
+        if (!odpId) {
+            console.error('No ODP ID found in row');
+            return;
+        }
+
+        // Collect all edited data
+        const allUpdatedData = this.validate_edit_row(
+            row, ['odp_number', 'article_code', 'production_lot'], ['bag_height', 'bag_width', 'bag_step', 'quantity', 'quantity_completed'], { bag_height: 'Bag Height', bag_width: 'Bag Width', bag_step: 'Bag Step', quantity: 'Quantity', quantity_completed: 'Quantity Completed' }
+        );
+
+        if (!allUpdatedData) return;
+
+        try {
+            const { odpOrders } = appStore.getState();
+            const currentOrder = odpOrders.find(o => o.id === odpId);
+            if (!currentOrder) {
+                this.showMessage('ODP order not found', 'error');
+                return;
+            }
+            
+            // Debug logging to see what's in the currentOrder
+            if (window.DEBUG) {
+                console.log('🔍 Current order from store:', currentOrder);
+                console.log('🔍 Current order keys:', Object.keys(currentOrder));
+                console.log('🔍 Current order has machines field:', 'machines' in currentOrder);
+            }
+
+            // Filter out fields that shouldn't be sent to the database
+            const allowedFields = [
+                'odp_number', 'article_code', 'production_lot', 'work_center', 'nome_cliente',
+                'description', 'bag_height', 'bag_width', 'bag_step', 'seal_sides', 'product_type',
+                'quantity', 'quantity_completed', 'quantity_per_box', 'delivery_date',
+                'internal_customer_code', 'external_customer_code', 'customer_order_ref',
+                'department', 'fase', 'duration', 'cost', 'priority', 'status'
+            ];
+            
+            const cleanedData = {};
+            Object.keys(allUpdatedData).forEach(key => {
+                if (allowedFields.includes(key)) {
+                    cleanedData[key] = allUpdatedData[key];
+                }
+            });
+            
+            // Debug logging to help identify field issues
+            if (window.DEBUG) {
+                console.log('🔍 All collected data:', allUpdatedData);
+                console.log('🔍 Filtered data for database:', cleanedData);
+                console.log('🔍 Fields that were filtered out:', Object.keys(allUpdatedData).filter(key => !allowedFields.includes(key)));
+            }
+            ['production_start', 'production_end', 'delivery_date'].forEach(field => {
+                if (cleanedData[field] === '' || cleanedData[field] === null || cleanedData[field] === undefined) {
+                    cleanedData[field] = null;
+                }
+            });
+
+            ['bag_height', 'bag_width', 'bag_step', 'quantity', 'quantity_completed', 'duration', 'cost'].forEach(field => {
+                if (cleanedData[field] === '' || cleanedData[field] === null || cleanedData[field] === undefined) {
+                    cleanedData[field] = 0;
+                } else if (typeof cleanedData[field] === 'string') {
+                    cleanedData[field] = parseFloat(cleanedData[field]) || 0;
+                }
+            });
+
+            // Create a clean base order with only the fields we want to preserve
+            const cleanBaseOrder = {};
+            allowedFields.forEach(field => {
+                if (currentOrder[field] !== undefined) {
+                    cleanBaseOrder[field] = currentOrder[field];
+                }
+            });
+            
+            // Build the final update object with clean data
+            const updatedOrder = { ...cleanBaseOrder, ...cleanedData, updated_at: new Date().toISOString() };
+            
+            // Debug logging to see exactly what's being sent
+            if (window.DEBUG) {
+                console.log('🔍 Clean base order:', cleanBaseOrder);
+                console.log('🔍 Clean base order keys:', Object.keys(cleanBaseOrder));
+                console.log('🔍 Final updatedOrder being sent:', updatedOrder);
+                console.log('🔍 Keys in updatedOrder:', Object.keys(updatedOrder));
+                console.log('🔍 Checking for problematic fields:', {
+                    hasMachines: 'machines' in updatedOrder,
+                    hasScheduledMachine: 'scheduled_machine' in updatedOrder,
+                    hasScheduledMachineId: 'scheduled_machine_id' in updatedOrder
+                });
+            }
+            
+            await appStore.updateOdpOrder(odpId, updatedOrder);
+
+            this.editManager.cancel_edit(row);
+            this.show_success_message('ODP order updated');
+        } catch (error) {
+            const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
+            this.show_error_message('updating ODP order', errorObj);
+        }
+    }
+
+    clear_form_fields() {
+        super.clear_form_fields();
+    }
+    
+    custom_clear_form() {
+        // Clear specific fields that need custom handling
+        if (this.elements.quantity_completed) this.elements.quantity_completed.value = '0';
+        if (this.elements.quantity_per_box) this.elements.quantity_per_box.value = '';
+        
+        // Clear other form fields
+        if (this.elements.seal_sides) this.elements.seal_sides.value = '';
+        if (this.elements.product_type) this.elements.product_type.value = '';
+        if (this.elements.delivery_date) this.elements.delivery_date.value = '';
+        
+        // Clear phase selection
+        if (this.elements.fase_search) this.elements.fase_search.value = '';
+        if (this.elements.fase) this.elements.fase.value = '';
+        
+        // Hide phase parameters section
+        if (this.elements.phase_parameters_section) {
+            this.elements.phase_parameters_section.style.display = 'none';
+        }
+        
+        // Update the display
+        this.update_bag_specs_display();
+    }
+
+    async populate_phases_dropdown() {
+        try {
+            // Use the store to get phases instead of direct storageService access
+            const { phases } = appStore.getState();
+            const faseSearch = this.elements.fase_search;
+            const faseHidden = this.elements.fase;
+            const faseDropdown = this.elements.fase_dropdown;
+            
+            if (!faseSearch || !faseHidden || !faseDropdown || !phases?.length) return;
+            
+            const department = this.elements.department?.value;
+            const workCenter = this.elements.work_center?.value;
+                
+            // If department or work_center is set, filter phases; otherwise show all phases
+            const relevantPhases = (department || workCenter)
+                ? phases.filter(p => (!department || p.department === department) && (!workCenter || p.work_center === workCenter))
+                : phases;
+            
+            // Store phases for search functionality
+            this.availablePhases = relevantPhases;
+            
+            // Set up search functionality
+            this.setup_phase_search();
+            
+            if (window.DEBUG) console.log(`Populated phases dropdown with ${relevantPhases.length} phases (department: ${department}, work_center: ${workCenter})`);
+        } catch (error) {
+            console.error("Error populating phases dropdown:", error);
+        }
+    }
+
+    setup_phase_search() {
+        const faseSearch = this.elements.fase_search;
+        const faseHidden = this.elements.fase;
+        const faseDropdown = this.elements.fase_dropdown;
+        
+        if (!faseSearch || !faseHidden || !faseDropdown) return;
+        
+        // Clear previous event listeners
+        faseSearch.removeEventListener('input', this.handlePhaseSearch);
+        faseSearch.removeEventListener('focus', this.showPhaseDropdown);
+        faseSearch.removeEventListener('blur', this.hidePhaseDropdown);
+        
+        // Add new event listeners
+        this.handlePhaseSearch = (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            this.filterAndShowPhases(searchTerm);
+        };
+        
+        this.showPhaseDropdown = () => {
+            if (this.availablePhases?.length) {
+                this.filterAndShowPhases(faseSearch.value.toLowerCase());
+            }
+        };
+        
+        this.hidePhaseDropdown = () => {
+            // Delay hiding to allow click events on dropdown options
+            setTimeout(() => {
+                faseDropdown.style.display = 'none';
+            }, 150);
+        };
+        
+        faseSearch.addEventListener('input', this.handlePhaseSearch);
+        faseSearch.addEventListener('focus', this.showPhaseDropdown);
+        faseSearch.addEventListener('blur', this.hidePhaseDropdown);
+    }
+
+    filterAndShowPhases(searchTerm) {
+        const faseDropdown = this.elements.fase_dropdown;
+        const faseHidden = this.elements.fase;
+        
+        if (!faseDropdown || !this.availablePhases) return;
+        
+        const filteredPhases = this.availablePhases.filter(phase => 
+            phase.name.toLowerCase().includes(searchTerm) || 
+            (phase.contenuto_fase && phase.contenuto_fase.toLowerCase().includes(searchTerm))
+        );
+        
+        faseDropdown.innerHTML = '';
+        
+        if (filteredPhases.length === 0) {
+            faseDropdown.innerHTML = '<div class="dropdown-option">No phases found</div>';
+        } else {
+            filteredPhases.forEach(phase => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-option';
+                option.dataset.phaseId = phase.id;
+                option.innerHTML = `
+                    <span class="phase-name">${Utils.escape_html(phase.name)}</span>
+                    <span class="phase-description">${Utils.escape_html(phase.contenuto_fase || 'No description')}</span>
+                `;
+                
+                option.addEventListener('click', () => {
+                    this.selectPhase(phase);
+                });
+                
+                faseDropdown.appendChild(option);
+            });
+        }
+        
+        faseDropdown.style.display = 'block';
+    }
+
+    selectPhase(phase) {
+        const faseSearch = this.elements.fase_search;
+        const faseHidden = this.elements.fase;
+        const faseDropdown = this.elements.fase_dropdown;
+        
+        if (!faseSearch || !faseHidden || !faseDropdown) return;
+        
+        // Update the search input to show selected phase
+        faseSearch.value = phase.name;
+        
+        // Update the hidden input with the phase ID
+        faseHidden.value = phase.id;
+        
+        // Hide the dropdown
+        faseDropdown.style.display = 'none';
+        
+        // Populate the phase parameter display fields
+        this.populatePhaseParameters(phase);
+        
+        // Trigger validation
+        this.validate_form_fields();
+    }
+
+    populatePhaseParameters(phase) {
+        // Show the phase parameters section
+        if (this.elements.phase_parameters_section) {
+            this.elements.phase_parameters_section.style.display = 'block';
+        }
+        
+
+        
+        // Show/hide and populate printing parameters
+        if (this.elements.printing_params_display) {
+            const isPrinting = phase.department === 'STAMPA';
+            this.elements.printing_params_display.style.display = isPrinting ? 'block' : 'none';
+            
+            if (isPrinting) {
+                if (this.elements.phase_v_stampa_display) {
+                    this.elements.phase_v_stampa_display.value = phase.v_stampa || '';
+                }
+                if (this.elements.phase_t_setup_stampa_display) {
+                    this.elements.phase_t_setup_stampa_display.value = phase.t_setup_stampa || '';
+                }
+                if (this.elements.phase_costo_h_stampa_display) {
+                    this.elements.phase_costo_h_stampa_display.value = phase.costo_h_stampa || '';
+                }
+            }
+        }
+        
+        // Show/hide and populate packaging parameters
+        if (this.elements.packaging_params_display) {
+            const isPackaging = phase.department === 'CONFEZIONAMENTO';
+            this.elements.packaging_params_display.style.display = isPackaging ? 'block' : 'none';
+            
+            if (isPackaging) {
+                if (this.elements.phase_v_conf_display) {
+                    this.elements.phase_v_conf_display.value = phase.v_conf || '';
+                }
+                if (this.elements.phase_t_setup_conf_display) {
+                    this.elements.phase_t_setup_conf_display.value = phase.t_setup_conf || '';
+                }
+                if (this.elements.phase_costo_h_conf_display) {
+                    this.elements.phase_costo_h_conf_display.value = phase.costo_h_conf || '';
+                }
+                if (this.elements.phase_contenuto_fase_display) {
+                    this.elements.phase_contenuto_fase_display.value = phase.contenuto_fase || '';
+                }
+            }
+        }
+    }
+
+    get_current_phase_parameters(originalPhase) {
+        // Create a copy of the original phase with current editable values
+        const currentParams = { ...originalPhase };
+        
+        // Update with current values from editable fields
+        if (this.elements.phase_v_stampa_display && this.elements.phase_v_stampa_display.style.display !== 'none') {
+            currentParams.v_stampa = parseFloat(this.elements.phase_v_stampa_display.value) || 0;
+        }
+        if (this.elements.phase_t_setup_stampa_display && this.elements.phase_t_setup_stampa_display.style.display !== 'none') {
+            currentParams.t_setup_stampa = parseFloat(this.elements.phase_t_setup_stampa_display.value) || 0;
+        }
+        if (this.elements.phase_costo_h_stampa_display && this.elements.phase_costo_h_stampa_display.style.display !== 'none') {
+            currentParams.costo_h_stampa = parseFloat(this.elements.phase_costo_h_stampa_display.value) || 0;
+        }
+        if (this.elements.phase_v_conf_display && this.elements.phase_v_conf_display.style.display !== 'none') {
+            currentParams.v_conf = parseFloat(this.elements.phase_v_conf_display.value) || 0;
+        }
+        if (this.elements.phase_t_setup_conf_display && this.elements.phase_t_setup_conf_display.style.display !== 'none') {
+            currentParams.t_setup_conf = parseFloat(this.elements.phase_t_setup_conf_display.value) || 0;
+        }
+        if (this.elements.phase_costo_h_conf_display && this.elements.phase_costo_h_conf_display.style.display !== 'none') {
+            currentParams.costo_h_conf = parseFloat(this.elements.phase_costo_h_conf_display.value) || 0;
+        }
+        if (this.elements.phase_contenuto_fase_display && this.elements.phase_contenuto_fase_display.style.display !== 'none') {
+            currentParams.contenuto_fase = this.elements.phase_contenuto_fase_display.value || '';
+        }
+        
+        return currentParams;
+    }
+
+    async delete_odp_order(odpId) {
+        const message = `Are you sure you want to delete ODP Order #${odpId}?`;
+        show_delete_confirmation(message, async () => {
+            try {
+                await appStore.removeOdpOrder(odpId);
+                this.show_success_message('ODP order deleted successfully.');
+            } catch (error) {
+                const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
+                this.show_error_message('deleting ODP order', errorObj);
+            }
+        });
+    }
+
+    async sync_all_odp_with_gantt() {
+        try {
+            await appStore.init(); // Re-fetch all data from the source
+            this.show_success_message('Backlog refreshed successfully');
+        } catch (error) {
+            console.error('Error refreshing backlog:', error);
+            const errorObj = error instanceof Error ? error : new Error(String(error?.message || error));
+            this.show_error_message('refreshing backlog', errorObj);
+        }
+    }
+
+    async debug_scheduled_events() {
+        try {
+            const { odpOrders } = appStore.getState();
+            const scheduledEvents = odpOrders.filter(o => o.status === 'SCHEDULED');
+            
+            console.group("Scheduler Debug");
+            console.table(scheduledEvents);
+            console.table(odpOrders.map(o => ({ id: o.id, odp: o.odp_number, status: o.status, start: o.production_start, end: o.production_end })));
+            console.groupEnd();
+        } catch (error) {
+            console.error('Error in debug method:', error);
+        }
+    }
+
+    format_timestamp_for_display(timestamp) {
+        try {
+            if (!timestamp) return '-';
+            const date = new Date(timestamp);
+            if (isNaN(date.getTime())) return '-';
+            
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            
+            return `${day}/${month}/${year} ${hours}:${minutes}`;
+        } catch (error) {
+            console.error('Error formatting timestamp:', error);
+            return '-';
+        }
+    }
+
+    format_production_start(timestamp) {
+        return this.format_timestamp_for_display(timestamp);
+    }
+
+    format_production_end(timestamp) {
+        return this.format_timestamp_for_display(timestamp);
+    }
+
+    update_bag_specs_display() {
+        const quantity = parseInt(this.elements.quantity.value) || 0;
+        const quantityPerBox = parseInt(this.elements.quantity_per_box.value) || 0;
+        const nBoxes = quantityPerBox > 0 ? Math.ceil(quantity / quantityPerBox) : 0;
+
+        // Update the display fields
+        const displayQuantity = document.getElementById('previewNumeroBuste');
+        const displayQuantityPerBox = document.getElementById('previewPezziScatola');
+        const displayNBoxes = document.getElementById('previewTotalBoxes');
+
+        if (displayQuantity) displayQuantity.textContent = quantity || '-';
+        if (displayQuantityPerBox) displayQuantityPerBox.textContent = quantityPerBox || '-';
+        if (displayNBoxes) displayNBoxes.textContent = nBoxes || '-';
+    }
+}
