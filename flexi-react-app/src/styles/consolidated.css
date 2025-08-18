@@ -266,6 +266,22 @@ main {
     font-weight: 700;
 }
 
+/* Unit Labels for Phase Parameters */
+.unit-label {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    pointer-events: none;
+}
+
+.form-group {
+    position: relative;
+}
+
 /* ===== BUTTON COMPONENTS ===== */
 .btn {
     display: inline-flex;

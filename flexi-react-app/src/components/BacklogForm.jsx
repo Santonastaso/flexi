@@ -15,6 +15,7 @@ function BacklogForm() {
   const [formData, setFormData] = useState(initialFormData);
   const [phases, setPhases] = useState([]);
   const [selectedPhase, setSelectedPhase] = useState(null);
+  const [editablePhaseParams, setEditablePhaseParams] = useState({});
   const [calculationResults, setCalculationResults] = useState(null);
   const [filteredPhases, setFilteredPhases] = useState([]);
   const [phaseSearch, setPhaseSearch] = useState('');
@@ -34,6 +35,7 @@ function BacklogForm() {
       setFormData(prev => ({ ...prev, department, work_center, fase: '' }));
       setPhaseSearch('');
       setSelectedPhase(null);
+      setEditablePhaseParams({});
     }
   }, [formData.article_code]);
 
@@ -54,12 +56,26 @@ function BacklogForm() {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const handlePhaseParamChange = (field, value) => {
+    setEditablePhaseParams(prev => ({ ...prev, [field]: value }));
+  };
+
   const handlePhaseSelect = (phase) => {
     setFormData(prev => ({ ...prev, fase: phase.id }));
     setSelectedPhase(phase);
     setPhaseSearch(phase.name);
     setDropdownVisible(false);
-    setCalculationResults(null); // Reset calculations when phase changes
+    setCalculationResults(null);
+    
+    // Initialize editable phase parameters with current phase values
+    setEditablePhaseParams({
+      v_stampa: phase.v_stampa || '',
+      t_setup_stampa: phase.t_setup_stampa || '',
+      costo_h_stampa: phase.costo_h_stampa || '',
+      v_conf: phase.v_conf || '',
+      t_setup_conf: phase.t_setup_conf || '',
+      costo_h_conf: phase.costo_h_conf || '',
+    });
   };
 
   const handleCalculate = () => {
@@ -67,7 +83,14 @@ function BacklogForm() {
       alert("Please select a phase and enter Quantity and Bag Step to calculate.");
       return;
     }
-    const results = businessLogic.calculate_production_metrics(selectedPhase, formData.quantity, formData.bag_step);
+    
+    // Use editable phase parameters if available, otherwise fall back to original phase values
+    const phaseForCalculation = {
+      ...selectedPhase,
+      ...editablePhaseParams
+    };
+    
+    const results = businessLogic.calculate_production_metrics(phaseForCalculation, formData.quantity, formData.bag_step);
     setCalculationResults(results);
   };
 
@@ -87,6 +110,7 @@ function BacklogForm() {
     setFormData(initialFormData);
     setPhaseSearch('');
     setSelectedPhase(null);
+    setEditablePhaseParams({});
     setCalculationResults(null);
   };
 
@@ -292,6 +316,7 @@ function BacklogForm() {
                 id="department" 
                 name="department" 
                 value={formData.department} 
+                onChange={handleChange} 
                 placeholder="Department" 
                 readOnly 
               />
@@ -347,31 +372,83 @@ function BacklogForm() {
               {selectedPhase.department === 'STAMPA' ? (
                 <>
                   <div className="form-group">
-                    <label>Print Speed:</label>
-                    <div className="parameter-value">{selectedPhase.v_stampa} mt/h</div>
+                    <label htmlFor="v_stampa">Print Speed:</label>
+                    <input 
+                      type="number" 
+                      id="v_stampa"
+                      value={editablePhaseParams.v_stampa || selectedPhase.v_stampa || ''} 
+                      onChange={(e) => handlePhaseParamChange('v_stampa', e.target.value)}
+                      placeholder="Print Speed"
+                      min="0"
+                    />
+                    <span className="unit-label">mt/h</span>
                   </div>
                   <div className="form-group">
-                    <label>Print Setup:</label>
-                    <div className="parameter-value">{selectedPhase.t_setup_stampa} h</div>
+                    <label htmlFor="t_setup_stampa">Print Setup:</label>
+                    <input 
+                      type="number" 
+                      id="t_setup_stampa"
+                      value={editablePhaseParams.t_setup_stampa || selectedPhase.t_setup_stampa || ''} 
+                      onChange={(e) => handlePhaseParamChange('t_setup_stampa', e.target.value)}
+                      placeholder="Setup Time"
+                      min="0"
+                      step="0.1"
+                    />
+                    <span className="unit-label">h</span>
                   </div>
                   <div className="form-group">
-                    <label>Print Cost:</label>
-                    <div className="parameter-value">€{selectedPhase.costo_h_stampa}/h</div>
+                    <label htmlFor="costo_h_stampa">Print Cost:</label>
+                    <input 
+                      type="number" 
+                      id="costo_h_stampa"
+                      value={editablePhaseParams.costo_h_stampa || selectedPhase.costo_h_stampa || ''} 
+                      onChange={(e) => handlePhaseParamChange('costo_h_stampa', e.target.value)}
+                      placeholder="Hourly Cost"
+                      min="0"
+                      step="0.01"
+                    />
+                    <span className="unit-label">€/h</span>
                   </div>
                 </>
               ) : (
                 <>
                   <div className="form-group">
-                    <label>Package Speed:</label>
-                    <div className="parameter-value">{selectedPhase.v_conf} pz/h</div>
+                    <label htmlFor="v_conf">Package Speed:</label>
+                    <input 
+                      type="number" 
+                      id="v_conf"
+                      value={editablePhaseParams.v_conf || selectedPhase.v_conf || ''} 
+                      onChange={(e) => handlePhaseParamChange('v_conf', e.target.value)}
+                      placeholder="Package Speed"
+                      min="0"
+                    />
+                    <span className="unit-label">pz/h</span>
                   </div>
                   <div className="form-group">
-                    <label>Package Setup:</label>
-                    <div className="parameter-value">{selectedPhase.t_setup_conf} h</div>
+                    <label htmlFor="t_setup_conf">Package Setup:</label>
+                    <input 
+                      type="number" 
+                      id="t_setup_conf"
+                      value={editablePhaseParams.t_setup_conf || selectedPhase.t_setup_conf || ''} 
+                      onChange={(e) => handlePhaseParamChange('t_setup_conf', e.target.value)}
+                      placeholder="Setup Time"
+                      min="0"
+                      step="0.1"
+                    />
+                    <span className="unit-label">h</span>
                   </div>
                   <div className="form-group">
-                    <label>Package Cost:</label>
-                    <div className="parameter-value">€{selectedPhase.costo_h_conf}/h</div>
+                    <label htmlFor="costo_h_conf">Package Cost:</label>
+                    <input 
+                      type="number" 
+                      id="costo_h_conf"
+                      value={editablePhaseParams.costo_h_conf || selectedPhase.costo_h_conf || ''} 
+                      onChange={(e) => handlePhaseParamChange('costo_h_conf', e.target.value)}
+                      placeholder="Hourly Cost"
+                      min="0"
+                      step="0.01"
+                    />
+                    <span className="unit-label">€/h</span>
                   </div>
                 </>
               )}

@@ -99,12 +99,12 @@ function BacklogPage() {
     // Pianificazione
     { 
       header: 'Prod Start', 
-      accessorKey: 'production_start', 
+      accessorKey: 'scheduled_start_time', 
       cell: info => info.getValue() ? new Date(info.getValue()).toLocaleString() : '-' 
     },
     { 
       header: 'Prod End', 
-      accessorKey: 'production_end', 
+      accessorKey: 'scheduled_end_time', 
       cell: info => info.getValue() ? new Date(info.getValue()).toLocaleString() : '-' 
     },
     { 

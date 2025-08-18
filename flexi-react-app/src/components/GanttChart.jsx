@@ -11,7 +11,7 @@ function TimeSlot({ machine, hour }) {
 }
 
 // A scheduled event that can be dragged to be rescheduled or unscheduled
-function ScheduledEvent({ event, machine }) {
+function ScheduledEvent({ event, machine, currentDate }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: `event-${event.id}`,
         data: { event, type: 'event', machine },
@@ -19,8 +19,17 @@ function ScheduledEvent({ event, machine }) {
 
     const durationHours = event.duration || 1;
     
+    // Calculate base position based on the current date context
+    const eventStartTime = new Date(event.scheduled_start_time);
+    const isSameDay = eventStartTime.toDateString() === currentDate.toDateString();
+    
+    if (!isSameDay) {
+        // If event is not on the current day, don't show it
+        return null;
+    }
+    
     // Calculate base position
-    const baseLeft = (new Date(event.scheduled_start_time).getHours() * 80);
+    const baseLeft = (eventStartTime.getHours() * 80);
     const baseWidth = durationHours * 80;
     
     // Apply transform only when dragging, otherwise use base position
@@ -51,7 +60,7 @@ function ScheduledEvent({ event, machine }) {
 }
 
 // A single row in the Gantt chart, representing one machine
-function MachineRow({ machine, scheduledEvents }) {
+function MachineRow({ machine, scheduledEvents, currentDate }) {
   const hours = Array.from({ length: 24 }, (_, i) => i); // 24 hours in a day
   return (
     <div className="machine-row" data-machine-id={machine.id}>
@@ -61,14 +70,21 @@ function MachineRow({ machine, scheduledEvents }) {
       </div>
       <div className="machine-slots">
         {hours.map(hour => <TimeSlot key={hour} machine={machine} hour={hour} />)}
-        {scheduledEvents.map(event => <ScheduledEvent key={event.id} event={event} machine={machine} />)}
+        {scheduledEvents.map(event => (
+          <ScheduledEvent 
+            key={event.id} 
+            event={event} 
+            machine={machine} 
+            currentDate={currentDate}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
 // The main Gantt Chart component
-function GanttChart({ machines, tasks }) {
+function GanttChart({ machines, tasks, currentDate }) {
   const scheduledTasks = tasks.filter(task => task.status === 'SCHEDULED');
 
   return (
@@ -88,6 +104,7 @@ function GanttChart({ machines, tasks }) {
               key={machine.id}
               machine={machine}
               scheduledEvents={scheduledTasks.filter(task => task.scheduled_machine_id === machine.id)}
+              currentDate={currentDate}
             />
           ))}
         </div>
