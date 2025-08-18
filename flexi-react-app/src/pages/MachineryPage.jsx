@@ -3,6 +3,7 @@ import DataTable from '../components/DataTable';
 import MachineForm from '../components/MachineForm';
 import EditableCell from '../components/EditableCell';
 import { useStore } from '../store/useStore';
+import { useMachineValidation } from '../hooks';
 
 function MachineryPage() {
   // Use Zustand store to select state and actions
@@ -12,6 +13,9 @@ function MachineryPage() {
   const init = useStore(state => state.init);
   const updateMachine = useStore(state => state.updateMachine);
   const removeMachine = useStore(state => state.removeMachine);
+
+  // Use modern validation hook
+  const { validateMachine } = useMachineValidation();
 
   // Initialize store on component mount
   useEffect(() => {
@@ -58,7 +62,14 @@ function MachineryPage() {
   ], []);
 
   const handleSaveMachine = (updatedMachine) => {
-    // Here you would add validation logic before updating
+    // Use the new validation hook
+    const validationErrors = validateMachine(updatedMachine);
+    
+    if (validationErrors.length > 0) {
+      alert(`Validation errors:\n${validationErrors.join('\n')}`);
+      return;
+    }
+    
     updateMachine(updatedMachine.id, updatedMachine);
   };
 

@@ -1,6 +1,6 @@
 import React,  { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { BusinessLogicService } from '../scripts/businessLogicService';
+import { useProductionCalculations } from '../hooks';
 
 function MachineForm() {
   const initialFormData = {
@@ -22,18 +22,20 @@ function MachineForm() {
 
   const [formData, setFormData] = useState(initialFormData);
   const [validMachineTypes, setValidMachineTypes] = useState([]);
-  const businessLogic = new BusinessLogicService();
+  
+  // Use modern hook instead of BusinessLogicService class
+  const { getValidMachineTypes } = useProductionCalculations();
   
   // Get addMachine action from Zustand store
   const addMachine = useStore(state => state.addMachine);
 
   useEffect(() => {
-    const types = businessLogic.get_valid_machine_types(formData.department);
+    const types = getValidMachineTypes(formData.department);
     setValidMachineTypes(types);
     if (!types.includes(formData.machine_type)) {
       setFormData(prev => ({ ...prev, machine_type: '' }));
     }
-  }, [formData.department]);
+  }, [formData.department, getValidMachineTypes]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

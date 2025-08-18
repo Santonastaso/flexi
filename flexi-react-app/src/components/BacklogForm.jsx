@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { BusinessLogicService } from '../scripts/businessLogicService';
+import { useProductionCalculations, useOrderValidation } from '../hooks';
 
 function BacklogForm() {
   const initialFormData = {
@@ -22,7 +22,14 @@ function BacklogForm() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const businessLogic = new BusinessLogicService();
+  // Use modern hooks instead of BusinessLogicService class
+  const { 
+    calculateProductionMetrics, 
+    autoDetermineWorkCenter, 
+    autoDetermineDepartment 
+  } = useProductionCalculations();
+  
+  const { validateOrder, validatePhaseSelection } = useOrderValidation();
   
   // Get state and actions from Zustand store
   const phases = useStore(state => state.phases);
@@ -35,15 +42,15 @@ function BacklogForm() {
 
   useEffect(() => {
     if (formData.article_code) {
-      const department = businessLogic.auto_determine_department(formData.article_code);
-      const work_center = businessLogic.auto_determine_work_center(formData.article_code);
+      const department = autoDetermineDepartment(formData.article_code);
+      const work_center = autoDetermineWorkCenter(formData.article_code);
       setFormData(prev => ({ ...prev, department, work_center, fase: '' }));
       setPhaseSearch('');
       setSelectedPhase(null);
       setEditablePhaseParams({});
       setCalculationResults(null);
     }
-  }, [formData.article_code]);
+  }, [formData.article_code, autoDetermineDepartment, autoDetermineWorkCenter]);
 
   useEffect(() => {
     if (formData.department || formData.work_center) {
@@ -59,55 +66,17 @@ function BacklogForm() {
   }, [phaseSearch, formData.department, formData.work_center, phases]);
 
   const validateForm = () => {
-    const newErrors = {};
-
-    // Required field validation
-    if (!formData.odp_number?.trim()) {
-      newErrors.odp_number = 'ODP Number is required';
-    }
-
-    if (!formData.article_code?.trim()) {
-      newErrors.article_code = 'Article Code is required';
-    }
-
-    if (!formData.production_lot?.trim()) {
-      newErrors.production_lot = 'External Article Code is required';
-    }
-
-    if (!formData.bag_height || parseFloat(formData.bag_height) <= 0) {
-      newErrors.bag_height = 'Bag Height must be greater than 0';
-    }
-
-    if (!formData.bag_width || parseFloat(formData.bag_width) <= 0) {
-      newErrors.bag_width = 'Bag Width must be greater than 0';
-    }
-
-    if (!formData.bag_step || parseFloat(formData.bag_step) <= 0) {
-      newErrors.bag_step = 'Bag Step must be greater than 0';
-    }
-
-    if (!formData.product_type) {
-      newErrors.product_type = 'Product Type is required';
-    }
-
-    if (!formData.quantity || parseFloat(formData.quantity) <= 0) {
-      newErrors.quantity = 'Quantity must be greater than 0';
-    }
-
-    if (!formData.delivery_date) {
-      newErrors.delivery_date = 'Delivery Date is required';
-    }
-
-    if (!selectedPhase) {
+    // Use the new validation hook
+    const newErrors = validateOrder(formData);
+    
+    // Additional phase validation
+    if (selectedPhase) {
+      const phaseErrors = validatePhaseSelection(selectedPhase, formData);
+      if (phaseErrors.length > 0) {
+        newErrors.phase = phaseErrors[0]; // Show first error
+      }
+    } else {
       newErrors.phase = 'Please select a production phase';
-    }
-
-    if (formData.quantity_completed < 0) {
-      newErrors.quantity_completed = 'Quantity completed cannot be negative';
-    }
-
-    if (formData.quantity_completed > parseFloat(formData.quantity)) {
-      newErrors.quantity_completed = 'Quantity completed cannot exceed total quantity';
     }
 
     setErrors(newErrors);
@@ -163,7 +132,7 @@ function BacklogForm() {
       ...editablePhaseParams
     };
     
-    const results = businessLogic.calculate_production_metrics(phaseForCalculation, formData.quantity, formData.bag_step);
+    const results = calculateProductionMetrics(phaseForCalculation, formData.quantity, formData.bag_step);
     setCalculationResults(results);
   };
 

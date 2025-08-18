@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { BusinessLogicService } from '../scripts/businessLogicService';
+import { validation } from '../utils';
 
 function PhasesForm() {
   const initialFormData = {
@@ -20,7 +20,6 @@ function PhasesForm() {
   const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const businessLogic = new BusinessLogicService();
   
   // Get addPhase action from Zustand store
   const addPhase = useStore(state => state.addPhase);
@@ -33,44 +32,44 @@ function PhasesForm() {
   const validateForm = () => {
     const newErrors = {};
 
-    // Required field validation
-    if (!formData.name.trim()) {
+    // Required field validation using utility functions
+    if (!validation.isNotEmpty(formData.name)) {
       newErrors.name = 'Phase name is required';
     }
 
-    if (!formData.department) {
+    if (!validation.isValidDepartment(formData.department)) {
       newErrors.department = 'Department is required';
     }
 
-    if (!formData.work_center) {
+    if (!validation.isValidWorkCenter(formData.work_center)) {
       newErrors.work_center = 'Work center is required';
     }
 
-    if (formData.numero_persone < 1) {
+    if (!validation.isValidInteger(formData.numero_persone, 1)) {
       newErrors.numero_persone = 'Number of people must be at least 1';
     }
 
     // Department-specific validation
     if (formData.department === 'STAMPA') {
-      if (formData.v_stampa <= 0) {
+      if (!validation.isValidNumber(formData.v_stampa, 0)) {
         newErrors.v_stampa = 'Printing speed must be greater than 0';
       }
-      if (formData.t_setup_stampa < 0) {
+      if (!validation.isValidNumber(formData.t_setup_stampa, 0)) {
         newErrors.t_setup_stampa = 'Setup time cannot be negative';
       }
-      if (formData.costo_h_stampa < 0) {
+      if (!validation.isValidNumber(formData.costo_h_stampa, 0)) {
         newErrors.costo_h_stampa = 'Hourly cost cannot be negative';
       }
     }
 
     if (formData.department === 'CONFEZIONAMENTO') {
-      if (formData.v_conf <= 0) {
+      if (!validation.isValidNumber(formData.v_conf, 0)) {
         newErrors.v_conf = 'Packaging speed must be greater than 0';
       }
-      if (formData.t_setup_conf < 0) {
+      if (!validation.isValidNumber(formData.t_setup_conf, 0)) {
         newErrors.t_setup_conf = 'Setup time cannot be negative';
       }
-      if (formData.costo_h_conf < 0) {
+      if (!validation.isValidNumber(formData.costo_h_conf, 0)) {
         newErrors.costo_h_conf = 'Hourly cost cannot be negative';
       }
     }

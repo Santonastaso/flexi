@@ -3,6 +3,7 @@ import DataTable from '../components/DataTable';
 import BacklogForm from '../components/BacklogForm';
 import EditableCell from '../components/EditableCell';
 import { useStore } from '../store/useStore';
+import { useOrderValidation } from '../hooks';
 
 function BacklogPage() {
   // Use Zustand store to select state and actions
@@ -12,6 +13,9 @@ function BacklogPage() {
   const init = useStore(state => state.init);
   const updateOdpOrder = useStore(state => state.updateOdpOrder);
   const removeOdpOrder = useStore(state => state.removeOdpOrder);
+
+  // Use modern validation hook
+  const { validateOrder } = useOrderValidation();
 
   // Initialize store on component mount
   useEffect(() => {
@@ -85,44 +89,6 @@ function BacklogPage() {
       cell: EditableCell 
     },
   ], []);
-
-  const validateOrder = (order) => {
-    const errors = [];
-
-    if (!order.odp_number?.trim()) {
-      errors.push('ODP Number is required');
-    }
-
-    if (!order.article_code?.trim()) {
-      errors.push('Article Code is required');
-    }
-
-    if (!order.quantity || order.quantity <= 0) {
-      errors.push('Quantity must be greater than 0');
-    }
-
-    if (order.quantity_completed < 0) {
-      errors.push('Quantity completed cannot be negative');
-    }
-
-    if (order.quantity_completed > order.quantity) {
-      errors.push('Quantity completed cannot exceed total quantity');
-    }
-
-    if (order.bag_height <= 0) {
-      errors.push('Bag height must be greater than 0');
-    }
-
-    if (order.bag_width <= 0) {
-      errors.push('Bag width must be greater than 0');
-    }
-
-    if (order.bag_step <= 0) {
-      errors.push('Bag step must be greater than 0');
-    }
-
-    return errors;
-  };
 
   const handleSaveOrder = async (updatedOrder) => {
     try {

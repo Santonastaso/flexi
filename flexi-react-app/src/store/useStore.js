@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { storageService } from '../scripts/storageService.js';
+import { apiService } from '../services';
 
 // Zustand store that mirrors the existing appStore.js API
 export const useStore = create((set, get) => ({
@@ -24,13 +24,13 @@ export const useStore = create((set, get) => ({
   // Lifecycle
   init: async () => {
     const { isInitialized } = get();
-    await storageService.init();
+    await apiService.init();
     if (isInitialized) return;
     set({ isLoading: true });
     const [machines, odpOrders, phases] = await Promise.all([
-      storageService.get_machines(),
-      storageService.get_odp_orders(),
-      storageService.get_phases(),
+      apiService.get_machines(),
+      apiService.get_odp_orders(),
+      apiService.get_phases(),
     ]);
     set({
       machines: machines || [],
@@ -54,57 +54,57 @@ export const useStore = create((set, get) => ({
 
   // Machines
   addMachine: async (newMachine) => {
-    const added = await storageService.add_machine(newMachine);
+    const added = await apiService.add_machine(newMachine);
     set(state => ({ machines: [...state.machines, added] }));
     return added;
   },
   updateMachine: async (id, updates) => {
-    const updated = await storageService.update_machine(id, updates);
+    const updated = await apiService.update_machine(id, updates);
     set(state => ({
       machines: state.machines.map(m => (m.id === id ? { ...m, ...updated } : m)),
     }));
     return updated;
   },
   removeMachine: async (id) => {
-    await storageService.remove_machine(id);
+    await apiService.remove_machine(id);
     set(state => ({ machines: state.machines.filter(m => m.id !== id) }));
     return true;
   },
 
   // Orders (ODP)
   addOdpOrder: async (newOrder) => {
-    const added = await storageService.add_odp_order(newOrder);
+    const added = await apiService.add_odp_order(newOrder);
     set(state => ({ odpOrders: [...state.odpOrders, added] }));
     return added;
   },
   updateOdpOrder: async (id, updates) => {
-    const updated = await storageService.update_odp_order(id, updates);
+    const updated = await apiService.update_odp_order(id, updates);
     set(state => ({
       odpOrders: state.odpOrders.map(o => (o.id === id ? { ...o, ...updated } : o)),
     }));
     return updated;
   },
   removeOdpOrder: async (id) => {
-    await storageService.remove_odp_order(id);
+    await apiService.remove_odp_order(id);
     set(state => ({ odpOrders: state.odpOrders.filter(o => o.id !== id) }));
     return true;
   },
 
   // Phases
   addPhase: async (newPhase) => {
-    const added = await storageService.add_phase(newPhase);
+    const added = await apiService.add_phase(newPhase);
     set(state => ({ phases: [...state.phases, added] }));
     return added;
   },
   updatePhase: async (id, updates) => {
-    const updated = await storageService.update_phase(id, updates);
+    const updated = await apiService.update_phase(id, updates);
     set(state => ({
       phases: state.phases.map(p => (p.id === id ? { ...p, ...updated } : p)),
     }));
     return updated;
   },
   removePhase: async (id) => {
-    await storageService.remove_phase(id);
+    await apiService.remove_phase(id);
     set(state => ({ phases: state.phases.filter(p => p.id !== id) }));
     return true;
   },
@@ -138,7 +138,7 @@ export const useStore = create((set, get) => ({
   // Machine availability
   getMachineAvailabilityForDate: async (machineName, dateStr) => {
     try {
-      return await storageService.get_machine_availability_for_date(machineName, dateStr);
+      return await apiService.get_machine_availability_for_date(machineName, dateStr);
     } catch (e) {
       console.error('Error get_machine_availability_for_date:', e);
       return [];
@@ -147,7 +147,7 @@ export const useStore = create((set, get) => ({
 
   setMachineAvailability: async (machineName, dateStr, hours) => {
     try {
-      await storageService.set_machine_availability(machineName, dateStr, hours);
+      await apiService.set_machine_availability(machineName, dateStr, hours);
       set(state => {
         const next = { ...state.machineAvailability };
         if (!next[dateStr]) next[dateStr] = [];
@@ -169,7 +169,7 @@ export const useStore = create((set, get) => ({
     if (machineAvailability[dateStr] && machineAvailability[dateStr].length >= 0) return;
     set(state => ({ machineAvailability: { ...state.machineAvailability, [dateStr]: { _loading: true } } }));
     try {
-      const data = await storageService.get_machine_availability_for_date_all_machines(dateStr);
+      const data = await apiService.get_machine_availability_for_date_all_machines(dateStr);
       set(state => ({ machineAvailability: { ...state.machineAvailability, [dateStr]: data || [] } }));
     } catch (e) {
       set(state => {
@@ -185,7 +185,7 @@ export const useStore = create((set, get) => ({
     const result = {};
     try {
       try {
-        await storageService.get_machine_availability_for_date('test', '2025-01-01');
+        await apiService.get_machine_availability_for_date('test', '2025-01-01');
       } catch (tableError) {
         console.warn('Machine availability table not accessible:', tableError.message);
         return {};
@@ -237,7 +237,7 @@ export const useStore = create((set, get) => ({
 
   getEventsByDate: async (dateStr) => {
     try {
-      return await storageService.get_events_by_date(dateStr);
+      return await apiService.get_events_by_date(dateStr);
     } catch (e) {
       console.error('Error getting events by date:', e);
       return [];
@@ -250,7 +250,7 @@ export const useStore = create((set, get) => ({
       if (!isAccessible) {
         throw new Error('Machine availability table is not accessible.');
       }
-      await storageService.setUnavailableHoursForRange(machineName, startDate, endDate, startTime, endTime);
+      await apiService.setUnavailableHoursForRange(machineName, startDate, endDate, startTime, endTime);
       const startDateObj = new Date(startDate.split('/').reverse().join('-'));
       const endDateObj = new Date(endDate.split('/').reverse().join('-'));
       await get().loadMachineAvailabilityForMachine(machineName, startDateObj, endDateObj);
@@ -263,7 +263,7 @@ export const useStore = create((set, get) => ({
 
   isMachineAvailabilityAccessible: async () => {
     try {
-      await storageService.get_machine_availability_for_date_all_machines('2025-01-01');
+      await apiService.get_machine_availability_for_date_all_machines('2025-01-01');
       return true;
     } catch (e) {
       console.warn('Machine availability table not accessible:', e.message);
