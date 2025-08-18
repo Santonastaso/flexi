@@ -3,7 +3,7 @@ import DataTable from '../components/DataTable';
 import PhasesForm from '../components/PhasesForm';
 import EditableCell from '../components/EditableCell';
 import { useStore } from '../store/useStore';
-import { validation } from '../utils';
+import { usePhaseValidation } from '../hooks/usePhaseValidation';
 
 function PhasesPage() {
   const [error, setError] = useState(null);
@@ -15,6 +15,9 @@ function PhasesPage() {
   const init = useStore(state => state.init);
   const updatePhase = useStore(state => state.updatePhase);
   const removePhase = useStore(state => state.removePhase);
+
+  // Use the new phase validation hook
+  const { validatePhase } = usePhaseValidation();
 
   // Initialize store on component mount
   useEffect(() => {
@@ -45,51 +48,7 @@ function PhasesPage() {
     },
   ], []);
 
-  const validatePhase = (phase) => {
-    const errors = [];
 
-    if (!validation.isNotEmpty(phase.name)) {
-      errors.push('Phase name is required');
-    }
-
-    if (!validation.isValidDepartment(phase.department)) {
-      errors.push('Department is required');
-    }
-
-    if (!validation.isValidWorkCenter(phase.work_center)) {
-      errors.push('Work center is required');
-    }
-
-    if (!validation.isValidInteger(phase.numero_persone, 1)) {
-      errors.push('Number of people must be at least 1');
-    }
-
-    if (phase.department === 'STAMPA') {
-      if (!validation.isValidNumber(phase.v_stampa, 0)) {
-        errors.push('Printing speed must be greater than 0');
-      }
-      if (!validation.isValidNumber(phase.t_setup_stampa, 0)) {
-        errors.push('Setup time cannot be negative');
-      }
-      if (!validation.isValidNumber(phase.costo_h_stampa, 0)) {
-        errors.push('Hourly cost cannot be negative');
-      }
-    }
-
-    if (phase.department === 'CONFEZIONAMENTO') {
-      if (!validation.isValidNumber(phase.v_conf, 0)) {
-        errors.push('Packaging speed must be greater than 0');
-      }
-      if (!validation.isValidNumber(phase.t_setup_conf, 0)) {
-        errors.push('Setup time cannot be negative');
-      }
-      if (!validation.isValidNumber(phase.costo_h_conf, 0)) {
-        errors.push('Hourly cost cannot be negative');
-      }
-    }
-
-    return errors;
-  };
 
   const handleSavePhase = async (updatedPhase) => {
     try {
