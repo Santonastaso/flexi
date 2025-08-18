@@ -2,38 +2,28 @@ import React, { useState, useEffect, useMemo } from 'react';
 import DataTable from '../components/DataTable';
 import PhasesForm from '../components/PhasesForm';
 import EditableCell from '../components/EditableCell';
-import { appStore } from '../scripts/store';
+import { useStore } from '../store/useStore';
 
 function PhasesPage() {
-  const [phases, setPhases] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Use Zustand store to select state and actions
+  const phases = useStore(state => state.phases);
+  const isLoading = useStore(state => state.isLoading);
+  const isInitialized = useStore(state => state.isInitialized);
+  const init = useStore(state => state.init);
+  const updatePhase = useStore(state => state.updatePhase);
+  const removePhase = useStore(state => state.removePhase);
 
+  // Initialize store on component mount
   useEffect(() => {
-    async function fetchData() {
-      try {
-        if (!appStore.isInitialized()) {
-          await appStore.init();
-        }
-        const state = appStore.getState();
-        setPhases(state.phases);
-        setError(null);
-      } catch (err) {
+    if (!isInitialized) {
+      init().catch(err => {
         setError('Failed to load phases data');
         console.error('Error loading phases:', err);
-      } finally {
-        setIsLoading(false);
-      }
-
-      const unsubscribe = appStore.subscribe((newState) => {
-        setPhases(newState.phases);
       });
-
-      return () => unsubscribe();
     }
-
-    fetchData();
-  }, []);
+  }, [init, isInitialized]);
 
   const columns = useMemo(() => [
     { header: 'ID', accessorKey: 'id' },
@@ -109,7 +99,7 @@ function PhasesPage() {
         return;
       }
 
-      await appStore.updatePhase(updatedPhase.id, updatedPhase);
+      await updatePhase(updatedPhase.id, updatedPhase);
     } catch (error) {
       console.error('Error updating phase:', error);
       alert('Failed to update phase. Please try again.');
@@ -119,7 +109,7 @@ function PhasesPage() {
   const handleDeletePhase = async (phaseToDelete) => {
     if (window.confirm(`Are you sure you want to delete ${phaseToDelete.name}?`)) {
       try {
-        await appStore.removePhase(phaseToDelete.id);
+        await removePhase(phaseToDelete.id);
       } catch (error) {
         console.error('Error deleting phase:', error);
         alert('Failed to delete phase. Please try again.');

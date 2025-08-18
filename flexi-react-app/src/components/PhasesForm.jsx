@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { appStore } from '../scripts/store';
+import { useStore } from '../store/useStore';
 import { BusinessLogicService } from '../scripts/businessLogicService';
 
 function PhasesForm() {
@@ -21,6 +21,9 @@ function PhasesForm() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const businessLogic = new BusinessLogicService();
+  
+  // Get addPhase action from Zustand store
+  const addPhase = useStore(state => state.addPhase);
 
   // Reset errors when department changes
   useEffect(() => {
@@ -98,7 +101,7 @@ function PhasesForm() {
     setIsSubmitting(true);
     
     try {
-      await appStore.addPhase(formData);
+      await addPhase(formData);
       setFormData(initialFormData); // Reset form
       setErrors({}); // Clear errors
     } catch (error) {
