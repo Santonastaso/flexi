@@ -20,6 +20,8 @@ function BacklogForm() {
   const [filteredPhases, setFilteredPhases] = useState([]);
   const [phaseSearch, setPhaseSearch] = useState('');
   const [isDropdownVisible, setDropdownVisible] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const businessLogic = new BusinessLogicService();
 
@@ -36,6 +38,7 @@ function BacklogForm() {
       setPhaseSearch('');
       setSelectedPhase(null);
       setEditablePhaseParams({});
+      setCalculationResults(null);
     }
   }, [formData.article_code]);
 
@@ -52,8 +55,70 @@ function BacklogForm() {
     }
   }, [phaseSearch, formData.department, formData.work_center, phases]);
 
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Required field validation
+    if (!formData.odp_number?.trim()) {
+      newErrors.odp_number = 'ODP Number is required';
+    }
+
+    if (!formData.article_code?.trim()) {
+      newErrors.article_code = 'Article Code is required';
+    }
+
+    if (!formData.production_lot?.trim()) {
+      newErrors.production_lot = 'External Article Code is required';
+    }
+
+    if (!formData.bag_height || parseFloat(formData.bag_height) <= 0) {
+      newErrors.bag_height = 'Bag Height must be greater than 0';
+    }
+
+    if (!formData.bag_width || parseFloat(formData.bag_width) <= 0) {
+      newErrors.bag_width = 'Bag Width must be greater than 0';
+    }
+
+    if (!formData.bag_step || parseFloat(formData.bag_step) <= 0) {
+      newErrors.bag_step = 'Bag Step must be greater than 0';
+    }
+
+    if (!formData.product_type) {
+      newErrors.product_type = 'Product Type is required';
+    }
+
+    if (!formData.quantity || parseFloat(formData.quantity) <= 0) {
+      newErrors.quantity = 'Quantity must be greater than 0';
+    }
+
+    if (!formData.delivery_date) {
+      newErrors.delivery_date = 'Delivery Date is required';
+    }
+
+    if (!selectedPhase) {
+      newErrors.phase = 'Please select a production phase';
+    }
+
+    if (formData.quantity_completed < 0) {
+      newErrors.quantity_completed = 'Quantity completed cannot be negative';
+    }
+
+    if (formData.quantity_completed > parseFloat(formData.quantity)) {
+      newErrors.quantity_completed = 'Quantity completed cannot exceed total quantity';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleChange = (e) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
   };
 
   const handlePhaseParamChange = (field, value) => {
@@ -66,6 +131,11 @@ function BacklogForm() {
     setPhaseSearch(phase.name);
     setDropdownVisible(false);
     setCalculationResults(null);
+    
+    // Clear phase error
+    if (errors.phase) {
+      setErrors(prev => ({ ...prev, phase: '' }));
+    }
     
     // Initialize editable phase parameters with current phase values
     setEditablePhaseParams({
@@ -94,24 +164,51 @@ function BacklogForm() {
     setCalculationResults(results);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     if (!calculationResults) {
       alert("Please calculate production metrics before adding to the backlog.");
       return;
     }
-    const orderData = {
-      ...formData,
-      duration: calculationResults.totals.duration,
-      cost: calculationResults.totals.cost,
-      status: 'NOT SCHEDULED',
-    };
-    appStore.addOdpOrder(orderData);
-    setFormData(initialFormData);
-    setPhaseSearch('');
-    setSelectedPhase(null);
-    setEditablePhaseParams({});
-    setCalculationResults(null);
+
+    setIsSubmitting(true);
+    
+    try {
+      const orderData = {
+        ...formData,
+        duration: calculationResults.totals.duration,
+        cost: calculationResults.totals.cost,
+        status: 'NOT SCHEDULED',
+      };
+      
+      await appStore.addOdpOrder(orderData);
+      
+      // Reset form
+      setFormData(initialFormData);
+      setPhaseSearch('');
+      setSelectedPhase(null);
+      setEditablePhaseParams({});
+      setCalculationResults(null);
+      setErrors({});
+    } catch (error) {
+      console.error('Error adding order:', error);
+      alert('Failed to add order. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getFieldError = (fieldName) => {
+    return errors[fieldName] ? (
+      <span className="error-message" style={{ color: 'red', fontSize: '12px', marginTop: '4px' }}>
+        {errors[fieldName]}
+      </span>
+    ) : null;
   };
 
   return (
@@ -132,7 +229,9 @@ function BacklogForm() {
                 onChange={handleChange} 
                 placeholder="ODP Number" 
                 required 
+                className={errors.odp_number ? 'error' : ''}
               />
+              {getFieldError('odp_number')}
             </div>
             <div className="form-group">
               <label htmlFor="article_code">Article Code *</label>
@@ -144,7 +243,9 @@ function BacklogForm() {
                 onChange={handleChange} 
                 placeholder="Article Code" 
                 required 
+                className={errors.article_code ? 'error' : ''}
               />
+              {getFieldError('article_code')}
             </div>
             <div className="form-group">
               <label htmlFor="production_lot">External Article Code *</label>
@@ -156,7 +257,9 @@ function BacklogForm() {
                 onChange={handleChange} 
                 placeholder="External Article Code" 
                 required 
+                className={errors.production_lot ? 'error' : ''}
               />
+              {getFieldError('production_lot')}
             </div>
             <div className="form-group">
               <label htmlFor="work_center">Work Center</label>
@@ -210,7 +313,9 @@ function BacklogForm() {
                 placeholder="Bag Height" 
                 min="0" 
                 required 
+                className={errors.bag_height ? 'error' : ''}
               />
+              {getFieldError('bag_height')}
             </div>
             <div className="form-group">
               <label htmlFor="bag_width">Bag Width (mm) *</label>
@@ -223,7 +328,9 @@ function BacklogForm() {
                 placeholder="Bag Width" 
                 min="0" 
                 required 
+                className={errors.bag_width ? 'error' : ''}
               />
+              {getFieldError('bag_width')}
             </div>
             <div className="form-group">
               <label htmlFor="bag_step">Bag Step (mm) *</label>
@@ -236,7 +343,9 @@ function BacklogForm() {
                 placeholder="Bag Step" 
                 min="0" 
                 required 
+                className={errors.bag_step ? 'error' : ''}
               />
+              {getFieldError('bag_step')}
             </div>
             <div className="form-group">
               <label htmlFor="seal_sides">Seal Sides</label>
@@ -258,12 +367,14 @@ function BacklogForm() {
                 value={formData.product_type} 
                 onChange={handleChange} 
                 required
+                className={errors.product_type ? 'error' : ''}
               >
                 <option value="">Select product type</option>
                 <option value="crema">Crema</option>
                 <option value="liquido">Liquido</option>
                 <option value="polveri">Polveri</option>
               </select>
+              {getFieldError('product_type')}
             </div>
             <div className="form-group">
               <label htmlFor="quantity">Quantity *</label>
@@ -276,7 +387,9 @@ function BacklogForm() {
                 placeholder="Quantity" 
                 min="0" 
                 required 
+                className={errors.quantity ? 'error' : ''}
               />
+              {getFieldError('quantity')}
             </div>
             <div className="form-group">
               <label htmlFor="quantity_per_box">Qty per Box</label>
@@ -300,7 +413,9 @@ function BacklogForm() {
                 onChange={handleChange} 
                 placeholder="Qty Completed" 
                 min="0" 
+                className={errors.quantity_completed ? 'error' : ''}
               />
+              {getFieldError('quantity_completed')}
             </div>
           </div>
         </div>
@@ -333,7 +448,9 @@ function BacklogForm() {
                   onBlur={() => setTimeout(() => setDropdownVisible(false), 150)} 
                   placeholder="Search Production Phase" 
                   required 
+                  className={errors.phase ? 'error' : ''}
                 />
+                {getFieldError('phase')}
                 {isDropdownVisible && filteredPhases.length > 0 && (
                   <div className="dropdown-options">
                     {filteredPhases.map(phase => (
@@ -359,7 +476,9 @@ function BacklogForm() {
                 value={formData.delivery_date} 
                 onChange={handleChange} 
                 required 
+                className={errors.delivery_date ? 'error' : ''}
               />
+              {getFieldError('delivery_date')}
             </div>
           </div>
         </div>
@@ -477,8 +596,8 @@ function BacklogForm() {
           <button type="button" className="btn btn-secondary" onClick={handleCalculate} disabled={!selectedPhase}>
             Calculate
           </button>
-          <button type="submit" className="btn btn-primary" disabled={!calculationResults}>
-            Add to Backlog
+          <button type="submit" className="btn btn-primary" disabled={!calculationResults || isSubmitting}>
+            {isSubmitting ? 'Adding to Backlog...' : 'Add to Backlog'}
           </button>
         </div>
       </form>

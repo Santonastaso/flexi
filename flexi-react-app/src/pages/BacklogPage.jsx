@@ -29,71 +29,21 @@ function BacklogPage() {
   const columns = useMemo(() => [
     // Identificazione
     { header: 'ID', accessorKey: 'id' },
-    {
-      header: 'ODP Number',
-      accessorKey: 'odp_number',
-      cell: ({ row, table }) => (
-        <EditableCell
-          value={row.original.odp_number}
-          isEditing={table.options.meta?.editingRowId === row.id}
-          onChange={(e) => table.options.meta?.setEditedData(prev => ({ ...prev, odp_number: e.target.value }))}
-        />
-      )
-    },
-    {
-      header: 'Article Code',
-      accessorKey: 'article_code',
-      cell: ({ row, table }) => (
-        <EditableCell
-          value={row.original.article_code}
-          isEditing={table.options.meta?.editingRowId === row.id}
-          onChange={(e) => table.options.meta?.setEditedData(prev => ({ ...prev, article_code: e.target.value }))}
-        />
-      )
-    },
+    { header: 'ODP Number', accessorKey: 'odp_number', cell: EditableCell },
+    { header: 'Article Code', accessorKey: 'article_code', cell: EditableCell },
     { header: 'External Article Code', accessorKey: 'production_lot' },
-    {
-      header: 'Work Center',
-      accessorKey: 'work_center',
-      cell: ({ row, table }) => (
-        <EditableCell
-          value={row.original.work_center}
-          isEditing={table.options.meta?.editingRowId === row.id}
-          onChange={(e) => table.options.meta?.setEditedData(prev => ({ ...prev, work_center: e.target.value }))}
-        />
-      )
-    },
+    { header: 'Work Center', accessorKey: 'work_center', cell: EditableCell },
     { header: 'Customer', accessorKey: 'nome_cliente' },
     
     // Specifiche Tecniche
-    { header: 'Bag H (mm)', accessorKey: 'bag_height' },
-    { header: 'Bag W (mm)', accessorKey: 'bag_width' },
-    { header: 'Bag Step (mm)', accessorKey: 'bag_step' },
-    { header: 'Seals', accessorKey: 'seal_sides' },
-    { header: 'Product', accessorKey: 'product_type' },
-    {
-      header: 'Qty',
-      accessorKey: 'quantity',
-      cell: ({ row, table }) => (
-        <EditableCell
-          value={row.original.quantity}
-          isEditing={table.options.meta?.editingRowId === row.id}
-          onChange={(e) => table.options.meta?.setEditedData(prev => ({ ...prev, quantity: e.target.value }))}
-        />
-      )
-    },
-    {
-      header: 'Completed',
-      accessorKey: 'quantity_completed',
-      cell: ({ row, table }) => (
-        <EditableCell
-          value={row.original.quantity_completed}
-          isEditing={table.options.meta?.editingRowId === row.id}
-          onChange={(e) => table.options.meta?.setEditedData(prev => ({ ...prev, quantity_completed: e.target.value }))}
-        />
-      )
-    },
-    { header: 'Qty/Box', accessorKey: 'quantity_per_box' },
+    { header: 'Bag H (mm)', accessorKey: 'bag_height', cell: EditableCell },
+    { header: 'Bag W (mm)', accessorKey: 'bag_width', cell: EditableCell },
+    { header: 'Bag Step (mm)', accessorKey: 'bag_step', cell: EditableCell },
+    { header: 'Seals', accessorKey: 'seal_sides', cell: EditableCell },
+    { header: 'Product', accessorKey: 'product_type', cell: EditableCell },
+    { header: 'Qty', accessorKey: 'quantity', cell: EditableCell },
+    { header: 'Completed', accessorKey: 'quantity_completed', cell: EditableCell },
+    { header: 'Qty/Box', accessorKey: 'quantity_per_box', cell: EditableCell },
     { header: 'N Boxes', accessorKey: 'n_boxes' },
     
     // Pianificazione
@@ -119,17 +69,7 @@ function BacklogPage() {
     { header: 'Customer Ref', accessorKey: 'customer_order_ref' },
     
     // Dati Lavorazione
-    {
-      header: 'Department',
-      accessorKey: 'department',
-      cell: ({ row, table }) => (
-        <EditableCell
-          value={row.original.department}
-          isEditing={table.options.meta?.editingRowId === row.id}
-          onChange={(e) => table.options.meta?.setEditedData(prev => ({ ...prev, department: e.target.value }))}
-        />
-      )
-    },
+    { header: 'Department', accessorKey: 'department', cell: EditableCell },
     { header: 'Phase', accessorKey: 'fase' },
     
     // Calcolate
@@ -147,21 +87,82 @@ function BacklogPage() {
     { header: 'Status', accessorKey: 'status' },
     { 
       header: 'Machine', 
-      accessorKey: 'machines.machine_name', 
-      cell: info => info.getValue() || '-' 
+      accessorKey: 'scheduled_machine_id', 
+      cell: EditableCell 
     },
   ], []);
 
-  const handleSaveOrder = (updatedOrder) => {
-    // Here you would add validation logic before updating
-    console.log("Saving order:", updatedOrder);
-    appStore.updateOdpOrder(updatedOrder.id, updatedOrder);
+  const validateOrder = (order) => {
+    const errors = [];
+
+    if (!order.odp_number?.trim()) {
+      errors.push('ODP Number is required');
+    }
+
+    if (!order.article_code?.trim()) {
+      errors.push('Article Code is required');
+    }
+
+    if (!order.quantity || order.quantity <= 0) {
+      errors.push('Quantity must be greater than 0');
+    }
+
+    if (order.quantity_completed < 0) {
+      errors.push('Quantity completed cannot be negative');
+    }
+
+    if (order.quantity_completed > order.quantity) {
+      errors.push('Quantity completed cannot exceed total quantity');
+    }
+
+    if (order.bag_height <= 0) {
+      errors.push('Bag height must be greater than 0');
+    }
+
+    if (order.bag_width <= 0) {
+      errors.push('Bag width must be greater than 0');
+    }
+
+    if (order.bag_step <= 0) {
+      errors.push('Bag step must be greater than 0');
+    }
+
+    return errors;
   };
 
-  const handleDeleteOrder = (orderToDelete) => {
+  const handleSaveOrder = async (updatedOrder) => {
+    try {
+      const validationErrors = validateOrder(updatedOrder);
+      
+      if (validationErrors.length > 0) {
+        alert(`Validation errors:\n${validationErrors.join('\n')}`);
+        return;
+      }
+
+      // Handle machine assignment if the machine field was edited
+      if (updatedOrder.scheduled_machine_id && updatedOrder.scheduled_machine_id !== updatedOrder.original?.scheduled_machine_id) {
+        // The machine field was changed, we need to handle this properly
+        // For now, we'll just save the machine ID as is
+        // In a real implementation, you might want to validate that the machine exists
+        // and update related scheduling information
+        console.log('Machine assignment updated:', updatedOrder.scheduled_machine_id);
+      }
+
+      await appStore.updateOdpOrder(updatedOrder.id, updatedOrder);
+    } catch (error) {
+      console.error('Error updating order:', error);
+      alert('Failed to update order. Please try again.');
+    }
+  };
+
+  const handleDeleteOrder = async (orderToDelete) => {
     if (window.confirm(`Are you sure you want to delete ODP ${orderToDelete.odp_number}?`)) {
-      console.log("Deleting order:", orderToDelete);
-      appStore.removeOdpOrder(orderToDelete.id);
+      try {
+        await appStore.removeOdpOrder(orderToDelete.id);
+      } catch (error) {
+        console.error('Error deleting order:', error);
+        alert('Failed to delete order. Please try again.');
+      }
     }
   };
 

@@ -7,15 +7,23 @@ import { appStore } from '../scripts/store';
 function PhasesPage() {
   const [phases, setPhases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     async function fetchData() {
-      if (!appStore.isInitialized()) {
-        await appStore.init();
+      try {
+        if (!appStore.isInitialized()) {
+          await appStore.init();
+        }
+        const state = appStore.getState();
+        setPhases(state.phases);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load phases data');
+        console.error('Error loading phases:', err);
+      } finally {
+        setIsLoading(false);
       }
-      const state = appStore.getState();
-      setPhases(state.phases);
-      setIsLoading(false);
 
       const unsubscribe = appStore.subscribe((newState) => {
         setPhases(newState.phases);
@@ -29,46 +37,16 @@ function PhasesPage() {
 
   const columns = useMemo(() => [
     { header: 'ID', accessorKey: 'id' },
-    {
-      header: 'Phase Name',
-      accessorKey: 'name',
-      cell: ({ row, table }) => (
-        <EditableCell
-          value={row.original.name}
-          isEditing={table.options.meta?.editingRowId === row.id}
-          onChange={(e) => table.options.meta?.setEditedData(prev => ({ ...prev, name: e.target.value }))}
-        />
-      )
-    },
-    {
-      header: 'Department',
-      accessorKey: 'department',
-      cell: ({ row, table }) => (
-        <EditableCell
-          value={row.original.department}
-          isEditing={table.options.meta?.editingRowId === row.id}
-          onChange={(e) => table.options.meta?.setEditedData(prev => ({ ...prev, department: e.target.value }))}
-        />
-      )
-    },
-    {
-      header: 'Work Center',
-      accessorKey: 'work_center',
-      cell: ({ row, table }) => (
-        <EditableCell
-          value={row.original.work_center}
-          isEditing={table.options.meta?.editingRowId === row.id}
-          onChange={(e) => table.options.meta?.setEditedData(prev => ({ ...prev, work_center: e.target.value }))}
-        />
-      )
-    },
-    { header: 'Print Speed (mt/h)', accessorKey: 'v_stampa' },
-    { header: 'Print Setup (h)', accessorKey: 't_setup_stampa' },
-    { header: 'Print Cost (€/h)', accessorKey: 'costo_h_stampa' },
-    { header: 'Package Speed (pz/h)', accessorKey: 'v_conf' },
-    { header: 'Package Setup (h)', accessorKey: 't_setup_conf' },
-    { header: 'Package Cost (€/h)', accessorKey: 'costo_h_conf' },
-    { header: '# People', accessorKey: 'numero_persone' },
+    { header: 'Phase Name', accessorKey: 'name', cell: EditableCell },
+    { header: 'Department', accessorKey: 'department', cell: EditableCell },
+    { header: 'Work Center', accessorKey: 'work_center', cell: EditableCell },
+    { header: 'Print Speed (mt/h)', accessorKey: 'v_stampa', cell: EditableCell },
+    { header: 'Print Setup (h)', accessorKey: 't_setup_stampa', cell: EditableCell },
+    { header: 'Print Cost (€/h)', accessorKey: 'costo_h_stampa', cell: EditableCell },
+    { header: 'Package Speed (pz/h)', accessorKey: 'v_conf', cell: EditableCell },
+    { header: 'Package Setup (h)', accessorKey: 't_setup_conf', cell: EditableCell },
+    { header: 'Package Cost (€/h)', accessorKey: 'costo_h_conf', cell: EditableCell },
+    { header: '# People', accessorKey: 'numero_persone', cell: EditableCell },
     {
       header: 'Created At',
       accessorKey: 'created_at',
@@ -76,28 +54,102 @@ function PhasesPage() {
     },
   ], []);
 
-  const handleSavePhase = (updatedPhase) => {
-    // Here you would add validation logic before updating
-    console.log("Saving phase:", updatedPhase);
-    appStore.updatePhase(updatedPhase.id, updatedPhase);
+  const validatePhase = (phase) => {
+    const errors = [];
+
+    if (!phase.name?.trim()) {
+      errors.push('Phase name is required');
+    }
+
+    if (!phase.department) {
+      errors.push('Department is required');
+    }
+
+    if (!phase.work_center) {
+      errors.push('Work center is required');
+    }
+
+    if (phase.numero_persone < 1) {
+      errors.push('Number of people must be at least 1');
+    }
+
+    if (phase.department === 'STAMPA') {
+      if (phase.v_stampa <= 0) {
+        errors.push('Printing speed must be greater than 0');
+      }
+      if (phase.t_setup_stampa < 0) {
+        errors.push('Setup time cannot be negative');
+      }
+      if (phase.costo_h_stampa < 0) {
+        errors.push('Hourly cost cannot be negative');
+      }
+    }
+
+    if (phase.department === 'CONFEZIONAMENTO') {
+      if (phase.v_conf <= 0) {
+        errors.push('Packaging speed must be greater than 0');
+      }
+      if (phase.t_setup_conf < 0) {
+        errors.push('Setup time cannot be negative');
+      }
+      if (phase.costo_h_conf < 0) {
+        errors.push('Hourly cost cannot be negative');
+      }
+    }
+
+    return errors;
   };
 
-  const handleDeletePhase = (phaseToDelete) => {
+  const handleSavePhase = async (updatedPhase) => {
+    try {
+      const validationErrors = validatePhase(updatedPhase);
+      
+      if (validationErrors.length > 0) {
+        alert(`Validation errors:\n${validationErrors.join('\n')}`);
+        return;
+      }
+
+      await appStore.updatePhase(updatedPhase.id, updatedPhase);
+    } catch (error) {
+      console.error('Error updating phase:', error);
+      alert('Failed to update phase. Please try again.');
+    }
+  };
+
+  const handleDeletePhase = async (phaseToDelete) => {
     if (window.confirm(`Are you sure you want to delete ${phaseToDelete.name}?`)) {
-      console.log("Deleting phase:", phaseToDelete);
-      appStore.removePhase(phaseToDelete.id);
+      try {
+        await appStore.removePhase(phaseToDelete.id);
+      } catch (error) {
+        console.error('Error deleting phase:', error);
+        alert('Failed to delete phase. Please try again.');
+      }
     }
   };
 
   if (isLoading) {
-    return <div>Loading phases data...</div>;
+    return (
+      <div className="content-section">
+        <div className="loading">Loading phases data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="content-section">
+        <div className="error-message" style={{ color: 'red', textAlign: 'center', padding: '20px' }}>
+          {error}
+        </div>
+      </div>
+    );
   }
 
   return (
     <>
       <PhasesForm />
       <div className="content-section">
-        <h2>Phases Table</h2>
+        <h2>Production Phases</h2>
         <DataTable
           columns={columns}
           data={phases}

@@ -5,7 +5,6 @@
  */
 
 import { storageService } from './storageService.js';
-import { asyncHandler } from './utils.js';
 
 // Private state object
 const state = {

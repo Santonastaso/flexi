@@ -8,31 +8,24 @@ function DataTable({ data, columns, onSaveRow, onDeleteRow }) {
   const tableColumns = useMemo(() => {
     const handleSave = (row) => {
       // Only send the fields that were actually edited
-      // Filter out display-only fields that don't exist in the database
       const validEditedData = {};
       Object.keys(editedData).forEach(key => {
         if (editedData[key] !== undefined && editedData[key] !== '') {
-          // Skip fields that are just for display (like nested objects)
-          // Skip fields with dots (nested properties like 'machines.machine_name')
-          // Skip specific display-only fields
-          if (key !== 'machines' && 
-              !key.includes('.') && 
-              key !== 'progress' && 
-              key !== 'n_boxes' && 
-              key !== 'time_remaining') {
-            validEditedData[key] = editedData[key];
-          }
+          // Include all edited fields, including nested ones
+          validEditedData[key] = editedData[key];
         }
       });
       
-      // Create a clean version of the original row data, removing display-only fields
+      // Create a clean version of the original row data
       const cleanOriginalData = { ...row.original };
-      delete cleanOriginalData.machines;
-      delete cleanOriginalData.progress;
-      delete cleanOriginalData.n_boxes;
-      delete cleanOriginalData.time_remaining;
       
-      // Merge only the valid edited data with the cleaned original row
+      // Remove computed/display-only fields that shouldn't be saved
+      const displayOnlyFields = ['machines', 'progress', 'n_boxes', 'time_remaining'];
+      displayOnlyFields.forEach(field => {
+        delete cleanOriginalData[field];
+      });
+      
+      // Merge the valid edited data with the cleaned original row
       const updatedRow = { ...cleanOriginalData, ...validEditedData };
       onSaveRow(updatedRow);
       setEditingRowId(null);

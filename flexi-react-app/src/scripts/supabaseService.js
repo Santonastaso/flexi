@@ -3,7 +3,6 @@
  * Provides all data operations using Supabase backend
  */
 import { get_supabase_client, check_supabase_connection } from './supabaseClient.js';
-import { show_banner } from './banner.js';
 
 class SupabaseService {
     constructor() {
@@ -40,7 +39,7 @@ class SupabaseService {
         const connected = await check_supabase_connection();
         if (!connected) {
             console.error('❌ Failed to connect to Supabase');
-            show_banner?.('Failed to connect to database. Some features may not work.', 'error');
+            console.warn('Failed to connect to database. Some features may not work.');
         }
         return connected;
     }

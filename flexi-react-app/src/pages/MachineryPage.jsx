@@ -1,48 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import DataTable from '../components/DataTable';
 import MachineForm from '../components/MachineForm';
+import EditableCell from '../components/EditableCell';
 import { appStore } from '../scripts/store';
-
-// A more advanced EditableCell that handles different input types
-const EditableCell = ({ row, column, table }) => {
-  const initialValue = row.original[column.id];
-  const isEditing = table.options.meta?.editingRowId === row.id;
-
-  const handleInputChange = (e) => {
-    table.options.meta?.setEditedData(prev => ({
-      ...prev,
-      [column.id]: e.target.value,
-    }));
-  };
-  
-  // Custom render logic based on column ID
-  if (isEditing) {
-    switch (column.id) {
-        case 'status':
-            return (
-                <select defaultValue={initialValue} onChange={handleInputChange} style={{ width: '100%' }}>
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="INACTIVE">INACTIVE</option>
-                    <option value="MAINTENANCE">MAINTENANCE</option>
-                </select>
-            );
-        case 'min_web_width':
-        case 'max_web_width':
-        case 'min_bag_height':
-        case 'max_bag_height':
-        case 'standard_speed':
-        case 'setup_time_standard':
-        case 'changeover_color':
-        case 'changeover_material':
-             return <input type="number" defaultValue={initialValue} onChange={handleInputChange} style={{ width: '100%' }} />;
-        default:
-            return <input type="text" defaultValue={initialValue} onChange={handleInputChange} style={{ width: '100%' }} />;
-    }
-  }
-
-  return <span>{initialValue}</span>;
-};
-
 
 function MachineryPage() {
   const [machines, setMachines] = useState([]);
@@ -94,11 +54,6 @@ function MachineryPage() {
       header: 'Updated At', 
       accessorKey: 'updated_at',
       cell: info => new Date(info.getValue()).toLocaleDateString()
-    },
-    {
-      header: 'Calendar',
-      id: 'calendar',
-      cell: ({ row }) => <a href={`/pages/machine-settings-page.html?machine=${encodeURIComponent(row.original.machine_name)}`} className="btn btn-secondary btn-small">📅</a>
     }
   ], []);
 
