@@ -93,7 +93,18 @@ function SchedulerPage() {
     // Case 1: Dragging a task from the pool to a machine slot
     if (draggedItem.type === 'task' && dropZone.type === 'slot') {
       const task = draggedItem.task;
-      const { machine, hour } = dropZone;
+      const { machine, hour, isUnavailable, hasScheduledTask } = dropZone;
+      
+      // Check constraints
+      if (isUnavailable) {
+        alert('Cannot schedule task on unavailable time slot');
+        return;
+      }
+      
+      if (hasScheduledTask) {
+        alert('Cannot schedule task on occupied time slot');
+        return;
+      }
       
       const startDate = new Date(currentDate);
       startDate.setHours(hour, 0, 0, 0);
@@ -116,7 +127,18 @@ function SchedulerPage() {
     // Case 2: Dragging an existing scheduled event to a new slot (rescheduling)
     if (draggedItem.type === 'event' && dropZone.type === 'slot') {
       const eventItem = draggedItem.event;
-      const { machine, hour } = dropZone;
+      const { machine, hour, isUnavailable, hasScheduledTask } = dropZone;
+      
+      // Check constraints (allow rescheduling to same slot)
+      if (isUnavailable) {
+        alert('Cannot reschedule task to unavailable time slot');
+        return;
+      }
+      
+      if (hasScheduledTask) {
+        alert('Cannot reschedule task to occupied time slot');
+        return;
+      }
       
       const startDate = new Date(currentDate);
       startDate.setHours(hour, 0, 0, 0);

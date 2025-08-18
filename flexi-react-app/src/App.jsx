@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Outlet } from 'react-router-dom';
 import SideNav from './components/SideNav';
 import MachineryPage from './pages/MachineryPage';
+import MachineCalendarPage from './pages/MachineCalendarPage';
 import PhasesPage from './pages/PhasesPage';
 import BacklogPage from './pages/BacklogPage';
 import SchedulerPage from './pages/SchedulerPage';
@@ -30,6 +31,7 @@ function App() {
           
           {/* Add routes for your migrated pages */}
           <Route path="machinery" element={<MachineryPage />} />
+          <Route path="machinery/:machineId/calendar" element={<MachineCalendarPage />} />
           <Route path="phases" element={<PhasesPage />} />
           <Route path="backlog" element={<BacklogPage />} />
           <Route path="scheduler" element={<SchedulerPage />} />

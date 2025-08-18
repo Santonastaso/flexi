@@ -213,6 +213,23 @@ class ApiService {
 
   // ===== MACHINE AVAILABILITY =====
   
+  async getMachineAvailabilityForDateRange(machineName, startDate, endDate) {
+    try {
+      const { data, error } = await supabase
+        .from('machine_availability')
+        .select('*')
+        .eq('machine_name', machineName)
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .order('date');
+        
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      throw new Error(`Failed to fetch machine availability for date range: ${handleSupabaseError(error)}`);
+    }
+  }
+
   async getMachineAvailabilityForDate(machineName, dateStr) {
     try {
       const { data, error } = await supabase
@@ -220,24 +237,24 @@ class ApiService {
         .select('*')
         .eq('machine_name', machineName)
         .eq('date', dateStr)
-        .single();
+        .maybeSingle();
         
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
       return data || null;
     } catch (error) {
       throw new Error(`Failed to fetch machine availability: ${handleSupabaseError(error)}`);
     }
   }
 
-  async setMachineAvailability(machineName, dateStr, hours) {
+  async setMachineAvailability(machineName, dateStr, unavailableHours) {
     try {
       const { data, error } = await supabase
         .from('machine_availability')
         .upsert([{
           machine_name: machineName,
           date: dateStr,
-          hours: hours
-        }])
+          unavailable_hours: unavailableHours
+        }], { onConflict: 'machine_name,date' })
         .select()
         .single();
         
@@ -303,8 +320,9 @@ class ApiService {
   async update_phase(id, updates) { return this.updatePhase(id, updates); }
   async remove_phase(id) { return this.removePhase(id); }
 
+  async get_machine_availability_for_date_range(machineName, startDate, endDate) { return this.getMachineAvailabilityForDateRange(machineName, startDate, endDate); }
   async get_machine_availability_for_date(machineName, dateStr) { return this.getMachineAvailabilityForDate(machineName, dateStr); }
-  async set_machine_availability(machineName, dateStr, hours) { return this.setMachineAvailability(machineName, dateStr, hours); }
+  async set_machine_availability(machineName, dateStr, unavailableHours) { return this.setMachineAvailability(machineName, dateStr, unavailableHours); }
   async get_machine_availability_for_date_all_machines(dateStr) { return this.getMachineAvailabilityForDateAllMachines(dateStr); }
   async get_events_by_date(dateStr) { return this.getEventsByDate(dateStr); }
   async set_unavailable_hours_for_range(machineName, startDate, endDate, startTime, endTime) { return this.setUnavailableHoursForRange(machineName, startDate, endDate, startTime, endTime); }

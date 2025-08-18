@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 import MachineForm from '../components/MachineForm';
 import EditableCell from '../components/EditableCell';
@@ -58,6 +59,19 @@ function MachineryPage() {
       header: 'Updated At', 
       accessorKey: 'updated_at',
       cell: info => new Date(info.getValue()).toLocaleDateString()
+    },
+    // Calendar
+    {
+      header: 'Calendar',
+      accessorKey: 'id',
+      cell: info => (
+        <Link 
+          to={`/machinery/${info.getValue()}/calendar`}
+          className="btn btn-primary btn-sm"
+        >
+          View Calendar
+        </Link>
+      )
     }
   ], []);
 

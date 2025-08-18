@@ -1,13 +1,19 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
+import { useStore } from '../store/useStore';
 
 // A single time slot on the calendar that can receive a dropped task
-function TimeSlot({ machine, hour }) {
+function TimeSlot({ machine, hour, isUnavailable, hasScheduledTask }) {
   const { setNodeRef } = useDroppable({
     id: `slot-${machine.id}-${hour}`,
-    data: { machine, hour, type: 'slot' },
+    data: { machine, hour, type: 'slot', isUnavailable, hasScheduledTask },
   });
-  return <div ref={setNodeRef} className="time-slot" data-hour={hour} />;
+  
+  let slotClass = 'time-slot';
+  if (isUnavailable) slotClass += ' unavailable';
+  if (hasScheduledTask) slotClass += ' has-scheduled-task';
+  
+  return <div ref={setNodeRef} className={slotClass} data-hour={hour} />;
 }
 
 // A scheduled event that can be dragged to be rescheduled or unscheduled
@@ -60,7 +66,7 @@ function ScheduledEvent({ event, machine, currentDate }) {
 }
 
 // A single row in the Gantt chart, representing one machine
-function MachineRow({ machine, scheduledEvents, currentDate }) {
+function MachineRow({ machine, scheduledEvents, currentDate, unavailableByMachine }) {
   const hours = Array.from({ length: 24 }, (_, i) => i); // 24 hours in a day
   return (
     <div className="machine-row" data-machine-id={machine.id}>
@@ -69,7 +75,33 @@ function MachineRow({ machine, scheduledEvents, currentDate }) {
         <div className="machine-city">{machine.work_center}</div>
       </div>
       <div className="machine-slots">
-        {hours.map(hour => <TimeSlot key={hour} machine={machine} hour={hour} />)}
+        {hours.map(hour => {
+          const setForMachine = unavailableByMachine[machine.machine_name];
+          const isUnavailable = setForMachine ? setForMachine.has(hour.toString()) : false;
+          
+          // Check if there's a scheduled task at this hour
+          const hasScheduledTask = scheduledEvents.some(event => {
+            const eventStart = new Date(event.scheduled_start_time);
+            const eventEnd = new Date(event.scheduled_end_time);
+            const slotStart = new Date(currentDate);
+            slotStart.setHours(hour, 0, 0, 0);
+            const slotEnd = new Date(slotStart);
+            slotEnd.setHours(hour + 1, 0, 0, 0);
+            
+            // Check if the event overlaps with this hour slot
+            return eventStart < slotEnd && eventEnd > slotStart;
+          });
+          
+          return (
+            <TimeSlot 
+              key={hour} 
+              machine={machine} 
+              hour={hour} 
+              isUnavailable={isUnavailable} 
+              hasScheduledTask={hasScheduledTask}
+            />
+          );
+        })}
         {scheduledEvents.map(event => (
           <ScheduledEvent 
             key={event.id} 
@@ -86,6 +118,26 @@ function MachineRow({ machine, scheduledEvents, currentDate }) {
 // The main Gantt Chart component
 function GanttChart({ machines, tasks, currentDate }) {
   const scheduledTasks = tasks.filter(task => task.status === 'SCHEDULED');
+
+  const loadMachineAvailabilityForDate = useStore(state => state.loadMachineAvailabilityForDate);
+  const machineAvailability = useStore(state => state.machineAvailability);
+
+  const dateStr = useMemo(() => currentDate.toISOString().split('T')[0], [currentDate]);
+
+  useEffect(() => {
+    loadMachineAvailabilityForDate(dateStr);
+  }, [dateStr, loadMachineAvailabilityForDate]);
+
+  const unavailableByMachine = useMemo(() => {
+    const dayData = machineAvailability[dateStr];
+    const map = {};
+    if (Array.isArray(dayData)) {
+      dayData.forEach(row => {
+        map[row.machine_name] = new Set((row.unavailable_hours || []).map(h => h.toString()));
+      });
+    }
+    return map;
+  }, [machineAvailability, dateStr]);
 
   return (
     <div className="calendar-section">
@@ -105,6 +157,7 @@ function GanttChart({ machines, tasks, currentDate }) {
               machine={machine}
               scheduledEvents={scheduledTasks.filter(task => task.scheduled_machine_id === machine.id)}
               currentDate={currentDate}
+              unavailableByMachine={unavailableByMachine}
             />
           ))}
         </div>
