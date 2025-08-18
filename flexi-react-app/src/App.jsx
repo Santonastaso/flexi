@@ -6,6 +6,7 @@ import PhasesPage from './pages/PhasesPage';
 import BacklogPage from './pages/BacklogPage';
 import SchedulerPage from './pages/SchedulerPage';
 import HomePage from './pages/HomePage';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // This component creates the main layout with the sidebar
 const AppLayout = () => (
@@ -21,18 +22,20 @@ const AppLayout = () => (
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<AppLayout />}>
-        {/* Define the component for the home page */}
-        <Route index element={<HomePage />} />
-        
-        {/* Add routes for your migrated pages */}
-        <Route path="machinery" element={<MachineryPage />} />
-        <Route path="phases" element={<PhasesPage />} />
-        <Route path="backlog" element={<BacklogPage />} />
-        <Route path="scheduler" element={<SchedulerPage />} />
-      </Route>
-    </Routes>
+    <ErrorBoundary>
+      <Routes>
+        <Route path="/" element={<AppLayout />}>
+          {/* Define the component for the home page */}
+          <Route index element={<HomePage />} />
+          
+          {/* Add routes for your migrated pages */}
+          <Route path="machinery" element={<MachineryPage />} />
+          <Route path="phases" element={<PhasesPage />} />
+          <Route path="backlog" element={<BacklogPage />} />
+          <Route path="scheduler" element={<SchedulerPage />} />
+        </Route>
+      </Routes>
+    </ErrorBoundary>
   );
 }
 

@@ -284,6 +284,7 @@ function BacklogForm() {
                 onChange={handleChange} 
                 placeholder="Bag Height" 
                 min="0" 
+                step="1"
                 required 
                 className={errors.bag_height ? 'error' : ''}
               />
@@ -299,6 +300,7 @@ function BacklogForm() {
                 onChange={handleChange} 
                 placeholder="Bag Width" 
                 min="0" 
+                step="1"
                 required 
                 className={errors.bag_width ? 'error' : ''}
               />
@@ -314,6 +316,7 @@ function BacklogForm() {
                 onChange={handleChange} 
                 placeholder="Bag Step" 
                 min="0" 
+                step="1"
                 required 
                 className={errors.bag_step ? 'error' : ''}
               />
@@ -358,6 +361,7 @@ function BacklogForm() {
                 onChange={handleChange} 
                 placeholder="Quantity" 
                 min="0" 
+                step="1"
                 required 
                 className={errors.quantity ? 'error' : ''}
               />
@@ -373,6 +377,7 @@ function BacklogForm() {
                 onChange={handleChange} 
                 placeholder="Qty per Box" 
                 min="0" 
+                step="1"
               />
             </div>
             <div className="form-group">
@@ -385,6 +390,7 @@ function BacklogForm() {
                 onChange={handleChange} 
                 placeholder="Qty Completed" 
                 min="0" 
+                step="1"
                 className={errors.quantity_completed ? 'error' : ''}
               />
               {getFieldError('quantity_completed')}

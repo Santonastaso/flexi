@@ -105,7 +105,12 @@ function SchedulerPage() {
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
       };
-      scheduleTask(task.id, scheduleData);
+      try {
+        scheduleTask(task.id, scheduleData);
+      } catch (e) {
+        alert(e.message || 'Scheduling failed');
+        return;
+      }
     }
 
     // Case 2: Dragging an existing scheduled event to a new slot (rescheduling)
@@ -123,7 +128,12 @@ function SchedulerPage() {
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
       };
-      scheduleTask(eventItem.id, scheduleData);
+      try {
+        scheduleTask(eventItem.id, scheduleData);
+      } catch (e) {
+        alert(e.message || 'Rescheduling failed');
+        return;
+      }
     }
 
     // Case 3: Dragging an event back to the task pool (unscheduling)

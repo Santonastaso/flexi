@@ -102,19 +102,19 @@ function MachineForm() {
           <div className="form-grid form-grid--3-cols">
             <div className="form-group">
               <label htmlFor="min_web_width">Min Web Width (mm)</label>
-              <input type="number" id="min_web_width" name="min_web_width" value={formData.min_web_width} onChange={handleChange} min="0" />
+              <input type="number" id="min_web_width" name="min_web_width" value={formData.min_web_width} onChange={handleChange} min="0" step="1" />
             </div>
             <div className="form-group">
               <label htmlFor="max_web_width">Max Web Width (mm) *</label>
-              <input type="number" id="max_web_width" name="max_web_width" value={formData.max_web_width} onChange={handleChange} min="0" required />
+              <input type="number" id="max_web_width" name="max_web_width" value={formData.max_web_width} onChange={handleChange} min="0" step="1" required />
             </div>
             <div className="form-group">
               <label htmlFor="min_bag_height">Min Bag Height (mm)</label>
-              <input type="number" id="min_bag_height" name="min_bag_height" value={formData.min_bag_height} onChange={handleChange} min="0" required />
+              <input type="number" id="min_bag_height" name="min_bag_height" value={formData.min_bag_height} onChange={handleChange} min="0" step="1" required />
             </div>
             <div className="form-group">
               <label htmlFor="max_bag_height">Max Bag Height (mm) *</label>
-              <input type="number" id="max_bag_height" name="max_bag_height" value={formData.max_bag_height} onChange={handleChange} min="0" required />
+              <input type="number" id="max_bag_height" name="max_bag_height" value={formData.max_bag_height} onChange={handleChange} min="0" step="1" required />
             </div>
           </div>
         </div>
@@ -125,7 +125,7 @@ function MachineForm() {
           <div className="form-grid form-grid--3-cols">
             <div className="form-group">
               <label htmlFor="standard_speed">Standard Speed</label>
-              <input type="number" id="standard_speed" name="standard_speed" value={formData.standard_speed} onChange={handleChange} placeholder="pz/h or mt/h" min="0" />
+              <input type="number" id="standard_speed" name="standard_speed" value={formData.standard_speed} onChange={handleChange} placeholder="pz/h or mt/h" min="0" step="1" />
             </div>
             <div className="form-group">
               <label htmlFor="setup_time_standard">Setup Time Standard (h)</label>

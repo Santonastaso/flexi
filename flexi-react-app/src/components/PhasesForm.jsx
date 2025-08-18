@@ -164,6 +164,7 @@ function PhasesForm() {
                 value={formData.numero_persone} 
                 onChange={handleChange} 
                 min="1" 
+                step="1"
                 required 
                 className={errors.numero_persone ? 'error' : ''}
               />
@@ -201,7 +202,7 @@ function PhasesForm() {
                   value={formData.v_stampa} 
                   onChange={handleChange} 
                   min="0" 
-                  step="100"
+                  step="1"
                   className={errors.v_stampa ? 'error' : ''}
                 />
                 {getFieldError('v_stampa')}
@@ -252,7 +253,7 @@ function PhasesForm() {
                   value={formData.v_conf} 
                   onChange={handleChange} 
                   min="0" 
-                  step="100"
+                  step="1"
                   className={errors.v_conf ? 'error' : ''}
                 />
                 {getFieldError('v_conf')}

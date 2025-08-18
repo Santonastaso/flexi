@@ -7,7 +7,8 @@ export { default as useProductionCalculations } from './useProductionCalculation
 export { default as useMachineValidation } from './useMachineValidation';
 export { default as useOrderValidation } from './useOrderValidation';
 
-// Re-export all hooks for convenience
+// Export all custom hooks
 export * from './useProductionCalculations';
 export * from './useMachineValidation';
 export * from './useOrderValidation';
+export * from './useAsyncErrorHandler';

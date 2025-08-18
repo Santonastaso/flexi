@@ -111,6 +111,14 @@ export const useStore = create((set, get) => ({
 
   // Scheduler actions
   scheduleTask: async (taskId, eventData) => {
+    // Validate work_center compatibility before scheduling
+    const state = get();
+    const task = state.odpOrders.find(o => o.id === taskId);
+    const machine = state.machines.find(m => m.id === eventData.machine);
+    if (task && machine && task.work_center && machine.work_center && task.work_center !== machine.work_center) {
+      throw new Error(`Work center mismatch: task requires '${task.work_center}' but machine is '${machine.work_center}'`);
+    }
+
     const updates = {
       scheduled_machine_id: eventData.machine,
       scheduled_start_time: eventData.start_time,

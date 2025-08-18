@@ -55,20 +55,15 @@ function EditableCell({
     // Status fields
     if (columnId === 'status') return 'select';
     
-    // Numeric fields
-    const numericFields = [
-      'min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height',
-      'standard_speed', 'setup_time_standard', 'changeover_color', 'changeover_material',
-      'v_stampa', 't_setup_stampa', 'costo_h_stampa', 'v_conf', 't_setup_conf', 'costo_h_conf',
-      'bag_height', 'bag_width', 'bag_step', 'quantity', 'quantity_completed', 'quantity_per_box',
-      'numero_persone'
-    ];
-    
-    if (numericFields.includes(columnId)) return 'number';
-    
-    // Integer fields
-    const integerFields = ['quantity', 'quantity_completed', 'quantity_per_box', 'numero_persone'];
+    // Integer fields (no decimals)
+    const integerFields = ['quantity', 'quantity_completed', 'quantity_per_box', 'numero_persone', 'bag_height', 'bag_width', 'bag_step', 'min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height'];
     if (integerFields.includes(columnId)) return 'integer';
+
+    // Decimal fields (one decimal where appropriate or two for costs)
+    const oneDecimalFields = ['setup_time_standard', 'changeover_color', 'changeover_material', 't_setup_stampa', 't_setup_conf'];
+    const twoDecimalFields = ['costo_h_stampa', 'costo_h_conf'];
+    const plainNumberFields = ['standard_speed', 'v_stampa', 'v_conf'];
+    if (oneDecimalFields.includes(columnId) || twoDecimalFields.includes(columnId) || plainNumberFields.includes(columnId)) return 'number';
     
     return 'text';
   }
@@ -135,6 +130,12 @@ function EditableCell({
         );
         
       case 'number':
+        // Determine step for number fields: 0.1 for time-like, 0.01 for costs, default 0.1
+        const decimalStep = (() => {
+          if (['costo_h_stampa', 'costo_h_conf'].includes(column?.id)) return 0.01;
+          if (['setup_time_standard', 'changeover_color', 'changeover_material', 't_setup_stampa', 't_setup_conf'].includes(column?.id)) return 0.1;
+          return 0.1;
+        })();
         return (
           <input 
             type="number" 
@@ -142,7 +143,7 @@ function EditableCell({
             onChange={handleInputChange} 
             min={min}
             max={max}
-            step={step || 0.01}
+            step={step || decimalStep}
             style={{ width: '100%', padding: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
           />
         );
