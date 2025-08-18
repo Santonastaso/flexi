@@ -1,0 +1,87 @@
+/* ===== TABLE COMPONENTS ===== */
+.table-container {
+    background: white;
+    border-radius: var(--border-radius-large);
+    border: 1px solid var(--border-color);
+    overflow-x: auto;
+    box-shadow: var(--shadow-sm);
+}
+.modern-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+.modern-table th,
+.modern-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+    vertical-align: middle;
+}
+.modern-table th {
+    background: var(--secondary-blue);
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 12px;
+    text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.modern-table td {
+    font-size: 13px;
+}
+.modern-table tr:nth-child(even) td {
+    background: var(--gray-light);
+}
+.modern-table tr:hover td {
+    background: #d1e7f0;
+}
+/* Table scrollbar styling */
+.table-container::-webkit-scrollbar { height: 12px; width: 12px; }
+.table-container::-webkit-scrollbar-track { background: #f1f3f4; }
+.table-container::-webkit-scrollbar-thumb { background: #c1c7cd; border-radius: 6px; border: 2px solid #f1f3f4; }
+.table-container::-webkit-scrollbar-thumb:hover { background: #a8b0b8; }
+
+/* ===== IN-TABLE EDITING STYLES ===== */
+.editable-cell {
+    position: relative;
+}
+/* Default state: static values and action buttons visible */
+.edit-input, .edit-select, .save-cancel-buttons, .edit-color-container {
+    display: none;
+}
+/* When .editing class is present on the row */
+.editing .static-value,
+.editing .action-buttons {
+    display: none;
+}
+.editing .edit-input,
+.editing .edit-select {
+    display: block;
+    width: 100%;
+}
+.editing .save-cancel-buttons,
+.editing .edit-color-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.action-buttons, .save-cancel-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+tr.editing {
+    background: rgba(37, 99, 235, 0.05);
+}
+tr.editing td {
+    border-color: var(--primary-blue);
+}
+.color-preview-edit {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+}

@@ -1,0 +1,233 @@
+/* ===== FORM & SHARED SECTION STYLES ===== */
+.form-section, .content-section h2 {
+    margin-bottom: 24px;
+}
+.form-section {
+    padding: 20px;
+    background: white;
+    border-radius: var(--border-radius-large);
+    border: 1px solid var(--border-color);
+    height: 100%;
+}
+.form-grid {
+    display: grid;
+    gap: var(--spacing-md);
+}
+.form-grid--2-cols { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.form-grid--3-cols { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.form-grid--4-cols { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.form-grid--5-cols { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.form-grid--6-cols { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    background: white;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+.form-group input[readonly] {
+    background-color: var(--bg-color);
+    cursor: not-allowed;
+}
+.form-group input[readonly]:focus {
+    box-shadow: none;
+}
+.form-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.form-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: white;
+    font-size: 14px;
+    min-width: 120px;
+    cursor: pointer;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+/* Parameter and Result Value Display */
+.parameter-value,
+.result-value {
+    background: var(--gray-light);
+    padding: 8px 12px;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    color: var(--text-dark);
+    border: 1px solid var(--border-color);
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+}
+
+.parameter-value {
+    background: #f0f9ff;
+    border-color: var(--primary-blue);
+    color: var(--primary-blue);
+}
+
+.result-value {
+    background: #f0fdf4;
+    border-color: var(--success-green);
+    color: var(--success-green);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+/* Unit Labels for Phase Parameters */
+.unit-label {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    pointer-events: none;
+}
+
+.form-group {
+    position: relative;
+}
+
+/* ===== BUTTON COMPONENTS ===== */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    gap: 6px;
+    min-height: 36px;
+}
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+.btn:active {
+    transform: translateY(0);
+}
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+.btn-primary { background: var(--primary-blue); color: white; }
+.btn-primary:hover { background: var(--primary-blue-hover); }
+.btn-secondary { background: var(--gray-light); color: var(--text-dark); border: 1px solid var(--border-color); }
+.btn-secondary:hover { background: var(--border-color); }
+
+/* In-table action buttons */
+.btn-action, .btn-edit, .btn-save, .btn-cancel, .btn-delete {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--border-radius);
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin: 0 1px;
+    border: 1px solid;
+}
+.btn-action:hover, .btn-edit:hover, .btn-save:hover, .btn-cancel:hover, .btn-delete:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+.btn-edit { background: var(--secondary-blue); border-color: var(--primary-blue); color: var(--primary-blue); }
+.btn-save { background: #e8f5e8; border-color: var(--success-green); color: var(--success-green); }
+.btn-cancel { background: #fff3e0; border-color: var(--accent-orange); color: var(--accent-orange); }
+.btn-delete { background: #ffebee; border-color: var(--danger-red); color: var(--danger-red); }
+
+/* Button States for Form Validation */
+.btn-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #9ca3af !important;
+    border-color: #9ca3af !important;
+}
+
+.btn-waiting {
+    opacity: 0.8;
+    cursor: wait;
+    background-color: #f59e0b !important;
+    border-color: #f59e0b !important;
+}
+
+.btn-waiting:hover {
+    background-color: #d97706 !important;
+    border-color: #d97706 !important;
+}
+
+/* Enhanced button tooltips */
+button[title] {
+    position: relative;
+}
+
+button[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #1f2937;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 8px;
+}
+
+button[title]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #1f2937;
+    margin-bottom: 3px;
+    z-index: 1000;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .form-grid--4-cols, .form-grid--5-cols, .form-grid--6-cols, .form-grid--3-cols, .form-grid--2-cols { 
+        grid-template-columns: 1fr; 
+    }
+}
