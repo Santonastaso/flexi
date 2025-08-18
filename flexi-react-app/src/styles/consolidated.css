@@ -1809,6 +1809,29 @@ tr.editing td {
     z-index: 1001;
 }
 
+.scheduled-event.cross-day {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    opacity: 0.9;
+}
+
+.scheduled-event.cross-day::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 4px,
+        rgba(255, 255, 255, 0.1) 4px,
+        rgba(255, 255, 255, 0.1) 8px
+    );
+    pointer-events: none;
+}
+
 .event-label {
     font-weight: 700;
     text-align: center;

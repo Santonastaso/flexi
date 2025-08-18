@@ -7,7 +7,6 @@ function SideNav() {
 
   const navLinks = [
     { href: '/', label: 'Home', icon: '🏠' },
-    { href: '/dashboard', label: 'Dashboard', icon: '📊' },
     { href: '/machinery', label: 'Machinery', icon: '⚙️' },
     { href: '/phases', label: 'Phases', icon: '🔄' },
     { href: '/backlog', label: 'Backlog', icon: '📝' },

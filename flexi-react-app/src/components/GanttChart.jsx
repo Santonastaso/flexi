@@ -27,16 +27,57 @@ function ScheduledEvent({ event, machine, currentDate }) {
     
     // Calculate base position based on the current date context
     const eventStartTime = new Date(event.scheduled_start_time);
-    const isSameDay = eventStartTime.toDateString() === currentDate.toDateString();
+    const eventEndTime = new Date(event.scheduled_end_time);
     
-    if (!isSameDay) {
-        // If event is not on the current day, don't show it
+    // Check if this event should be visible on the current day
+    // Event should be visible if it starts, ends, or spans across the current day
+    const currentDayStart = new Date(currentDate);
+    currentDayStart.setHours(0, 0, 0, 0);
+    const currentDayEnd = new Date(currentDate);
+    currentDayEnd.setHours(23, 59, 59, 999);
+    
+    const eventStartsOnCurrentDay = eventStartTime.toDateString() === currentDate.toDateString();
+    const eventEndsOnCurrentDay = eventEndTime.toDateString() === currentDate.toDateString();
+    const eventSpansCurrentDay = eventStartTime < currentDayEnd && eventEndTime > currentDayStart;
+    
+    // Debug logging for cross-day tasks
+    if (eventStartTime.toDateString() !== eventEndTime.toDateString()) {
+        console.log('Cross-day task detected:', {
+            taskId: event.id,
+            startDate: eventStartTime.toDateString(),
+            endDate: eventEndTime.toDateString(),
+            currentDate: currentDate.toDateString(),
+            eventStartsOnCurrentDay,
+            eventEndsOnCurrentDay,
+            eventSpansCurrentDay,
+            shouldShow: eventStartsOnCurrentDay || eventEndsOnCurrentDay || eventSpansCurrentDay
+        });
+    }
+    
+    if (!eventStartsOnCurrentDay && !eventEndsOnCurrentDay && !eventSpansCurrentDay) {
+        // If event doesn't overlap with current day at all, don't show it
         return null;
     }
     
-    // Calculate base position
-    const baseLeft = (eventStartTime.getHours() * 80);
-    const baseWidth = durationHours * 80;
+    // Calculate positioning for the event on the current day
+    let baseLeft, baseWidth;
+    
+    if (eventStartsOnCurrentDay) {
+        // Event starts on current day - show from start hour
+        baseLeft = eventStartTime.getHours() * 80;
+        const hoursRemainingInDay = 24 - eventStartTime.getHours();
+        const hoursToShow = Math.min(durationHours, hoursRemainingInDay);
+        baseWidth = hoursToShow * 80;
+    } else if (eventEndsOnCurrentDay) {
+        // Event ends on current day - show until end hour
+        baseLeft = 0; // Start from beginning of day
+        const hoursFromStartOfDay = eventEndTime.getHours() + (eventEndTime.getMinutes() / 60);
+        baseWidth = hoursFromStartOfDay * 80;
+    } else {
+        // Event spans across current day - show full day
+        baseLeft = 0;
+        baseWidth = 24 * 80; // Full day width
+    }
     
     // Apply transform only when dragging, otherwise use base position
     const style = isDragging ? {
@@ -58,7 +99,7 @@ function ScheduledEvent({ event, machine, currentDate }) {
             style={style} 
             {...listeners} 
             {...attributes} 
-            className={`scheduled-event ${isDragging ? 'dragging' : ''}`}
+            className={`scheduled-event ${isDragging ? 'dragging' : ''} ${eventSpansCurrentDay && !eventStartsOnCurrentDay && !eventEndsOnCurrentDay ? 'cross-day' : ''}`}
         >
             <span className="event-label">{event.odp_number}</span>
         </div>
