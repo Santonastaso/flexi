@@ -10,6 +10,7 @@ function CalendarGrid({ machineId, currentDate, currentView }) {
   const odpOrders = useStore(state => state.odpOrders);
   const getMachineAvailability = useStore(state => state.getMachineAvailability);
   const toggleMachineHourAvailability = useStore(state => state.toggleMachineHourAvailability);
+  const showAlert = useStore(state => state.showAlert);
   
   const machine = machines.find(m => m.id === machineId);
 
@@ -62,7 +63,7 @@ function CalendarGrid({ machineId, currentDate, currentView }) {
   const handleTimeSlotClick = async (dateStr, hour) => {
     // Check if slot has scheduled tasks
     if (hasScheduledTask(dateStr, hour)) {
-      alert('Cannot mark time slot as unavailable - it has scheduled tasks');
+      showAlert('Cannot mark time slot as unavailable - it has scheduled tasks', 'error');
       return;
     }
     

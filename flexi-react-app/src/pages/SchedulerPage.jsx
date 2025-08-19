@@ -13,6 +13,7 @@ function SchedulerPage() {
   const init = useStore(state => state.init);
   const scheduleTask = useStore(state => state.scheduleTask);
   const unscheduleTask = useStore(state => state.unscheduleTask);
+  const showAlert = useStore(state => state.showAlert);
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeDragItem, setActiveDragItem] = useState(null);
@@ -97,12 +98,12 @@ function SchedulerPage() {
       
       // Check constraints
       if (isUnavailable) {
-        alert('Cannot schedule task on unavailable time slot');
+        showAlert('Cannot schedule task on unavailable time slot', 'error');
         return;
       }
       
       if (hasScheduledTask) {
-        alert('Cannot schedule task on occupied time slot');
+        showAlert('Cannot schedule task on occupied time slot', 'error');
         return;
       }
       
@@ -119,7 +120,7 @@ function SchedulerPage() {
       try {
         scheduleTask(task.id, scheduleData);
       } catch (e) {
-        alert(e.message || 'Scheduling failed');
+        showAlert(e.message || 'Scheduling failed', 'error');
         return;
       }
     }
@@ -131,12 +132,12 @@ function SchedulerPage() {
       
       // Check constraints (allow rescheduling to same slot)
       if (isUnavailable) {
-        alert('Cannot reschedule task to unavailable time slot');
+        showAlert('Cannot reschedule task to unavailable time slot', 'error');
         return;
       }
       
       if (hasScheduledTask) {
-        alert('Cannot reschedule task to occupied time slot');
+        showAlert('Cannot reschedule task to occupied time slot', 'error');
         return;
       }
       
@@ -153,7 +154,7 @@ function SchedulerPage() {
       try {
         scheduleTask(eventItem.id, scheduleData);
       } catch (e) {
-        alert(e.message || 'Rescheduling failed');
+        showAlert(e.message || 'Rescheduling failed', 'error');
         return;
       }
     }

@@ -34,6 +34,7 @@ function BacklogForm() {
   // Get state and actions from Zustand store
   const phases = useStore(state => state.phases);
   const addOdpOrder = useStore(state => state.addOdpOrder);
+  const showAlert = useStore(state => state.showAlert);
 
   useEffect(() => {
     // Phases are now automatically available from the store
@@ -144,10 +145,10 @@ function BacklogForm() {
     if (!selectedPhase || !formData.quantity || !formData.bag_step) {
       console.log('Validation failed:', { 
         hasPhase: !!selectedPhase, 
-        hasQuantity: !!formData.quantity, 
-        hasBagStep: !!formData.bag_step 
+        quantity: !!formData.quantity, 
+        bagStep: !!formData.bag_step 
       });
-      alert("Please select a phase and enter Quantity and Bag Step to calculate.");
+      showAlert("Please select a phase and enter Quantity and Bag Step to calculate.", 'warning');
       return;
     }
     
@@ -176,7 +177,7 @@ function BacklogForm() {
     console.log('Checking calculation results...');
     if (!calculationResults) {
       console.log('No calculation results available');
-      alert("Please calculate production metrics before adding to the backlog.");
+      showAlert("Please calculate production metrics before adding to the backlog.", 'warning');
       return;
     }
 
@@ -203,8 +204,8 @@ function BacklogForm() {
       setCalculationResults(null);
       setErrors({});
     } catch (error) {
+      // Error is already handled by the store
       console.error('Error adding order:', error);
-      alert('Failed to add order. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

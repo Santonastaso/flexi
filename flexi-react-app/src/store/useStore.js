@@ -10,6 +10,22 @@ export const useStore = create((set, get) => ({
   machineAvailability: {},
   isLoading: false,
   isInitialized: false,
+  
+  // Alert state
+  alert: {
+    message: '',
+    type: 'info',
+    isVisible: false
+  },
+  
+  // Confirmation dialog state
+  confirmDialog: {
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    type: 'danger'
+  },
 
   // Selectors (optional helpers)
   getState: () => ({
@@ -50,63 +66,142 @@ export const useStore = create((set, get) => ({
     machineAvailability: {},
     isLoading: false,
     isInitialized: false,
+    alert: { message: '', type: 'info', isVisible: false }
+  }),
+
+  // Alert actions
+  showAlert: (message, type = 'info') => set({
+    alert: { message, type, isVisible: true }
+  }),
+  
+  hideAlert: () => set({
+    alert: { message: '', type: 'info', isVisible: false }
+  }),
+
+  // Confirmation dialog actions
+  showConfirmDialog: (title, message, onConfirm, type = 'danger') => set({
+    confirmDialog: { isOpen: true, title, message, onConfirm, type }
+  }),
+  
+  hideConfirmDialog: () => set({
+    confirmDialog: { isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' }
   }),
 
   // Machines
   addMachine: async (newMachine) => {
-    const added = await apiService.addMachine(newMachine);
-    set(state => ({ machines: [...state.machines, added] }));
-    return added;
+    try {
+      const added = await apiService.addMachine(newMachine);
+      set(state => ({ machines: [...state.machines, added] }));
+      get().showAlert(`Machine "${added.machine_name}" added successfully`, 'success');
+      return added;
+    } catch (error) {
+      get().showAlert(`Failed to add machine: ${error.message}`, 'error');
+      throw error;
+    }
   },
   updateMachine: async (id, updates) => {
-    const updated = await apiService.updateMachine(id, updates);
-    set(state => ({
-      machines: state.machines.map(m => (m.id === id ? { ...m, ...updated } : m)),
-    }));
-    return updated;
+    try {
+      const machine = get().machines.find(m => m.id === id);
+      const updated = await apiService.updateMachine(id, updates);
+      set(state => ({
+        machines: state.machines.map(m => (m.id === id ? { ...m, ...updated } : m)),
+      }));
+      get().showAlert(`Machine "${machine?.machine_name || 'Unknown'}" updated successfully`, 'success');
+      return updated;
+    } catch (error) {
+      get().showAlert(`Failed to update machine: ${error.message}`, 'error');
+      throw error;
+    }
   },
   removeMachine: async (id) => {
-    await apiService.removeMachine(id);
-    set(state => ({ machines: state.machines.filter(m => m.id !== id) }));
-    return true;
+    try {
+      const machine = get().machines.find(m => m.id === id);
+      await apiService.removeMachine(id);
+      set(state => ({ machines: state.machines.filter(m => m.id !== id) }));
+      get().showAlert(`Machine "${machine?.machine_name || 'Unknown'}" deleted successfully`, 'success');
+      return true;
+    } catch (error) {
+      get().showAlert(`Failed to delete machine: ${error.message}`, 'error');
+      throw error;
+    }
   },
 
   // Orders (ODP)
   addOdpOrder: async (newOrder) => {
-    const added = await apiService.addOdpOrder(newOrder);
-    set(state => ({ odpOrders: [...state.odpOrders, added] }));
-    return added;
+    try {
+      const added = await apiService.addOdpOrder(newOrder);
+      set(state => ({ odpOrders: [...state.odpOrders, added] }));
+      get().showAlert(`Order "${added.odp_number || 'Unknown'}" added successfully`, 'success');
+      return added;
+    } catch (error) {
+      get().showAlert(`Failed to add order: ${error.message}`, 'error');
+      throw error;
+    }
   },
   updateOdpOrder: async (id, updates) => {
-    const updated = await apiService.updateOdpOrder(id, updates);
-    set(state => ({
-      odpOrders: state.odpOrders.map(o => (o.id === id ? { ...o, ...updated } : o)),
-    }));
-    return updated;
+    try {
+      const order = get().odpOrders.find(o => o.id === id);
+      const updated = await apiService.updateOdpOrder(id, updates);
+      set(state => ({
+        odpOrders: state.odpOrders.map(o => (o.id === id ? { ...o, ...updated } : o)),
+      }));
+      get().showAlert(`Order "${order?.odp_number || 'Unknown'}" updated successfully`, 'success');
+      return updated;
+    } catch (error) {
+      get().showAlert(`Failed to update order: ${error.message}`, 'error');
+      throw error;
+    }
   },
   removeOdpOrder: async (id) => {
-    await apiService.removeOdpOrder(id);
-    set(state => ({ odpOrders: state.odpOrders.filter(o => o.id !== id) }));
-    return true;
+    try {
+      const order = get().odpOrders.find(o => o.id === id);
+      await apiService.removeOdpOrder(id);
+      set(state => ({ odpOrders: state.odpOrders.filter(o => o.id !== id) }));
+      get().showAlert(`Order "${order?.odp_number || 'Unknown'}" deleted successfully`, 'success');
+      return true;
+    } catch (error) {
+      get().showAlert(`Failed to delete order: ${error.message}`, 'error');
+      throw error;
+    }
   },
 
   // Phases
   addPhase: async (newPhase) => {
-    const added = await apiService.addPhase(newPhase);
-    set(state => ({ phases: [...state.phases, added] }));
-    return added;
+    try {
+      const added = await apiService.addPhase(newPhase);
+      set(state => ({ phases: [...state.phases, added] }));
+      get().showAlert(`Phase "${added.name || 'Unknown'}" added successfully`, 'success');
+      return added;
+    } catch (error) {
+      get().showAlert(`Failed to add phase: ${error.message}`, 'error');
+      throw error;
+    }
   },
   updatePhase: async (id, updates) => {
-    const updated = await apiService.updatePhase(id, updates);
-    set(state => ({
-      phases: state.phases.map(p => (p.id === id ? { ...p, ...updated } : p)),
-    }));
-    return updated;
+    try {
+      const phase = get().phases.find(p => p.id === id);
+      const updated = await apiService.updatePhase(id, updates);
+      set(state => ({
+        phases: state.phases.map(p => (p.id === id ? { ...p, ...updated } : p)),
+      }));
+      get().showAlert(`Phase "${phase?.name || 'Unknown'}" updated successfully`, 'success');
+      return updated;
+    } catch (error) {
+      get().showAlert(`Failed to update phase: ${error.message}`, 'error');
+      throw error;
+    }
   },
   removePhase: async (id) => {
-    await apiService.removePhase(id);
-    set(state => ({ phases: state.phases.filter(p => p.id !== id) }));
-    return true;
+    try {
+      const phase = get().phases.find(p => p.id === id);
+      await apiService.removePhase(id);
+      set(state => ({ phases: state.phases.filter(p => p.id !== id) }));
+      get().showAlert(`Phase "${phase?.name || 'Unknown'}" deleted successfully`, 'success');
+      return true;
+    } catch (error) {
+      get().showAlert(`Failed to delete phase: ${error.message}`, 'error');
+      throw error;
+    }
   },
 
   // Scheduler actions

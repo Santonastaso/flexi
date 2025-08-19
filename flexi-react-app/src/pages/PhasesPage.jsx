@@ -15,6 +15,8 @@ function PhasesPage() {
   const init = useStore(state => state.init);
   const updatePhase = useStore(state => state.updatePhase);
   const removePhase = useStore(state => state.removePhase);
+  const showAlert = useStore(state => state.showAlert);
+  const showConfirmDialog = useStore(state => state.showConfirmDialog);
 
   // Use the new phase validation hook
   const { validatePhase } = usePhaseValidation();
@@ -55,26 +57,32 @@ function PhasesPage() {
       const validationErrors = validatePhase(updatedPhase);
       
       if (validationErrors.length > 0) {
-        alert(`Validation errors:\n${validationErrors.join('\n')}`);
+        // Show validation errors in the store alert
+        showAlert(`Validation errors:\n${validationErrors.join('\n')}`, 'error');
         return;
       }
 
       await updatePhase(updatedPhase.id, updatedPhase);
     } catch (error) {
+      // Error is already handled by the store
       console.error('Error updating phase:', error);
-      alert('Failed to update phase. Please try again.');
     }
   };
 
   const handleDeletePhase = async (phaseToDelete) => {
-    if (window.confirm(`Are you sure you want to delete ${phaseToDelete.name}?`)) {
-      try {
-        await removePhase(phaseToDelete.id);
-      } catch (error) {
-        console.error('Error deleting phase:', error);
-        alert('Failed to delete phase. Please try again.');
-      }
-    }
+    showConfirmDialog(
+      'Delete Phase',
+      `Are you sure you want to delete "${phaseToDelete.name}"? This action cannot be undone.`,
+      async () => {
+        try {
+          await removePhase(phaseToDelete.id);
+        } catch (error) {
+          // Error is already handled by the store
+          console.error('Error deleting phase:', error);
+        }
+      },
+      'danger'
+    );
   };
 
   if (isLoading) {

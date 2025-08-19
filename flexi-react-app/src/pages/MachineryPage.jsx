@@ -14,6 +14,8 @@ function MachineryPage() {
   const init = useStore(state => state.init);
   const updateMachine = useStore(state => state.updateMachine);
   const removeMachine = useStore(state => state.removeMachine);
+  const showAlert = useStore(state => state.showAlert);
+  const showConfirmDialog = useStore(state => state.showConfirmDialog);
 
   // Use modern validation hook
   const { validateMachine } = useMachineValidation();
@@ -75,22 +77,38 @@ function MachineryPage() {
     }
   ], []);
 
-  const handleSaveMachine = (updatedMachine) => {
+  const handleSaveMachine = async (updatedMachine) => {
     // Use the new validation hook
     const validationErrors = validateMachine(updatedMachine);
     
     if (validationErrors.length > 0) {
-      alert(`Validation errors:\n${validationErrors.join('\n')}`);
+      // Show validation errors in the store alert
+      showAlert(`Validation errors:\n${validationErrors.join('\n')}`, 'error');
       return;
     }
     
-    updateMachine(updatedMachine.id, updatedMachine);
+    try {
+      await updateMachine(updatedMachine.id, updatedMachine);
+    } catch (error) {
+      // Error is already handled by the store
+      console.error('Failed to update machine:', error);
+    }
   };
 
-  const handleDeleteMachine = (machineToDelete) => {
-    if (window.confirm(`Are you sure you want to delete ${machineToDelete.machine_name}?`)) {
-      removeMachine(machineToDelete.id);
-    }
+  const handleDeleteMachine = async (machineToDelete) => {
+    showConfirmDialog(
+      'Delete Machine',
+      `Are you sure you want to delete "${machineToDelete.machine_name}"? This action cannot be undone.`,
+      async () => {
+        try {
+          await removeMachine(machineToDelete.id);
+        } catch (error) {
+          // Error is already handled by the store
+          console.error('Failed to delete machine:', error);
+        }
+      },
+      'danger'
+    );
   };
 
   if (isLoading) {

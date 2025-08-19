@@ -12,18 +12,42 @@ import SignupPage from './pages/SignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './auth/ProtectedRoute';
+import Alert from './components/Alert';
+import ConfirmDialog from './components/ConfirmDialog';
+import { useStore } from './store/useStore';
 
 // This component creates the main layout with the sidebar
-const AppLayout = () => (
-  <div className="main-content">
-    <SideNav />
-    <div className="page-container">
-      <main>
-        <Outlet />
-      </main>
+const AppLayout = () => {
+  const { alert, hideAlert, confirmDialog, hideConfirmDialog } = useStore();
+  
+  return (
+    <div className="main-content">
+      <SideNav />
+      <div className="page-container">
+        <main>
+          <Outlet />
+        </main>
+      </div>
+      <Alert 
+        message={alert.message}
+        type={alert.type}
+        isVisible={alert.isVisible}
+        onClose={hideAlert}
+      />
+      <ConfirmDialog 
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={() => {
+          confirmDialog.onConfirm?.();
+          hideConfirmDialog();
+        }}
+        onCancel={hideConfirmDialog}
+        type={confirmDialog.type}
+      />
     </div>
-  </div>
-);
+  );
+};
 
 function App() {
   return (

@@ -13,6 +13,8 @@ function BacklogPage() {
   const init = useStore(state => state.init);
   const updateOdpOrder = useStore(state => state.updateOdpOrder);
   const removeOdpOrder = useStore(state => state.removeOdpOrder);
+  const showAlert = useStore(state => state.showAlert);
+  const showConfirmDialog = useStore(state => state.showConfirmDialog);
 
   // Use modern validation hook
   const { validateOrder } = useOrderValidation();
@@ -95,7 +97,8 @@ function BacklogPage() {
       const validationErrors = validateOrder(updatedOrder);
       
       if (validationErrors.length > 0) {
-        alert(`Validation errors:\n${validationErrors.join('\n')}`);
+        // Show validation errors in the store alert
+        showAlert(`Validation errors:\n${validationErrors.join('\n')}`, 'error');
         return;
       }
 
@@ -110,20 +113,25 @@ function BacklogPage() {
 
       await updateOdpOrder(updatedOrder.id, updatedOrder);
     } catch (error) {
+      // Error is already handled by the store
       console.error('Error updating order:', error);
-      alert('Failed to update order. Please try again.');
     }
   };
 
   const handleDeleteOrder = async (orderToDelete) => {
-    if (window.confirm(`Are you sure you want to delete ODP ${orderToDelete.odp_number}?`)) {
-      try {
-        await removeOdpOrder(orderToDelete.id);
-      } catch (error) {
-        console.error('Error deleting order:', error);
-        alert('Failed to delete order. Please try again.');
-      }
-    }
+    showConfirmDialog(
+      'Delete Order',
+      `Are you sure you want to delete ODP "${orderToDelete.odp_number || orderToDelete.id}"? This action cannot be undone.`,
+      async () => {
+        try {
+          await removeOdpOrder(orderToDelete.id);
+        } catch (error) {
+          // Error is already handled by the store
+          console.error('Error deleting order:', error);
+        }
+      },
+      'danger'
+    );
   };
 
   if (isLoading) {

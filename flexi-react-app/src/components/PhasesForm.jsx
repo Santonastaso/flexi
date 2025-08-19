@@ -64,8 +64,8 @@ function PhasesForm() {
       setFormData(initialFormData); // Reset form
       setErrors({}); // Clear errors
     } catch (error) {
+      // Error is already handled by the store
       console.error('Error adding phase:', error);
-      // You could add a toast notification here
     } finally {
       setIsSubmitting(false);
     }

@@ -54,10 +54,15 @@ function MachineForm() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    addMachine(formData);
-    setFormData(initialFormData); // Reset form
+    try {
+      await addMachine(formData);
+      setFormData(initialFormData); // Reset form only on success
+    } catch (error) {
+      // Error is already handled by the store
+      console.error('Form submission failed:', error);
+    }
   };
 
   return (
