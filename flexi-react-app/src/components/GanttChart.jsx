@@ -3,18 +3,18 @@ import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { useStore } from '../store/useStore';
 import { toDateString, isTaskOverlapping } from '../utils/dateUtils';
 
-// A single time slot on the calendar that can receive a dropped task
-function TimeSlot({ machine, hour, isUnavailable, hasScheduledTask }) {
+// A single 15-minute time slot on the calendar that can receive a dropped task
+function TimeSlot({ machine, hour, minute, isUnavailable, hasScheduledTask }) {
   const { setNodeRef } = useDroppable({
-    id: `slot-${machine.id}-${hour}`,
-    data: { machine, hour, type: 'slot', isUnavailable, hasScheduledTask },
+    id: `slot-${machine.id}-${hour}-${minute}`,
+    data: { machine, hour, minute, type: 'slot', isUnavailable, hasScheduledTask },
   });
   
   let slotClass = 'time-slot';
   if (isUnavailable) slotClass += ' unavailable';
   if (hasScheduledTask) slotClass += ' has-scheduled-task';
   
-  return <div ref={setNodeRef} className={slotClass} data-hour={hour} />;
+  return <div ref={setNodeRef} className={slotClass} data-hour={hour} data-minute={minute} />;
 }
 
 // A scheduled event that can be dragged to be rescheduled or unscheduled
@@ -61,23 +61,31 @@ function ScheduledEvent({ event, machine, currentDate }) {
     }
     
     // Calculate positioning for the event on the current day
+    // Now using 15-minute precision (20px per 15-minute slot)
     let baseLeft, baseWidth;
     
     if (eventStartsOnCurrentDay) {
-        // Event starts on current day - show from start hour
-        baseLeft = eventStartTime.getHours() * 80;
+        // Event starts on current day - show from start time with 15-minute precision
+        const startHour = eventStartTime.getHours();
+        const startMinute = eventStartTime.getMinutes();
+        const startSlot = startHour * 4 + Math.floor(startMinute / 15);
+        baseLeft = startSlot * 20; // 20px per 15-minute slot
+        
         const hoursRemainingInDay = 24 - eventStartTime.getHours();
         const hoursToShow = Math.min(durationHours, hoursRemainingInDay);
-        baseWidth = hoursToShow * 80;
+        const slotsToShow = hoursToShow * 4; // Convert hours to 15-minute slots
+        baseWidth = slotsToShow * 20;
     } else if (eventEndsOnCurrentDay) {
-        // Event ends on current day - show until end hour
+        // Event ends on current day - show until end time with 15-minute precision
         baseLeft = 0; // Start from beginning of day
-        const hoursFromStartOfDay = eventEndTime.getHours() + (eventEndTime.getMinutes() / 60);
-        baseWidth = hoursFromStartOfDay * 80;
+        const endHour = eventEndTime.getHours();
+        const endMinute = eventEndTime.getMinutes();
+        const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
+        baseWidth = endSlot * 20;
     } else {
         // Event spans across current day - show full day
         baseLeft = 0;
-        baseWidth = 24 * 80; // Full day width
+        baseWidth = 24 * 4 * 20; // Full day width (96 slots * 20px)
     }
     
     // Apply transform only when dragging, otherwise use base position
@@ -109,7 +117,14 @@ function ScheduledEvent({ event, machine, currentDate }) {
 
 // A single row in the Gantt chart, representing one machine
 function MachineRow({ machine, scheduledEvents, currentDate, unavailableByMachine }) {
-  const hours = Array.from({ length: 24 }, (_, i) => i); // 24 hours in a day
+  // Generate 96 slots (24 hours * 4 slots per hour)
+  const timeSlots = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (let minute = 0; minute < 60; minute += 15) {
+      timeSlots.push({ hour, minute });
+    }
+  }
+  
   return (
     <div className="machine-row" data-machine-id={machine.id}>
       <div className="machine-label">
@@ -117,20 +132,32 @@ function MachineRow({ machine, scheduledEvents, currentDate, unavailableByMachin
         <div className="machine-city">{machine.work_center}</div>
       </div>
       <div className="machine-slots">
-        {hours.map(hour => {
+        {timeSlots.map(({ hour, minute }, index) => {
           const setForMachine = unavailableByMachine[machine.id];
+          // Check if this 15-minute slot falls within an unavailable hour
           const isUnavailable = setForMachine ? setForMachine.has(hour.toString()) : false;
           
-          // Check if there's a scheduled task at this hour
-          const hasScheduledTask = scheduledEvents.some(event => 
-            isTaskOverlapping(event, toDateString(currentDate), hour)
-          );
+          // Check if there's a scheduled task at this 15-minute slot
+          const hasScheduledTask = scheduledEvents.some(event => {
+            // Convert the 15-minute slot to a time range for overlap checking
+            const slotStart = new Date(currentDate);
+            slotStart.setHours(hour, minute, 0, 0);
+            const slotEnd = new Date(currentDate);
+            slotEnd.setHours(hour, minute + 15, 0, 0);
+            
+            const eventStart = new Date(event.scheduled_start_time);
+            const eventEnd = new Date(event.scheduled_end_time);
+            
+            // Check if the event overlaps with this 15-minute slot
+            return eventStart < slotEnd && eventEnd > slotStart;
+          });
           
           return (
             <TimeSlot 
-              key={hour} 
+              key={`${hour}-${minute}`} 
               machine={machine} 
               hour={hour} 
+              minute={minute}
               isUnavailable={isUnavailable} 
               hasScheduledTask={hasScheduledTask}
             />
@@ -179,8 +206,10 @@ function GanttChart({ machines, tasks, currentDate }) {
         <div className="calendar-header-row">
           <div className="machine-label-header">Machines</div>
           <div className="time-header">
-            {Array.from({ length: 24 }, (_, i) => (
-              <div key={i} className="time-slot-header">{i.toString().padStart(2, '0')}</div>
+            {Array.from({ length: 24 }, (_, hour) => (
+              <div key={hour} className="time-slot-header hour-header" style={{ gridColumn: `${hour * 4 + 1} / span 4` }}>
+                {hour.toString().padStart(2, '0')}
+              </div>
             ))}
           </div>
         </div>

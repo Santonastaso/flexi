@@ -67,20 +67,36 @@ function BacklogForm() {
 
   const validateForm = () => {
     // Use the new validation hook
-    const newErrors = validateOrder(formData);
+    const validationErrors = validateOrder(formData);
     
     // Additional phase validation
     if (selectedPhase) {
       const phaseErrors = validatePhaseSelection(selectedPhase, formData);
       if (phaseErrors.length > 0) {
-        newErrors.phase = phaseErrors[0]; // Show first error
+        validationErrors.push(...phaseErrors);
       }
     } else {
-      newErrors.phase = 'Please select a production phase';
+      validationErrors.push('Please select a production phase');
     }
 
+    console.log('Validation errors:', validationErrors);
+    
+    // Convert array of errors to object format for display
+    const newErrors = {};
+    validationErrors.forEach(error => {
+      // Try to extract field name from error message, fallback to 'general' if can't determine
+      if (error.includes('is required') || error.includes('must be greater than')) {
+        // Extract field name from error message
+        const fieldMatch = error.match(/^([^:]+):/);
+        const fieldName = fieldMatch ? fieldMatch[1].trim().toLowerCase().replace(/\s+/g, '_') : 'general';
+        newErrors[fieldName] = error;
+      } else {
+        newErrors.general = error;
+      }
+    });
+
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return validationErrors.length === 0;
   };
 
   const handleChange = (e) => {
@@ -121,7 +137,16 @@ function BacklogForm() {
   };
 
   const handleCalculate = () => {
+    console.log('Calculate button clicked');
+    console.log('Selected phase:', selectedPhase);
+    console.log('Form data:', formData);
+    
     if (!selectedPhase || !formData.quantity || !formData.bag_step) {
+      console.log('Validation failed:', { 
+        hasPhase: !!selectedPhase, 
+        hasQuantity: !!formData.quantity, 
+        hasBagStep: !!formData.bag_step 
+      });
       alert("Please select a phase and enter Quantity and Bag Step to calculate.");
       return;
     }
@@ -132,22 +157,30 @@ function BacklogForm() {
       ...editablePhaseParams
     };
     
+    console.log('Phase for calculation:', phaseForCalculation);
     const results = calculateProductionMetrics(phaseForCalculation, formData.quantity, formData.bag_step);
+    console.log('Calculation results:', results);
     setCalculationResults(results);
   };
 
   const handleSubmit = async (e) => {
+    console.log('Form submit triggered');
     e.preventDefault();
     
+    console.log('Validating form...');
     if (!validateForm()) {
+      console.log('Form validation failed');
       return;
     }
 
+    console.log('Checking calculation results...');
     if (!calculationResults) {
+      console.log('No calculation results available');
       alert("Please calculate production metrics before adding to the backlog.");
       return;
     }
 
+    console.log('Submitting form with data:', { formData, calculationResults });
     setIsSubmitting(true);
     
     try {
@@ -158,7 +191,9 @@ function BacklogForm() {
         status: 'NOT SCHEDULED',
       };
       
+      console.log('Calling addOdpOrder with:', orderData);
       await addOdpOrder(orderData);
+      console.log('Order added successfully');
       
       // Reset form
       setFormData(initialFormData);

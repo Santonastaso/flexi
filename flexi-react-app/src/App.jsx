@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Outlet } from 'react-router-dom';
+import { Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import SideNav from './components/SideNav';
 import MachineryPage from './pages/MachineryPage';
 import MachineCalendarPage from './pages/MachineCalendarPage';
@@ -48,6 +48,9 @@ function App() {
             <Route path="scheduler" element={<SchedulerPage />} />
           </Route>
         </Route>
+        
+        {/* Catch-all route for unmatched paths */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </ErrorBoundary>
   );

@@ -10,10 +10,6 @@ function OffTimeForm({ machineId, currentDate }) {
   const [message, setMessage] = useState('');
   
   const setMachineUnavailability = useStore(state => state.setMachineUnavailability);
-  const machines = useStore(state => state.machines);
-  
-  const machine = machines.find(m => m.id === machineId);
-  const machineName = machine?.machine_name || 'Unknown Machine';
 
   useEffect(() => {
     const today = new Date();

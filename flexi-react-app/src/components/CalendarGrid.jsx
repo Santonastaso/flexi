@@ -12,13 +12,13 @@ function CalendarGrid({ machineId, currentDate, currentView }) {
   const toggleMachineHourAvailability = useStore(state => state.toggleMachineHourAvailability);
   
   const machine = machines.find(m => m.id === machineId);
-  const machineName = machine?.machine_name || 'Unknown Machine';
 
   // Load availability data for the current view
   useEffect(() => {
     const loadData = async () => {
       if (!machineId) return;
       
+      const dateStr = toDateString(currentDate);
       setIsLoading(true);
       try {
         const data = await getMachineAvailability(machineId, dateStr);

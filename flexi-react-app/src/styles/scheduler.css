@@ -796,29 +796,33 @@
 }
 
 .time-header {
-    flex: 1;
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(96, 20px); /* 96 slots of 20px each (24 hours * 4 slots per hour) */
     min-width: 1920px;
     flex-shrink: 0;
 }
 
 .time-slot-header {
-    width: 80px;
-    min-width: 80px;
+    width: 20px;
+    min-width: 20px;
     text-align: center;
     font-weight: 700;
     color: var(--text-light);
-    font-size: 12px;
+    font-size: 10px;
     border-right: 1px solid var(--border-color);
     flex-shrink: 0;
-    padding: 8px 4px;
+    padding: 4px 2px;
     background: var(--bg-color);
 }
 
-.time-slot-header:nth-child(4n+1) {
-    border-right-width: 2px;
+.time-slot-header.hour-header {
+    grid-column: span 4; /* Span 4 slots (1 hour) */
+    width: 80px;
+    min-width: 80px;
+    font-size: 12px;
     color: var(--text-dark);
     background: rgba(0,0,0,0.02);
+    border-right-width: 2px;
 }
 
 .calendar-body {
@@ -872,7 +876,8 @@
 
 .machine-slots {
     flex: 1;
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(96, 20px); /* 96 slots of 20px each */
     position: relative;
     min-width: 1920px;
     flex-shrink: 0;
@@ -880,8 +885,8 @@
 }
 
 .time-slot {
-    width: 80px;
-    min-width: 80px;
+    width: 20px;
+    min-width: 20px;
     border-right: 1px solid rgba(224, 224, 224, 0.5);
     position: relative;
     transition: all 0.2s ease;

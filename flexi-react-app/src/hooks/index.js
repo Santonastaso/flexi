@@ -12,5 +12,4 @@ export { default as usePhaseValidation } from './usePhaseValidation';
 export * from './useProductionCalculations';
 export * from './useMachineValidation';
 export * from './useOrderValidation';
-export * from './useAsyncErrorHandler';
 export * from './usePhaseValidation';

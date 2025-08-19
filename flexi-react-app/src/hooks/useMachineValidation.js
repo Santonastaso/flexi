@@ -53,7 +53,7 @@ export const useMachineValidation = () => {
   /**
    * Check if machine is available for scheduling
    */
-  const isMachineAvailable = useCallback((machine, date, hour) => {
+  const isMachineAvailable = useCallback((machine, date) => {
     if (machine.status !== 'ACTIVE') {
       return false;
     }

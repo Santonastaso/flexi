@@ -42,7 +42,7 @@ export const handleSupabaseError = (error, context = '') => {
  */
 export const checkSupabaseConnection = async () => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('machines')
       .select('count')
       .limit(1);

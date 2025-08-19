@@ -19,9 +19,16 @@ export const AuthProvider = ({ children }) => {
     // Get initial session
     const getInitialSession = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        setSession(initialSession);
-        setUser(initialSession?.user ?? null);
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting initial session:', error);
+          setError('Failed to initialize authentication');
+        } else {
+          console.log('Initial session loaded:', initialSession ? 'User authenticated' : 'No user session');
+          setSession(initialSession);
+          setUser(initialSession?.user ?? null);
+        }
       } catch (error) {
         console.error('Error getting initial session:', error);
         setError('Failed to initialize authentication');
@@ -35,7 +42,7 @@ export const AuthProvider = ({ children }) => {
     // Listen for authentication state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
+        console.log('Auth state changed:', event, session?.user?.email || 'No user');
         
         setSession(session);
         setUser(session?.user ?? null);
@@ -55,6 +62,9 @@ export const AuthProvider = ({ children }) => {
             break;
           case 'USER_UPDATED':
             console.log('User updated:', session?.user?.email);
+            break;
+          case 'INITIAL_SESSION':
+            console.log('Initial session event:', session ? 'User authenticated' : 'No user session');
             break;
         }
       }

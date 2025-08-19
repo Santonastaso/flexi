@@ -72,7 +72,9 @@ export const validateNumericFields = (data, schema) => {
   const errors = {};
   Object.entries(schema).forEach(([field, rules]) => {
     if (data[field] !== undefined && data[field] !== null && data[field] !== '') {
+      console.log(`Validating field ${field}:`, { value: data[field], type: typeof data[field], rules });
       if (!isValidNumber(data[field], rules.min, rules.max)) {
+        console.log(`Validation failed for ${field}:`, data[field]);
         errors[field] = rules.message;
       }
     }
@@ -253,9 +255,12 @@ export const isValidDate = (date) => {
  * Check if value is a valid number within range
  */
 export const isValidNumber = (value, min = null, max = null) => {
-  if (typeof value !== 'number' || isNaN(value)) return false;
-  if (min !== null && value < min) return false;
-  if (max !== null && value > max) return false;
+  // Convert string to number if needed
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  
+  if (typeof numValue !== 'number' || isNaN(numValue)) return false;
+  if (min !== null && numValue < min) return false;
+  if (max !== null && numValue > max) return false;
   return true;
 };
 
@@ -263,9 +268,12 @@ export const isValidNumber = (value, min = null, max = null) => {
  * Check if value is a valid integer
  */
 export const isValidInteger = (value, min = null, max = null) => {
-  if (!Number.isInteger(value)) return false;
-  if (min !== null && value < min) return false;
-  if (max !== null && value > max) return false;
+  // Convert string to integer if needed
+  const intValue = typeof value === 'string' ? parseInt(value, 10) : value;
+  
+  if (!Number.isInteger(intValue)) return false;
+  if (min !== null && intValue < min) return false;
+  if (max !== null && intValue > max) return false;
   return true;
 };
 

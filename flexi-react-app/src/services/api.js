@@ -11,7 +11,7 @@ class ApiService {
   async init() {
     try {
       // Test connection
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('machines')
         .select('count')
         .limit(1);
@@ -299,29 +299,6 @@ class ApiService {
     console.log('Setting unavailable hours for range:', { machineId, startDate, endDate, startTime, endTime });
     return true;
   }
-
-  // ===== snake_case aliases for backward compatibility and consistency =====
-  async get_machines() { return this.getMachines(); }
-  async add_machine(machineData) { return this.addMachine(machineData); }
-  async update_machine(id, updates) { return this.updateMachine(id, updates); }
-  async remove_machine(id) { return this.removeMachine(id); }
-
-  async get_odp_orders() { return this.getOdpOrders(); }
-  async add_odp_order(orderData) { return this.addOdpOrder(orderData); }
-  async update_odp_order(id, updates) { return this.updateOdpOrder(id, updates); }
-  async remove_odp_order(id) { return this.removeOdpOrder(id); }
-
-  async get_phases() { return this.getPhases(); }
-  async add_phase(phaseData) { return this.addPhase(phaseData); }
-  async update_phase(id, updates) { return this.updatePhase(id, updates); }
-  async remove_phase(id) { return this.removePhase(id); }
-
-  async get_machine_availability_for_date_range(machineId, startDate, endDate) { return this.getMachineAvailabilityForDateRange(machineId, startDate, endDate); }
-  async get_machine_availability_for_date(machineId, dateStr) { return this.getMachineAvailabilityForDate(machineId, dateStr); }
-  async set_machine_availability(machineId, dateStr, unavailableHours) { return this.setMachineAvailability(machineId, dateStr, unavailableHours); }
-  async get_machine_availability_for_date_all_machines(dateStr) { return this.getMachineAvailabilityForDateAllMachines(dateStr); }
-  async get_events_by_date(dateStr) { return this.getEventsByDate(dateStr); }
-  async set_unavailable_hours_for_range(machineId, startDate, endDate, startTime, endTime) { return this.setUnavailableHoursForRange(machineId, startDate, endDate, startTime, endTime); }
 }
 
 // Create and export singleton instance
