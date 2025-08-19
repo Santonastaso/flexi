@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://santonastaso.github.io/flexi/flexi-react-app",
+  "homepage": "https://santonastaso.github.io/flexi",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
