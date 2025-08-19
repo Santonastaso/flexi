@@ -28,7 +28,7 @@ function SideNav() {
     <div className="sidebar">
       <div className="sidebar-logo">
         <Link to="/">
-          <img src="/assets/logo.svg" alt="Flexi" />
+          <img src="./assets/logo.svg" alt="Flexi" />
         </Link>
       </div>
 
