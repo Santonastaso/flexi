@@ -238,7 +238,12 @@ function SchedulerPage() {
       </div>
       <DragOverlay>
         {activeDragItem ? (
-          <div className="task-item" style={{ boxShadow: '0 4px 8px rgba(0,0,0,0.3)' }}>
+          <div className="task-item drag-overlay" style={{ 
+            boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
+            transform: 'rotate(3deg) scale(1.05)',
+            opacity: 0.9,
+            zIndex: 1002
+          }}>
             <span>{activeDragItem.odp_number}</span>
             <span className="task-duration">{activeDragItem.duration || 1}h</span>
           </div>
