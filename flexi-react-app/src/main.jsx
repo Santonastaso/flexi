@@ -6,7 +6,7 @@ import { AuthProvider } from './auth/AuthContext';
 import './styles/index.css';
 
 // Get the base path for GitHub Pages
-const basename = import.meta.env.PROD ? '/flexi-react-app' : '';
+const basename = import.meta.env.PROD ? '/flexi/flexi-react-app' : '';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
