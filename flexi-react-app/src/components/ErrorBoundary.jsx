@@ -47,7 +47,7 @@ class ErrorBoundary extends React.Component {
   logErrorToService(error, errorInfo) {
     // In production, you would send this to an error tracking service
     // For now, we'll just log it to console
-    if (process.env.NODE_ENV === 'production') {
+    if (import.meta.env.MODE === 'production') {
       // Example: Sentry.captureException(error, { extra: errorInfo });
       console.group('🚨 Production Error Report');
       console.log('Error ID:', this.state.errorId);
@@ -111,7 +111,7 @@ Please describe what you were doing when this error occurred:
               We're sorry, but something unexpected happened. Our team has been notified and is working to fix this issue.
             </p>
 
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {import.meta.env.MODE === 'development' && this.state.error && (
               <details className="error-boundary__details">
                 <summary>Error Details (Development)</summary>
                 <div className="error-boundary__error-info">

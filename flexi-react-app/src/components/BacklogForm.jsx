@@ -433,6 +433,46 @@ function BacklogForm() {
           </div>
         </div>
 
+        {/* DATI COMMERCIALI Section */}
+        <div className="form-section">
+          <h3 className="section-title">💰 Dati Commerciali</h3>
+          <div className="form-grid form-grid--3-cols">
+            <div className="form-group">
+              <label htmlFor="internal_customer_code">FLEXI Lot</label>
+              <input 
+                type="text" 
+                id="internal_customer_code" 
+                name="internal_customer_code" 
+                value={formData.internal_customer_code} 
+                onChange={handleChange} 
+                placeholder="FLEXI Lot" 
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="external_customer_code">Customer Lot</label>
+              <input 
+                type="text" 
+                id="external_customer_code" 
+                name="external_customer_code" 
+                value={formData.external_customer_code} 
+                onChange={handleChange} 
+                placeholder="Customer Lot" 
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="customer_order_ref">Customer Ref</label>
+              <input 
+                type="text" 
+                id="customer_order_ref" 
+                name="customer_order_ref" 
+                value={formData.customer_order_ref} 
+                onChange={handleChange} 
+                placeholder="Customer Reference" 
+              />
+            </div>
+          </div>
+        </div>
+
         {/* DATI LAVORAZIONE & PIANIFICAZIONE Section */}
         <div className="form-section">
           <h3 className="section-title">⚙️ Dati Lavorazione & Pianificazione</h3>

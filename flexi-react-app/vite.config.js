@@ -6,7 +6,7 @@ export default defineConfig(({ command, mode }) => {
   
   return {
     plugins: [react()],
-    base: isDev ? '/' : '/flexi', // Use root path in dev, /flexi in production
+    base: isDev ? '/' : '/flexi/', // Add trailing slash for GitHub Pages
     server: {
       // Ensure dev server works correctly
       port: 5173,

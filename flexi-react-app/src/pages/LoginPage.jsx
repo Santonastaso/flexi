@@ -153,8 +153,8 @@ function LoginPage() {
           </Link>
         </div>
 
-        {/* Demo Credentials (for development) */}
-        {process.env.NODE_ENV === 'development' && (
+                  {/* Demo Credentials (for development) */}
+          {import.meta.env.MODE === 'development' && (
           <div className="auth-demo">
             <details>
               <summary>Demo Credentials (Development Only)</summary>
