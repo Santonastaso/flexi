@@ -83,7 +83,7 @@ function SchedulerPage() {
     }
   };
 
-  const handleDragEnd = (event) => {
+  const handleDragEnd = async (event) => {
     setActiveDragItem(null);
     const { over, active } = event;
     if (!over) return;
@@ -117,10 +117,9 @@ function SchedulerPage() {
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
       };
-      try {
-        scheduleTask(task.id, scheduleData);
-      } catch (e) {
-        showAlert(e.message || 'Scheduling failed', 'error');
+      const result = await scheduleTask(task.id, scheduleData);
+      if (result?.error) {
+        showAlert(result.error, 'error');
         return;
       }
     }
@@ -151,10 +150,9 @@ function SchedulerPage() {
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
       };
-      try {
-        scheduleTask(eventItem.id, scheduleData);
-      } catch (e) {
-        showAlert(e.message || 'Rescheduling failed', 'error');
+      const result = await scheduleTask(eventItem.id, scheduleData);
+      if (result?.error) {
+        showAlert(result.error, 'error');
         return;
       }
     }

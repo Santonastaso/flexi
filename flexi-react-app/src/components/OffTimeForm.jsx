@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
+import { toDateString } from '../utils/dateUtils';
 
-function OffTimeForm({ machineId, currentDate }) {
+function OffTimeForm({ machineId, currentDate, onSuccess }) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -10,14 +11,15 @@ function OffTimeForm({ machineId, currentDate }) {
   const [message, setMessage] = useState('');
   
   const setMachineUnavailability = useStore(state => state.setMachineUnavailability);
+  const showAlert = useStore(state => state.showAlert);
 
   useEffect(() => {
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     
-    setStartDate(today.toISOString().split('T')[0]);
-    setEndDate(tomorrow.toISOString().split('T')[0]);
+    setStartDate(toDateString(today));
+    setEndDate(toDateString(tomorrow));
     setStartTime('09:00');
     setEndTime('17:00');
   }, [currentDate]);
@@ -29,7 +31,13 @@ function OffTimeForm({ machineId, currentDate }) {
 
     try {
       await setMachineUnavailability(machineId, startDate, endDate, startTime, endTime);
+      showAlert('Machine unavailability set successfully!', 'success');
       setMessage('Machine unavailability set successfully!');
+      
+      // Call the success callback to refresh calendar data
+      if (onSuccess) {
+        onSuccess();
+      }
       
       // Reset form
       setStartDate('');
@@ -37,6 +45,7 @@ function OffTimeForm({ machineId, currentDate }) {
       setStartTime('');
       setEndTime('');
     } catch (error) {
+      showAlert(`Failed to set machine unavailability: ${error.message}`, 'error');
       setMessage(`Error: ${error.message}`);
     } finally {
       setIsSubmitting(false);

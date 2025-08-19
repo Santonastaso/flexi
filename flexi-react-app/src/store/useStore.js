@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
+import { toDateString } from '../utils/dateUtils';
 
 // Zustand store that mirrors the existing appStore.js API
 export const useStore = create((set, get) => ({
@@ -211,7 +212,7 @@ export const useStore = create((set, get) => ({
     const task = state.odpOrders.find(o => o.id === taskId);
     const machine = state.machines.find(m => m.id === eventData.machine);
     if (task && machine && task.work_center && machine.work_center && task.work_center !== machine.work_center) {
-      throw new Error(`Work center mismatch: task requires '${task.work_center}' but machine is '${machine.work_center}'`);
+      return { error: `Work center mismatch: task requires '${task.work_center}' but machine is '${machine.work_center}'` };
     }
 
     const updates = {
@@ -224,6 +225,7 @@ export const useStore = create((set, get) => ({
       status: 'SCHEDULED',
     };
     await get().updateOdpOrder(taskId, updates);
+    return { success: true };
   },
   unscheduleTask: async (taskId) => {
     const updates = {
@@ -240,7 +242,11 @@ export const useStore = create((set, get) => ({
 
   // Machine availability
   loadMachineAvailabilityForDateRange: async (machineId, startDate, endDate) => {
-    const cacheKey = `${machineId}_${startDate}_${endDate}`;
+    // Convert Date objects to date strings using toDateString for consistent timezone handling
+    const startDateStr = startDate instanceof Date ? toDateString(startDate) : startDate;
+    const endDateStr = endDate instanceof Date ? toDateString(endDate) : endDate;
+    
+    const cacheKey = `${machineId}_${startDateStr}_${endDateStr}`;
     const { machineAvailability } = get();
     if (machineAvailability[cacheKey]) return machineAvailability[cacheKey];
     
@@ -252,7 +258,7 @@ export const useStore = create((set, get) => ({
     }));
     
     try {
-      const data = await apiService.getMachineAvailabilityForDateRange(machineId, startDate, endDate);
+      const data = await apiService.getMachineAvailabilityForDateRange(machineId, startDateStr, endDateStr);
       
       set(state => ({ 
         machineAvailability: { 
@@ -354,7 +360,7 @@ export const useStore = create((set, get) => ({
       }
       const current = new Date(startDate);
       while (current <= endDate) {
-        const dateStr = current.toISOString().split('T')[0];
+        const dateStr = toDateString(current);
         const existing = get().machineAvailability[dateStr];
         if (!existing) {
           await get().loadMachineAvailabilityForDate(dateStr);
@@ -467,15 +473,17 @@ export const useStore = create((set, get) => ({
 
   setMachineUnavailability: async (machineId, startDate, endDate, startTime, endTime) => {
     try {
-      const isAccessible = await get().isMachineAvailabilityAccessible();
-      if (!isAccessible) {
-        throw new Error('Machine availability table is not accessible.');
-      }
-      await apiService.setUnavailableHoursForRange(machineId, startDate, endDate, startTime, endTime);
-      const startDateObj = new Date(startDate.split('/').reverse().join('-'));
-      const endDateObj = new Date(endDate.split('/').reverse().join('-'));
-      await get().loadMachineAvailabilityForMachine(machineId, startDateObj, endDateObj);
-      return true;
+      // Set the unavailable hours for the date range
+      const results = await apiService.setUnavailableHoursForRange(machineId, startDate, endDate, startTime, endTime);
+      
+      // Refresh the local availability data for the affected date range
+      const startDateObj = new Date(startDate);
+      const endDateObj = new Date(endDate);
+      
+      // Load updated availability data for the range
+      await get().loadMachineAvailabilityForDateRange(machineId, startDateObj, endDateObj);
+      
+      return results;
     } catch (e) {
       console.error('Error setting machine unavailability:', e);
       throw e;

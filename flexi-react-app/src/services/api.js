@@ -1,4 +1,5 @@
 import { supabase, handleSupabaseError } from './supabase/client';
+import { toDateString } from '../utils/dateUtils';
 
 /**
  * Modern API service for data operations
@@ -294,10 +295,47 @@ class ApiService {
   }
 
   async setUnavailableHoursForRange(machineId, startDate, endDate, startTime, endTime) {
-    // This would need to be implemented based on your specific requirements
-    // For now, returning a placeholder
-    console.log('Setting unavailable hours for range:', { machineId, startDate, endDate, startTime, endTime });
-    return true;
+    try {
+      // Parse start and end times to get hour ranges
+      const startHour = parseInt(startTime.split(':')[0]);
+      const endHour = parseInt(endTime.split(':')[0]);
+      
+      // Generate array of hours to mark as unavailable
+      const hoursToMark = [];
+      for (let hour = startHour; hour < endHour; hour++) {
+        hoursToMark.push(hour.toString());
+      }
+      
+      // Convert dates to Date objects for iteration
+      const startDateObj = new Date(startDate);
+      const endDateObj = new Date(endDate);
+      
+      // Iterate through each date in the range
+      const currentDate = new Date(startDateObj);
+      const results = [];
+      
+      while (currentDate <= endDateObj) {
+        const dateStr = toDateString(currentDate);
+        
+        // Get current unavailable hours for this date
+        const currentData = await this.getMachineAvailabilityForDate(machineId, dateStr);
+        const currentUnavailableHours = currentData?.unavailable_hours || [];
+        
+        // Add new hours to the existing ones (avoid duplicates)
+        const newUnavailableHours = [...new Set([...currentUnavailableHours, ...hoursToMark])].sort((a, b) => parseInt(a) - parseInt(b));
+        
+        // Update the database
+        const result = await this.setMachineAvailability(machineId, dateStr, newUnavailableHours);
+        results.push(result);
+        
+        // Move to next date
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      return results;
+    } catch (error) {
+      throw new Error(`Failed to set unavailable hours for range: ${handleSupabaseError(error)}`);
+    }
   }
 }
 

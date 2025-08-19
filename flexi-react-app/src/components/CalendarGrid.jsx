@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { toDateString, isTaskOverlapping } from '../utils/dateUtils';
 
-function CalendarGrid({ machineId, currentDate, currentView }) {
+function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
   const [availabilityData, setAvailabilityData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   
   const machines = useStore(state => state.machines);
   const odpOrders = useStore(state => state.odpOrders);
   const getMachineAvailability = useStore(state => state.getMachineAvailability);
+  const loadMachineAvailabilityForDateRange = useStore(state => state.loadMachineAvailabilityForDateRange);
   const toggleMachineHourAvailability = useStore(state => state.toggleMachineHourAvailability);
   const showAlert = useStore(state => state.showAlert);
   
@@ -19,15 +20,90 @@ function CalendarGrid({ machineId, currentDate, currentView }) {
     const loadData = async () => {
       if (!machineId) return;
       
-      const dateStr = toDateString(currentDate);
+      console.log(`CalendarGrid: loadData called with currentView: ${currentView}, currentDate: ${currentDate}`);
+      
       setIsLoading(true);
       try {
-        const data = await getMachineAvailability(machineId, dateStr);
-        if (data && Array.isArray(data)) {
-          setAvailabilityData(prev => ({
-            ...prev,
-            [dateStr]: data
-          }));
+        if (currentView === 'Month') {
+          // For month view, load data for the entire month
+          const year = currentDate.getFullYear();
+          const month = currentDate.getMonth();
+          const firstDay = new Date(year, month, 1);
+          const lastDay = new Date(year, month + 1, 0);
+          
+          // Convert to date strings without timezone using toDateString
+          const firstDayStr = toDateString(firstDay);
+          const lastDayStr = toDateString(lastDay);
+          
+          console.log(`CalendarGrid: Loading month data for ${year}-${month + 1}`, { 
+            firstDay, 
+            lastDay, 
+            firstDayStr, 
+            lastDayStr 
+          });
+          
+          // Load data for the month range using date strings
+          const monthData = await loadMachineAvailabilityForDateRange(machineId, firstDayStr, lastDayStr);
+          console.log(`CalendarGrid: Month data received:`, monthData);
+          
+          // Process the month data and organize by date
+          if (monthData && Array.isArray(monthData)) {
+            const organizedData = {};
+            monthData.forEach(item => {
+              if (item.date && item.unavailable_hours) {
+                // Convert date to the format expected by toDateString
+                const dateObj = new Date(item.date);
+                const dateStr = toDateString(dateObj);
+                organizedData[dateStr] = item.unavailable_hours;
+                console.log(`CalendarGrid: Organized data for ${dateStr}:`, item.unavailable_hours);
+              }
+            });
+            console.log(`CalendarGrid: Final organized data:`, organizedData);
+            setAvailabilityData(organizedData);
+          }
+        } else if (currentView === 'Week') {
+          // For week view, load data for the entire week
+          const startOfWeek = new Date(currentDate);
+          startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+          
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 6);
+          
+          // Convert to date strings without timezone using toDateString
+          const startOfWeekStr = toDateString(startOfWeek);
+          const endOfWeekStr = toDateString(endOfWeek);
+          
+          console.log(`CalendarGrid: Loading week data from ${startOfWeekStr} to ${endOfWeekStr}`);
+          
+          // Load data for the week range
+          const weekData = await loadMachineAvailabilityForDateRange(machineId, startOfWeekStr, endOfWeekStr);
+          console.log(`CalendarGrid: Week data received:`, weekData);
+          
+          // Process the week data and organize by date
+          if (weekData && Array.isArray(weekData)) {
+            const organizedData = {};
+            weekData.forEach(item => {
+              if (item.date && item.unavailable_hours) {
+                // Convert date to the format expected by toDateString
+                const dateObj = new Date(item.date);
+                const dateStr = toDateString(dateObj);
+                organizedData[dateStr] = item.unavailable_hours;
+                console.log(`CalendarGrid: Organized week data for ${dateStr}:`, item.unavailable_hours);
+              }
+            });
+            console.log(`CalendarGrid: Final organized week data:`, organizedData);
+            setAvailabilityData(organizedData);
+          }
+        } else {
+          // For other views (like Day), load data for the specific date
+          const dateStr = toDateString(currentDate);
+          const data = await getMachineAvailability(machineId, dateStr);
+          if (data && Array.isArray(data)) {
+            setAvailabilityData(prev => ({
+              ...prev,
+              [dateStr]: data
+            }));
+          }
         }
       } catch (error) {
         console.error('Error loading availability data:', error);
@@ -37,7 +113,7 @@ function CalendarGrid({ machineId, currentDate, currentView }) {
     };
     
     loadData();
-  }, [machineId, currentDate, currentView, getMachineAvailability]);
+  }, [machineId, currentDate, currentView, refreshTrigger, getMachineAvailability, loadMachineAvailabilityForDateRange]);
 
   // Check if a time slot has scheduled tasks
   const hasScheduledTask = (dateStr, hour) => {
