@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
+import { useStore } from '../store/useStore';
 
 // Individual Draggable Task Component - optimized
 const DraggableTask = React.memo(({ task }) => {
@@ -22,16 +23,20 @@ const DraggableTask = React.memo(({ task }) => {
 
 // Main Task Pool Component - optimized for performance
 function TaskPool({ tasks }) {
+  const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
   const { setNodeRef } = useDroppable({
     id: 'task-pool',
     data: { type: 'pool' },
   });
 
   // Memoize unscheduled tasks filtering for better performance
-  const unscheduledTasks = useMemo(() =>
-    tasks.filter(task => task.status !== 'SCHEDULED'),
-    [tasks]
-  );
+  const unscheduledTasks = useMemo(() => {
+    let filtered = tasks.filter(task => task.status !== 'SCHEDULED');
+    if (selectedWorkCenter && selectedWorkCenter !== 'BOTH') {
+      filtered = filtered.filter(task => task.work_center === selectedWorkCenter);
+    }
+    return filtered;
+  }, [tasks, selectedWorkCenter]);
 
   return (
     <div className="task-pool-section">

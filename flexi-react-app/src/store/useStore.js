@@ -215,6 +215,60 @@ export const useStore = create((set, get) => ({
       return { error: `Work center mismatch: task requires '${task.work_center}' but machine is '${machine.work_center}'` };
     }
 
+    // Check for overlaps with existing scheduled tasks on the same machine
+    const existingTasks = state.odpOrders.filter(o => 
+      o.scheduled_machine_id === eventData.machine && 
+      o.status === 'SCHEDULED' &&
+      o.id !== taskId
+    );
+
+    const newStart = new Date(eventData.start_time);
+    const newEnd = new Date(eventData.end_time);
+
+    for (const existingTask of existingTasks) {
+      const existingStart = new Date(existingTask.scheduled_start_time);
+      const existingEnd = new Date(existingTask.scheduled_end_time);
+      
+      // Check if tasks overlap (any overlap is invalid)
+      if (newStart < existingEnd && newEnd > existingStart) {
+        return { error: `Task overlaps with existing scheduled task: ${existingTask.odp_number}` };
+      }
+    }
+
+    // Check for overlaps with unavailable slots on the same machine
+    const newStartDate = toDateString(newStart);
+    
+    console.log('🔍 Checking machine availability for:', {
+      machineId: eventData.machine,
+      date: newStartDate,
+      allKeys: Object.keys(state.machineAvailability)
+    });
+    
+    // Check machine availability for the target date
+    const dateAvailability = state.machineAvailability[newStartDate];
+    if (dateAvailability && Array.isArray(dateAvailability)) {
+      const machineAvailability = dateAvailability.find(ma => ma.machine_id === eventData.machine);
+      
+      if (machineAvailability && machineAvailability.unavailable_hours && Array.isArray(machineAvailability.unavailable_hours)) {
+        console.log('🔍 Found machine availability:', machineAvailability);
+        
+        const targetDateStart = new Date(newStart.getFullYear(), newStart.getMonth(), newStart.getDate());
+        
+        for (const hour of machineAvailability.unavailable_hours) {
+          const hourStart = new Date(targetDateStart.getTime() + parseInt(hour) * 60 * 60 * 1000);
+          const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
+          
+          console.log('🔍 Checking hour:', { hour, hourStart, hourEnd, newStart, newEnd });
+          
+          // Check if task overlaps with unavailable hour
+          if (newStart < hourEnd && newEnd > hourStart) {
+            console.log('❌ OVERLAP DETECTED!');
+            return { error: `Task overlaps with unavailable slot at hour ${hour}:00` };
+          }
+        }
+      }
+    }
+
     const updates = {
       scheduled_machine_id: eventData.machine,
       scheduled_start_time: eventData.start_time,
@@ -285,6 +339,37 @@ export const useStore = create((set, get) => ({
 
   setMachineAvailability: async (machineId, dateStr, unavailableHours) => {
     try {
+      // Check for overlaps with existing scheduled tasks on the same machine and date
+      const state = get();
+      const existingTasks = state.odpOrders.filter(o => 
+        o.scheduled_machine_id === machineId && 
+        o.status === 'SCHEDULED' &&
+        o.scheduled_start_time && 
+        o.scheduled_end_time
+      );
+
+      const targetDate = new Date(dateStr);
+      const targetDateStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      const targetDateEnd = new Date(targetDateStart.getTime() + 24 * 60 * 60 * 1000);
+
+      for (const task of existingTasks) {
+        const taskStart = new Date(task.scheduled_start_time);
+        const taskEnd = new Date(task.scheduled_end_time);
+        
+        // Check if task is on the same date
+        if (taskStart < targetDateEnd && taskEnd > targetDateStart) {
+          // Check if any unavailable hour overlaps with the task
+          for (const hour of unavailableHours) {
+            const hourStart = new Date(targetDateStart.getTime() + parseInt(hour) * 60 * 60 * 1000);
+            const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
+            
+            if (hourStart < taskEnd && hourEnd > taskStart) {
+              throw new Error(`Cannot set machine unavailable during scheduled task: ${task.odp_number}`);
+            }
+          }
+        }
+      }
+
       await apiService.setMachineAvailability(machineId, dateStr, unavailableHours);
       set(state => {
         const next = { ...state.machineAvailability };
