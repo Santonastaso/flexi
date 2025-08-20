@@ -385,7 +385,9 @@ export const useStore = create((set, get) => ({
 
     for (const existingTask of existingTasks) {
       const existingStart = new Date(existingTask.scheduled_start_time);
-      const existingEnd = new Date(existingTask.scheduled_end_time);
+      // Calculate actual end time based on time_remaining instead of stored scheduled_end_time
+      const existingTimeRemaining = existingTask.time_remaining || existingTask.duration || 1;
+      const existingEnd = new Date(existingStart.getTime() + (existingTimeRemaining * 60 * 60 * 1000));
       
       // Check if tasks overlap (any overlap is invalid)
       if (newStart < existingEnd && newEnd > existingStart) {

@@ -226,8 +226,8 @@ function SchedulerPage() {
 
             const startDate = new Date(currentDate);
             startDate.setHours(hour, minute, 0, 0);
-            const durationHours = task.duration || 1;
-            const endDate = addHoursToDate(startDate, durationHours);
+            const timeRemainingHours = task.time_remaining || task.duration || 1;
+            const endDate = addHoursToDate(startDate, timeRemainingHours);
 
             const scheduleData = {
               machine: machine.id,
@@ -261,8 +261,8 @@ function SchedulerPage() {
 
             const startDate = new Date(currentDate);
             startDate.setHours(hour, minute, 0, 0);
-            const durationHours = eventItem.duration || 1;
-            const endDate = addHoursToDate(startDate, durationHours);
+            const timeRemainingHours = eventItem.time_remaining || eventItem.duration || 1;
+            const endDate = addHoursToDate(startDate, timeRemainingHours);
 
             const scheduleData = {
               machine: machine.id,

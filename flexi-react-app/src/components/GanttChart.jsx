@@ -32,16 +32,17 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
     const eventPosition = useMemo(() => {
         // Cache date parsing to avoid repeated operations
         const eventStartTime = new Date(event.scheduled_start_time);
-        const eventEndTime = new Date(event.scheduled_end_time);
-        const durationHours = event.duration || 1;
-
+        // Calculate end time based on start time + time_remaining instead of stored scheduled_end_time
+        const timeRemaining = event.time_remaining || event.duration || 1;
+        const calculatedEndTime = new Date(eventStartTime.getTime() + (timeRemaining * 60 * 60 * 1000)); // Convert hours to milliseconds
+        
         // Check if this event should be visible on the current day
         const currentDayStart = getStartOfDay(currentDate);
         const currentDayEnd = getEndOfDay(currentDate);
 
         const eventStartsOnCurrentDay = isSameDate(eventStartTime, currentDate);
-        const eventEndsOnCurrentDay = isSameDate(eventEndTime, currentDate);
-        const eventSpansCurrentDay = eventStartTime < currentDayEnd && eventEndTime > currentDayStart;
+        const eventEndsOnCurrentDay = isSameDate(calculatedEndTime, currentDate);
+        const eventSpansCurrentDay = eventStartTime < currentDayEnd && calculatedEndTime > currentDayStart;
 
         if (!eventStartsOnCurrentDay && !eventEndsOnCurrentDay && !eventSpansCurrentDay) {
             return null;
@@ -57,13 +58,13 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
             baseLeft = startSlot * 20;
 
             const hoursRemainingInDay = 24 - startHour;
-            const hoursToShow = Math.min(durationHours, hoursRemainingInDay);
+            const hoursToShow = Math.min(timeRemaining, hoursRemainingInDay);
             const slotsToShow = hoursToShow * 4;
             baseWidth = slotsToShow * 20;
         } else if (eventEndsOnCurrentDay) {
             baseLeft = 0;
-            const endHour = eventEndTime.getHours();
-            const endMinute = eventEndTime.getMinutes();
+            const endHour = calculatedEndTime.getHours();
+            const endMinute = calculatedEndTime.getMinutes();
             const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
             baseWidth = endSlot * 20;
         } else {
@@ -73,7 +74,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
         }
 
         return { baseLeft, baseWidth, eventSpansCurrentDay, eventStartsOnCurrentDay, eventEndsOnCurrentDay };
-    }, [event.scheduled_start_time, event.scheduled_end_time, event.duration, currentDate]);
+    }, [event.scheduled_start_time, event.time_remaining, event.duration, currentDate]);
 
     if (!eventPosition) return null;
 
@@ -87,12 +88,20 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
         transform: `translate3d(${transform?.x || 0}px, ${transform?.y || 0}px, 0)`,
         zIndex: 1001,
         pointerEvents: 'none',
+        // Hardware acceleration for smooth dragging
+        willChange: 'transform',
+        backfaceVisibility: 'hidden',
+        // Disable transitions during drag for better performance
+        transition: 'none',
     } : {
         position: 'absolute',
         left: `${baseLeft}px`,
         width: `${baseWidth}px`,
         transform: 'none',
         zIndex: 10,
+        // Hardware acceleration for smooth rendering
+        willChange: 'transform',
+        backfaceVisibility: 'hidden',
     };
 
     return (

@@ -73,8 +73,22 @@ function BacklogPage() {
     },
     { 
       header: 'Prod End', 
-      accessorKey: 'scheduled_end_time', 
-      cell: info => info.getValue() ? new Date(info.getValue()).toLocaleString() : '-' 
+      accessorKey: 'scheduled_start_time', 
+      cell: info => {
+        const startTime = info.getValue();
+        if (!startTime) return '-';
+        
+        const row = info.row.original;
+        const timeRemaining = row.time_remaining || row.duration || 0;
+        
+        if (timeRemaining <= 0) return '-';
+        
+        const endTime = new Date(startTime);
+        // Use setTime with milliseconds to avoid rounding
+        const endTimeMs = endTime.getTime() + (timeRemaining * 60 * 60 * 1000);
+        endTime.setTime(endTimeMs);
+        return endTime.toLocaleString();
+      }
     },
     { 
       header: 'Delivery', 
