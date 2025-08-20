@@ -9,6 +9,8 @@ import { useOrderValidation } from '../hooks';
 function BacklogPage() {
   // Use Zustand store to select state and actions
   const orders = useStore(state => state.odpOrders);
+  const machines = useStore(state => state.machines);
+  const phases = useStore(state => state.phases);
   const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
   const isLoading = useStore(state => state.isLoading);
   const isInitialized = useStore(state => state.isInitialized);
@@ -87,7 +89,15 @@ function BacklogPage() {
     
     // Dati Lavorazione
     { header: 'Department', accessorKey: 'department', cell: EditableCell },
-    { header: 'Phase', accessorKey: 'fase' },
+    { 
+      header: 'Phase', 
+      accessorKey: 'fase',
+      cell: info => {
+        const phaseId = info.getValue();
+        const phase = phases.find(p => p.id === phaseId);
+        return phase ? phase.name : phaseId || '-';
+      }
+    },
     
     // Calcolate
     { header: 'Duration (h)', accessorKey: 'duration' },
@@ -104,10 +114,14 @@ function BacklogPage() {
     { header: 'Status', accessorKey: 'status' },
     { 
       header: 'Machine', 
-      accessorKey: 'scheduled_machine_id', 
-      cell: EditableCell 
+      accessorKey: 'scheduled_machine_id',
+      cell: info => {
+        const machineId = info.getValue();
+        const machine = machines.find(m => m.id === machineId);
+        return machine ? machine.machine_name : machineId || '-';
+      }
     },
-  ], []);
+  ], [machines, phases]);
 
   const handleSaveOrder = async (updatedOrder) => {
     try {
