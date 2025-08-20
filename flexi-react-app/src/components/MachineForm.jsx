@@ -1,20 +1,23 @@
 import React, { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { useStore } from '../store/useStore';
-import { useProductionCalculations, useFormValidation } from '../hooks';
-import { 
-  DEPARTMENT_TYPES, 
-  WORK_CENTERS, 
-  MACHINE_STATUSES, 
+import { useProductionCalculations } from '../hooks';
+import {
+  DEPARTMENT_TYPES,
+  WORK_CENTERS,
+  MACHINE_STATUSES,
   SHIFT_TYPES,
-  DEFAULT_VALUES 
+  DEFAULT_VALUES
 } from '../constants';
 
 function MachineForm() {
+  const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
+  
   const initialFormData = {
     department: DEFAULT_VALUES.MACHINE.DEPARTMENT,
     machine_type: '',
     machine_name: '',
-    work_center: DEFAULT_VALUES.MACHINE.WORK_CENTER,
+    work_center: selectedWorkCenter === WORK_CENTERS.BOTH ? '' : (selectedWorkCenter || DEFAULT_VALUES.MACHINE.WORK_CENTER),
     min_web_width: DEFAULT_VALUES.MACHINE.MIN_WEB_WIDTH,
     max_web_width: DEFAULT_VALUES.MACHINE.MAX_WEB_WIDTH,
     min_bag_height: DEFAULT_VALUES.MACHINE.MIN_BAG_HEIGHT,
@@ -37,7 +40,9 @@ function MachineForm() {
     watch,
     setValue,
     getValues
-  } = useFormValidation('MACHINE', initialFormData, addMachine);
+  } = useForm({
+    defaultValues: initialFormData
+  });
 
   const department = watch('department');
 
@@ -62,7 +67,7 @@ function MachineForm() {
   return (
     <div className="content-section">
       <h2>Add Machine</h2>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit(addMachine)}>
         {/* IDENTIFICAZIONE Section */}
         <div className="form-section">
           <h3 className="section-title">🏷️ Identificazione</h3>
@@ -107,18 +112,36 @@ function MachineForm() {
               {errors.machine_name && <span className="error-message">{errors.machine_name.message}</span>}
             </div>
             
-            <div className="form-group">
-              <label htmlFor="work_center">Work Center *</label>
-              <select 
-                id="work_center" 
-                {...register('work_center')}
-                className={errors.work_center ? 'error' : ''}
-              >
-                <option value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</option>
-                <option value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</option>
-              </select>
-              {errors.work_center && <span className="error-message">{errors.work_center.message}</span>}
-            </div>
+                              <div className="form-group">
+                    <label htmlFor="work_center">Work Center *</label>
+                    {selectedWorkCenter === WORK_CENTERS.BOTH ? (
+                      <select
+                        {...register('work_center', { required: 'Work center is required' })}
+                        id="work_center"
+                        className={errors.work_center ? 'error' : ''}
+                      >
+                        <option value="">Select a work center</option>
+                        <option value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</option>
+                        <option value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</option>
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        id="work_center"
+                        value={selectedWorkCenter || 'No work center selected'}
+                        disabled
+                        className="disabled-input"
+                        style={{ backgroundColor: '#f5f5f5', color: '#666' }}
+                      />
+                    )}
+                    {selectedWorkCenter === WORK_CENTERS.BOTH ? (
+                      errors.work_center && <span className="error-message">{errors.work_center.message}</span>
+                    ) : (
+                      <small style={{ color: '#666', fontSize: '12px' }}>
+                        Work center is set based on your login selection
+                      </small>
+                    )}
+                  </div>
           </div>
         </div>
 

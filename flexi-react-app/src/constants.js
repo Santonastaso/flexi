@@ -12,7 +12,8 @@ export const DEPARTMENT_TYPES = {
 // ===== WORK CENTERS =====
 export const WORK_CENTERS = {
   ZANICA: 'ZANICA',
-  BUSTO_GAROLFO: 'BUSTO_GAROLFO'
+  BUSTO_GAROLFO: 'BUSTO_GAROLFO',
+  BOTH: 'BOTH'
 };
 
 // ===== MACHINE STATUSES =====

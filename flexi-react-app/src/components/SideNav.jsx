@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 function SideNav() {
   const location = useLocation();
   const currentPage = location.pathname;
-  const { user, signOut, isAuthenticated } = useAuth();
+  const { user, signOut, isAuthenticated, selectedWorkCenter } = useAuth();
 
   const navLinks = [
     { href: '/', label: 'Home', icon: '🏠' },
@@ -46,6 +46,11 @@ function SideNav() {
               {user.user_metadata?.full_name || 'User'}
             </div>
             <div className="user-email">{user.email}</div>
+            {selectedWorkCenter && (
+              <div className="user-work-center">
+                <span className="work-center-badge">🏭 {selectedWorkCenter}</span>
+              </div>
+            )}
           </div>
         </div>
       )}

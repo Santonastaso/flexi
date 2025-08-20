@@ -1,6 +1,95 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
 import { toDateString, addDaysToDate } from '../utils/dateUtils';
+import { handleApiError, logError, createErrorHandler } from '../utils/errorUtils';
+import { WORK_CENTERS } from '../constants';
+
+// Store for work center selection
+let selectedWorkCenter = null;
+
+export const setGlobalWorkCenter = (workCenter) => {
+  selectedWorkCenter = workCenter;
+};
+
+export const getGlobalWorkCenter = () => selectedWorkCenter;
+
+// Generic CRUD helper functions with centralized error handling
+const createCrudActions = (entityName, apiMethods, set, get) => {
+  const errorHandler = createErrorHandler(entityName);
+
+  return {
+    [`add${entityName}`]: async (newItem) => {
+      try {
+                        // Validate work center (skip validation if BOTH is selected)
+                const { selectedWorkCenter } = get();
+                if (selectedWorkCenter && selectedWorkCenter !== WORK_CENTERS.BOTH && newItem.work_center && newItem.work_center !== selectedWorkCenter) {
+                  throw new Error(`Cannot add ${entityName.toLowerCase()} with different work center. Selected: ${selectedWorkCenter}, Item: ${newItem.work_center}`);
+                }
+
+        const added = await apiMethods.add(newItem);
+        set(state => ({ [getPluralKey(entityName)]: [...state[getPluralKey(entityName)], added] }));
+        get().showAlert(`${entityName} "${getDisplayName(newItem, entityName)}" added successfully`, 'success');
+        return added;
+      } catch (error) {
+        const appError = errorHandler(error);
+        get().showAlert(appError.message, 'error');
+        throw appError;
+      }
+    },
+
+    [`update${entityName}`]: async (id, updates) => {
+      try {
+        const oldItem = get()[getPluralKey(entityName)].find(item => item.id === id);
+        const updated = await apiMethods.update(id, updates);
+        set(state => ({
+          [getPluralKey(entityName)]: state[getPluralKey(entityName)].map(item =>
+            item.id === id ? { ...item, ...updated } : item
+          ),
+        }));
+        get().showAlert(`${entityName} "${getDisplayName(oldItem, entityName)}" updated successfully`, 'success');
+        return updated;
+      } catch (error) {
+        const appError = errorHandler(error);
+        get().showAlert(appError.message, 'error');
+        throw appError;
+      }
+    },
+
+    [`remove${entityName}`]: async (id) => {
+      try {
+        const item = get()[getPluralKey(entityName)].find(item => item.id === id);
+        await apiMethods.remove(id);
+        set(state => ({
+          [getPluralKey(entityName)]: state[getPluralKey(entityName)].filter(item => item.id !== id)
+        }));
+        get().showAlert(`${entityName} "${getDisplayName(item, entityName)}" deleted successfully`, 'success');
+        return true;
+      } catch (error) {
+        const appError = errorHandler(error);
+        get().showAlert(appError.message, 'error');
+        throw appError;
+      }
+    },
+  };
+};
+
+const getPluralKey = (entityName) => {
+  const pluralMap = {
+    'Machine': 'machines',
+    'OdpOrder': 'odpOrders',
+    'Phase': 'phases'
+  };
+  return pluralMap[entityName] || `${entityName.toLowerCase()}s`;
+};
+
+const getDisplayName = (item, entityName) => {
+  const displayFields = {
+    'Machine': item?.machine_name || 'Unknown',
+    'OdpOrder': item?.odp_number || 'Unknown',
+    'Phase': item?.name || 'Unknown'
+  };
+  return displayFields[entityName] || 'Unknown';
+};
 
 // Zustand store that mirrors the existing appStore.js API
 export const useStore = create((set, get) => ({
@@ -11,6 +100,7 @@ export const useStore = create((set, get) => ({
   machineAvailability: {},
   isLoading: false,
   isInitialized: false,
+  selectedWorkCenter: null,
   
   // Alert state
   alert: {
@@ -60,6 +150,12 @@ export const useStore = create((set, get) => ({
     get().initializeEmptyMachineAvailability();
   },
 
+  // Set selected work center
+  setSelectedWorkCenter: (workCenter) => {
+    setGlobalWorkCenter(workCenter);
+    set({ selectedWorkCenter: workCenter });
+  },
+
   reset: () => set({
     machines: [],
     odpOrders: [],
@@ -88,122 +184,26 @@ export const useStore = create((set, get) => ({
     confirmDialog: { isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' }
   }),
 
-  // Machines
-  addMachine: async (newMachine) => {
-    try {
-      const added = await apiService.addMachine(newMachine);
-      set(state => ({ machines: [...state.machines, added] }));
-      get().showAlert(`Machine "${added.machine_name}" added successfully`, 'success');
-      return added;
-    } catch (error) {
-      get().showAlert(`Failed to add machine: ${error.message}`, 'error');
-      throw error;
-    }
-  },
-  updateMachine: async (id, updates) => {
-    try {
-      const machine = get().machines.find(m => m.id === id);
-      const updated = await apiService.updateMachine(id, updates);
-      set(state => ({
-        machines: state.machines.map(m => (m.id === id ? { ...m, ...updated } : m)),
-      }));
-      get().showAlert(`Machine "${machine?.machine_name || 'Unknown'}" updated successfully`, 'success');
-      return updated;
-    } catch (error) {
-      get().showAlert(`Failed to update machine: ${error.message}`, 'error');
-      throw error;
-    }
-  },
-  removeMachine: async (id) => {
-    try {
-      const machine = get().machines.find(m => m.id === id);
-      await apiService.removeMachine(id);
-      set(state => ({ machines: state.machines.filter(m => m.id !== id) }));
-      get().showAlert(`Machine "${machine?.machine_name || 'Unknown'}" deleted successfully`, 'success');
-      return true;
-    } catch (error) {
-      get().showAlert(`Failed to delete machine: ${error.message}`, 'error');
-      throw error;
-    }
-  },
+  // Machines - using generic CRUD actions
+  ...createCrudActions('Machine', {
+    add: apiService.addMachine,
+    update: apiService.updateMachine,
+    remove: apiService.removeMachine
+  }, set, get),
 
-  // Orders (ODP)
-  addOdpOrder: async (newOrder) => {
-    try {
-      const added = await apiService.addOdpOrder(newOrder);
-      set(state => ({ odpOrders: [...state.odpOrders, added] }));
-      get().showAlert(`Order "${added.odp_number || 'Unknown'}" added successfully`, 'success');
-      return added;
-    } catch (error) {
-      get().showAlert(`Failed to add order: ${error.message}`, 'error');
-      throw error;
-    }
-  },
-  updateOdpOrder: async (id, updates) => {
-    try {
-      const order = get().odpOrders.find(o => o.id === id);
-      const updated = await apiService.updateOdpOrder(id, updates);
-      set(state => ({
-        odpOrders: state.odpOrders.map(o => (o.id === id ? { ...o, ...updated } : o)),
-      }));
-      get().showAlert(`Order "${order?.odp_number || 'Unknown'}" updated successfully`, 'success');
-      return updated;
-    } catch (error) {
-      get().showAlert(`Failed to update order: ${error.message}`, 'error');
-      throw error;
-    }
-  },
-  removeOdpOrder: async (id) => {
-    try {
-      const order = get().odpOrders.find(o => o.id === id);
-      await apiService.removeOdpOrder(id);
-      set(state => ({ odpOrders: state.odpOrders.filter(o => o.id !== id) }));
-      get().showAlert(`Order "${order?.odp_number || 'Unknown'}" deleted successfully`, 'success');
-      return true;
-    } catch (error) {
-      get().showAlert(`Failed to delete order: ${error.message}`, 'error');
-      throw error;
-    }
-  },
+  // Orders (ODP) - using generic CRUD actions
+  ...createCrudActions('OdpOrder', {
+    add: apiService.addOdpOrder,
+    update: apiService.updateOdpOrder,
+    remove: apiService.removeOdpOrder
+  }, set, get),
 
-  // Phases
-  addPhase: async (newPhase) => {
-    try {
-      const added = await apiService.addPhase(newPhase);
-      set(state => ({ phases: [...state.phases, added] }));
-      get().showAlert(`Phase "${added.name || 'Unknown'}" added successfully`, 'success');
-      return added;
-    } catch (error) {
-      get().showAlert(`Failed to add phase: ${error.message}`, 'error');
-      throw error;
-    }
-  },
-  updatePhase: async (id, updates) => {
-    try {
-      const phase = get().phases.find(p => p.id === id);
-      const updated = await apiService.updatePhase(id, updates);
-      set(state => ({
-        phases: state.phases.map(p => (p.id === id ? { ...p, ...updated } : p)),
-      }));
-      get().showAlert(`Phase "${phase?.name || 'Unknown'}" updated successfully`, 'success');
-      return updated;
-    } catch (error) {
-      get().showAlert(`Failed to update phase: ${error.message}`, 'error');
-      throw error;
-    }
-  },
-  removePhase: async (id) => {
-    try {
-      const phase = get().phases.find(p => p.id === id);
-      await apiService.removePhase(id);
-      set(state => ({ phases: state.phases.filter(p => p.id !== id) }));
-      get().showAlert(`Phase "${phase?.name || 'Unknown'}" deleted successfully`, 'success');
-      return true;
-    } catch (error) {
-      get().showAlert(`Failed to delete phase: ${error.message}`, 'error');
-      throw error;
-    }
-  },
+  // Phases - using generic CRUD actions
+  ...createCrudActions('Phase', {
+    add: apiService.addPhase,
+    update: apiService.updatePhase,
+    remove: apiService.removePhase
+  }, set, get),
 
   // Scheduler actions
   scheduleTask: async (taskId, eventData) => {

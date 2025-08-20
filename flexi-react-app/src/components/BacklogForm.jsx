@@ -1,19 +1,23 @@
 import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useStore } from '../store/useStore';
-import { useProductionCalculations, useFormValidation } from '../hooks';
-import { 
-  DEPARTMENT_TYPES, 
-  PRODUCT_TYPES, 
-  SEAL_SIDES, 
-  DEFAULT_VALUES 
+import { useProductionCalculations } from '../hooks';
+import {
+  DEPARTMENT_TYPES,
+  PRODUCT_TYPES,
+  SEAL_SIDES,
+  DEFAULT_VALUES,
+  WORK_CENTERS
 } from '../constants';
 
-function BacklogForm() {
+function BacklogForm({ onSuccess }) {
+  const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
+  
   const initialFormData = {
     odp_number: '', 
     article_code: '', 
     production_lot: '', 
-    work_center: '',
+    work_center: selectedWorkCenter === WORK_CENTERS.BOTH ? '' : (selectedWorkCenter || ''),
     nome_cliente: '', 
     description: '', 
     delivery_date: '', 
@@ -78,6 +82,11 @@ function BacklogForm() {
       await addOdpOrder(orderData);
       console.log('Order added successfully');
 
+      // Call success callback to refresh the list
+      if (onSuccess) {
+        onSuccess();
+      }
+
       // Reset form
       Object.keys(initialFormData).forEach(key => setValue(key, initialFormData[key]));
       setPhaseSearch('');
@@ -87,7 +96,7 @@ function BacklogForm() {
     } catch (error) {
       // Error is already handled by the store
       console.error('Error adding order:', error);
-      throw error; // Re-throw to trigger error handling in useFormValidation
+      throw error; // Re-throw to trigger error handling
     }
   };
 
@@ -98,8 +107,11 @@ function BacklogForm() {
     watch,
     setValue,
     getValues,
+    reset,
     clearErrors
-  } = useFormValidation('ORDER', initialFormData, onSubmit);
+  } = useForm({
+    defaultValues: initialFormData
+  });
 
   const articleCode = watch('article_code');
   const department = watch('department');
@@ -110,14 +122,17 @@ function BacklogForm() {
       const dept = autoDetermineDepartment(articleCode);
       const wc = autoDetermineWorkCenter(articleCode);
       setValue('department', dept);
-      setValue('work_center', wc);
+      // Only auto-set work center if BOTH is selected, otherwise keep the selected work center
+      if (selectedWorkCenter === WORK_CENTERS.BOTH) {
+        setValue('work_center', wc);
+      }
       setValue('fase', '');
       setPhaseSearch('');
       setSelectedPhase(null);
       setEditablePhaseParams({});
       setCalculationResults(null);
     }
-  }, [articleCode, autoDetermineDepartment, autoDetermineWorkCenter, setValue]);
+  }, [articleCode, autoDetermineDepartment, autoDetermineWorkCenter, setValue, selectedWorkCenter]);
 
   useEffect(() => {
     if (department || workCenter) {
@@ -197,7 +212,7 @@ function BacklogForm() {
   return (
     <div className="content-section">
       <h2>Create ODP</h2>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit(onSubmit)}>
         {/* IDENTIFICAZIONE Section */}
         <div className="form-section">
           <h3 className="section-title">🏷️ Identificazione</h3>
@@ -237,13 +252,33 @@ function BacklogForm() {
             </div>
             <div className="form-group">
               <label htmlFor="work_center">Work Center</label>
-              <input 
-                type="text" 
-                id="work_center" 
-                {...register('work_center')}
-                placeholder="Work Center" 
-                readOnly 
-              />
+              {selectedWorkCenter === WORK_CENTERS.BOTH ? (
+                <select
+                  {...register('work_center', { required: 'Work center is required' })}
+                  id="work_center"
+                  className={errors.work_center ? 'error' : ''}
+                >
+                  <option value="">Select a work center</option>
+                  <option value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</option>
+                  <option value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</option>
+                </select>
+              ) : (
+                <input 
+                  type="text" 
+                  id="work_center" 
+                  value={selectedWorkCenter || 'No work center selected'}
+                  disabled
+                  className="disabled-input"
+                  style={{ backgroundColor: '#f5f5f5', color: '#666' }}
+                />
+              )}
+              {selectedWorkCenter === WORK_CENTERS.BOTH ? (
+                errors.work_center && <span className="error-message">{errors.work_center.message}</span>
+              ) : (
+                <small style={{ color: '#666', fontSize: '12px' }}>
+                  Work center is set based on your login selection
+                </small>
+              )}
             </div>
             <div className="form-group">
               <label htmlFor="nome_cliente">Customer Name</label>

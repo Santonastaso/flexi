@@ -3,11 +3,13 @@ import DataTable from '../components/DataTable';
 import BacklogForm from '../components/BacklogForm';
 import EditableCell from '../components/EditableCell';
 import { useStore } from '../store/useStore';
+import { WORK_CENTERS } from '../constants';
 import { useOrderValidation } from '../hooks';
 
 function BacklogPage() {
   // Use Zustand store to select state and actions
   const orders = useStore(state => state.odpOrders);
+  const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
   const isLoading = useStore(state => state.isLoading);
   const isInitialized = useStore(state => state.isInitialized);
   const init = useStore(state => state.init);
@@ -15,6 +17,16 @@ function BacklogPage() {
   const removeOdpOrder = useStore(state => state.removeOdpOrder);
   const showAlert = useStore(state => state.showAlert);
   const showConfirmDialog = useStore(state => state.showConfirmDialog);
+
+  // Filter orders by work center
+  const filteredOrders = useMemo(() => {
+    if (!selectedWorkCenter) return [];
+    if (selectedWorkCenter === WORK_CENTERS.BOTH) return orders;
+    return orders.filter(order => order.work_center === selectedWorkCenter);
+  }, [orders, selectedWorkCenter]);
+
+  // State for forcing DataTable refresh
+  const [refreshKey, setRefreshKey] = React.useState(0);
 
   // Use modern validation hook
   const { validateOrder } = useOrderValidation();
@@ -25,6 +37,11 @@ function BacklogPage() {
       init();
     }
   }, [init, isInitialized]);
+
+  // Callback for when a new order is successfully added
+  const handleOrderAdded = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   const columns = useMemo(() => [
     // Identificazione
@@ -138,14 +155,18 @@ function BacklogPage() {
     return <div>Loading backlog data...</div>;
   }
 
+  if (!selectedWorkCenter) {
+    return <div className="error">Please select a work center to view backlog data.</div>;
+  }
+
   return (
     <>
-      <BacklogForm />
+      <BacklogForm onSuccess={handleOrderAdded} />
       <div className="content-section">
         <h2>Production Backlog</h2>
         <DataTable
           columns={columns}
-          data={orders}
+          data={filteredOrders}
           onSaveRow={handleSaveOrder}
           onDeleteRow={handleDeleteOrder}
         />

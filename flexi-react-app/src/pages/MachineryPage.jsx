@@ -5,10 +5,12 @@ import MachineForm from '../components/MachineForm';
 import EditableCell from '../components/EditableCell';
 import { useStore } from '../store/useStore';
 import { useMachineValidation } from '../hooks';
+import { WORK_CENTERS } from '../constants';
 
 function MachineryPage() {
   // Use Zustand store to select state and actions
   const machines = useStore(state => state.machines);
+  const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
   const isLoading = useStore(state => state.isLoading);
   const isInitialized = useStore(state => state.isInitialized);
   const init = useStore(state => state.init);
@@ -16,6 +18,13 @@ function MachineryPage() {
   const removeMachine = useStore(state => state.removeMachine);
   const showAlert = useStore(state => state.showAlert);
   const showConfirmDialog = useStore(state => state.showConfirmDialog);
+
+  // Filter machines by work center
+  const filteredMachines = useMemo(() => {
+    if (!selectedWorkCenter) return [];
+    if (selectedWorkCenter === WORK_CENTERS.BOTH) return machines;
+    return machines.filter(machine => machine.work_center === selectedWorkCenter);
+  }, [machines, selectedWorkCenter]);
 
   // Use modern validation hook
   const { validateMachine } = useMachineValidation();
@@ -115,6 +124,10 @@ function MachineryPage() {
     return <div>Loading machinery data...</div>;
   }
 
+  if (!selectedWorkCenter) {
+    return <div className="error">Please select a work center to view machinery data.</div>;
+  }
+
   return (
     <>
       <MachineForm />
@@ -122,7 +135,7 @@ function MachineryPage() {
         <h2>Machinery Catalog</h2>
         <DataTable
           columns={columns}
-          data={machines}
+          data={filteredMachines}
           onSaveRow={handleSaveMachine}
           onDeleteRow={handleDeleteMachine}
         />

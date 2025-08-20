@@ -170,6 +170,19 @@
   font-weight: 500;
 }
 
+/* Disabled Inputs */
+.disabled-input {
+  background-color: #f5f5f5 !important;
+  color: #666 !important;
+  cursor: not-allowed;
+  border: 1px solid #ddd !important;
+}
+
+.disabled-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* Form Actions */
 .form-actions {
   display: flex;

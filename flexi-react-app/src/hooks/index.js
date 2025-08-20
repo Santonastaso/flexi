@@ -7,11 +7,11 @@ export { default as useProductionCalculations } from './useProductionCalculation
 export { default as useMachineValidation } from './useMachineValidation';
 export { default as useOrderValidation } from './useOrderValidation';
 export { default as usePhaseValidation } from './usePhaseValidation';
-export { useFormValidation } from './useFormValidation';
+// useFormValidation removed - forms now use React Hook Form directly
 
 // Export all custom hooks
 export * from './useProductionCalculations';
 export * from './useMachineValidation';
 export * from './useOrderValidation';
 export * from './usePhaseValidation';
-export * from './useFormValidation';
+// useFormValidation exports removed - forms now use React Hook Form directly

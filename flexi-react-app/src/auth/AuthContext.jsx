@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../services/supabase/client';
+import { WORK_CENTERS } from '../constants';
 
 // Create the authentication context
 const AuthContext = createContext();
@@ -13,6 +14,7 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedWorkCenter, setSelectedWorkCenter] = useState(null);
 
   // Initialize authentication state
   useEffect(() => {
@@ -248,6 +250,8 @@ export const AuthProvider = ({ children }) => {
     session,
     loading,
     error,
+    selectedWorkCenter,
+    setSelectedWorkCenter,
     signIn,
     signUp,
     signOut,

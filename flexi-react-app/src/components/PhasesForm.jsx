@@ -1,18 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { useStore } from '../store/useStore';
-import { useFormValidation } from '../hooks';
-import { 
-  DEPARTMENT_TYPES, 
-  WORK_CENTERS, 
-  DEFAULT_VALUES 
+import {
+  DEPARTMENT_TYPES,
+  WORK_CENTERS,
+  DEFAULT_VALUES
 } from '../constants';
 
 function PhasesForm() {
+  const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
+  
   const initialFormData = {
     name: '',
     department: DEFAULT_VALUES.PHASE.DEPARTMENT,
     numero_persone: DEFAULT_VALUES.PHASE.NUMERO_PERSONE,
-    work_center: DEFAULT_VALUES.PHASE.WORK_CENTER,
+    work_center: selectedWorkCenter === WORK_CENTERS.BOTH ? '' : (selectedWorkCenter || DEFAULT_VALUES.PHASE.WORK_CENTER),
     v_stampa: DEFAULT_VALUES.PHASE.V_STAMPA,
     t_setup_stampa: DEFAULT_VALUES.PHASE.T_SETUP_STAMPA,
     costo_h_stampa: DEFAULT_VALUES.PHASE.COSTO_H_STAMPA,
@@ -29,10 +31,22 @@ function PhasesForm() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-    watch
-  } = useFormValidation('PHASE', initialFormData, addPhase);
+    watch,
+    setValue
+  } = useForm({
+    defaultValues: initialFormData
+  });
 
   const department = watch('department');
+
+  // Reset packaging fields to 0 when Printing department is selected
+  useEffect(() => {
+    if (department === DEPARTMENT_TYPES.PRINTING) {
+      setValue('v_conf', 0);
+      setValue('t_setup_conf', 0);
+      setValue('costo_h_conf', 0);
+    }
+  }, [department, setValue]);
 
   const getFieldError = (fieldName) => {
     return errors[fieldName] ? (
@@ -45,7 +59,7 @@ function PhasesForm() {
   return (
     <div className="content-section">
       <h2>Production Phases</h2>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit(addPhase)}>
         <div className="form-section">
           <h3 className="section-title">➕ Add New Phase</h3>
           <div className="form-grid form-grid--4-cols">
@@ -86,15 +100,33 @@ function PhasesForm() {
             </div>
             <div className="form-group">
               <label htmlFor="work_center">Work Center *</label>
-              <select 
-                id="work_center" 
-                {...register('work_center')}
-                className={errors.work_center ? 'error' : ''}
-              >
-                <option value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</option>
-                <option value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</option>
-              </select>
-              {getFieldError('work_center')}
+              {selectedWorkCenter === WORK_CENTERS.BOTH ? (
+                <select
+                  {...register('work_center', { required: 'Work center is required' })}
+                  id="work_center"
+                  className={errors.work_center ? 'error' : ''}
+                >
+                  <option value="">Select a work center</option>
+                  <option value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</option>
+                  <option value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</option>
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  id="work_center"
+                  value={selectedWorkCenter || 'No work center selected'}
+                  disabled
+                  className="disabled-input"
+                  style={{ backgroundColor: '#f5f5f5', color: '#666' }}
+                />
+              )}
+              {selectedWorkCenter === WORK_CENTERS.BOTH ? (
+                errors.work_center && <span className="error-message">{errors.work_center.message}</span>
+              ) : (
+                <small style={{ color: '#666', fontSize: '12px' }}>
+                  Work center is set based on your login selection
+                </small>
+              )}
             </div>
           </div>
         </div>

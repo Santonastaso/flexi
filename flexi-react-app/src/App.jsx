@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import SideNav from './components/SideNav';
 import MachineryPage from './pages/MachineryPage';
@@ -15,10 +15,20 @@ import ProtectedRoute from './auth/ProtectedRoute';
 import Alert from './components/Alert';
 import ConfirmDialog from './components/ConfirmDialog';
 import { useStore } from './store/useStore';
+import { useAuth } from './auth/AuthContext';
 
 // This component creates the main layout with the sidebar
 const AppLayout = () => {
   const { alert, hideAlert, confirmDialog, hideConfirmDialog } = useStore();
+  const { selectedWorkCenter, setSelectedWorkCenter } = useAuth();
+  const setStoreWorkCenter = useStore(state => state.setSelectedWorkCenter);
+  
+  // Sync work center between AuthContext and Store
+  useEffect(() => {
+    if (selectedWorkCenter) {
+      setStoreWorkCenter(selectedWorkCenter);
+    }
+  }, [selectedWorkCenter, setStoreWorkCenter]);
   
   return (
     <div className="main-content">

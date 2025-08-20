@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { WORK_CENTERS } from '../constants';
 
 /**
  * LoginPage component for user authentication
@@ -10,11 +11,12 @@ function LoginPage() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    workCenter: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState({});
 
-  const { signIn, error: authError } = useAuth();
+  const { signIn, error: authError, setSelectedWorkCenter } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -41,6 +43,10 @@ function LoginPage() {
     } else if (formData.password.length < 6) {
       errors.password = 'Password must be at least 6 characters';
     }
+
+    if (!formData.workCenter) {
+      errors.workCenter = 'Work center is required';
+    }
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -59,7 +65,9 @@ function LoginPage() {
       const result = await signIn(formData.email, formData.password);
       
       if (result.success) {
-        console.log('Login successful, redirecting to home');
+        // Set the selected work center
+        setSelectedWorkCenter(formData.workCenter);
+        console.log('Login successful, work center set to:', formData.workCenter);
         navigate('/', { replace: true });
       } else {
         console.log('Login failed:', result.error);
@@ -122,6 +130,25 @@ function LoginPage() {
             {getFieldError('password')}
           </div>
 
+          {/* Work Center Field */}
+          <div className="form-group">
+            <label htmlFor="workCenter">Work Center *</label>
+            <select
+              id="workCenter"
+              name="workCenter"
+              value={formData.workCenter}
+              onChange={handleChange}
+              className={formErrors.workCenter ? 'error' : ''}
+              disabled={isSubmitting}
+            >
+              <option value="">Select a work center</option>
+              <option value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</option>
+              <option value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</option>
+              <option value={WORK_CENTERS.BOTH}>{WORK_CENTERS.BOTH}</option>
+            </select>
+            {getFieldError('workCenter')}
+          </div>
+
           {/* Authentication Error */}
           {authError && (
             <div className="auth-error">
@@ -164,7 +191,7 @@ function LoginPage() {
                 <button
                   type="button"
                   className="btn btn-sm btn-secondary"
-                  onClick={() => setFormData({ email: 'demo@example.com', password: 'demo123' })}
+                  onClick={() => setFormData({ email: 'demo@example.com', password: 'demo123', workCenter: WORK_CENTERS.ZANICA })}
                 >
                   Use Demo Credentials
                 </button>

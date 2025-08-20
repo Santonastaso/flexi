@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense, laz
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import { useStore } from '../store/useStore';
 import { addHoursToDate } from '../utils/dateUtils';
-import { MACHINE_STATUSES } from '../constants';
+import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
 
 // Lazy load heavy components to improve initial load time
 const TaskPool = lazy(() => import('../components/TaskPool'));
@@ -24,7 +24,19 @@ const LoadingFallback = () => (
 
 function SchedulerPage() {
   // Select state and actions from Zustand store
-  const { odpOrders: tasks, machines, isLoading, isInitialized, init, scheduleTask, unscheduleTask, showAlert } = useStore();
+  const { 
+    odpOrders: tasks, 
+    machines, 
+    selectedWorkCenter,
+    isLoading, 
+    isInitialized, 
+    init, 
+    scheduleTask, 
+    unscheduleTask, 
+    showAlert 
+  } = useStore();
+
+
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeDragItem, setActiveDragItem] = useState(null);
@@ -60,7 +72,13 @@ function SchedulerPage() {
       return { activeMachines: [], workCenters: [], departments: [] };
     }
 
-    const activeMachines = machines.filter(m => m.status === MACHINE_STATUSES.ACTIVE);
+    // First filter by work center, then by status
+    let workCenterFiltered = machines;
+    if (selectedWorkCenter && selectedWorkCenter !== WORK_CENTERS.BOTH) {
+      workCenterFiltered = machines.filter(m => m.work_center === selectedWorkCenter);
+    }
+
+    const activeMachines = workCenterFiltered.filter(m => m.status === MACHINE_STATUSES.ACTIVE);
 
     if (activeMachines.length === 0) {
       return { activeMachines: [], workCenters: [], departments: [] };
@@ -84,23 +102,26 @@ function SchedulerPage() {
     }
 
     return { activeMachines, workCenters, departments };
-  }, [machines]);
+  }, [machines, selectedWorkCenter]);
 
-  // Apply filters to machines with optimized filtering
+  // Apply additional filters to machines
   const filteredMachines = useMemo(() => {
     const { activeMachines } = machineData;
     const { workCenterFilter, departmentFilter } = filtersRef.current;
 
-    if (!workCenterFilter && !departmentFilter) {
-      return activeMachines;
+    // Apply additional filters on top of work center filtering
+    let filtered = activeMachines;
+
+    if (workCenterFilter && workCenterFilter !== selectedWorkCenter) {
+      filtered = filtered.filter(machine => machine.work_center === workCenterFilter);
+    }
+    
+    if (departmentFilter) {
+      filtered = filtered.filter(machine => machine.department === departmentFilter);
     }
 
-    return activeMachines.filter(machine => {
-      const workCenterMatch = !workCenterFilter || machine.work_center === workCenterFilter;
-      const departmentMatch = !departmentFilter || machine.department === departmentFilter;
-      return workCenterMatch && departmentMatch;
-    });
-  }, [machineData]);
+    return filtered;
+  }, [machineData, selectedWorkCenter]);
 
   // Memoize navigation functions to prevent unnecessary re-renders
   const navigateDate = useCallback((direction) => {
@@ -287,6 +308,14 @@ function SchedulerPage() {
         </div>
       </div>
     );
+  }
+
+  if (!selectedWorkCenter) {
+    return (
+      <div className="content-section">
+        <div className="error">Please select a work center to view scheduler data.</div>
+      </div>
+      );
   }
 
   return (
