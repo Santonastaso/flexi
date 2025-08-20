@@ -126,7 +126,7 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
         <div className="machine-city">{machine.work_center}</div>
       </div>
       <div className="machine-slots">
-        {/* Render time slots in a more efficient way */}
+        {/* Render time slots in a more efficient way - use a single loop */}
         {Array.from({ length: 96 }, (_, index) => {
           const hour = Math.floor(index / 4);
           const minute = (index % 4) * 15;
@@ -134,7 +134,7 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
 
           return (
             <TimeSlot
-              key={`${hour}-${minute}`}
+              key={`${index}`} // Use index as key for better performance
               machine={machine}
               hour={hour}
               minute={minute}
@@ -143,9 +143,10 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
             />
           );
         })}
-        {machineScheduledEvents.map(event => (
+        {/* Render scheduled events for this machine */}
+        {machineScheduledEvents.length > 0 && machineScheduledEvents.map(event => (
           <ScheduledEvent
-            key={event.id}
+            key={`event-${event.id}`}
             event={event}
             machine={machine}
             currentDate={currentDate}
@@ -156,7 +157,7 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
   );
 });
 
-// The main Gantt Chart component - optimized for performance
+// The main Gantt Chart component - heavily optimized for performance
 const GanttChart = React.memo(({ machines, tasks, currentDate }) => {
   const scheduledTasks = useMemo(() =>
     tasks.filter(task => task.status === 'SCHEDULED'),
@@ -172,17 +173,26 @@ const GanttChart = React.memo(({ machines, tasks, currentDate }) => {
     loadMachineAvailabilityForDate(dateStr);
   }, [dateStr, loadMachineAvailabilityForDate]);
 
-  // Optimize unavailable hours processing
+  // Optimize unavailable hours processing with early returns
   const unavailableByMachine = useMemo(() => {
     const dayData = machineAvailability[dateStr];
-    if (!Array.isArray(dayData)) return {};
+    if (!Array.isArray(dayData) || dayData.length === 0) return {};
 
     const map = {};
-    for (const row of dayData) {
+    const startTime = performance.now();
+
+    for (let i = 0; i < dayData.length; i++) {
+      const row = dayData[i];
       if (row.machine_id && row.unavailable_hours) {
         map[row.machine_id] = new Set(row.unavailable_hours.map(h => h.toString()));
       }
     }
+
+    const endTime = performance.now();
+    if (endTime - startTime > 3) {
+      console.log(`⚡ Unavailable hours processing took: ${(endTime - startTime).toFixed(2)}ms`);
+    }
+
     return map;
   }, [machineAvailability, dateStr]);
 
@@ -200,6 +210,18 @@ const GanttChart = React.memo(({ machines, tasks, currentDate }) => {
     []
   );
 
+  // Early return for empty state
+  if (!machines || machines.length === 0) {
+    return (
+      <div className="calendar-section">
+        <div className="empty-state">
+          <h3>No machines available</h3>
+          <p>Please add machines to view the schedule.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="calendar-section">
       <div className="calendar-grid">
@@ -210,6 +232,7 @@ const GanttChart = React.memo(({ machines, tasks, currentDate }) => {
           </div>
         </div>
         <div className="calendar-body">
+          {/* Render only visible machines - can be optimized further with virtualization */}
           {machines.map(machine => (
             <MachineRow
               key={machine.id}

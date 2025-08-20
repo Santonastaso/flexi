@@ -1,47 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useStore } from '../store/useStore';
 import { toDateString, addDaysToDate } from '../utils/dateUtils';
-import { useFormValidation } from '../hooks';
 import { DEFAULT_VALUES, VALIDATION_MESSAGES } from '../constants';
 
 function OffTimeForm({ machineId, currentDate, onSuccess }) {
   const [validationErrors, setValidationErrors] = useState({});
   const setMachineUnavailability = useStore(state => state.setMachineUnavailability);
   const showAlert = useStore(state => state.showAlert);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    setValue,
-    watch,
-    reset,
-    setError,
-    clearErrors
-  } = useFormValidation('OFF_TIME', {}, null); // We'll handle submission manually
-
-  const startDate = watch('startDate');
-  const endDate = watch('endDate');
-  const startTime = watch('startTime');
-  const endTime = watch('endTime');
-
-  useEffect(() => {
-    const today = new Date();
-    const tomorrow = addDaysToDate(today, 1);
-    
-    setValue('startDate', toDateString(today));
-    setValue('endDate', toDateString(tomorrow));
-    setValue('startTime', DEFAULT_VALUES.OFF_TIME.START_TIME);
-    setValue('endTime', DEFAULT_VALUES.OFF_TIME.END_TIME);
-  }, [currentDate, setValue]);
-
-  // Clear validation errors when dates/times change
-  useEffect(() => {
-    if (startDate && endDate && startTime && endTime) {
-      clearErrors(['startDate', 'startTime', 'endDate', 'endTime']);
-      setValidationErrors({});
-    }
-  }, [startDate, endDate, startTime, endTime, clearErrors]);
 
   const validateForm = (data) => {
     const errors = {};
@@ -69,7 +35,7 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
   const onSubmit = async (data) => {
     // Clear any previous validation errors
     setValidationErrors({});
-    clearErrors();
+    clearErrors(['startDate', 'startTime', 'endDate', 'endTime']);
     
     // Validate the form
     const validationErrors = validateForm(data);
@@ -98,9 +64,50 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
       reset();
     } catch (error) {
       showAlert(`Failed to set machine unavailability: ${error.message}`, 'error');
-      throw error; // Re-throw to trigger error handling in useFormValidation
+      throw error; // Re-throw to trigger error handling
     }
   };
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setValue,
+    watch,
+    reset,
+    setError,
+    clearErrors
+  } = useForm({
+    defaultValues: {
+      startDate: '',
+      startTime: '',
+      endDate: '',
+      endTime: ''
+    }
+  });
+
+  const startDate = watch('startDate');
+  const endDate = watch('endDate');
+  const startTime = watch('startTime');
+  const endTime = watch('endTime');
+
+  useEffect(() => {
+    const today = new Date();
+    const tomorrow = addDaysToDate(today, 1);
+    
+    setValue('startDate', toDateString(today));
+    setValue('endDate', toDateString(tomorrow));
+    setValue('startTime', DEFAULT_VALUES.OFF_TIME.START_TIME);
+    setValue('endTime', DEFAULT_VALUES.OFF_TIME.END_TIME);
+  }, [currentDate]);
+
+  // Clear validation errors when dates/times change
+  useEffect(() => {
+    if (startDate && endDate && startTime && endTime) {
+      clearErrors(['startDate', 'startTime', 'endDate', 'endTime']);
+      setValidationErrors({});
+    }
+  }, [startDate, endDate, startTime, endTime]);
 
   // Helper function to get error message for a field
   const getFieldError = (fieldName) => {
