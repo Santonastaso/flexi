@@ -1,80 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useStore } from '../store/useStore';
-import { usePhaseValidation } from '../hooks/usePhaseValidation';
+import { useFormValidation } from '../hooks';
+import { 
+  DEPARTMENT_TYPES, 
+  WORK_CENTERS, 
+  DEFAULT_VALUES 
+} from '../constants';
 
 function PhasesForm() {
   const initialFormData = {
     name: '',
-    department: 'STAMPA',
-    numero_persone: 1,
-    work_center: 'ZANICA',
-    v_stampa: 6000,
-    t_setup_stampa: 0.5,
-    costo_h_stampa: 50,
-    v_conf: 1000,
-    t_setup_conf: 0.25,
-    costo_h_conf: 40,
+    department: DEFAULT_VALUES.PHASE.DEPARTMENT,
+    numero_persone: DEFAULT_VALUES.PHASE.NUMERO_PERSONE,
+    work_center: DEFAULT_VALUES.PHASE.WORK_CENTER,
+    v_stampa: DEFAULT_VALUES.PHASE.V_STAMPA,
+    t_setup_stampa: DEFAULT_VALUES.PHASE.T_SETUP_STAMPA,
+    costo_h_stampa: DEFAULT_VALUES.PHASE.COSTO_H_STAMPA,
+    v_conf: DEFAULT_VALUES.PHASE.V_CONF,
+    t_setup_conf: DEFAULT_VALUES.PHASE.T_SETUP_CONF,
+    costo_h_conf: DEFAULT_VALUES.PHASE.COSTO_H_CONF,
     contenuto_fase: '',
   };
-
-  const [formData, setFormData] = useState(initialFormData);
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Get addPhase action from Zustand store
   const addPhase = useStore(state => state.addPhase);
-  
-  // Use the new phase validation hook
-  const { validateForm: validatePhaseForm } = usePhaseValidation();
 
-  // Reset errors when department changes
-  useEffect(() => {
-    setErrors({});
-  }, [formData.department]);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    watch
+  } = useFormValidation('PHASE', initialFormData, addPhase);
 
-  const validateForm = () => {
-    const newErrors = validatePhaseForm(formData);
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = (e) => {
-    const { name, value, type } = e.target;
-    const parsedValue = type === 'number' ? parseFloat(value) || 0 : value;
-    
-    setFormData(prev => ({ ...prev, [name]: parsedValue }));
-    
-    // Clear error for this field when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    
-    try {
-      await addPhase(formData);
-      setFormData(initialFormData); // Reset form
-      setErrors({}); // Clear errors
-    } catch (error) {
-      // Error is already handled by the store
-      console.error('Error adding phase:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const department = watch('department');
 
   const getFieldError = (fieldName) => {
     return errors[fieldName] ? (
       <span className="error-message" style={{ color: 'red', fontSize: '12px', marginTop: '4px' }}>
-        {errors[fieldName]}
+        {errors[fieldName].message}
       </span>
     ) : null;
   };
@@ -91,11 +54,8 @@ function PhasesForm() {
               <input 
                 type="text" 
                 id="name" 
-                name="name" 
-                value={formData.name} 
-                onChange={handleChange} 
+                {...register('name')}
                 placeholder="e.g., High-Speed Printing" 
-                required 
                 className={errors.name ? 'error' : ''}
               />
               {getFieldError('name')}
@@ -104,14 +64,11 @@ function PhasesForm() {
               <label htmlFor="department">Phase Type *</label>
               <select 
                 id="department" 
-                name="department" 
-                value={formData.department} 
-                onChange={handleChange} 
-                required
+                {...register('department')}
                 className={errors.department ? 'error' : ''}
               >
-                <option value="STAMPA">STAMPA</option>
-                <option value="CONFEZIONAMENTO">CONFEZIONAMENTO</option>
+                <option value={DEPARTMENT_TYPES.PRINTING}>{DEPARTMENT_TYPES.PRINTING}</option>
+                <option value={DEPARTMENT_TYPES.PACKAGING}>{DEPARTMENT_TYPES.PACKAGING}</option>
               </select>
               {getFieldError('department')}
             </div>
@@ -120,12 +77,9 @@ function PhasesForm() {
               <input 
                 type="number" 
                 id="numero_persone" 
-                name="numero_persone" 
-                value={formData.numero_persone} 
-                onChange={handleChange} 
+                {...register('numero_persone')}
                 min="1" 
                 step="1"
-                required 
                 className={errors.numero_persone ? 'error' : ''}
               />
               {getFieldError('numero_persone')}
@@ -134,14 +88,11 @@ function PhasesForm() {
               <label htmlFor="work_center">Work Center *</label>
               <select 
                 id="work_center" 
-                name="work_center" 
-                value={formData.work_center} 
-                onChange={handleChange} 
-                required
+                {...register('work_center')}
                 className={errors.work_center ? 'error' : ''}
               >
-                <option value="ZANICA">ZANICA</option>
-                <option value="BUSTO_GAROLFO">BUSTO GAROLFO</option>
+                <option value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</option>
+                <option value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</option>
               </select>
               {getFieldError('work_center')}
             </div>
@@ -149,7 +100,7 @@ function PhasesForm() {
         </div>
 
         {/* Conditional Printing Parameters */}
-        {formData.department === 'STAMPA' && (
+        {department === DEPARTMENT_TYPES.PRINTING && (
           <div className="form-section">
             <h3 className="section-title">🖨️ Printing Parameters</h3>
             <div className="form-grid form-grid--3-cols">
@@ -158,9 +109,7 @@ function PhasesForm() {
                 <input 
                   type="number" 
                   id="v_stampa" 
-                  name="v_stampa" 
-                  value={formData.v_stampa} 
-                  onChange={handleChange} 
+                  {...register('v_stampa')}
                   min="0" 
                   step="1"
                   className={errors.v_stampa ? 'error' : ''}
@@ -172,9 +121,7 @@ function PhasesForm() {
                 <input 
                   type="number" 
                   id="t_setup_stampa" 
-                  name="t_setup_stampa" 
-                  value={formData.t_setup_stampa} 
-                  onChange={handleChange} 
+                  {...register('t_setup_stampa')}
                   min="0" 
                   step="0.1" 
                   className={errors.t_setup_stampa ? 'error' : ''}
@@ -186,9 +133,7 @@ function PhasesForm() {
                 <input 
                   type="number" 
                   id="costo_h_stampa" 
-                  name="costo_h_stampa" 
-                  value={formData.costo_h_stampa} 
-                  onChange={handleChange} 
+                  {...register('costo_h_stampa')}
                   min="0" 
                   step="0.01" 
                   className={errors.costo_h_stampa ? 'error' : ''}
@@ -200,7 +145,7 @@ function PhasesForm() {
         )}
 
         {/* Conditional Packaging Parameters */}
-        {formData.department === 'CONFEZIONAMENTO' && (
+        {department === DEPARTMENT_TYPES.PACKAGING && (
           <div className="form-section">
             <h3 className="section-title">📦 Packaging Parameters</h3>
             <div className="form-grid form-grid--3-cols">
@@ -209,9 +154,7 @@ function PhasesForm() {
                 <input 
                   type="number" 
                   id="v_conf" 
-                  name="v_conf" 
-                  value={formData.v_conf} 
-                  onChange={handleChange} 
+                  {...register('v_conf')}
                   min="0" 
                   step="1"
                   className={errors.v_conf ? 'error' : ''}
@@ -223,9 +166,7 @@ function PhasesForm() {
                 <input 
                   type="number" 
                   id="t_setup_conf" 
-                  name="t_setup_conf" 
-                  value={formData.t_setup_conf} 
-                  onChange={handleChange} 
+                  {...register('t_setup_conf')}
                   min="0" 
                   step="0.1" 
                   className={errors.t_setup_conf ? 'error' : ''}
@@ -237,9 +178,7 @@ function PhasesForm() {
                 <input 
                   type="number" 
                   id="costo_h_conf" 
-                  name="costo_h_conf" 
-                  value={formData.costo_h_conf} 
-                  onChange={handleChange} 
+                  {...register('costo_h_conf')}
                   min="0" 
                   step="0.01" 
                   className={errors.costo_h_conf ? 'error' : ''}
@@ -251,9 +190,7 @@ function PhasesForm() {
               <label htmlFor="contenuto_fase">Phase Content Description</label>
               <textarea 
                 id="contenuto_fase" 
-                name="contenuto_fase" 
-                value={formData.contenuto_fase} 
-                onChange={handleChange} 
+                {...register('contenuto_fase')}
                 rows="3"
                 placeholder="Describe the phase content and requirements..."
               />

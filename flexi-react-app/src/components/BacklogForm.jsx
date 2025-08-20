@@ -1,26 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../store/useStore';
-import { useProductionCalculations, useOrderValidation } from '../hooks';
+import { useProductionCalculations, useFormValidation } from '../hooks';
+import { 
+  DEPARTMENT_TYPES, 
+  PRODUCT_TYPES, 
+  SEAL_SIDES, 
+  DEFAULT_VALUES 
+} from '../constants';
 
 function BacklogForm() {
   const initialFormData = {
-    odp_number: '', article_code: '', production_lot: '', work_center: '',
-    nome_cliente: '', description: '', delivery_date: '', bag_height: '',
-    bag_width: '', bag_step: '', seal_sides: '3', product_type: '',
-    quantity: '', quantity_per_box: '', quantity_completed: 0,
-    internal_customer_code: '', external_customer_code: '',
-    customer_order_ref: '', department: '', fase: '',
+    odp_number: '', 
+    article_code: '', 
+    production_lot: '', 
+    work_center: '',
+    nome_cliente: '', 
+    description: '', 
+    delivery_date: '', 
+    bag_height: '',
+    bag_width: '', 
+    bag_step: '', 
+    seal_sides: DEFAULT_VALUES.ORDER.SEAL_SIDES, 
+    product_type: '',
+    quantity: '', 
+    quantity_per_box: '', 
+    quantity_completed: DEFAULT_VALUES.ORDER.QUANTITY_COMPLETED,
+    internal_customer_code: '', 
+    external_customer_code: '',
+    customer_order_ref: '', 
+    department: '', 
+    fase: '',
   };
 
-  const [formData, setFormData] = useState(initialFormData);
   const [selectedPhase, setSelectedPhase] = useState(null);
   const [editablePhaseParams, setEditablePhaseParams] = useState({});
   const [calculationResults, setCalculationResults] = useState(null);
   const [filteredPhases, setFilteredPhases] = useState([]);
   const [phaseSearch, setPhaseSearch] = useState('');
   const [isDropdownVisible, setDropdownVisible] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Use modern hooks instead of BusinessLogicService class
   const { 
@@ -29,102 +46,105 @@ function BacklogForm() {
     autoDetermineDepartment 
   } = useProductionCalculations();
   
-  const { validateOrder, validatePhaseSelection } = useOrderValidation();
+  // useOrderValidation hook not needed for this component
   
   // Get state and actions from Zustand store
   const phases = useStore(state => state.phases);
   const addOdpOrder = useStore(state => state.addOdpOrder);
   const showAlert = useStore(state => state.showAlert);
 
-  useEffect(() => {
-    // Phases are now automatically available from the store
-    // No need to manually set them
-  }, []);
+  // Define onSubmit function before useFormValidation
+  const onSubmit = async (data) => {
+    console.log('Form submit triggered');
+
+    console.log('Checking calculation results...');
+    if (!calculationResults) {
+      console.log('No calculation results available');
+      showAlert("Please calculate production metrics before adding to the backlog.", 'warning');
+      return;
+    }
+
+    console.log('Submitting form with data:', { data, calculationResults });
+
+    try {
+      const orderData = {
+        ...data,
+        duration: calculationResults.totals.duration,
+        cost: calculationResults.totals.cost,
+        status: 'NOT SCHEDULED',
+      };
+
+      console.log('Calling addOdpOrder with:', orderData);
+      await addOdpOrder(orderData);
+      console.log('Order added successfully');
+
+      // Reset form
+      Object.keys(initialFormData).forEach(key => setValue(key, initialFormData[key]));
+      setPhaseSearch('');
+      setSelectedPhase(null);
+      setEditablePhaseParams({});
+      setCalculationResults(null);
+    } catch (error) {
+      // Error is already handled by the store
+      console.error('Error adding order:', error);
+      throw error; // Re-throw to trigger error handling in useFormValidation
+    }
+  };
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    watch,
+    setValue,
+    getValues,
+    clearErrors
+  } = useFormValidation('ORDER', initialFormData, onSubmit);
+
+  const articleCode = watch('article_code');
+  const department = watch('department');
+  const workCenter = watch('work_center');
 
   useEffect(() => {
-    if (formData.article_code) {
-      const department = autoDetermineDepartment(formData.article_code);
-      const work_center = autoDetermineWorkCenter(formData.article_code);
-      setFormData(prev => ({ ...prev, department, work_center, fase: '' }));
+    if (articleCode) {
+      const dept = autoDetermineDepartment(articleCode);
+      const wc = autoDetermineWorkCenter(articleCode);
+      setValue('department', dept);
+      setValue('work_center', wc);
+      setValue('fase', '');
       setPhaseSearch('');
       setSelectedPhase(null);
       setEditablePhaseParams({});
       setCalculationResults(null);
     }
-  }, [formData.article_code, autoDetermineDepartment, autoDetermineWorkCenter]);
+  }, [articleCode, autoDetermineDepartment, autoDetermineWorkCenter, setValue]);
 
   useEffect(() => {
-    if (formData.department || formData.work_center) {
+    if (department || workCenter) {
       const relevantPhases = phases.filter(p => 
-        (!formData.department || p.department === formData.department) &&
-        (!formData.work_center || p.work_center === formData.work_center)
+        (!department || p.department === department) &&
+        (!workCenter || p.work_center === workCenter)
       );
       const searchFiltered = relevantPhases.filter(p => p.name.toLowerCase().includes(phaseSearch.toLowerCase()));
       setFilteredPhases(searchFiltered);
     } else {
       setFilteredPhases([]);
     }
-  }, [phaseSearch, formData.department, formData.work_center, phases]);
-
-  const validateForm = () => {
-    // Use the new validation hook
-    const validationErrors = validateOrder(formData);
-    
-    // Additional phase validation
-    if (selectedPhase) {
-      const phaseErrors = validatePhaseSelection(selectedPhase, formData);
-      if (phaseErrors.length > 0) {
-        validationErrors.push(...phaseErrors);
-      }
-    } else {
-      validationErrors.push('Please select a production phase');
-    }
-
-    console.log('Validation errors:', validationErrors);
-    
-    // Convert array of errors to object format for display
-    const newErrors = {};
-    validationErrors.forEach(error => {
-      // Try to extract field name from error message, fallback to 'general' if can't determine
-      if (error.includes('is required') || error.includes('must be greater than')) {
-        // Extract field name from error message
-        const fieldMatch = error.match(/^([^:]+):/);
-        const fieldName = fieldMatch ? fieldMatch[1].trim().toLowerCase().replace(/\s+/g, '_') : 'general';
-        newErrors[fieldName] = error;
-      } else {
-        newErrors.general = error;
-      }
-    });
-
-    setErrors(newErrors);
-    return validationErrors.length === 0;
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear error for this field when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-  };
+  }, [phaseSearch, department, workCenter, phases]);
 
   const handlePhaseParamChange = (field, value) => {
     setEditablePhaseParams(prev => ({ ...prev, [field]: value }));
   };
 
   const handlePhaseSelect = (phase) => {
-    setFormData(prev => ({ ...prev, fase: phase.id }));
+    setValue('fase', phase.id);
     setSelectedPhase(phase);
     setPhaseSearch(phase.name);
     setDropdownVisible(false);
     setCalculationResults(null);
     
     // Clear phase error
-    if (errors.phase) {
-      setErrors(prev => ({ ...prev, phase: '' }));
-    }
+    clearErrors('phase');
     
     // Initialize editable phase parameters with current phase values
     setEditablePhaseParams({
@@ -140,13 +160,13 @@ function BacklogForm() {
   const handleCalculate = () => {
     console.log('Calculate button clicked');
     console.log('Selected phase:', selectedPhase);
-    console.log('Form data:', formData);
+    console.log('Form data:', getValues());
     
-    if (!selectedPhase || !formData.quantity || !formData.bag_step) {
+    if (!selectedPhase || !getValues('quantity') || !getValues('bag_step')) {
       console.log('Validation failed:', { 
         hasPhase: !!selectedPhase, 
-        quantity: !!formData.quantity, 
-        bagStep: !!formData.bag_step 
+        quantity: !!getValues('quantity'), 
+        bagStep: !!getValues('bag_step') 
       });
       showAlert("Please select a phase and enter Quantity and Bag Step to calculate.", 'warning');
       return;
@@ -159,62 +179,17 @@ function BacklogForm() {
     };
     
     console.log('Phase for calculation:', phaseForCalculation);
-    const results = calculateProductionMetrics(phaseForCalculation, formData.quantity, formData.bag_step);
+    const results = calculateProductionMetrics(phaseForCalculation, getValues('quantity'), getValues('bag_step'));
     console.log('Calculation results:', results);
     setCalculationResults(results);
   };
 
-  const handleSubmit = async (e) => {
-    console.log('Form submit triggered');
-    e.preventDefault();
-    
-    console.log('Validating form...');
-    if (!validateForm()) {
-      console.log('Form validation failed');
-      return;
-    }
 
-    console.log('Checking calculation results...');
-    if (!calculationResults) {
-      console.log('No calculation results available');
-      showAlert("Please calculate production metrics before adding to the backlog.", 'warning');
-      return;
-    }
-
-    console.log('Submitting form with data:', { formData, calculationResults });
-    setIsSubmitting(true);
-    
-    try {
-      const orderData = {
-        ...formData,
-        duration: calculationResults.totals.duration,
-        cost: calculationResults.totals.cost,
-        status: 'NOT SCHEDULED',
-      };
-      
-      console.log('Calling addOdpOrder with:', orderData);
-      await addOdpOrder(orderData);
-      console.log('Order added successfully');
-      
-      // Reset form
-      setFormData(initialFormData);
-      setPhaseSearch('');
-      setSelectedPhase(null);
-      setEditablePhaseParams({});
-      setCalculationResults(null);
-      setErrors({});
-    } catch (error) {
-      // Error is already handled by the store
-      console.error('Error adding order:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const getFieldError = (fieldName) => {
     return errors[fieldName] ? (
       <span className="error-message" style={{ color: 'red', fontSize: '12px', marginTop: '4px' }}>
-        {errors[fieldName]}
+        {errors[fieldName].message}
       </span>
     ) : null;
   };
@@ -232,11 +207,8 @@ function BacklogForm() {
               <input 
                 type="text" 
                 id="odp_number" 
-                name="odp_number" 
-                value={formData.odp_number} 
-                onChange={handleChange} 
+                {...register('odp_number')}
                 placeholder="ODP Number" 
-                required 
                 className={errors.odp_number ? 'error' : ''}
               />
               {getFieldError('odp_number')}
@@ -246,11 +218,8 @@ function BacklogForm() {
               <input 
                 type="text" 
                 id="article_code" 
-                name="article_code" 
-                value={formData.article_code} 
-                onChange={handleChange} 
+                {...register('article_code')}
                 placeholder="Article Code" 
-                required 
                 className={errors.article_code ? 'error' : ''}
               />
               {getFieldError('article_code')}
@@ -260,11 +229,8 @@ function BacklogForm() {
               <input 
                 type="text" 
                 id="production_lot" 
-                name="production_lot" 
-                value={formData.production_lot} 
-                onChange={handleChange} 
+                {...register('production_lot')}
                 placeholder="External Article Code" 
-                required 
                 className={errors.production_lot ? 'error' : ''}
               />
               {getFieldError('production_lot')}
@@ -274,9 +240,7 @@ function BacklogForm() {
               <input 
                 type="text" 
                 id="work_center" 
-                name="work_center" 
-                value={formData.work_center} 
-                onChange={handleChange} 
+                {...register('work_center')}
                 placeholder="Work Center" 
                 readOnly 
               />
@@ -286,9 +250,7 @@ function BacklogForm() {
               <input 
                 type="text" 
                 id="nome_cliente" 
-                name="nome_cliente" 
-                value={formData.nome_cliente} 
-                onChange={handleChange} 
+                {...register('nome_cliente')}
                 placeholder="Customer Name" 
               />
             </div>
@@ -296,9 +258,7 @@ function BacklogForm() {
               <label htmlFor="description">Description</label>
               <textarea 
                 id="description" 
-                name="description" 
-                value={formData.description} 
-                onChange={handleChange} 
+                {...register('description')}
                 placeholder="Description" 
                 rows="2"
               />
@@ -315,13 +275,10 @@ function BacklogForm() {
               <input 
                 type="number" 
                 id="bag_height" 
-                name="bag_height" 
-                value={formData.bag_height} 
-                onChange={handleChange} 
+                {...register('bag_height')}
                 placeholder="Bag Height" 
                 min="0" 
                 step="1"
-                required 
                 className={errors.bag_height ? 'error' : ''}
               />
               {getFieldError('bag_height')}
@@ -331,13 +288,10 @@ function BacklogForm() {
               <input 
                 type="number" 
                 id="bag_width" 
-                name="bag_width" 
-                value={formData.bag_width} 
-                onChange={handleChange} 
+                {...register('bag_width')}
                 placeholder="Bag Width" 
                 min="0" 
                 step="1"
-                required 
                 className={errors.bag_width ? 'error' : ''}
               />
               {getFieldError('bag_width')}
@@ -347,13 +301,10 @@ function BacklogForm() {
               <input 
                 type="number" 
                 id="bag_step" 
-                name="bag_step" 
-                value={formData.bag_step} 
-                onChange={handleChange} 
+                {...register('bag_step')}
                 placeholder="Bag Step" 
                 min="0" 
                 step="1"
-                required 
                 className={errors.bag_step ? 'error' : ''}
               />
               {getFieldError('bag_step')}
@@ -362,28 +313,23 @@ function BacklogForm() {
               <label htmlFor="seal_sides">Seal Sides</label>
               <select 
                 id="seal_sides" 
-                name="seal_sides" 
-                value={formData.seal_sides} 
-                onChange={handleChange}
+                {...register('seal_sides')}
               >
-                <option value="3">3 sides</option>
-                <option value="4">4 sides</option>
+                <option value={SEAL_SIDES.THREE}>3 sides</option>
+                <option value={SEAL_SIDES.FOUR}>4 sides</option>
               </select>
             </div>
             <div className="form-group">
               <label htmlFor="product_type">Product Type *</label>
               <select 
                 id="product_type" 
-                name="product_type" 
-                value={formData.product_type} 
-                onChange={handleChange} 
-                required
+                {...register('product_type')}
                 className={errors.product_type ? 'error' : ''}
               >
                 <option value="">Select product type</option>
-                <option value="crema">Crema</option>
-                <option value="liquido">Liquido</option>
-                <option value="polveri">Polveri</option>
+                <option value={PRODUCT_TYPES.CREMA}>Crema</option>
+                <option value={PRODUCT_TYPES.LIQUIDO}>Liquido</option>
+                <option value={PRODUCT_TYPES.POLVERI}>Polveri</option>
               </select>
               {getFieldError('product_type')}
             </div>
@@ -392,13 +338,10 @@ function BacklogForm() {
               <input 
                 type="number" 
                 id="quantity" 
-                name="quantity" 
-                value={formData.quantity} 
-                onChange={handleChange} 
+                {...register('quantity')}
                 placeholder="Quantity" 
                 min="0" 
                 step="1"
-                required 
                 className={errors.quantity ? 'error' : ''}
               />
               {getFieldError('quantity')}
@@ -408,9 +351,7 @@ function BacklogForm() {
               <input 
                 type="number" 
                 id="quantity_per_box" 
-                name="quantity_per_box" 
-                value={formData.quantity_per_box} 
-                onChange={handleChange} 
+                {...register('quantity_per_box')}
                 placeholder="Qty per Box" 
                 min="0" 
                 step="1"
@@ -421,9 +362,7 @@ function BacklogForm() {
               <input 
                 type="number" 
                 id="quantity_completed" 
-                name="quantity_completed" 
-                value={formData.quantity_completed} 
-                onChange={handleChange} 
+                {...register('quantity_completed')}
                 placeholder="Qty Completed" 
                 min="0" 
                 step="1"
@@ -443,9 +382,7 @@ function BacklogForm() {
               <input 
                 type="text" 
                 id="internal_customer_code" 
-                name="internal_customer_code" 
-                value={formData.internal_customer_code} 
-                onChange={handleChange} 
+                {...register('internal_customer_code')}
                 placeholder="FLEXI Lot" 
               />
             </div>
@@ -454,9 +391,7 @@ function BacklogForm() {
               <input 
                 type="text" 
                 id="external_customer_code" 
-                name="external_customer_code" 
-                value={formData.external_customer_code} 
-                onChange={handleChange} 
+                {...register('external_customer_code')}
                 placeholder="Customer Lot" 
               />
             </div>
@@ -465,9 +400,7 @@ function BacklogForm() {
               <input 
                 type="text" 
                 id="customer_order_ref" 
-                name="customer_order_ref" 
-                value={formData.customer_order_ref} 
-                onChange={handleChange} 
+                {...register('customer_order_ref')}
                 placeholder="Customer Reference" 
               />
             </div>
@@ -483,9 +416,7 @@ function BacklogForm() {
               <input 
                 type="text" 
                 id="department" 
-                name="department" 
-                value={formData.department} 
-                onChange={handleChange} 
+                {...register('department')}
                 placeholder="Department" 
                 readOnly 
               />
@@ -501,7 +432,6 @@ function BacklogForm() {
                   onFocus={() => setDropdownVisible(true)} 
                   onBlur={() => setTimeout(() => setDropdownVisible(false), 150)} 
                   placeholder="Search Production Phase" 
-                  required 
                   className={errors.phase ? 'error' : ''}
                 />
                 {getFieldError('phase')}
@@ -526,10 +456,7 @@ function BacklogForm() {
               <input 
                 type="datetime-local" 
                 id="delivery_date" 
-                name="delivery_date" 
-                value={formData.delivery_date} 
-                onChange={handleChange} 
-                required 
+                {...register('delivery_date')}
                 className={errors.delivery_date ? 'error' : ''}
               />
               {getFieldError('delivery_date')}
@@ -542,7 +469,7 @@ function BacklogForm() {
           <div className="form-section">
             <h3 className="section-title">📊 Selected Phase Parameters</h3>
             <div className="form-grid form-grid--3-cols">
-              {selectedPhase.department === 'STAMPA' ? (
+              {selectedPhase.department === DEPARTMENT_TYPES.PRINTING ? (
                 <>
                   <div className="form-group">
                     <label htmlFor="v_stampa">Print Speed:</label>

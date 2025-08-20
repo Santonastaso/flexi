@@ -1,12 +1,10 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useStore } from '../store/useStore';
+import { MACHINE_STATUSES } from '../constants';
+
 
 function HomePage() {
-  const machines = useStore(state => state.machines);
-  const orders = useStore(state => state.odpOrders);
-  const isLoading = useStore(state => state.isLoading);
-  const isInitialized = useStore(state => state.isInitialized);
-  const init = useStore(state => state.init);
+  const { machines, odpOrders: orders, isLoading, isInitialized, init } = useStore();
 
   useEffect(() => {
     if (!isInitialized) {
@@ -14,37 +12,41 @@ function HomePage() {
     }
   }, [init, isInitialized]);
 
-  // Calculate metrics
   const metrics = useMemo(() => {
     if (isLoading) return {};
 
-    const now = new Date();
-    const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
-    const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
-
-    // Machines by work center and status
+    // Group machines by work center and status
     const machinesByWorkCenter = machines.reduce((acc, machine) => {
       const center = machine.work_center || 'Unknown';
-      if (!acc[center]) acc[center] = {};
-      const status = machine.status || 'UNKNOWN';
-      acc[center][status] = (acc[center][status] || 0) + 1;
+      if (!acc[center]) {
+        acc[center] = {
+          [MACHINE_STATUSES.ACTIVE]: 0,
+          [MACHINE_STATUSES.INACTIVE]: 0,
+          [MACHINE_STATUSES.MAINTENANCE]: 0
+        };
+      }
+      acc[center][machine.status] = (acc[center][machine.status] || 0) + 1;
       return acc;
     }, {});
 
-    // Tasks completed this week
+    // Calculate completed tasks this week
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
     const completedThisWeek = orders.filter(order => {
-      if (!order.quantity_completed || !order.updated_at) return false;
-      const updatedDate = new Date(order.updated_at);
-      return updatedDate >= weekStart && updatedDate <= weekEnd && 
-             order.quantity_completed >= order.quantity;
+      if (!order.completion_date) return false;
+      const completionDate = new Date(order.completion_date);
+      return completionDate >= startOfWeek;
     }).length;
 
-    // Tasks in WIP
+    // Tasks currently in work in progress
     const tasksInWip = orders.filter(order => 
-      order.quantity_completed > 0 && order.quantity_completed < order.quantity
+      order.status === 'IN PROGRESS' || order.status === 'SCHEDULED'
     ).length;
 
-    // Delayed tasks (past due date)
+    // Delayed tasks (past due date and not completed)
     const delayedTasks = orders.filter(order => {
       if (!order.due_date) return false;
       const dueDate = new Date(order.due_date);
@@ -52,7 +54,7 @@ function HomePage() {
     }).length;
 
     // Total active machines
-    const activeMachines = machines.filter(m => m.status === 'ACTIVE').length;
+    const activeMachines = machines.filter(m => m.status === MACHINE_STATUSES.ACTIVE).length;
 
     return {
       machinesByWorkCenter,

@@ -203,6 +203,23 @@ export const VALIDATION_CONFIGS = {
         message: 'Production start cannot be after delivery date'
       }
     ]
+  },
+
+  // Off-time validation configuration
+  OFF_TIME: {
+    required: ['startDate', 'startTime', 'endDate', 'endTime'],
+    logical: [
+      {
+        condition: (data) => data.startDate && data.endDate && new Date(data.startDate) > new Date(data.endDate),
+        errorField: 'endDate',
+        message: 'End date cannot be before start date'
+      },
+      {
+        condition: (data) => data.startDate && data.endDate && data.startDate === data.endDate && data.startTime && data.endTime && data.startTime >= data.endTime,
+        errorField: 'endTime',
+        message: 'End time must be after start time when dates are the same'
+      }
+    ]
   }
 };
 
@@ -238,7 +255,7 @@ export const isValidEmail = (email) => {
  */
 export const isValidPhone = (phone) => {
   if (!phone || typeof phone !== 'string') return false;
-  const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+  const phoneRegex = /^[+]?[1-9][\d]{0,15}$/;
   return phoneRegex.test(phone.replace(/\s/g, ''));
 };
 
@@ -354,7 +371,7 @@ export const isValidOdpNumber = (odpNumber) => {
 export const isValidArticleCode = (articleCode) => {
   if (!articleCode || typeof articleCode !== 'string') return false;
   // Article codes should be alphanumeric + hyphens, 3-50 characters
-  const articleRegex = /^[a-zA-Z0-9\-]{3,50}$/;
+  const articleRegex = /^[a-zA-Z0-9-]{3,50}$/;
   return articleRegex.test(articleCode.trim());
 };
 

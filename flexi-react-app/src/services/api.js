@@ -1,5 +1,5 @@
 import { supabase, handleSupabaseError } from './supabase/client';
-import { toDateString } from '../utils/dateUtils';
+import { toDateString, addDaysToDate } from '../utils/dateUtils';
 
 /**
  * Modern API service for data operations
@@ -311,7 +311,7 @@ class ApiService {
       const endDateObj = new Date(endDate);
       
       // Iterate through each date in the range
-      const currentDate = new Date(startDateObj);
+      let currentDate = new Date(startDateObj);
       const results = [];
       
       while (currentDate <= endDateObj) {
@@ -329,7 +329,7 @@ class ApiService {
         results.push(result);
         
         // Move to next date
-        currentDate.setDate(currentDate.getDate() + 1);
+        currentDate = addDaysToDate(currentDate, 1);
       }
       
       return results;

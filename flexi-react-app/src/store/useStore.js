@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
-import { toDateString } from '../utils/dateUtils';
+import { toDateString, addDaysToDate } from '../utils/dateUtils';
 
 // Zustand store that mirrors the existing appStore.js API
 export const useStore = create((set, get) => ({
@@ -358,7 +358,7 @@ export const useStore = create((set, get) => ({
         console.warn('Machine availability table not accessible:', tableError.message);
         return {};
       }
-      const current = new Date(startDate);
+      let current = new Date(startDate);
       while (current <= endDate) {
         const dateStr = toDateString(current);
         const existing = get().machineAvailability[dateStr];
@@ -370,7 +370,7 @@ export const useStore = create((set, get) => ({
           const row = dayData.find(r => r.machine_id === machineId);
           if (row) result[dateStr] = row.unavailable_hours || [];
         }
-        current.setDate(current.getDate() + 1);
+        current = addDaysToDate(current, 1);
       }
       return result;
     } catch (e) {

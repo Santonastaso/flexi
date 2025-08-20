@@ -1,4 +1,5 @@
 import React from 'react';
+import { getStartOfWeek, getEndOfWeek, addDaysToDate } from '../utils/dateUtils';
 
 function CalendarViewControls({ currentDate, currentView, onDateChange, onViewChange }) {
   const goToToday = () => {
@@ -6,24 +7,28 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
   };
 
   const goToPrevious = () => {
-    const newDate = new Date(currentDate);
+    let newDate;
     if (currentView === 'Month') {
+      newDate = new Date(currentDate);
       newDate.setMonth(newDate.getMonth() - 1);
     } else if (currentView === 'Week') {
-      newDate.setDate(newDate.getDate() - 7);
+      newDate = addDaysToDate(currentDate, -7);
     } else if (currentView === 'Year') {
+      newDate = new Date(currentDate);
       newDate.setFullYear(newDate.getFullYear() - 1);
     }
     onDateChange(newDate);
   };
 
   const goToNext = () => {
-    const newDate = new Date(currentDate);
+    let newDate;
     if (currentView === 'Month') {
+      newDate = new Date(currentDate);
       newDate.setMonth(newDate.getMonth() + 1);
     } else if (currentView === 'Week') {
-      newDate.setDate(newDate.getDate() + 7);
+      newDate = addDaysToDate(currentDate, 7);
     } else if (currentView === 'Year') {
+      newDate = new Date(currentDate);
       newDate.setFullYear(newDate.getFullYear() + 1);
     }
     onDateChange(newDate);
@@ -33,10 +38,8 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
     if (currentView === 'Month') {
       return currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     } else if (currentView === 'Week') {
-      const startOfWeek = new Date(currentDate);
-      startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      const startOfWeek = getStartOfWeek(currentDate);
+      const endOfWeek = getEndOfWeek(currentDate);
       return `${startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
     } else if (currentView === 'Year') {
       return currentDate.getFullYear().toString();

@@ -1,72 +1,179 @@
 /**
- * Date utility functions for consistent date handling
- * Avoids timezone conversion issues by working with local dates
+ * Robust date utility functions using date-fns library
+ * Provides reliable date handling for scheduling applications
  */
+
+import * as dateFns from 'date-fns';
 
 /**
  * Convert a Date object to a date string in YYYY-MM-DD format
- * Uses local date to avoid timezone conversion issues
+ * Uses date-fns for consistent formatting
  */
 export function toDateString(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return dateFns.format(date, 'yyyy-MM-dd');
 }
 
 /**
  * Create a date string from year, month, and day
- * Uses local date to ensure consistency
+ * Uses date-fns for reliable date construction
  */
 export function createDateString(year, month, day) {
-  const date = new Date(year, month, day);
-  return toDateString(date);
-}
-
-/**
- * Check if a task overlaps with a specific date and hour
- * Handles date comparison properly without timezone issues
- */
-export function isTaskOverlapping(task, dateStr, hour) {
-  const taskStart = new Date(task.scheduled_start_time);
-  const taskEnd = new Date(task.scheduled_end_time);
-  
-  // Create slot boundaries using the dateStr directly
-  const slotStart = new Date(`${dateStr}T${hour.toString().padStart(2, '0')}:00:00`);
-  const slotEnd = new Date(`${dateStr}T${(hour + 1).toString().padStart(2, '0')}:00:00`);
-  
-  // Debug logging for the first few hours
-  if (hour < 3) {
-    console.log(`DateUtils: Checking overlap for ${dateStr} hour ${hour}`);
-    console.log(`DateUtils: Task start: ${taskStart.toISOString()} (local: ${taskStart.toLocaleString()})`);
-    console.log(`DateUtils: Task end: ${taskEnd.toISOString()} (local: ${taskEnd.toLocaleString()})`);
-    console.log(`DateUtils: Slot start: ${slotStart.toISOString()} (local: ${slotStart.toLocaleString()})`);
-    console.log(`DateUtils: Slot end: ${slotEnd.toISOString()} (local: ${slotEnd.toLocaleString()})`);
-    console.log(`DateUtils: Overlap: ${taskStart < slotEnd && taskEnd > slotStart}`);
-  }
-  
-  // Check if the task overlaps with this hour slot
-  return taskStart < slotEnd && taskEnd > slotStart;
-}
-
-/**
- * Get the local date string for a given date object
- * Ensures consistent date handling across the application
- */
-export function getLocalDateString(date) {
+  const date = new Date(year, month - 1, day); // month is 0-indexed in Date constructor
   return toDateString(date);
 }
 
 /**
  * Parse a date string and return a Date object
- * Handles various date string formats consistently
+ * Uses date-fns parseISO for reliable parsing
  */
 export function parseDateString(dateStr) {
-  // If it's already in YYYY-MM-DD format, return as is
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    return new Date(dateStr + 'T00:00:00');
+  if (typeof dateStr === 'string') {
+    return dateFns.parseISO(dateStr);
   }
+  return dateStr;
+}
+
+/**
+ * Check if a task overlaps with a specific date and hour
+ * Uses date-fns for reliable date comparison
+ */
+export function isTaskOverlapping(task, dateStr, hour) {
+  if (!task.scheduled_start_time || !task.scheduled_end_time) {
+    return false;
+  }
+
+  const taskStart = dateFns.parseISO(task.scheduled_start_time);
+  const taskEnd = dateFns.parseISO(task.scheduled_end_time);
   
-  // Otherwise, try to parse it
-  return new Date(dateStr);
+  // Create slot boundaries using the dateStr directly
+  const slotStart = dateFns.setMilliseconds(dateFns.setSeconds(dateFns.setMinutes(dateFns.setHours(dateFns.parseISO(dateStr), hour), 0), 0), 0);
+  const slotEnd = dateFns.setMilliseconds(dateFns.setSeconds(dateFns.setMinutes(dateFns.setHours(dateFns.parseISO(dateStr), hour + 1), 0), 0), 0);
+  
+  // Check if the task overlaps with this hour slot
+  return dateFns.isBefore(taskStart, slotEnd) && dateFns.isAfter(taskEnd, slotStart);
+}
+
+/**
+ * Get the start of week for a given date
+ * Uses date-fns for reliable week calculation
+ */
+export function getStartOfWeek(date) {
+  return dateFns.startOfWeek(date, { weekStartsOn: 0 }); // Sunday = 0
+}
+
+/**
+ * Get the end of week for a given date
+ * Uses date-fns for reliable week calculation
+ */
+export function getEndOfWeek(date) {
+  return dateFns.endOfWeek(date, { weekStartsOn: 0 }); // Sunday = 0
+}
+
+/**
+ * Get the start of day for a given date
+ * Uses date-fns for reliable day boundary calculation
+ */
+export function getStartOfDay(date) {
+  return dateFns.startOfDay(date);
+}
+
+/**
+ * Get the end of day for a given date
+ * Uses date-fns for reliable day boundary calculation
+ */
+export function getEndOfDay(date) {
+  return dateFns.endOfDay(date);
+}
+
+/**
+ * Check if two dates are the same day
+ * Uses date-fns for reliable comparison
+ */
+export function isSameDate(date1, date2) {
+  return dateFns.isSameDay(date1, date2);
+}
+
+/**
+ * Add hours to a date
+ * Uses date-fns for reliable date arithmetic
+ */
+export function addHoursToDate(date, hours) {
+  return dateFns.addHours(date, hours);
+}
+
+/**
+ * Add days to a date
+ * Uses date-fns for reliable date arithmetic
+ */
+export function addDaysToDate(date, days) {
+  return dateFns.addDays(date, days);
+}
+
+/**
+ * Format a date for display
+ * Uses date-fns for consistent formatting
+ */
+export function formatDate(date, formatStr = 'yyyy-MM-dd') {
+  return dateFns.format(date, formatStr);
+}
+
+/**
+ * Format a date and time for display
+ * Uses date-fns for consistent formatting
+ */
+export function formatDateTime(date, formatStr = 'yyyy-MM-dd HH:mm') {
+  return dateFns.format(date, formatStr);
+}
+
+/**
+ * Get the difference in hours between two dates
+ * Uses date-fns for reliable calculation
+ */
+export function getHoursDifference(date1, date2) {
+  return dateFns.differenceInHours(date2, date1);
+}
+
+/**
+ * Get the difference in minutes between two dates
+ * Uses date-fns for reliable calculation
+ */
+export function getMinutesDifference(date1, date2) {
+  return dateFns.differenceInMinutes(date2, date1);
+}
+
+/**
+ * Check if a date is within a given interval
+ * Uses date-fns for reliable interval checking
+ */
+export function isDateInInterval(date, start, end) {
+  return dateFns.isWithinInterval(date, { start, end });
+}
+
+/**
+ * Create a date from individual components
+ * Uses native Date constructor and date-fns for reliable date construction
+ */
+export function createDate(year, month, day, hour = 0, minute = 0, second = 0) {
+  let date = new Date(year, month - 1, day); // month is 0-indexed
+  date = dateFns.setHours(date, hour);
+  date = dateFns.setMinutes(date, minute);
+  date = dateFns.setSeconds(date, second);
+  date = dateFns.setMilliseconds(date, 0);
+  return date;
+}
+
+/**
+ * Get the current date in YYYY-MM-DD format
+ * Uses date-fns for consistent formatting
+ */
+export function getCurrentDateString() {
+  return toDateString(new Date());
+}
+
+/**
+ * Get the current date and time in ISO format
+ * Uses date-fns for consistent formatting
+ */
+export function getCurrentDateTimeString() {
+  return new Date().toISOString();
 }

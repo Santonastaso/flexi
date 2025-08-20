@@ -1,4 +1,12 @@
 import React from 'react';
+import { 
+  MACHINE_STATUSES, 
+  DEPARTMENT_TYPES, 
+  WORK_CENTERS, 
+  PRODUCT_TYPES, 
+  SEAL_SIDES,
+  FIELD_CONFIGS 
+} from '../constants';
 
 function EditableCell({ 
   row, 
@@ -72,38 +80,38 @@ function EditableCell({
   function getSelectOptions(columnId) {
     if (columnId === 'status') {
       return [
-        { value: 'ACTIVE', label: 'ACTIVE' },
-        { value: 'INACTIVE', label: 'INACTIVE' },
-        { value: 'MAINTENANCE', label: 'MAINTENANCE' }
+        { value: MACHINE_STATUSES.ACTIVE, label: MACHINE_STATUSES.ACTIVE },
+        { value: MACHINE_STATUSES.INACTIVE, label: MACHINE_STATUSES.INACTIVE },
+        { value: MACHINE_STATUSES.MAINTENANCE, label: MACHINE_STATUSES.MAINTENANCE }
       ];
     }
     
     if (columnId === 'department') {
       return [
-        { value: 'STAMPA', label: 'STAMPA' },
-        { value: 'CONFEZIONAMENTO', label: 'CONFEZIONAMENTO' }
+        { value: DEPARTMENT_TYPES.PRINTING, label: DEPARTMENT_TYPES.PRINTING },
+        { value: DEPARTMENT_TYPES.PACKAGING, label: DEPARTMENT_TYPES.PACKAGING }
       ];
     }
     
     if (columnId === 'work_center') {
       return [
-        { value: 'ZANICA', label: 'ZANICA' },
-        { value: 'BUSTO_GAROLFO', label: 'BUSTO GAROLFO' }
+        { value: WORK_CENTERS.ZANICA, label: WORK_CENTERS.ZANICA },
+        { value: WORK_CENTERS.BUSTO_GAROLFO, label: WORK_CENTERS.BUSTO_GAROLFO }
       ];
     }
     
     if (columnId === 'product_type') {
       return [
-        { value: 'crema', label: 'Crema' },
-        { value: 'liquido', label: 'Liquido' },
-        { value: 'polveri', label: 'Polveri' }
+        { value: PRODUCT_TYPES.CREMA, label: 'Crema' },
+        { value: PRODUCT_TYPES.LIQUIDO, label: 'Liquido' },
+        { value: PRODUCT_TYPES.POLVERI, label: 'Polveri' }
       ];
     }
     
     if (columnId === 'seal_sides') {
       return [
-        { value: '3', label: '3 sides' },
-        { value: '4', label: '4 sides' }
+        { value: SEAL_SIDES.THREE, label: '3 sides' },
+        { value: SEAL_SIDES.FOUR, label: '4 sides' }
       ];
     }
     
@@ -113,12 +121,12 @@ function EditableCell({
 
   if (isEditing) {
     switch (inputType) {
-      case 'select':
+      case 'select': {
         const selectOptions = getSelectOptions(column?.id);
         return (
-          <select 
-            defaultValue={initialValue} 
-            onChange={handleInputChange} 
+          <select
+            defaultValue={initialValue}
+            onChange={handleInputChange}
             style={{ width: '100%', padding: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
           >
             {selectOptions.map(option => (
@@ -128,25 +136,27 @@ function EditableCell({
             ))}
           </select>
         );
-        
-      case 'number':
+      }
+
+      case 'number': {
         // Determine step for number fields: 0.1 for time-like, 0.01 for costs, default 0.1
         const decimalStep = (() => {
-          if (['costo_h_stampa', 'costo_h_conf'].includes(column?.id)) return 0.01;
-          if (['setup_time_standard', 'changeover_color', 'changeover_material', 't_setup_stampa', 't_setup_conf'].includes(column?.id)) return 0.1;
-          return 0.1;
+          if (FIELD_CONFIGS.DECIMAL_PRECISION.TWO_DECIMAL.includes(column?.id)) return FIELD_CONFIGS.FIELD_STEPS.COST;
+          if (FIELD_CONFIGS.DECIMAL_PRECISION.ONE_DECIMAL.includes(column?.id)) return FIELD_CONFIGS.FIELD_STEPS.TIME;
+          return FIELD_CONFIGS.FIELD_STEPS.TIME;
         })();
         return (
-          <input 
-            type="number" 
-            defaultValue={initialValue} 
-            onChange={handleInputChange} 
+          <input
+            type="number"
+            defaultValue={initialValue}
+            onChange={handleInputChange}
             min={min}
             max={max}
             step={step || decimalStep}
             style={{ width: '100%', padding: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
           />
         );
+      }
         
       case 'integer':
         return (

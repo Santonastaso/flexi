@@ -1,38 +1,93 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../store/useStore';
-import { toDateString } from '../utils/dateUtils';
+import { toDateString, addDaysToDate } from '../utils/dateUtils';
+import { useFormValidation } from '../hooks';
+import { DEFAULT_VALUES, VALIDATION_MESSAGES } from '../constants';
 
 function OffTimeForm({ machineId, currentDate, onSuccess }) {
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState('');
-  
+  const [validationErrors, setValidationErrors] = useState({});
   const setMachineUnavailability = useStore(state => state.setMachineUnavailability);
   const showAlert = useStore(state => state.showAlert);
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setValue,
+    watch,
+    reset,
+    setError,
+    clearErrors
+  } = useFormValidation('OFF_TIME', {}, null); // We'll handle submission manually
+
+  const startDate = watch('startDate');
+  const endDate = watch('endDate');
+  const startTime = watch('startTime');
+  const endTime = watch('endTime');
+
   useEffect(() => {
     const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrow = addDaysToDate(today, 1);
     
-    setStartDate(toDateString(today));
-    setEndDate(toDateString(tomorrow));
-    setStartTime('09:00');
-    setEndTime('17:00');
-  }, [currentDate]);
+    setValue('startDate', toDateString(today));
+    setValue('endDate', toDateString(tomorrow));
+    setValue('startTime', DEFAULT_VALUES.OFF_TIME.START_TIME);
+    setValue('endTime', DEFAULT_VALUES.OFF_TIME.END_TIME);
+  }, [currentDate, setValue]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setMessage('');
+  // Clear validation errors when dates/times change
+  useEffect(() => {
+    if (startDate && endDate && startTime && endTime) {
+      clearErrors(['startDate', 'startTime', 'endDate', 'endTime']);
+      setValidationErrors({});
+    }
+  }, [startDate, endDate, startTime, endTime, clearErrors]);
+
+  const validateForm = (data) => {
+    const errors = {};
+    
+    // Check if end date is before start date
+    if (data.startDate && data.endDate) {
+      const startDateObj = new Date(data.startDate);
+      const endDateObj = new Date(data.endDate);
+      
+      if (endDateObj < startDateObj) {
+        errors.endDate = VALIDATION_MESSAGES.END_DATE_BEFORE_START;
+      }
+      
+      // If dates are the same, check that end time is after start time
+      if (data.startDate === data.endDate && data.startTime && data.endTime) {
+        if (data.startTime >= data.endTime) {
+          errors.endTime = VALIDATION_MESSAGES.END_TIME_BEFORE_START;
+        }
+      }
+    }
+    
+    return errors;
+  };
+
+  const onSubmit = async (data) => {
+    // Clear any previous validation errors
+    setValidationErrors({});
+    clearErrors();
+    
+    // Validate the form
+    const validationErrors = validateForm(data);
+    if (Object.keys(validationErrors).length > 0) {
+      setValidationErrors(validationErrors);
+      
+      // Set React Hook Form errors for proper field highlighting
+      Object.entries(validationErrors).forEach(([field, message]) => {
+        setError(field, { type: 'validation', message });
+      });
+      
+      showAlert('Please fix the validation errors before submitting.', 'warning');
+      return;
+    }
 
     try {
-      await setMachineUnavailability(machineId, startDate, endDate, startTime, endTime);
+      await setMachineUnavailability(machineId, data.startDate, data.endDate, data.startTime, data.endTime);
       showAlert('Machine unavailability set successfully!', 'success');
-      setMessage('Machine unavailability set successfully!');
       
       // Call the success callback to refresh calendar data
       if (onSuccess) {
@@ -40,45 +95,39 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
       }
       
       // Reset form
-      setStartDate('');
-      setEndDate('');
-      setStartTime('');
-      setEndTime('');
+      reset();
     } catch (error) {
       showAlert(`Failed to set machine unavailability: ${error.message}`, 'error');
-      setMessage(`Error: ${error.message}`);
-    } finally {
-      setIsSubmitting(false);
+      throw error; // Re-throw to trigger error handling in useFormValidation
     }
   };
 
-  const getStatusClass = () => {
-    if (message.startsWith('success:')) return 'success';
-    if (message.startsWith('warning:')) return 'warning';
-    if (message.startsWith('error:')) return 'error';
-    return '';
-  };
-
-  const getStatusMessage = () => {
-    return message.replace(/^(success|warning|error):\s*/, '');
+  // Helper function to get error message for a field
+  const getFieldError = (fieldName) => {
+    // Check React Hook Form errors first, then custom validation errors
+    const error = errors[fieldName] || validationErrors[fieldName];
+    return error ? (
+      <span className="error-message" style={{ color: 'red', fontSize: '12px', marginTop: '4px' }}>
+        {error.message || error}
+      </span>
+    ) : null;
   };
 
   return (
     <div className="off-time-section">
       <h3>Set Off-Time Period</h3>
       
-      <form onSubmit={handleSubmit} className="off-time-form">
+      <form onSubmit={handleSubmit(onSubmit)} className="off-time-form">
         <div className="form-grid form-grid--4-cols">
           <div className="form-group">
             <label htmlFor="startDate">Start Date</label>
             <input
               type="date"
               id="startDate"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="date-input"
-              required
+              {...register('startDate')}
+              className={`date-input ${(errors.startDate || validationErrors.startDate) ? 'error' : ''}`}
             />
+            {getFieldError('startDate')}
           </div>
           
           <div className="form-group">
@@ -86,11 +135,10 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
             <input
               type="time"
               id="startTime"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className="time-input"
-              required
+              {...register('startTime')}
+              className={`time-input ${(errors.startTime || validationErrors.startTime) ? 'error' : ''}`}
             />
+            {getFieldError('startTime')}
           </div>
           
           <div className="form-group">
@@ -98,11 +146,10 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
             <input
               type="date"
               id="endDate"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="date-input"
-              required
+              {...register('endDate')}
+              className={`date-input ${(errors.endDate || validationErrors.endDate) ? 'error' : ''}`}
             />
+            {getFieldError('endDate')}
           </div>
           
           <div className="form-group">
@@ -110,11 +157,10 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
             <input
               type="time"
               id="endTime"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              className="time-input"
-              required
+              {...register('endTime')}
+              className={`time-input ${(errors.endTime || validationErrors.endTime) ? 'error' : ''}`}
             />
+            {getFieldError('endTime')}
           </div>
         </div>
         
@@ -128,12 +174,6 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
           </button>
         </div>
       </form>
-      
-      {message && (
-        <div className={`off-time-status ${getStatusClass()}`}>
-          {getStatusMessage()}
-        </div>
-      )}
     </div>
   );
 }

@@ -1,7 +1,13 @@
-import React, { useEffect, useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { useStore } from '../store/useStore';
-import { toDateString, isTaskOverlapping } from '../utils/dateUtils';
+import {
+  toDateString,
+  getStartOfDay,
+  getEndOfDay,
+  isSameDate,
+  parseDateString
+} from '../utils/dateUtils';
 
 // A single 15-minute time slot on the calendar that can receive a dropped task
 const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasScheduledTask }) => {
@@ -30,17 +36,15 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
     // Memoize expensive calculations
     const eventPosition = useMemo(() => {
         const durationHours = event.duration || 1;
-        const eventStartTime = new Date(event.scheduled_start_time);
-        const eventEndTime = new Date(event.scheduled_end_time);
+        const eventStartTime = parseDateString(event.scheduled_start_time);
+        const eventEndTime = parseDateString(event.scheduled_end_time);
         
         // Check if this event should be visible on the current day
-        const currentDayStart = new Date(currentDate);
-        currentDayStart.setHours(0, 0, 0, 0);
-        const currentDayEnd = new Date(currentDate);
-        currentDayEnd.setHours(23, 59, 59, 999);
+        const currentDayStart = getStartOfDay(currentDate);
+        const currentDayEnd = getEndOfDay(currentDate);
         
-        const eventStartsOnCurrentDay = eventStartTime.toDateString() === currentDate.toDateString();
-        const eventEndsOnCurrentDay = eventEndTime.toDateString() === currentDate.toDateString();
+        const eventStartsOnCurrentDay = isSameDate(eventStartTime, currentDate);
+        const eventEndsOnCurrentDay = isSameDate(eventEndTime, currentDate);
         const eventSpansCurrentDay = eventStartTime < currentDayEnd && eventEndTime > currentDayStart;
         
         if (!eventStartsOnCurrentDay && !eventEndsOnCurrentDay && !eventSpansCurrentDay) {

@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { toDateString, isTaskOverlapping } from '../utils/dateUtils';
+import {
+  toDateString,
+  isTaskOverlapping,
+  getStartOfWeek,
+  getEndOfWeek
+} from '../utils/dateUtils';
 
 function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
   const [availabilityData, setAvailabilityData] = useState({});
@@ -63,11 +68,8 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
           }
         } else if (currentView === 'Week') {
           // For week view, load data for the entire week
-          const startOfWeek = new Date(currentDate);
-          startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
-          
-          const endOfWeek = new Date(startOfWeek);
-          endOfWeek.setDate(startOfWeek.getDate() + 6);
+          const startOfWeek = getStartOfWeek(currentDate);
+          const endOfWeek = getEndOfWeek(currentDate);
           
           // Convert to date strings without timezone using toDateString
           const startOfWeekStr = toDateString(startOfWeek);

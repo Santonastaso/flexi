@@ -3,17 +3,12 @@ import { DndContext, DragOverlay } from '@dnd-kit/core';
 import TaskPool from '../components/TaskPool';
 import GanttChart from '../components/GanttChart';
 import { useStore } from '../store/useStore';
+import { addHoursToDate } from '../utils/dateUtils';
+import { MACHINE_STATUSES } from '../constants';
 
 function SchedulerPage() {
   // Select state and actions from Zustand store
-  const tasks = useStore(state => state.odpOrders);
-  const machines = useStore(state => state.machines);
-  const isLoading = useStore(state => state.isLoading);
-  const isInitialized = useStore(state => state.isInitialized);
-  const init = useStore(state => state.init);
-  const scheduleTask = useStore(state => state.scheduleTask);
-  const unscheduleTask = useStore(state => state.unscheduleTask);
-  const showAlert = useStore(state => state.showAlert);
+  const { odpOrders: tasks, machines, isLoading, isInitialized, init, scheduleTask, unscheduleTask, showAlert } = useStore();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeDragItem, setActiveDragItem] = useState(null);
@@ -28,7 +23,7 @@ function SchedulerPage() {
   }, [init, isInitialized]);
 
   // Use only ACTIVE machines for scheduling-related UI
-  const activeMachines = useMemo(() => machines.filter(m => m.status === 'ACTIVE'), [machines]);
+  const activeMachines = useMemo(() => machines.filter(m => m.status === MACHINE_STATUSES.ACTIVE), [machines]);
 
   // Get unique work centers and departments for filter dropdowns
   const workCenters = useMemo(() => {
@@ -110,7 +105,7 @@ function SchedulerPage() {
       const startDate = new Date(currentDate);
       startDate.setHours(hour, minute, 0, 0);
       const durationHours = task.duration || 1;
-      const endDate = new Date(startDate.getTime() + durationHours * 3600 * 1000);
+      const endDate = addHoursToDate(startDate, durationHours);
 
       const scheduleData = {
         machine: machine.id,
@@ -143,7 +138,7 @@ function SchedulerPage() {
       const startDate = new Date(currentDate);
       startDate.setHours(hour, minute, 0, 0);
       const durationHours = eventItem.duration || 1;
-      const endDate = new Date(startDate.getTime() + durationHours * 3600 * 1000);
+      const endDate = addHoursToDate(startDate, durationHours);
 
       const scheduleData = {
         machine: machine.id,

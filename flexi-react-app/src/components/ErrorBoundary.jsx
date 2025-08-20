@@ -16,12 +16,17 @@ class ErrorBoundary extends React.Component {
     };
   }
 
+  static generateErrorId() {
+    // Generate a unique error ID for tracking
+    return `ERR_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
   static getDerivedStateFromError(error) {
     // Update state so the next render will show the fallback UI
-    return { 
-      hasError: true, 
+    return {
+      hasError: true,
       error,
-      errorId: this.generateErrorId()
+      errorId: ErrorBoundary.generateErrorId()
     };
   }
 
@@ -32,16 +37,11 @@ class ErrorBoundary extends React.Component {
     // Update state with error information
     this.setState({
       errorInfo,
-      errorId: this.state.errorId || this.generateErrorId()
+      errorId: this.state.errorId || ErrorBoundary.generateErrorId()
     });
 
     // Log to external service in production (e.g., Sentry, LogRocket)
     this.logErrorToService(error, errorInfo);
-  }
-
-  generateErrorId() {
-    // Generate a unique error ID for tracking
-    return `ERR_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   logErrorToService(error, errorInfo) {
