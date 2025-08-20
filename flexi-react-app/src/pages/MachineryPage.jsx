@@ -38,7 +38,7 @@ function MachineryPage() {
 
   const columns = useMemo(() => [
     // Identificazione
-    { header: 'Machine ID', accessorKey: 'machine_id' },
+    { header: 'Machine ID', accessorKey: 'id' },
     { header: 'Machine Type', accessorKey: 'machine_type' },
     { header: 'Machine Name', accessorKey: 'machine_name', cell: EditableCell },
     { header: 'Work Center', accessorKey: 'work_center' },

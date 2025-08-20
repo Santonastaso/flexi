@@ -183,9 +183,9 @@ const GanttChart = React.memo(({ machines, tasks, currentDate }) => {
 
     for (let i = 0; i < dayData.length; i++) {
       const row = dayData[i];
-      if (row.machine_id && row.unavailable_hours) {
-        map[row.machine_id] = new Set(row.unavailable_hours.map(h => h.toString()));
-      }
+              if (row.machine_id && row.unavailable_hours) {
+          map[row.machine_id] = new Set(row.unavailable_hours.map(h => h.toString()));
+        }
     }
 
     const endTime = performance.now();

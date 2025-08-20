@@ -262,6 +262,30 @@
   font-weight: 500;
 }
 
+.realtime-status {
+  margin-top: 8px;
+}
+
+.status-indicator {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-indicator.connected {
+  background: #4CAF50;
+  color: white;
+}
+
+.status-indicator.disconnected {
+  background: #f44336;
+  color: white;
+}
+
 /* Sidebar Actions */
 .sidebar-actions {
   padding: 0 20px;

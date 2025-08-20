@@ -6,7 +6,7 @@
 export const AppConfig = {
   // Supabase configuration
   SUPABASE: {
-    ENABLE_REALTIME: false, // Disable realtime subscriptions for now
+    ENABLE_REALTIME: true, // Enable realtime subscriptions for multi-user sync
     LOG_QUERIES: false,      // Disable query logging in production
   },
   

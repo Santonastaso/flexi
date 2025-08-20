@@ -1,11 +1,33 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { useStore } from '../store/useStore';
+import { AppConfig } from '../services/config';
+import logo from '/assets/logo.svg';
 
 function SideNav() {
   const location = useLocation();
   const currentPage = location.pathname;
   const { user, signOut, isAuthenticated, selectedWorkCenter } = useAuth();
+  const [realtimeStatus, setRealtimeStatus] = useState('disconnected');
+  
+  // Monitor real-time connection status
+  useEffect(() => {
+    if (!AppConfig.SUPABASE.ENABLE_REALTIME) return;
+    
+    const checkRealtimeStatus = () => {
+      if (window.realtimeChannel) {
+        setRealtimeStatus('connected');
+      } else {
+        setRealtimeStatus('disconnected');
+      }
+    };
+    
+    checkRealtimeStatus();
+    const interval = setInterval(checkRealtimeStatus, 5000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const navLinks = [
     { href: '/', label: 'Home', icon: '🏠' },
@@ -28,7 +50,7 @@ function SideNav() {
     <div className="sidebar">
       <div className="sidebar-logo">
         <Link to="/">
-          <img src="./assets/logo.svg" alt="Flexi" />
+          <img src={logo} alt="Flexi" />
         </Link>
       </div>
 
@@ -49,6 +71,14 @@ function SideNav() {
             {selectedWorkCenter && (
               <div className="user-work-center">
                 <span className="work-center-badge">🏭 {selectedWorkCenter}</span>
+              </div>
+            )}
+            {AppConfig.SUPABASE.ENABLE_REALTIME && (
+              <div className="realtime-status">
+                <span className={`status-indicator ${realtimeStatus}`}>
+                  {realtimeStatus === 'connected' ? '🟢' : '🔴'} 
+                  {realtimeStatus === 'connected' ? 'Live' : 'Offline'}
+                </span>
               </div>
             )}
           </div>

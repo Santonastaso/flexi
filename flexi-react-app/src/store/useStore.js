@@ -3,6 +3,8 @@ import { apiService } from '../services';
 import { toDateString, addDaysToDate } from '../utils/dateUtils';
 import { handleApiError, logError, createErrorHandler } from '../utils/errorUtils';
 import { WORK_CENTERS } from '../constants';
+import { supabase } from '../services/supabase/client';
+import { AppConfig } from '../services/config';
 
 // Store for work center selection
 let selectedWorkCenter = null;
@@ -12,6 +14,122 @@ export const setGlobalWorkCenter = (workCenter) => {
 };
 
 export const getGlobalWorkCenter = () => selectedWorkCenter;
+
+// Real-time subscription setup
+const setupRealtimeSubscriptions = (set, get) => {
+  if (!AppConfig.SUPABASE.ENABLE_REALTIME) {
+    console.log('🔄 Realtime disabled in config');
+    return null;
+  }
+
+  console.log('🔄 Setting up realtime subscriptions...');
+  
+  const channel = supabase.channel('table-db-changes')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'odp_orders' },
+      (payload) => {
+        console.log('🔄 ODP Orders change received:', payload);
+        handleOdpOrdersChange(payload, set, get);
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'machines' },
+      (payload) => {
+        console.log('🔄 Machines change received:', payload);
+        handleMachinesChange(payload, set, get);
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'phases' },
+      (payload) => {
+        console.log('🔄 Phases change received:', payload);
+        handlePhasesChange(payload, set, get);
+      }
+    )
+    .subscribe((status) => {
+      console.log('🔄 Realtime subscription status:', status);
+    });
+
+  return channel;
+};
+
+// Handle ODP Orders changes
+const handleOdpOrdersChange = (payload, set, get) => {
+  const { eventType, newRecord, oldRecord } = payload;
+  
+  switch (eventType) {
+    case 'INSERT':
+      set(state => ({
+        odpOrders: [...state.odpOrders, newRecord]
+      }));
+      break;
+    case 'UPDATE':
+      set(state => ({
+        odpOrders: state.odpOrders.map(order => 
+          order.id === newRecord.id ? newRecord : order
+        )
+      }));
+      break;
+    case 'DELETE':
+      set(state => ({
+        odpOrders: state.odpOrders.filter(order => order.id !== oldRecord.id)
+      }));
+      break;
+  }
+};
+
+// Handle Machines changes
+const handleMachinesChange = (payload, set, get) => {
+  const { eventType, newRecord, oldRecord } = payload;
+  
+  switch (eventType) {
+    case 'INSERT':
+      set(state => ({
+        machines: [...state.machines, newRecord]
+      }));
+      break;
+    case 'UPDATE':
+      set(state => ({
+        machines: state.machines.map(machine => 
+          machine.id === newRecord.id ? newRecord : machine
+        )
+      }));
+      break;
+    case 'DELETE':
+      set(state => ({
+        machines: state.machines.filter(machine => machine.id !== oldRecord.id)
+      }));
+      break;
+  }
+};
+
+// Handle Phases changes
+const handlePhasesChange = (payload, set, get) => {
+  const { eventType, newRecord, oldRecord } = payload;
+  
+  switch (eventType) {
+    case 'INSERT':
+      set(state => ({
+        phases: [...state.phases, newRecord]
+      }));
+      break;
+    case 'UPDATE':
+      set(state => ({
+        phases: state.phases.map(phase => 
+          phase.id === newRecord.id ? newRecord : phase
+        )
+      }));
+      break;
+    case 'DELETE':
+      set(state => ({
+        phases: state.phases.filter(phase => phase.id !== oldRecord.id)
+      }));
+      break;
+  }
+};
 
 // Generic CRUD helper functions with centralized error handling
 const createCrudActions = (entityName, apiMethods, set, get) => {
@@ -148,6 +266,37 @@ export const useStore = create((set, get) => ({
     });
     // Initialize empty machine availability like appStore
     get().initializeEmptyMachineAvailability();
+    
+    // Setup real-time subscriptions after data is loaded
+    const realtimeChannel = setupRealtimeSubscriptions(set, get);
+    if (realtimeChannel) {
+      // Store channel reference for cleanup
+      window.realtimeChannel = realtimeChannel;
+      console.log('🔄 Real-time subscriptions initialized');
+    }
+  },
+
+  // Manual refresh function for debugging or when real-time fails
+  refreshData: async () => {
+    console.log('🔄 Manually refreshing data...');
+    set({ isLoading: true });
+    try {
+      const [machines, odpOrders, phases] = await Promise.all([
+        apiService.getMachines(),
+        apiService.getOdpOrders(),
+        apiService.getPhases(),
+      ]);
+      set({
+        machines: machines || [],
+        odpOrders: odpOrders || [],
+        phases: phases || [],
+        isLoading: false,
+      });
+      console.log('🔄 Data refresh completed');
+    } catch (error) {
+      console.error('🔄 Data refresh failed:', error);
+      set({ isLoading: false });
+    }
   },
 
   // Set selected work center
@@ -156,15 +305,24 @@ export const useStore = create((set, get) => ({
     set({ selectedWorkCenter: workCenter });
   },
 
-  reset: () => set({
-    machines: [],
-    odpOrders: [],
-    phases: [],
-    machineAvailability: {},
-    isLoading: false,
-    isInitialized: false,
-    alert: { message: '', type: 'info', isVisible: false }
-  }),
+  reset: () => {
+    // Cleanup real-time subscriptions
+    if (window.realtimeChannel) {
+      console.log('🔄 Cleaning up real-time subscriptions...');
+      window.realtimeChannel.unsubscribe();
+      window.realtimeChannel = null;
+    }
+    
+    set({
+      machines: [],
+      odpOrders: [],
+      phases: [],
+      machineAvailability: {},
+      isLoading: false,
+      isInitialized: false,
+      alert: { message: '', type: 'info', isVisible: false }
+    });
+  },
 
   // Alert actions
   showAlert: (message, type = 'info') => set({
