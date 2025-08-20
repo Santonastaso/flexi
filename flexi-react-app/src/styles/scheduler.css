@@ -12,17 +12,19 @@
 }
 
 /* --- Layout --- */
-.scheduler-container { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 24px; 
-    height: 100%; 
+.scheduler-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    height: 100%;
     padding: 24px;
+    contain: layout style paint; /* CSS containment for better performance */
 }
 
-.calendar-section { 
-    flex: 1; 
-    overflow: hidden; 
+.calendar-section {
+    flex: 1;
+    overflow: hidden;
+    contain: layout; /* Improve performance by containing layout */
 }
 
 .task-pool-section h2 {
@@ -741,7 +743,13 @@
 .task-duration { background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 6px; font-size: 12px; }
 
 /* --- Calendar Grid --- */
-.calendar-grid { border: 1px solid var(--border-color); border-radius: 12px; overflow-x: auto; background: white; }
+.calendar-grid {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow-x: auto;
+    background: white;
+    contain: layout; /* Optimize layout performance */
+}
 .calendar-header-row { display: flex; background: var(--bg-color); border-bottom: 1px solid var(--border-color); width: 100%; }
 .machine-label-header { min-width: 250px; padding: 16px; font-weight: 800; border-right: 1px solid var(--border-color); flex-shrink: 0; }
 .time-header { flex: 1; display: flex; min-width: 1920px; flex-shrink: 0; }
@@ -752,15 +760,55 @@
 .machine-label { min-width: 250px; padding: 16px; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: center; background: white; flex-shrink: 0; }
 .machine-name { font-weight: 800; font-size: 14px; }
 .machine-city { color: var(--text-light); font-size: 12px; margin-top: 4px; }
-.machine-slots { flex: 1; display: flex; position: relative; min-width: 1920px; flex-shrink: 0; }
-.time-slot { width: 20px; min-width: 20px; border-right: 1px solid rgba(224, 224, 224, 0.5); position: relative; transition: all 0.2s ease; cursor: pointer; flex-shrink: 0; }
+.machine-slots {
+    flex: 1;
+    display: flex;
+    position: relative;
+    min-width: 1920px;
+    flex-shrink: 0;
+    contain: layout; /* Optimize slot layout performance */
+}
+
+.time-slot {
+    width: 20px;
+    min-width: 20px;
+    border-right: 1px solid rgba(224, 224, 224, 0.5);
+    position: relative;
+    transition: background-color 0.2s ease; /* Only transition background for better performance */
+    cursor: pointer;
+    flex-shrink: 0;
+    contain: layout style; /* Optimize individual slot performance */
+}
 .time-slot:nth-child(4n+1) { border-right: 2px solid var(--border-color); background: var(--gray-light); }
 .time-slot:hover { background: rgba(37, 99, 235, 0.05); }
 .time-slot.drag-over { background: rgba(37, 99, 235, 0.2); border: 2px solid var(--primary-blue); transform: scale(1.02); }
 .time-slot.unavailable { background: rgba(239, 68, 68, 0.1); cursor: pointer; }
 
 /* --- Scheduled Event --- */
-.scheduled-event { position: absolute; top: 4px; bottom: 4px; left: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; padding: 8px; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: grab; user-select: none; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: all 0.2s ease; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; z-index: 10; }
+.scheduled-event {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    user-select: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: transform 0.2s ease, box-shadow 0.2s ease; /* Only transition transform and shadow for better performance */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    z-index: 10;
+    contain: layout style paint; /* Optimize event rendering performance */
+}
 .scheduled-event:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 .scheduled-event.dragging { opacity: 0.7; transform: rotate(3deg) scale(1.05); }
 

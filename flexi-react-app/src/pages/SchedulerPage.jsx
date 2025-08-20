@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import TaskPool from '../components/TaskPool';
 import GanttChart from '../components/GanttChart';
@@ -15,6 +15,10 @@ function SchedulerPage() {
   const [workCenterFilter, setWorkCenterFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
 
+  // Use refs to avoid unnecessary re-renders
+  const filtersRef = useRef({ workCenterFilter, departmentFilter });
+  filtersRef.current = { workCenterFilter, departmentFilter };
+
   // Initialize store on mount
   useEffect(() => {
     if (!isInitialized) {
@@ -22,63 +26,72 @@ function SchedulerPage() {
     }
   }, [init, isInitialized]);
 
-  // Use only ACTIVE machines for scheduling-related UI
-  const activeMachines = useMemo(() => machines.filter(m => m.status === MACHINE_STATUSES.ACTIVE), [machines]);
+  // Memoize machine filtering with optimized dependencies
+  const machineData = useMemo(() => {
+    const activeMachines = machines.filter(m => m.status === MACHINE_STATUSES.ACTIVE);
 
-  // Get unique work centers and departments for filter dropdowns
-  const workCenters = useMemo(() => {
-    const centers = [...new Set(activeMachines.map(m => m.work_center).filter(Boolean))].sort();
-    return centers;
-  }, [activeMachines]);
+    // Pre-compute work centers and departments
+    const workCenters = [...new Set(activeMachines.map(m => m.work_center).filter(Boolean))].sort();
+    const departments = [...new Set(activeMachines.map(m => m.department).filter(Boolean))].sort();
 
-  const departments = useMemo(() => {
-    const depts = [...new Set(activeMachines.map(m => m.department).filter(Boolean))].sort();
-    return depts;
-  }, [activeMachines]);
+    return { activeMachines, workCenters, departments };
+  }, [machines]);
 
-  // Apply filters to machines
+  // Apply filters to machines with optimized filtering
   const filteredMachines = useMemo(() => {
+    const { activeMachines } = machineData;
+    const { workCenterFilter, departmentFilter } = filtersRef.current;
+
+    if (!workCenterFilter && !departmentFilter) {
+      return activeMachines;
+    }
+
     return activeMachines.filter(machine => {
       const workCenterMatch = !workCenterFilter || machine.work_center === workCenterFilter;
       const departmentMatch = !departmentFilter || machine.department === departmentFilter;
       return workCenterMatch && departmentMatch;
     });
-  }, [activeMachines, workCenterFilter, departmentFilter]);
+  }, [machineData, workCenterFilter, departmentFilter]);
 
-  const navigateDate = (direction) => {
-    const newDate = new Date(currentDate);
-    if (direction === 'today') {
-      setCurrentDate(new Date());
-    } else if (direction === 'prev') {
-      newDate.setDate(newDate.getDate() - 1);
-      setCurrentDate(newDate);
-    } else if (direction === 'next') {
-      newDate.setDate(newDate.getDate() + 1);
-      setCurrentDate(newDate);
-    }
-  };
+  // Memoize navigation functions to prevent unnecessary re-renders
+  const navigateDate = useCallback((direction) => {
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate);
+      if (direction === 'today') {
+        return new Date();
+      } else if (direction === 'prev') {
+        newDate.setDate(newDate.getDate() - 1);
+        return newDate;
+      } else if (direction === 'next') {
+        newDate.setDate(newDate.getDate() + 1);
+        return newDate;
+      }
+      return prevDate;
+    });
+  }, []);
 
-  const formatDateDisplay = () => {
+  const formatDateDisplay = useCallback(() => {
     const today = new Date();
     const isToday = currentDate.toDateString() === today.toDateString();
     return isToday ? 'Today' : currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-    };
+  }, [currentDate]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setWorkCenterFilter('');
     setDepartmentFilter('');
-  };
+  }, []);
 
-  const handleDragStart = (event) => {
+  // Memoize drag handlers to prevent unnecessary re-renders
+  const handleDragStart = useCallback((event) => {
     const draggedItem = event.active.data.current;
     if (draggedItem.type === 'task') {
       setActiveDragItem(draggedItem.task);
     } else if (draggedItem.type === 'event') {
       setActiveDragItem(draggedItem.event);
     }
-  };
+  }, []);
 
-  const handleDragEnd = async (event) => {
+  const handleDragEnd = useCallback(async (event) => {
     setActiveDragItem(null);
     const { over, active } = event;
     if (!over) return;
@@ -86,78 +99,81 @@ function SchedulerPage() {
     const draggedItem = active.data.current;
     const dropZone = over.data.current;
 
-    // Case 1: Dragging a task from the pool to a machine slot
-    if (draggedItem.type === 'task' && dropZone.type === 'slot') {
-      const task = draggedItem.task;
-      const { machine, hour, minute, isUnavailable, hasScheduledTask } = dropZone;
-      
-      // Check constraints
-      if (isUnavailable) {
-        showAlert('Cannot schedule task on unavailable time slot', 'error');
-        return;
-      }
-      
-      if (hasScheduledTask) {
-        showAlert('Cannot schedule task on occupied time slot', 'error');
-        return;
-      }
-      
-      const startDate = new Date(currentDate);
-      startDate.setHours(hour, minute, 0, 0);
-      const durationHours = task.duration || 1;
-      const endDate = addHoursToDate(startDate, durationHours);
+    try {
+      // Case 1: Dragging a task from the pool to a machine slot
+      if (draggedItem.type === 'task' && dropZone.type === 'slot') {
+        const task = draggedItem.task;
+        const { machine, hour, minute, isUnavailable, hasScheduledTask } = dropZone;
 
-      const scheduleData = {
-        machine: machine.id,
-        start_time: startDate.toISOString(),
-        end_time: endDate.toISOString(),
-      };
-      const result = await scheduleTask(task.id, scheduleData);
-      if (result?.error) {
-        showAlert(result.error, 'error');
-        return;
+        // Check constraints
+        if (isUnavailable) {
+          showAlert('Cannot schedule task on unavailable time slot', 'error');
+          return;
+        }
+
+        if (hasScheduledTask) {
+          showAlert('Cannot schedule task on occupied time slot', 'error');
+          return;
+        }
+
+        const startDate = new Date(currentDate);
+        startDate.setHours(hour, minute, 0, 0);
+        const durationHours = task.duration || 1;
+        const endDate = addHoursToDate(startDate, durationHours);
+
+        const scheduleData = {
+          machine: machine.id,
+          start_time: startDate.toISOString(),
+          end_time: endDate.toISOString(),
+        };
+        const result = await scheduleTask(task.id, scheduleData);
+        if (result?.error) {
+          showAlert(result.error, 'error');
+        }
       }
+
+      // Case 2: Dragging an existing scheduled event to a new slot (rescheduling)
+      else if (draggedItem.type === 'event' && dropZone.type === 'slot') {
+        const eventItem = draggedItem.event;
+        const { machine, hour, minute, isUnavailable, hasScheduledTask } = dropZone;
+
+        // Check constraints (allow rescheduling to same slot)
+        if (isUnavailable) {
+          showAlert('Cannot reschedule task to unavailable time slot', 'error');
+          return;
+        }
+
+        if (hasScheduledTask) {
+          showAlert('Cannot reschedule task to occupied time slot', 'error');
+          return;
+        }
+
+        const startDate = new Date(currentDate);
+        startDate.setHours(hour, minute, 0, 0);
+        const durationHours = eventItem.duration || 1;
+        const endDate = addHoursToDate(startDate, durationHours);
+
+        const scheduleData = {
+          machine: machine.id,
+          start_time: startDate.toISOString(),
+          end_time: endDate.toISOString(),
+        };
+        const result = await scheduleTask(eventItem.id, scheduleData);
+        if (result?.error) {
+          showAlert(result.error, 'error');
+        }
+      }
+
+      // Case 3: Dragging an event back to the task pool (unscheduling)
+      else if (draggedItem.type === 'event' && dropZone.type === 'pool') {
+        const eventToUnschedule = draggedItem.event;
+        unscheduleTask(eventToUnschedule.id);
+      }
+    } catch (error) {
+      console.error('Drag operation failed:', error);
+      showAlert('An error occurred during the drag operation', 'error');
     }
-
-    // Case 2: Dragging an existing scheduled event to a new slot (rescheduling)
-    if (draggedItem.type === 'event' && dropZone.type === 'slot') {
-      const eventItem = draggedItem.event;
-      const { machine, hour, minute, isUnavailable, hasScheduledTask } = dropZone;
-      
-      // Check constraints (allow rescheduling to same slot)
-      if (isUnavailable) {
-        showAlert('Cannot reschedule task to unavailable time slot', 'error');
-        return;
-      }
-      
-      if (hasScheduledTask) {
-        showAlert('Cannot reschedule task to occupied time slot', 'error');
-        return;
-      }
-      
-      const startDate = new Date(currentDate);
-      startDate.setHours(hour, minute, 0, 0);
-      const durationHours = eventItem.duration || 1;
-      const endDate = addHoursToDate(startDate, durationHours);
-
-      const scheduleData = {
-        machine: machine.id,
-        start_time: startDate.toISOString(),
-        end_time: endDate.toISOString(),
-      };
-      const result = await scheduleTask(eventItem.id, scheduleData);
-      if (result?.error) {
-        showAlert(result.error, 'error');
-        return;
-      }
-    }
-
-    // Case 3: Dragging an event back to the task pool (unscheduling)
-    if (draggedItem.type === 'event' && dropZone.type === 'pool') {
-      const eventToUnschedule = draggedItem.event;
-      unscheduleTask(eventToUnschedule.id);
-    }
-  };
+  }, [currentDate, scheduleTask, unscheduleTask, showAlert]);
 
   if (isLoading) {
     return <div>Loading scheduler data...</div>;
@@ -173,25 +189,25 @@ function SchedulerPage() {
             {/* Machine Filter */}
             <div className="machine-filter">
               <label htmlFor="work_center_filter">Work Center:</label>
-              <select 
-                id="work_center_filter" 
+              <select
+                id="work_center_filter"
                 value={workCenterFilter}
                 onChange={(e) => setWorkCenterFilter(e.target.value)}
               >
                 <option value="">All Work Centers</option>
-                {workCenters.map(center => (
+                {machineData.workCenters.map(center => (
                   <option key={center} value={center}>{center}</option>
                 ))}
               </select>
-              
+
               <label htmlFor="department_filter">Department:</label>
-              <select 
-                id="department_filter" 
+              <select
+                id="department_filter"
                 value={departmentFilter}
                 onChange={(e) => setDepartmentFilter(e.target.value)}
               >
                 <option value="">All Departments</option>
-                {departments.map(dept => (
+                {machineData.departments.map(dept => (
                   <option key={dept} value={dept}>{dept}</option>
                 ))}
               </select>

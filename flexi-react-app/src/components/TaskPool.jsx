@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 
-// Individual Draggable Task Component
-function DraggableTask({ task }) {
+// Individual Draggable Task Component - optimized
+const DraggableTask = React.memo(({ task }) => {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: `task-${task.id}`,
     data: { task, type: 'task' },
@@ -18,17 +18,20 @@ function DraggableTask({ task }) {
       <span className="task-duration">{task.duration || 1}h</span>
     </div>
   );
-}
+});
 
-// Main Task Pool Component
+// Main Task Pool Component - optimized for performance
 function TaskPool({ tasks }) {
   const { setNodeRef } = useDroppable({
     id: 'task-pool',
     data: { type: 'pool' },
   });
 
-  // Always show all unscheduled tasks
-  const unscheduledTasks = tasks.filter(task => task.status !== 'SCHEDULED');
+  // Memoize unscheduled tasks filtering for better performance
+  const unscheduledTasks = useMemo(() =>
+    tasks.filter(task => task.status !== 'SCHEDULED'),
+    [tasks]
+  );
 
   return (
     <div className="task-pool-section">
@@ -36,7 +39,9 @@ function TaskPool({ tasks }) {
       <p>Drag tasks from here to schedule them, or drag scheduled events back here to unschedule them.</p>
       <div ref={setNodeRef} id="task_pool" className="task-pool-grid">
         {unscheduledTasks.length > 0 ? (
-          unscheduledTasks.map(task => <DraggableTask key={task.id} task={task} />)
+          unscheduledTasks.map(task => (
+            <DraggableTask key={task.id} task={task} />
+          ))
         ) : (
           <div className="empty-state">No unscheduled tasks available</div>
         )}

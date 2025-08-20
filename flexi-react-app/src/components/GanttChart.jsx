@@ -5,8 +5,7 @@ import {
   toDateString,
   getStartOfDay,
   getEndOfDay,
-  isSameDate,
-  parseDateString
+  isSameDate
 } from '../utils/dateUtils';
 
 // A single 15-minute time slot on the calendar that can receive a dropped task
@@ -15,14 +14,10 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
     id: `slot-${machine.id}-${hour}-${minute}`,
     data: { machine, hour, minute, type: 'slot', isUnavailable, hasScheduledTask },
   });
-  
-  const slotClass = useMemo(() => {
-    let className = 'time-slot';
-    if (isUnavailable) className += ' unavailable';
-    if (hasScheduledTask) className += ' has-scheduled-task';
-    return className;
-  }, [isUnavailable, hasScheduledTask]);
-  
+
+  // Optimize className construction
+  const slotClass = `time-slot${isUnavailable ? ' unavailable' : ''}${hasScheduledTask ? ' has-scheduled-task' : ''}`;
+
   return <div ref={setNodeRef} className={slotClass} data-hour={hour} data-minute={minute} />;
 });
 
@@ -33,34 +28,35 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
         data: { event, type: 'event', machine },
     });
 
-    // Memoize expensive calculations
+    // Memoize expensive calculations - optimized for performance
     const eventPosition = useMemo(() => {
+        // Cache date parsing to avoid repeated operations
+        const eventStartTime = new Date(event.scheduled_start_time);
+        const eventEndTime = new Date(event.scheduled_end_time);
         const durationHours = event.duration || 1;
-        const eventStartTime = parseDateString(event.scheduled_start_time);
-        const eventEndTime = parseDateString(event.scheduled_end_time);
-        
+
         // Check if this event should be visible on the current day
         const currentDayStart = getStartOfDay(currentDate);
         const currentDayEnd = getEndOfDay(currentDate);
-        
+
         const eventStartsOnCurrentDay = isSameDate(eventStartTime, currentDate);
         const eventEndsOnCurrentDay = isSameDate(eventEndTime, currentDate);
         const eventSpansCurrentDay = eventStartTime < currentDayEnd && eventEndTime > currentDayStart;
-        
+
         if (!eventStartsOnCurrentDay && !eventEndsOnCurrentDay && !eventSpansCurrentDay) {
             return null;
         }
-        
+
         // Calculate positioning for the event on the current day
         let baseLeft, baseWidth;
-        
+
         if (eventStartsOnCurrentDay) {
             const startHour = eventStartTime.getHours();
             const startMinute = eventStartTime.getMinutes();
             const startSlot = startHour * 4 + Math.floor(startMinute / 15);
             baseLeft = startSlot * 20;
-            
-            const hoursRemainingInDay = 24 - eventStartTime.getHours();
+
+            const hoursRemainingInDay = 24 - startHour;
             const hoursToShow = Math.min(durationHours, hoursRemainingInDay);
             const slotsToShow = hoursToShow * 4;
             baseWidth = slotsToShow * 20;
@@ -71,12 +67,13 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
             const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
             baseWidth = endSlot * 20;
         } else {
+            // Full day span - optimize calculation
             baseLeft = 0;
-            baseWidth = 24 * 4 * 20;
+            baseWidth = 1920; // 24 * 4 * 20 = 1920px
         }
-        
+
         return { baseLeft, baseWidth, eventSpansCurrentDay, eventStartsOnCurrentDay, eventEndsOnCurrentDay };
-    }, [event, currentDate]);
+    }, [event.scheduled_start_time, event.scheduled_end_time, event.duration, currentDate]);
 
     if (!eventPosition) return null;
 
@@ -113,23 +110,15 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
 
 // A single row in the Gantt chart, representing one machine
 const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavailableByMachine }) => {
-  // Memoize time slots to prevent recreation on every render
-  const timeSlots = useMemo(() => {
-    const slots = [];
-    for (let hour = 0; hour < 24; hour++) {
-      for (let minute = 0; minute < 60; minute += 15) {
-        slots.push({ hour, minute });
-      }
-    }
-    return slots;
-  }, []);
-  
-  // Memoize scheduled events for this machine
-  const machineScheduledEvents = useMemo(() => 
+  // Memoize scheduled events for this machine - optimize filtering
+  const machineScheduledEvents = useMemo(() =>
     scheduledEvents.filter(event => event.scheduled_machine_id === machine.id),
     [scheduledEvents, machine.id]
   );
-  
+
+  // Get unavailable hours for this machine
+  const unavailableHours = unavailableByMachine[machine.id];
+
   return (
     <div className="machine-row" data-machine-id={machine.id}>
       <div className="machine-label">
@@ -137,26 +126,28 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
         <div className="machine-city">{machine.work_center}</div>
       </div>
       <div className="machine-slots">
-        {timeSlots.map(({ hour, minute }) => {
-          const setForMachine = unavailableByMachine[machine.id];
-          const isUnavailable = setForMachine ? setForMachine.has(hour.toString()) : false;
-          
+        {/* Render time slots in a more efficient way */}
+        {Array.from({ length: 96 }, (_, index) => {
+          const hour = Math.floor(index / 4);
+          const minute = (index % 4) * 15;
+          const isUnavailable = unavailableHours ? unavailableHours.has(hour.toString()) : false;
+
           return (
-            <TimeSlot 
-              key={`${hour}-${minute}`} 
-              machine={machine} 
-              hour={hour} 
+            <TimeSlot
+              key={`${hour}-${minute}`}
+              machine={machine}
+              hour={hour}
               minute={minute}
-              isUnavailable={isUnavailable} 
+              isUnavailable={isUnavailable}
               hasScheduledTask={false}
             />
           );
         })}
         {machineScheduledEvents.map(event => (
-          <ScheduledEvent 
-            key={event.id} 
-            event={event} 
-            machine={machine} 
+          <ScheduledEvent
+            key={event.id}
+            event={event}
+            machine={machine}
             currentDate={currentDate}
           />
         ))}
@@ -165,9 +156,9 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
   );
 });
 
-// The main Gantt Chart component
+// The main Gantt Chart component - optimized for performance
 const GanttChart = React.memo(({ machines, tasks, currentDate }) => {
-  const scheduledTasks = useMemo(() => 
+  const scheduledTasks = useMemo(() =>
     tasks.filter(task => task.status === 'SCHEDULED'),
     [tasks]
   );
@@ -181,21 +172,28 @@ const GanttChart = React.memo(({ machines, tasks, currentDate }) => {
     loadMachineAvailabilityForDate(dateStr);
   }, [dateStr, loadMachineAvailabilityForDate]);
 
+  // Optimize unavailable hours processing
   const unavailableByMachine = useMemo(() => {
     const dayData = machineAvailability[dateStr];
+    if (!Array.isArray(dayData)) return {};
+
     const map = {};
-    if (Array.isArray(dayData)) {
-      dayData.forEach(row => {
-        map[row.machine_id] = new Set((row.unavailable_hours || []).map(h => h.toString()));
-      });
+    for (const row of dayData) {
+      if (row.machine_id && row.unavailable_hours) {
+        map[row.machine_id] = new Set(row.unavailable_hours.map(h => h.toString()));
+      }
     }
     return map;
   }, [machineAvailability, dateStr]);
 
-  // Memoize the time header to prevent recreation
-  const timeHeader = useMemo(() => 
+  // Memoize the time header with optimized rendering
+  const timeHeader = useMemo(() =>
     Array.from({ length: 24 }, (_, hour) => (
-      <div key={hour} className="time-slot-header hour-header" style={{ gridColumn: `${hour * 4 + 1} / span 4` }}>
+      <div
+        key={hour}
+        className="time-slot-header hour-header"
+        style={{ gridColumn: `${hour * 4 + 1} / span 4` }}
+      >
         {hour.toString().padStart(2, '0')}
       </div>
     )),
