@@ -85,23 +85,50 @@ const handleOdpOrdersChange = (payload, set, get) => {
 const handleMachinesChange = (payload, set, get) => {
   const { eventType, newRecord, oldRecord } = payload;
   
+  console.log(`🔄 Machines change: ${eventType}`, { newRecord, oldRecord });
+  
   switch (eventType) {
     case 'INSERT':
-      set(state => ({
-        machines: [...state.machines, newRecord]
-      }));
+      set(state => {
+        // Check if machine already exists to prevent duplicates
+        const exists = state.machines.some(machine => machine.id === newRecord.id);
+        if (exists) {
+          console.log(`🔄 Machine ${newRecord.id} already exists, skipping INSERT`);
+          return state;
+        }
+        console.log(`🔄 Adding new machine ${newRecord.id}`);
+        return {
+          machines: [...state.machines, newRecord]
+        };
+      });
       break;
     case 'UPDATE':
-      set(state => ({
-        machines: state.machines.map(machine => 
-          machine.id === newRecord.id ? newRecord : machine
-        )
-      }));
+      set(state => {
+        const exists = state.machines.some(machine => machine.id === newRecord.id);
+        if (!exists) {
+          console.log(`🔄 Machine ${newRecord.id} not found for UPDATE, skipping`);
+          return state;
+        }
+        console.log(`🔄 Updating machine ${newRecord.id}`);
+        return {
+          machines: state.machines.map(machine => 
+            machine.id === newRecord.id ? newRecord : machine
+          )
+        };
+      });
       break;
     case 'DELETE':
-      set(state => ({
-        machines: state.machines.filter(machine => machine.id !== oldRecord.id)
-      }));
+      set(state => {
+        const exists = state.machines.some(machine => machine.id === oldRecord.id);
+        if (!exists) {
+          console.log(`🔄 Machine ${oldRecord.id} not found for DELETE, skipping`);
+          return state;
+        }
+        console.log(`🔄 Deleting machine ${oldRecord.id}`);
+        return {
+          machines: state.machines.filter(machine => machine.id !== oldRecord.id)
+        };
+      });
       break;
   }
 };
@@ -250,29 +277,59 @@ export const useStore = create((set, get) => ({
   init: async () => {
     const { isInitialized } = get();
     await apiService.init();
-    if (isInitialized) return;
+    if (isInitialized) {
+      console.log('🔄 Store already initialized, skipping...');
+      return;
+    }
+    
+    console.log('🔄 Initializing store...');
     set({ isLoading: true });
+    
     const [machines, odpOrders, phases] = await Promise.all([
       apiService.getMachines(),
       apiService.getOdpOrders(),
       apiService.getPhases(),
     ]);
+    
+    console.log(`🔄 Loaded ${machines?.length || 0} machines, ${odpOrders?.length || 0} orders, ${phases?.length || 0} phases`);
+    
+    // Remove any duplicate machines before setting state
+    const uniqueMachines = [];
+    const seenMachineIds = new Set();
+    if (machines && machines.length > 0) {
+      machines.forEach(machine => {
+        if (!seenMachineIds.has(machine.id)) {
+          seenMachineIds.add(machine.id);
+          uniqueMachines.push(machine);
+        } else {
+          console.warn(`🔄 Duplicate machine found during init: ${machine.id}`);
+        }
+      });
+    }
+    
+    console.log(`🔄 After deduplication: ${uniqueMachines.length} unique machines`);
+    
     set({
-      machines: machines || [],
+      machines: uniqueMachines,
       odpOrders: odpOrders || [],
       phases: phases || [],
       isLoading: false,
       isInitialized: true,
     });
+    
     // Initialize empty machine availability like appStore
     get().initializeEmptyMachineAvailability();
     
-    // Setup real-time subscriptions after data is loaded
-    const realtimeChannel = setupRealtimeSubscriptions(set, get);
-    if (realtimeChannel) {
-      // Store channel reference for cleanup
-      window.realtimeChannel = realtimeChannel;
-      console.log('🔄 Real-time subscriptions initialized');
+    // Setup real-time subscriptions after data is loaded (only once)
+    if (!window.realtimeChannel) {
+      const realtimeChannel = setupRealtimeSubscriptions(set, get);
+      if (realtimeChannel) {
+        // Store channel reference for cleanup
+        window.realtimeChannel = realtimeChannel;
+        console.log('🔄 Real-time subscriptions initialized');
+      }
+    } else {
+      console.log('🔄 Real-time subscriptions already exist, skipping setup');
     }
   },
 
@@ -297,6 +354,85 @@ export const useStore = create((set, get) => ({
       console.error('🔄 Data refresh failed:', error);
       set({ isLoading: false });
     }
+  },
+
+  // Debug function to check for duplicate data
+  debugData: () => {
+    const state = get();
+    console.log('🔍 Current store state:');
+    console.log(`Machines: ${state.machines.length}`, state.machines);
+    console.log(`ODP Orders: ${state.odpOrders.length}`, state.odpOrders);
+    console.log(`Phases: ${state.phases.length}`, state.phases);
+    
+    // Check for duplicate IDs
+    const machineIds = state.machines.map(m => m.id);
+    const duplicateMachineIds = machineIds.filter((id, index) => machineIds.indexOf(id) !== index);
+    if (duplicateMachineIds.length > 0) {
+      console.warn('⚠️ Duplicate machine IDs found:', duplicateMachineIds);
+    }
+    
+    const orderIds = state.odpOrders.map(o => o.id);
+    const duplicateOrderIds = orderIds.filter((id, index) => orderIds.indexOf(id) !== index);
+    if (duplicateOrderIds.length > 0) {
+      console.warn('⚠️ Duplicate order IDs found:', duplicateOrderIds);
+    }
+    
+    const phaseIds = state.phases.map(p => p.id);
+    const duplicatePhaseIds = phaseIds.filter((id, index) => phaseIds.indexOf(id) !== index);
+    if (duplicatePhaseIds.length > 0) {
+      console.warn('⚠️ Duplicate phase IDs found:', duplicatePhaseIds);
+    }
+  },
+
+  // Clean up duplicate data
+  cleanupDuplicates: () => {
+    const state = get();
+    console.log('🧹 Cleaning up duplicate data...');
+    
+    // Remove duplicate machines (keep first occurrence)
+    const uniqueMachines = [];
+    const seenMachineIds = new Set();
+    state.machines.forEach(machine => {
+      if (!seenMachineIds.has(machine.id)) {
+        seenMachineIds.add(machine.id);
+        uniqueMachines.push(machine);
+      } else {
+        console.log(`🧹 Removing duplicate machine: ${machine.id}`);
+      }
+    });
+    
+    // Remove duplicate orders (keep first occurrence)
+    const uniqueOrders = [];
+    const seenOrderIds = new Set();
+    state.odpOrders.forEach(order => {
+      if (!seenOrderIds.has(order.id)) {
+        seenOrderIds.add(order.id);
+        uniqueOrders.push(order);
+      } else {
+        console.log(`🧹 Removing duplicate order: ${order.id}`);
+      }
+    });
+    
+    // Remove duplicate phases (keep first occurrence)
+    const uniquePhases = [];
+    const seenPhaseIds = new Set();
+    state.phases.forEach(phase => {
+      if (!seenPhaseIds.has(phase.id)) {
+        seenPhaseIds.add(phase.id);
+        uniquePhases.push(phase);
+      } else {
+        console.log(`🧹 Removing duplicate phase: ${phase.id}`);
+      }
+    });
+    
+    // Update state with deduplicated data
+    set({
+      machines: uniqueMachines,
+      odpOrders: uniqueOrders,
+      phases: uniquePhases
+    });
+    
+    console.log(`🧹 Cleanup completed. Machines: ${uniqueMachines.length}, Orders: ${uniqueOrders.length}, Phases: ${uniquePhases.length}`);
   },
 
   // Set selected work center
