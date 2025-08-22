@@ -55,7 +55,6 @@ export const useProductionCalculations = () => {
       
       return null;
     } catch (error) {
-      console.error('Error calculating production metrics:', error);
       return null;
     }
   }, []);

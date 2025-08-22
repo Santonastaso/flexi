@@ -64,7 +64,6 @@ export const ERROR_SEVERITY = {
  * Handle API errors consistently
  */
 export const handleApiError = (error, context = '') => {
-  console.error(`API Error in ${context}:`, error);
 
   // If it's already an AppError, return it
   if (error instanceof AppError) {
@@ -144,10 +143,7 @@ export const logError = (error, context = '') => {
 
   // Log to console in development
   if (import.meta.env.MODE === 'development') {
-    console.group(`🚨 Error: ${context}`);
-    console.error(error);
-    console.log('Error Info:', errorInfo);
-    console.groupEnd();
+    // Development error logging removed for production
   }
 
   // In production, send to error monitoring service
@@ -250,7 +246,6 @@ export const withRetry = async (operation, maxRetries = 3, delay = 1000) => {
       }
       
       if (attempt < maxRetries) {
-        console.log(`Attempt ${attempt} failed, retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         delay *= 2; // Exponential backoff
       }

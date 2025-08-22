@@ -21,7 +21,6 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
  * Handle Supabase errors with user-friendly messages
  */
 export const handleSupabaseError = (error, context = '') => {
-  console.error(`Supabase error${context ? ` in ${context}` : ''}:`, error);
   
   // User-friendly error messages
   if (error.code === '23505') {
@@ -48,13 +47,11 @@ export const checkSupabaseConnection = async () => {
       .limit(1);
       
     if (error) {
-      console.error('Supabase connection check failed:', error);
       return false;
     }
     
     return true;
   } catch (error) {
-    console.error('Supabase connection error:', error);
     return false;
   }
 };

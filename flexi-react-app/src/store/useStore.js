@@ -19,7 +19,6 @@ const setupRealtimeSubscriptions = (set, get) => {
       'postgres_changes',
       { event: '*', schema: 'public', table: 'odp_orders' },
       (payload) => {
-        console.log('🔄 ODP Orders change received:', payload);
         handleOdpOrdersChange(payload, set, get);
       }
     )
@@ -27,7 +26,6 @@ const setupRealtimeSubscriptions = (set, get) => {
       'postgres_changes',
       { event: '*', schema: 'public', table: 'machines' },
       (payload) => {
-        console.log('🔄 Machines change received:', payload);
         handleMachinesChange(payload, set, get);
       }
     )
@@ -35,12 +33,11 @@ const setupRealtimeSubscriptions = (set, get) => {
       'postgres_changes',
       { event: '*', schema: 'public', table: 'phases' },
       (payload) => {
-        console.log('🔄 Phases change received:', payload);
         handlePhasesChange(payload, set, get);
       }
     )
     .subscribe((status) => {
-      console.log('🔄 Realtime subscription status:', status);
+      // Realtime subscription status handled silently
     });
 
   return channel;
@@ -75,18 +72,14 @@ const handleOdpOrdersChange = (payload, set, get) => {
 const handleMachinesChange = (payload, set, get) => {
   const { eventType, newRecord, oldRecord } = payload;
   
-  console.log(`🔄 Machines change: ${eventType}`, { newRecord, oldRecord });
-  
   switch (eventType) {
     case 'INSERT':
       set(state => {
         // Check if machine already exists to prevent duplicates
         const exists = state.machines.some(machine => machine.id === newRecord.id);
         if (exists) {
-          console.log(`🔄 Machine ${newRecord.id} already exists, skipping INSERT`);
           return state;
         }
-        console.log(`🔄 Adding new machine ${newRecord.id}`);
         return {
           machines: [...state.machines, newRecord]
         };
@@ -96,10 +89,8 @@ const handleMachinesChange = (payload, set, get) => {
       set(state => {
         const exists = state.machines.some(machine => machine.id === newRecord.id);
         if (!exists) {
-          console.log(`🔄 Machine ${newRecord.id} not found for UPDATE, skipping`);
           return state;
         }
-        console.log(`🔄 Updating machine ${newRecord.id}`);
         return {
           machines: state.machines.map(machine => 
             machine.id === newRecord.id ? newRecord : machine
@@ -111,10 +102,8 @@ const handleMachinesChange = (payload, set, get) => {
       set(state => {
         const exists = state.machines.some(machine => machine.id === oldRecord.id);
         if (!exists) {
-          console.log(`🔄 Machine ${oldRecord.id} not found for DELETE, skipping`);
           return state;
         }
-        console.log(`🔄 Deleting machine ${oldRecord.id}`);
         return {
           machines: state.machines.filter(machine => machine.id !== oldRecord.id)
         };
@@ -270,11 +259,8 @@ export const useStore = create((set, get) => ({
     try {
       await apiService.init();
       if (isInitialized) {
-        console.log('🔄 Store already initialized, skipping...');
         return;
       }
-      
-      console.log('🔄 Initializing store...');
       set({ isLoading: true });
       
       const [machines, odpOrders, phases] = await Promise.all([
@@ -282,8 +268,6 @@ export const useStore = create((set, get) => ({
         apiService.getOdpOrders(),
         apiService.getPhases(),
       ]);
-      
-      console.log(`🔄 Loaded ${machines?.length || 0} machines, ${odpOrders?.length || 0} orders, ${phases?.length || 0} phases`);
       
       // Remove any duplicate machines before setting state
       const uniqueMachines = [];
@@ -293,13 +277,9 @@ export const useStore = create((set, get) => ({
           if (!seenMachineIds.has(machine.id)) {
             seenMachineIds.add(machine.id);
             uniqueMachines.push(machine);
-          } else {
-            console.warn(`🔄 Duplicate machine found during init: ${machine.id}`);
           }
         });
       }
-      
-      console.log(`🔄 After deduplication: ${uniqueMachines.length} unique machines`);
       
       set({
         machines: uniqueMachines,
@@ -318,10 +298,7 @@ export const useStore = create((set, get) => ({
         if (realtimeChannel) {
           // Store channel reference for cleanup
           window.realtimeChannel = realtimeChannel;
-          console.log('🔄 Real-time subscriptions initialized');
         }
-      } else {
-        console.log('🔄 Real-time subscriptions already exist, skipping setup');
       }
     } catch (error) {
       const appError = handleApiError(error, 'Store Initialization');
@@ -334,7 +311,6 @@ export const useStore = create((set, get) => ({
 
   // Manual refresh function for debugging or when real-time fails
   refreshData: async () => {
-    console.log('🔄 Manually refreshing data...');
     set({ isLoading: true });
     try {
       const [machines, odpOrders, phases] = await Promise.all([
@@ -348,9 +324,7 @@ export const useStore = create((set, get) => ({
         phases: phases || [],
         isLoading: false,
       });
-      console.log('🔄 Data refresh completed');
     } catch (error) {
-      console.error('🔄 Data refresh failed:', error);
       set({ isLoading: false });
     }
   },
@@ -358,35 +332,24 @@ export const useStore = create((set, get) => ({
   // Debug function to check for duplicate data
   debugData: () => {
     const state = get();
-    console.log('🔍 Current store state:');
-    console.log(`Machines: ${state.machines.length}`, state.machines);
-    console.log(`ODP Orders: ${state.odpOrders.length}`, state.odpOrders);
-    console.log(`Phases: ${state.phases.length}`, state.phases);
     
     // Check for duplicate IDs
     const machineIds = state.machines.map(m => m.id);
     const duplicateMachineIds = machineIds.filter((id, index) => machineIds.indexOf(id) !== index);
-    if (duplicateMachineIds.length > 0) {
-      console.warn('⚠️ Duplicate machine IDs found:', duplicateMachineIds);
-    }
+    // Duplicate machine IDs handled silently
     
     const orderIds = state.odpOrders.map(o => o.id);
     const duplicateOrderIds = orderIds.filter((id, index) => orderIds.indexOf(id) !== index);
-    if (duplicateOrderIds.length > 0) {
-      console.warn('⚠️ Duplicate order IDs found:', duplicateOrderIds);
-    }
+    // Duplicate order IDs handled silently
     
     const phaseIds = state.phases.map(p => p.id);
     const duplicatePhaseIds = phaseIds.filter((id, index) => phaseIds.indexOf(id) !== index);
-    if (duplicatePhaseIds.length > 0) {
-      console.warn('⚠️ Duplicate phase IDs found:', duplicatePhaseIds);
-    }
+    // Duplicate phase IDs handled silently
   },
 
   // Clean up duplicate data
   cleanupDuplicates: () => {
     const state = get();
-    console.log('🧹 Cleaning up duplicate data...');
     
     // Remove duplicate machines (keep first occurrence)
     const uniqueMachines = [];
@@ -395,8 +358,6 @@ export const useStore = create((set, get) => ({
       if (!seenMachineIds.has(machine.id)) {
         seenMachineIds.add(machine.id);
         uniqueMachines.push(machine);
-      } else {
-        console.log(`🧹 Removing duplicate machine: ${machine.id}`);
       }
     });
     
@@ -407,8 +368,6 @@ export const useStore = create((set, get) => ({
       if (!seenOrderIds.has(order.id)) {
         seenOrderIds.add(order.id);
         uniqueOrders.push(order);
-      } else {
-        console.log(`🧹 Removing duplicate order: ${order.id}`);
       }
     });
     
@@ -419,8 +378,6 @@ export const useStore = create((set, get) => ({
       if (!seenPhaseIds.has(phase.id)) {
         seenPhaseIds.add(phase.id);
         uniquePhases.push(phase);
-      } else {
-        console.log(`🧹 Removing duplicate phase: ${phase.id}`);
       }
     });
     
@@ -430,8 +387,6 @@ export const useStore = create((set, get) => ({
       odpOrders: uniqueOrders,
       phases: uniquePhases
     });
-    
-    console.log(`🧹 Cleanup completed. Machines: ${uniqueMachines.length}, Orders: ${uniqueOrders.length}, Phases: ${uniquePhases.length}`);
   },
 
   // Set selected work center
@@ -442,7 +397,6 @@ export const useStore = create((set, get) => ({
   reset: () => {
     // Cleanup real-time subscriptions
     if (window.realtimeChannel) {
-      console.log('🔄 Cleaning up real-time subscriptions...');
       window.realtimeChannel.unsubscribe();
       window.realtimeChannel = null;
     }
@@ -532,31 +486,20 @@ export const useStore = create((set, get) => ({
     // Check for overlaps with unavailable slots on the same machine
     const newStartDate = toDateString(newStart);
     
-    console.log('🔍 Checking machine availability for:', {
-      machineId: eventData.machine,
-      date: newStartDate,
-      allKeys: Object.keys(state.machineAvailability)
-    });
-    
     // Check machine availability for the target date
     const dateAvailability = state.machineAvailability[newStartDate];
     if (dateAvailability && Array.isArray(dateAvailability)) {
       const machineAvailability = dateAvailability.find(ma => ma.machine_id === eventData.machine);
       
       if (machineAvailability && machineAvailability.unavailable_hours && Array.isArray(machineAvailability.unavailable_hours)) {
-        console.log('🔍 Found machine availability:', machineAvailability);
-        
         const targetDateStart = new Date(newStart.getFullYear(), newStart.getMonth(), newStart.getDate());
         
         for (const hour of machineAvailability.unavailable_hours) {
           const hourStart = new Date(targetDateStart.getTime() + parseInt(hour) * 60 * 60 * 1000);
           const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
           
-          console.log('🔍 Checking hour:', { hour, hourStart, hourEnd, newStart, newEnd });
-          
           // Check if task overlaps with unavailable hour
           if (newStart < hourEnd && newEnd > hourStart) {
-            console.log('❌ OVERLAP DETECTED!');
             return { error: `Task overlaps with unavailable slot at hour ${hour}:00` };
           }
         }
@@ -617,7 +560,6 @@ export const useStore = create((set, get) => ({
       
       return data;
     } catch (e) {
-      console.error('Error loadMachineAvailabilityForDateRange:', e);
       throw e;
     }
   },
@@ -626,7 +568,6 @@ export const useStore = create((set, get) => ({
     try {
       return await apiService.getMachineAvailabilityForDate(machineId, dateStr);
     } catch (e) {
-      console.error('Error getMachineAvailabilityForDate:', e);
       return [];
     }
   },
@@ -675,37 +616,29 @@ export const useStore = create((set, get) => ({
       });
       return true;
     } catch (e) {
-      console.error('Error setMachineAvailability:', e);
       throw e;
     }
   },
 
   toggleMachineHourAvailability: async (machineId, dateStr, hour) => {
     try {
-      console.log(`Store: Toggling hour ${hour} for ${dateStr} on machine ${machineId}`);
       const currentUnavailableHours = await get().getMachineAvailability(machineId, dateStr);
-      console.log(`Store: Current unavailable hours:`, currentUnavailableHours);
       
       // Convert hour to string for comparison since the database stores them as strings
       const hourStr = hour.toString();
-      console.log(`Store: Converting hour ${hour} to string: ${hourStr}`);
       
       let newUnavailableHours;
       if (currentUnavailableHours.includes(hourStr)) {
         // Remove hour if already unavailable
         newUnavailableHours = currentUnavailableHours.filter(h => h !== hourStr);
-        console.log(`Store: Removing hour ${hourStr}, new array:`, newUnavailableHours);
       } else {
         // Add hour if not unavailable
         newUnavailableHours = [...currentUnavailableHours, hourStr].sort((a, b) => parseInt(a) - parseInt(b));
-        console.log(`Store: Adding hour ${hourStr}, new array:`, newUnavailableHours);
       }
       
       await get().setMachineAvailability(machineId, dateStr, newUnavailableHours);
-      console.log(`Store: Successfully updated availability`);
       return true;
     } catch (e) {
-      console.error('Error toggleMachineHourAvailability:', e);
       throw e;
     }
   },
@@ -734,7 +667,6 @@ export const useStore = create((set, get) => ({
       try {
         await apiService.getMachineAvailabilityForDate('test', '2025-01-01');
       } catch (tableError) {
-        console.warn('Machine availability table not accessible:', tableError.message);
         return {};
       }
       let current = new Date(startDate);
@@ -753,36 +685,24 @@ export const useStore = create((set, get) => ({
       }
       return result;
     } catch (e) {
-      console.error('Error load_machine_availability_for_machine:', e);
       return {};
     }
   },
 
   getMachineAvailability: async (machineId, dateStr) => {
     try {
-      console.log(`Store: Getting availability for machine ${machineId} on ${dateStr}`);
-      
       // First check if we have cached data
       const dateData = get().machineAvailability[dateStr];
-      console.log(`Store: Cached dateData for ${dateStr}:`, dateData);
       
       if (dateData && Array.isArray(dateData)) {
         const row = dateData.find(r => r.machine_id === machineId);
-        console.log(`Store: Found cached row:`, row);
         if (row) {
-          console.log(`Store: Returning cached unavailable_hours:`, row.unavailable_hours);
-          console.log(`Store: Cached unavailable_hours type:`, typeof row.unavailable_hours);
-          console.log(`Store: Cached unavailable_hours isArray:`, Array.isArray(row.unavailable_hours));
-          console.log(`Store: Cached unavailable_hours length:`, row.unavailable_hours?.length);
           return row.unavailable_hours || [];
         }
       }
       
-      console.log(`Store: No cached data, fetching from API...`);
-      
       // If no cached data, fetch from API
       const data = await apiService.getMachineAvailabilityForDate(machineId, dateStr);
-      console.log(`Store: API returned data:`, data);
       
       if (data) {
         // Normalize to strings to keep UI logic consistent
@@ -793,25 +713,15 @@ export const useStore = create((set, get) => ({
           if (!next[dateStr]) next[dateStr] = [];
           const existingRow = next[dateStr].find(r => r.machine_id === machineId);
           
-          console.log(`Store: Before cache update - data.unavailable_hours:`, data.unavailable_hours);
-          console.log(`Store: Before cache update - type:`, typeof data.unavailable_hours);
-          console.log(`Store: Before cache update - isArray:`, Array.isArray(data.unavailable_hours));
-          
           if (existingRow) {
             existingRow.unavailable_hours = normalizedHours;
-            console.log(`Store: Updated existing row - unavailable_hours:`, existingRow.unavailable_hours);
           } else {
             next[dateStr].push({
               machine_id: machineId,
               date: dateStr,
               unavailable_hours: normalizedHours
             });
-            console.log(`Store: Added new row - unavailable_hours:`, next[dateStr][next[dateStr].length - 1].unavailable_hours);
           }
-          
-          console.log(`Store: Updated cache for ${dateStr}:`, next[dateStr]);
-          console.log(`Store: Cache row unavailable_hours type:`, typeof next[dateStr].find(r => r.machine_id === machineId)?.unavailable_hours);
-          console.log(`Store: Cache row unavailable_hours isArray:`, Array.isArray(next[dateStr].find(r => r.machine_id === machineId)?.unavailable_hours));
           
           return { machineAvailability: next };
         });
@@ -819,7 +729,6 @@ export const useStore = create((set, get) => ({
       }
       return [];
     } catch (error) {
-      console.error('Error getting machine availability:', error);
       return [];
     }
   },
@@ -845,7 +754,6 @@ export const useStore = create((set, get) => ({
     try {
       return await apiService.getEventsByDate(dateStr);
     } catch (e) {
-      console.error('Error getting events by date:', e);
       return [];
     }
   },
@@ -864,7 +772,6 @@ export const useStore = create((set, get) => ({
       
       return results;
     } catch (e) {
-      console.error('Error setting machine unavailability:', e);
       throw e;
     }
   },
@@ -874,7 +781,6 @@ export const useStore = create((set, get) => ({
       await apiService.getMachineAvailabilityForDateAllMachines('2025-01-01');
       return true;
     } catch (e) {
-      console.warn('Machine availability table not accessible:', e.message);
       return false;
     }
   },
