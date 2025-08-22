@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { useStore } from '../store/useStore';
 import { WORK_CENTERS } from '../constants';
 
 /**
@@ -16,7 +17,8 @@ function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState({});
 
-  const { signIn, error: authError, setSelectedWorkCenter } = useAuth();
+  const { signIn, error: authError } = useAuth();
+  const setSelectedWorkCenter = useStore(state => state.setSelectedWorkCenter);
   const navigate = useNavigate();
 
   const handleChange = (e) => {

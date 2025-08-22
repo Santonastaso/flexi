@@ -4,7 +4,7 @@ import DataTable from '../components/DataTable';
 import MachineForm from '../components/MachineForm';
 import EditableCell from '../components/EditableCell';
 import { useStore } from '../store/useStore';
-import { useMachineValidation } from '../hooks';
+import { useMachineValidation, useErrorHandler } from '../hooks';
 import { WORK_CENTERS } from '../constants';
 
 function MachineryPage() {
@@ -28,6 +28,9 @@ function MachineryPage() {
 
   // Use modern validation hook
   const { validateMachine } = useMachineValidation();
+  
+  // Use unified error handling
+  const { handleCrudError, handleAsync } = useErrorHandler('MachineryPage');
 
   // Initialize store on component mount
   useEffect(() => {
@@ -96,12 +99,10 @@ function MachineryPage() {
       return;
     }
     
-    try {
-      await updateMachine(updatedMachine.id, updatedMachine);
-    } catch (error) {
-      // Error is already handled by the store
-      console.error('Failed to update machine:', error);
-    }
+    await handleAsync(
+      () => updateMachine(updatedMachine.id, updatedMachine),
+      { context: 'Update Machine', fallbackMessage: 'Failed to update machine' }
+    );
   };
 
   const handleDeleteMachine = async (machineToDelete) => {
@@ -109,12 +110,10 @@ function MachineryPage() {
       'Delete Machine',
       `Are you sure you want to delete "${machineToDelete.machine_name}"? This action cannot be undone.`,
       async () => {
-        try {
-          await removeMachine(machineToDelete.id);
-        } catch (error) {
-          // Error is already handled by the store
-          console.error('Failed to delete machine:', error);
-        }
+        await handleAsync(
+          () => removeMachine(machineToDelete.id),
+          { context: 'Delete Machine', fallbackMessage: 'Failed to delete machine' }
+        );
       },
       'danger'
     );

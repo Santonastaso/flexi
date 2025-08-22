@@ -1,4 +1,5 @@
 import { supabase, handleSupabaseError } from './supabase/client';
+import { safeAsync, handleApiError } from '../utils/errorUtils';
 import { toDateString, addDaysToDate } from '../utils/dateUtils';
 
 /**
@@ -32,7 +33,7 @@ class ApiService {
   // ===== MACHINES =====
   
   async getMachines() {
-    try {
+    return safeAsync(async () => {
       const { data, error } = await supabase
         .from('machines')
         .select('*')
@@ -40,9 +41,7 @@ class ApiService {
         
       if (error) throw error;
       return data || [];
-    } catch (error) {
-      throw new Error(`Failed to fetch machines: ${handleSupabaseError(error)}`);
-    }
+    }, 'getMachines')();
   }
 
   async addMachine(machineData) {

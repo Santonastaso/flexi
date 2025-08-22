@@ -83,62 +83,81 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
         return { baseLeft, baseWidth, eventSpansCurrentDay, eventStartsOnCurrentDay, eventEndsOnCurrentDay };
     }, [event.scheduled_start_time, event.time_remaining, event.duration, currentDate]);
 
-    if (!eventPosition) return null;
+    // Calculate responsive button sizes based on task width - moved before conditional return
+    const buttonSize = useMemo(() => {
+        if (!eventPosition) return 22; // Default size
+        const { baseWidth } = eventPosition;
+        const isVerySmallTask = baseWidth < 60; // Less than 3 time slots (45 minutes)
+        const isSmallTask = baseWidth < 120; // Less than 6 time slots (1.5 hours)
+        return isVerySmallTask ? 18 : isSmallTask ? 20 : 22;
+    }, [eventPosition]);
 
-    const { baseLeft, baseWidth, eventSpansCurrentDay, eventStartsOnCurrentDay, eventEndsOnCurrentDay } = eventPosition;
-    
-    // Calculate responsive button sizes based on task width
-    const isVerySmallTask = baseWidth < 60; // Less than 3 time slots (45 minutes)
-    const isSmallTask = baseWidth < 120; // Less than 6 time slots (1.5 hours)
-    
-    // Determine button layout strategy
-    const buttonSize = isVerySmallTask ? 18 : isSmallTask ? 20 : 22;
-    const buttonGap = isVerySmallTask ? 3 : isSmallTask ? 4 : 5;
-    const fontSize = isVerySmallTask ? 11 : isSmallTask ? 12 : 13;
-    
-    // For very small tasks, overlay buttons on top instead of stacking
-    const shouldOverlayButtons = isVerySmallTask && baseWidth < 80; // Less than 4 time slots (1 hour)
-    
-    // For extremely narrow tasks, ensure buttons are always accessible
-    const isExtremelyNarrow = baseWidth < 40; // Less than 2 time slots (30 minutes)
-    
-    // Debug logging for development
-    if (process.env.NODE_ENV === 'development') {
-        console.log(`Task ${event.odp_number}: width=${baseWidth}px, buttonSize=${buttonSize}px, overlay=${shouldOverlayButtons}, extremelyNarrow=${isExtremelyNarrow}`);
-    }
-    
-    // Apply transform only when dragging, otherwise use base position
-    const style = isDragging ? {
-        position: 'absolute',
-        left: `${baseLeft}px`,
-        width: `${baseWidth}px`,
-        transform: `translate3d(${transform?.x || 0}px, ${transform?.y || 0}px, 0)`,
-        zIndex: 1001,
-        pointerEvents: 'none',
-        // Ultra-light drag state - minimal CSS for maximum performance
-        willChange: 'transform',
-        backfaceVisibility: 'hidden',
-        transition: 'none',
-        boxShadow: 'none',
-        opacity: 0.8,
-        // Remove all visual effects during drag
-        filter: 'none',
-        borderRadius: '4px',
-        padding: '4px 6px',
-        minHeight: '32px',
-    } : {
-        position: 'absolute',
-        left: `${baseLeft}px`,
-        width: `${baseWidth}px`,
-        transform: 'none',
-        zIndex: 10,
-        // Normal state - minimal CSS
-        willChange: 'auto',
-        backfaceVisibility: 'visible',
-        opacity: 1,
-        // Minimal transitions
-        transition: 'opacity 0.1s ease',
-    };
+    const buttonGap = useMemo(() => {
+        if (!eventPosition) return 5; // Default gap
+        const { baseWidth } = eventPosition;
+        const isVerySmallTask = baseWidth < 60;
+        const isSmallTask = baseWidth < 120;
+        return isVerySmallTask ? 3 : isSmallTask ? 4 : 5;
+    }, [eventPosition]);
+
+    const fontSize = useMemo(() => {
+        if (!eventPosition) return 13; // Default size
+        const { baseWidth } = eventPosition;
+        const isVerySmallTask = baseWidth < 60;
+        const isSmallTask = baseWidth < 120;
+        return isVerySmallTask ? 11 : isSmallTask ? 12 : 13;
+    }, [eventPosition]);
+
+    const shouldOverlayButtons = useMemo(() => {
+        if (!eventPosition) return false;
+        const { baseWidth } = eventPosition;
+        const isVerySmallTask = baseWidth < 60;
+        return isVerySmallTask && baseWidth < 80; // Less than 4 time slots (1 hour)
+    }, [eventPosition]);
+
+    const isExtremelyNarrow = useMemo(() => {
+        if (!eventPosition) return false;
+        const { baseWidth } = eventPosition;
+        return baseWidth < 40; // Less than 2 time slots (30 minutes)
+    }, [eventPosition]);
+
+    const style = useMemo(() => {
+        if (!eventPosition) return {};
+        
+        const { baseLeft, baseWidth } = eventPosition;
+        
+        return isDragging ? {
+            position: 'absolute',
+            left: `${baseLeft}px`,
+            width: `${baseWidth}px`,
+            transform: `translate3d(${transform?.x || 0}px, ${transform?.y || 0}px, 0)`,
+            zIndex: 1001,
+            pointerEvents: 'none',
+            // Ultra-light drag state - minimal CSS for maximum performance
+            willChange: 'transform',
+            backfaceVisibility: 'hidden',
+            transition: 'none',
+            boxShadow: 'none',
+            opacity: 0.8,
+            // Remove all visual effects during drag
+            filter: 'none',
+            borderRadius: '4px',
+            padding: '4px 6px',
+            minHeight: '32px',
+        } : {
+            position: 'absolute',
+            left: `${baseLeft}px`,
+            width: `${baseWidth}px`,
+            transform: 'none',
+            zIndex: 10,
+            // Normal state - minimal CSS
+            willChange: 'auto',
+            backfaceVisibility: 'visible',
+            opacity: 1,
+            // Minimal transitions
+            transition: 'opacity 0.1s ease',
+        };
+    }, [eventPosition, isDragging, transform]);
 
     const handleLockClick = useCallback((e) => {
         e.stopPropagation(); // Prevent drag from starting
@@ -179,10 +198,20 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
         }
     }, [event.scheduled_start_time, event.id, isMoving, updateOdpOrder]);
 
+    // Early return after ALL hooks have been called
+    if (!eventPosition) return null;
+
+    const { baseLeft, baseWidth, eventSpansCurrentDay, eventStartsOnCurrentDay, eventEndsOnCurrentDay } = eventPosition;
+    
+    // Debug logging for development
+    if (process.env.NODE_ENV === 'development') {
+        console.log(`Task ${event.odp_number}: width=${baseWidth}px, buttonSize=${buttonSize}px, overlay=${shouldOverlayButtons}, extremelyNarrow=${isExtremelyNarrow}`);
+    }
+
     return (
         <div 
             ref={setNodeRef} 
-            style={style} 
+            style={style || {}} 
             className={`scheduled-event ${isDragging ? 'dragging' : ''} ${eventSpansCurrentDay && !eventStartsOnCurrentDay && !eventEndsOnCurrentDay ? 'cross-day' : ''}`}
         >
             <div 
@@ -362,7 +391,7 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
 
           return (
             <TimeSlot
-              key={`${index}`} // Use index as key for better performance
+              key={`${machine.id}-${hour}-${minute}`} // Use semantic key based on machine and time
               machine={machine}
               hour={hour}
               minute={minute}

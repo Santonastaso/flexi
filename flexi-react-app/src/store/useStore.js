@@ -1,19 +1,12 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
 import { toDateString, addDaysToDate } from '../utils/dateUtils';
-import { handleApiError, logError, createErrorHandler } from '../utils/errorUtils';
+import { handleApiError, logError, createErrorHandler, safeAsync } from '../utils/errorUtils';
 import { WORK_CENTERS } from '../constants';
 import { supabase } from '../services/supabase/client';
 import { AppConfig } from '../services/config';
 
-// Store for work center selection
-let selectedWorkCenter = null;
 
-export const setGlobalWorkCenter = (workCenter) => {
-  selectedWorkCenter = workCenter;
-};
-
-export const getGlobalWorkCenter = () => selectedWorkCenter;
 
 // Real-time subscription setup
 const setupRealtimeSubscriptions = (set, get) => {
@@ -276,60 +269,69 @@ export const useStore = create((set, get) => ({
   // Lifecycle
   init: async () => {
     const { isInitialized } = get();
-    await apiService.init();
-    if (isInitialized) {
-      console.log('🔄 Store already initialized, skipping...');
-      return;
-    }
     
-    console.log('🔄 Initializing store...');
-    set({ isLoading: true });
-    
-    const [machines, odpOrders, phases] = await Promise.all([
-      apiService.getMachines(),
-      apiService.getOdpOrders(),
-      apiService.getPhases(),
-    ]);
-    
-    console.log(`🔄 Loaded ${machines?.length || 0} machines, ${odpOrders?.length || 0} orders, ${phases?.length || 0} phases`);
-    
-    // Remove any duplicate machines before setting state
-    const uniqueMachines = [];
-    const seenMachineIds = new Set();
-    if (machines && machines.length > 0) {
-      machines.forEach(machine => {
-        if (!seenMachineIds.has(machine.id)) {
-          seenMachineIds.add(machine.id);
-          uniqueMachines.push(machine);
-        } else {
-          console.warn(`🔄 Duplicate machine found during init: ${machine.id}`);
-        }
-      });
-    }
-    
-    console.log(`🔄 After deduplication: ${uniqueMachines.length} unique machines`);
-    
-    set({
-      machines: uniqueMachines,
-      odpOrders: odpOrders || [],
-      phases: phases || [],
-      isLoading: false,
-      isInitialized: true,
-    });
-    
-    // Initialize empty machine availability like appStore
-    get().initializeEmptyMachineAvailability();
-    
-    // Setup real-time subscriptions after data is loaded (only once)
-    if (!window.realtimeChannel) {
-      const realtimeChannel = setupRealtimeSubscriptions(set, get);
-      if (realtimeChannel) {
-        // Store channel reference for cleanup
-        window.realtimeChannel = realtimeChannel;
-        console.log('🔄 Real-time subscriptions initialized');
+    try {
+      await apiService.init();
+      if (isInitialized) {
+        console.log('🔄 Store already initialized, skipping...');
+        return;
       }
-    } else {
-      console.log('🔄 Real-time subscriptions already exist, skipping setup');
+      
+      console.log('🔄 Initializing store...');
+      set({ isLoading: true });
+      
+      const [machines, odpOrders, phases] = await Promise.all([
+        apiService.getMachines(),
+        apiService.getOdpOrders(),
+        apiService.getPhases(),
+      ]);
+      
+      console.log(`🔄 Loaded ${machines?.length || 0} machines, ${odpOrders?.length || 0} orders, ${phases?.length || 0} phases`);
+      
+      // Remove any duplicate machines before setting state
+      const uniqueMachines = [];
+      const seenMachineIds = new Set();
+      if (machines && machines.length > 0) {
+        machines.forEach(machine => {
+          if (!seenMachineIds.has(machine.id)) {
+            seenMachineIds.add(machine.id);
+            uniqueMachines.push(machine);
+          } else {
+            console.warn(`🔄 Duplicate machine found during init: ${machine.id}`);
+          }
+        });
+      }
+      
+      console.log(`🔄 After deduplication: ${uniqueMachines.length} unique machines`);
+      
+      set({
+        machines: uniqueMachines,
+        odpOrders: odpOrders || [],
+        phases: phases || [],
+        isLoading: false,
+        isInitialized: true,
+      });
+      
+      // Initialize empty machine availability like appStore
+      get().initializeEmptyMachineAvailability();
+      
+      // Setup real-time subscriptions after data is loaded (only once)
+      if (!window.realtimeChannel) {
+        const realtimeChannel = setupRealtimeSubscriptions(set, get);
+        if (realtimeChannel) {
+          // Store channel reference for cleanup
+          window.realtimeChannel = realtimeChannel;
+          console.log('🔄 Real-time subscriptions initialized');
+        }
+      } else {
+        console.log('🔄 Real-time subscriptions already exist, skipping setup');
+      }
+    } catch (error) {
+      const appError = handleApiError(error, 'Store Initialization');
+      logError(appError, 'Store Initialization');
+      set({ isLoading: false, isInitialized: false });
+      get().showAlert(appError.userMessage, 'error');
+      throw appError;
     }
   },
 
@@ -437,7 +439,6 @@ export const useStore = create((set, get) => ({
 
   // Set selected work center
   setSelectedWorkCenter: (workCenter) => {
-    setGlobalWorkCenter(workCenter);
     set({ selectedWorkCenter: workCenter });
   },
 

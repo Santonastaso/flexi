@@ -20,15 +20,6 @@ import { useAuth } from './auth/AuthContext';
 // This component creates the main layout with the sidebar
 const AppLayout = () => {
   const { alert, hideAlert, confirmDialog, hideConfirmDialog } = useStore();
-  const { selectedWorkCenter, setSelectedWorkCenter } = useAuth();
-  const setStoreWorkCenter = useStore(state => state.setSelectedWorkCenter);
-  
-  // Sync work center between AuthContext and Store
-  useEffect(() => {
-    if (selectedWorkCenter) {
-      setStoreWorkCenter(selectedWorkCenter);
-    }
-  }, [selectedWorkCenter, setStoreWorkCenter]);
   
   return (
     <div className="main-content">

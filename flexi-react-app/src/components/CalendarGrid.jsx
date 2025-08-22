@@ -226,7 +226,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
             }
             
             return (
-              <div key={index} className={dayClass}>
+              <div key={dateStr} className={dayClass}>
                 <span className="day-number">{date.getDate()}</span>
                 {unavailableHours.length > 0 && (
                   <div className="availability-indicator">
@@ -337,7 +337,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
                 ))}
                 {days.map((day, index) => {
                   if (day === null) {
-                    return <div key={index} className="mini-day empty"></div>;
+                    return <div key={`empty-${monthIndex}-${index}`} className="mini-day empty"></div>;
                   }
                   
                   const dateStr = toDateString(new Date(year, monthIndex, day));
@@ -346,7 +346,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
                   
                   return (
                     <div
-                      key={index}
+                      key={dateStr}
                       className={`mini-day ${hasUnavailableHours ? 'unavailable' : ''}`}
                       title={hasUnavailableHours ? `${unavailableHours.length} unavailable hours` : 'Available'}
                     >

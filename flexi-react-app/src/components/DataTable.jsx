@@ -103,13 +103,13 @@ function DataTable({ data, columns, onSaveRow, onDeleteRow }) {
     <div className="table-container">
       <table className="modern-table">
         <thead>
-          {table.getHeaderGroups().map((headerGroup, groupIndex) => (
-            <tr key={`${headerGroup.id}_${groupIndex}`}>
-              {headerGroup.headers.map((header, headerIndex) => {
-                // Use a combination of header.id, groupIndex, and headerIndex to ensure unique keys
-                const uniqueHeaderKey = `${header.id}_${groupIndex}_${headerIndex}`;
+          {table.getHeaderGroups().map((headerGroup) => (
+            <tr key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                // Use the header's unique ID - TanStack Table ensures these are unique
+                // No need for array indices since header.id is already unique within the group
                 return (
-                  <th key={uniqueHeaderKey} onClick={header.column.getToggleSortingHandler()}>
+                  <th key={header.id} onClick={header.column.getToggleSortingHandler()}>
                     {flexRender(header.column.columnDef.header, header.getContext())}
                     {{ asc: ' 🔼', desc: ' 🔽' }[header.column.getIsSorted()] ?? null}
                   </th>
@@ -119,16 +119,18 @@ function DataTable({ data, columns, onSaveRow, onDeleteRow }) {
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row, rowIndex) => {
-            // Use a combination of row.id and rowIndex to ensure unique keys
-            const uniqueRowKey = `${row.id}_${rowIndex}`;
+          {table.getRowModel().rows.map((row) => {
+            // Use the row's unique ID from the data - TanStack Table ensures row.id is unique
+            // This avoids the anti-pattern of using array index as key
+            const rowKey = row.original.id || row.id;
             return (
-              <tr key={uniqueRowKey}>
-                {row.getVisibleCells().map((cell, cellIndex) => {
-                  // Use a combination of row.id, rowIndex, and cellIndex to ensure unique cell keys
-                  const uniqueCellKey = `${row.id}_${rowIndex}_${cellIndex}`;
+              <tr key={rowKey}>
+                {row.getVisibleCells().map((cell) => {
+                  // Use row ID + column ID for cell keys - no need for array indices
+                  // This ensures stable keys that don't change when data is reordered
+                  const cellKey = `${rowKey}_${cell.column.id}`;
                   return (
-                    <td key={uniqueCellKey}>
+                    <td key={cellKey}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   );

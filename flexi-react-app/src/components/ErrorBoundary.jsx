@@ -1,4 +1,5 @@
 import React from 'react';
+import { logError, getErrorSeverity, ERROR_SEVERITY } from '../utils/errorUtils';
 
 /**
  * React Error Boundary Component
@@ -39,6 +40,10 @@ class ErrorBoundary extends React.Component {
       errorInfo,
       errorId: this.state.errorId || ErrorBoundary.generateErrorId()
     });
+
+    // Use our centralized error logging
+    const errorContext = 'ErrorBoundary';
+    logError(error, errorContext);
 
     // Log to external service in production (e.g., Sentry, LogRocket)
     this.logErrorToService(error, errorInfo);
@@ -95,6 +100,39 @@ Please describe what you were doing when this error occurred:
     window.open(`mailto:support@company.com?subject=${subject}&body=${body}`);
   };
 
+  getErrorRecommendations = (error) => {
+    const severity = getErrorSeverity(error);
+    
+    switch (severity) {
+      case ERROR_SEVERITY.CRITICAL:
+        return (
+          <div className="error-boundary__recommendation critical">
+            <strong>Critical Error:</strong> This is a serious issue. Please contact support immediately.
+          </div>
+        );
+      case ERROR_SEVERITY.HIGH:
+        return (
+          <div className="error-boundary__recommendation high">
+            <strong>High Priority:</strong> Please try refreshing the page or contact support if the problem persists.
+          </div>
+        );
+      case ERROR_SEVERITY.MEDIUM:
+        return (
+          <div className="error-boundary__recommendation medium">
+            <strong>Medium Priority:</strong> Try refreshing the page or navigating to a different section.
+          </div>
+        );
+      case ERROR_SEVERITY.LOW:
+        return (
+          <div className="error-boundary__recommendation low">
+            <strong>Low Priority:</strong> This error should resolve itself. Try continuing with your task.
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   render() {
     if (this.state.hasError) {
       // Fallback UI when an error occurs
@@ -147,6 +185,13 @@ Please describe what you were doing when this error occurred:
                 📧 Report Issue
               </button>
             </div>
+
+            {/* Show severity-based recommendations */}
+            {this.state.error && (
+              <div className="error-boundary__recommendations">
+                {this.getErrorRecommendations(this.state.error)}
+              </div>
+            )}
 
             <div className="error-boundary__footer">
               <p className="error-boundary__error-id">

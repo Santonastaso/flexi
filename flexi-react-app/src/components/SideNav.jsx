@@ -8,7 +8,8 @@ import logo from '/assets/logo.svg';
 function SideNav() {
   const location = useLocation();
   const currentPage = location.pathname;
-  const { user, signOut, isAuthenticated, selectedWorkCenter } = useAuth();
+  const { user, signOut, isAuthenticated } = useAuth();
+  const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
   const [realtimeStatus, setRealtimeStatus] = useState('disconnected');
   
   // Monitor real-time connection status
