@@ -11,11 +11,8 @@ import { AppConfig } from '../services/config';
 // Real-time subscription setup
 const setupRealtimeSubscriptions = (set, get) => {
   if (!AppConfig.SUPABASE.ENABLE_REALTIME) {
-    console.log('🔄 Realtime disabled in config');
     return null;
   }
-
-  console.log('🔄 Setting up realtime subscriptions...');
   
   const channel = supabase.channel('table-db-changes')
     .on(

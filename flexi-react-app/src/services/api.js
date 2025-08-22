@@ -22,10 +22,8 @@ class ApiService {
         throw new Error(`API initialization failed: ${error.message}`);
       }
       
-      console.log('✅ API service initialized successfully');
       return true;
     } catch (error) {
-      console.error('❌ API service initialization failed:', error);
       throw error;
     }
   }

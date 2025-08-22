@@ -166,7 +166,6 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
 
     const moveEvent = useCallback(async (direction) => {
         if (!event.scheduled_start_time) {
-            console.log('Event is not scheduled yet, cannot move');
             return;
         }
 
@@ -190,9 +189,8 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
             };
 
             await updateOdpOrder(event.id, updates);
-            console.log(`Event moved ${direction} by 15 minutes`);
         } catch (error) {
-            console.error('Failed to move event:', error);
+            // Handle error silently
         } finally {
             setIsMoving(false);
         }
@@ -203,10 +201,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
 
     const { baseLeft, baseWidth, eventSpansCurrentDay, eventStartsOnCurrentDay, eventEndsOnCurrentDay } = eventPosition;
     
-    // Debug logging for development
-    if (process.env.NODE_ENV === 'development') {
-        console.log(`Task ${event.odp_number}: width=${baseWidth}px, buttonSize=${buttonSize}px, overlay=${shouldOverlayButtons}, extremelyNarrow=${isExtremelyNarrow}`);
-    }
+    // Debug logging removed for production
 
     return (
         <div 
@@ -446,9 +441,7 @@ const GanttChart = React.memo(({ machines, tasks, currentDate }) => {
     }
 
     const endTime = performance.now();
-    if (endTime - startTime > 3) {
-      console.log(`⚡ Unavailable hours processing took: ${(endTime - startTime).toFixed(2)}ms`);
-    }
+    // Performance logging removed for production
 
     return map;
   }, [machineAvailability, dateStr]);

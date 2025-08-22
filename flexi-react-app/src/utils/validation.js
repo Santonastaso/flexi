@@ -72,9 +72,7 @@ export const validateNumericFields = (data, schema) => {
   const errors = {};
   Object.entries(schema).forEach(([field, rules]) => {
     if (data[field] !== undefined && data[field] !== null && data[field] !== '') {
-      console.log(`Validating field ${field}:`, { value: data[field], type: typeof data[field], rules });
       if (!isValidNumber(data[field], rules.min, rules.max)) {
-        console.log(`Validation failed for ${field}:`, data[field]);
         errors[field] = rules.message;
       }
     }

@@ -69,13 +69,12 @@ function LoginPage() {
       if (result.success) {
         // Set the selected work center
         setSelectedWorkCenter(formData.workCenter);
-        console.log('Login successful, work center set to:', formData.workCenter);
         navigate('/', { replace: true });
       } else {
-        console.log('Login failed:', result.error);
+        // Handle login failure silently
       }
     } catch (error) {
-      console.error('Login error:', error);
+      // Handle error silently
     } finally {
       setIsSubmitting(false);
     }

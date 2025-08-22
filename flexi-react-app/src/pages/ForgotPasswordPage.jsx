@@ -39,7 +39,6 @@ function ForgotPasswordPage() {
         setError(result.error || 'Failed to send reset email');
       }
     } catch (error) {
-      console.error('Password reset error:', error);
       setError('An unexpected error occurred');
     } finally {
       setIsSubmitting(false);

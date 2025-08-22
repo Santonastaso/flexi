@@ -82,13 +82,12 @@ function SignupPage() {
       const result = await signUp(formData.email, formData.password, userData);
       
       if (result.success) {
-        console.log('Signup successful, redirecting to home');
         navigate('/', { replace: true });
       } else {
-        console.log('Signup failed:', result.error);
+        // Handle signup failure silently
       }
     } catch (error) {
-      console.error('Signup error:', error);
+      // Handle error silently
     } finally {
       setIsSubmitting(false);
     }

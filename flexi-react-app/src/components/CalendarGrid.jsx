@@ -91,7 +91,6 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
         }
       }
       
-      console.log('CalendarGrid: Syncing data from store:', organizedData);
       setAvailabilityData(organizedData);
     };
     
@@ -102,8 +101,6 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
   useEffect(() => {
     const loadData = async () => {
       if (!machineId) return;
-      
-      console.log(`CalendarGrid: loadData called with currentView: ${currentView}, currentDate: ${currentDate}`);
       
       setIsLoading(true);
       try {
@@ -118,16 +115,8 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
           const firstDayStr = toDateString(firstDay);
           const lastDayStr = toDateString(lastDay);
           
-          console.log(`CalendarGrid: Loading month data for ${year}-${month + 1}`, { 
-            firstDay, 
-            lastDay, 
-            firstDayStr, 
-            lastDayStr 
-          });
-          
           // Load data for the month range using date strings
           const monthData = await loadMachineAvailabilityForDateRange(machineId, firstDayStr, lastDayStr);
-          console.log(`CalendarGrid: Month data received:`, monthData);
           
           // Process the month data and organize by date
           if (monthData && Array.isArray(monthData)) {
@@ -138,7 +127,6 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
                 const dateObj = new Date(item.date);
                 const dateStr = toDateString(dateObj);
                 organizedData[dateStr] = item.unavailable_hours;
-                console.log(`CalendarGrid: Organized data for ${dateStr}:`, item.unavailable_hours);
               }
             });
             
@@ -151,13 +139,11 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
                   const machineData = storeData.find(item => item.machine_id === machineId);
                   if (machineData && machineData.unavailable_hours) {
                     mergedData[dateStr] = machineData.unavailable_hours;
-                    console.log(`CalendarGrid: Merged store data for ${dateStr}:`, machineData.unavailable_hours);
                   }
                 }
               });
             }
             
-            console.log(`CalendarGrid: Final merged data:`, mergedData);
             setAvailabilityData(mergedData);
           }
         } else if (currentView === 'Week') {
@@ -169,11 +155,8 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
           const startOfWeekStr = toDateString(startOfWeek);
           const endOfWeekStr = toDateString(endOfWeek);
           
-          console.log(`CalendarGrid: Loading week data from ${startOfWeekStr} to ${endOfWeekStr}`);
-          
           // Load data for the week range
           const weekData = await loadMachineAvailabilityForDateRange(machineId, startOfWeekStr, endOfWeekStr);
-          console.log(`CalendarGrid: Week data received:`, weekData);
           
           // Process the week data and organize by date
           if (weekData && Array.isArray(weekData)) {
@@ -184,7 +167,6 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
                 const dateObj = new Date(item.date);
                 const dateStr = toDateString(dateObj);
                 organizedData[dateStr] = item.unavailable_hours;
-                console.log(`CalendarGrid: Organized week data for ${dateStr}:`, item.unavailable_hours);
               }
             });
             
@@ -197,13 +179,11 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
                   const machineData = storeData.find(item => item.machine_id === machineId);
                   if (machineData && machineData.unavailable_hours) {
                     mergedData[dateStr] = machineData.unavailable_hours;
-                    console.log(`CalendarGrid: Merged store data for week ${dateStr}:`, machineData.unavailable_hours);
                   }
                 }
               });
             }
             
-            console.log(`CalendarGrid: Final merged week data:`, mergedData);
             setAvailabilityData(mergedData);
           }
         } else if (currentView === 'Year') {
@@ -216,16 +196,8 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
           const firstDayStr = toDateString(firstDay);
           const lastDayStr = toDateString(lastDay);
           
-          console.log(`CalendarGrid: Loading year data for ${year}`, { 
-            firstDay, 
-            lastDay, 
-            firstDayStr, 
-            lastDayStr 
-          });
-          
           // Load data for the year range using date strings
           const yearData = await loadMachineAvailabilityForDateRange(machineId, firstDayStr, lastDayStr);
-          console.log(`CalendarGrid: Year data received:`, yearData);
           
           // Process the year data and organize by date
           if (yearData && Array.isArray(yearData)) {
@@ -236,7 +208,6 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
                 const dateObj = new Date(item.date);
                 const dateStr = toDateString(dateObj);
                 organizedData[dateStr] = item.unavailable_hours;
-                console.log(`CalendarGrid: Organized year data for ${dateStr}:`, item.unavailable_hours);
               }
             });
             
@@ -249,13 +220,11 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
                   const machineData = storeData.find(item => item.machine_id === machineId);
                   if (machineData && machineData.unavailable_hours) {
                     mergedData[dateStr] = machineData.unavailable_hours;
-                    console.log(`CalendarGrid: Merged store data for year ${dateStr}:`, machineData.unavailable_hours);
                   }
                 }
               });
             }
             
-            console.log(`CalendarGrid: Final merged year data:`, mergedData);
             setAvailabilityData(mergedData);
           }
         } else {
@@ -271,7 +240,6 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
                 const machineData = storeData.find(item => item.machine_id === machineId);
                 if (machineData && machineData.unavailable_hours) {
                   finalData = machineData.unavailable_hours;
-                  console.log(`CalendarGrid: Using store data for day view ${dateStr}:`, finalData);
                 }
               }
             }
@@ -283,7 +251,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
           }
         }
       } catch (error) {
-        console.error('Error loading availability data:', error);
+        // Handle error silently
       } finally {
         setIsLoading(false);
       }
@@ -301,14 +269,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
       task.scheduled_machine_id === machine.id
     );
     
-    // Debug logging for the first few hours
-    if (hour < 3 && scheduledTasks.length > 0) {
-      console.log(`CalendarGrid: Checking scheduled tasks for ${dateStr} hour ${hour}`);
-      console.log(`CalendarGrid: Found ${scheduledTasks.length} scheduled tasks`);
-      scheduledTasks.forEach(task => {
-        console.log(`CalendarGrid: Task ${task.odp_number}: ${task.scheduled_start_time} to ${task.scheduled_end_time}`);
-      });
-    }
+    // Debug logging removed for production
     
     return scheduledTasks.some(task => isTaskOverlapping(task, dateStr, hour));
   };
@@ -322,17 +283,15 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
     
     try {
       if (!machine) {
-        console.error('Machine not found:', machineId);
         return;
       }
       
-      console.log(`Toggling hour ${hour} for ${dateStr} on machine ${machine.id}`);
       await toggleMachineHourAvailability(machine.id, dateStr, hour);
       
       // The store sync useEffect will automatically update the local state
       // No need to manually update local state here
     } catch (error) {
-      console.error('Error toggling time slot:', error);
+      // Handle error silently
     }
   };
 
@@ -440,10 +399,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
               const isUnavailable = unavailableHours.includes(hourStr);
               const hasScheduled = hasScheduledTask(dateStr, hour);
               
-              // Debug logging for the first few hours and first few days
-              if (hour < 3 && days.indexOf(day) < 3) {
-                console.log(`CalendarGrid: Day ${day.toDateString()} -> dateStr: ${dateStr}, hour: ${hour}, hasScheduled: ${hasScheduled}`);
-              }
+              // Debug logging removed for production
               
               let slotClass = 'time-slot';
               if (isUnavailable) slotClass += ' unavailable';

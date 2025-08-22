@@ -32,9 +32,6 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log error details for debugging
-    console.error('🚨 Error Boundary caught an error:', error, errorInfo);
-    
     // Update state with error information
     this.setState({
       errorInfo,
@@ -54,14 +51,7 @@ class ErrorBoundary extends React.Component {
     // For now, we'll just log it to console
     if (import.meta.env.MODE === 'production') {
       // Example: Sentry.captureException(error, { extra: errorInfo });
-      console.group('🚨 Production Error Report');
-      console.log('Error ID:', this.state.errorId);
-      console.log('Error:', error);
-      console.log('Error Info:', errorInfo);
-      console.log('User Agent:', navigator.userAgent);
-      console.log('URL:', window.location.href);
-      console.log('Timestamp:', new Date().toISOString());
-      console.groupEnd();
+      // Production error logging would go here
     }
   }
 

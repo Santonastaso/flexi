@@ -59,16 +59,10 @@ function BacklogForm({ onSuccess }) {
 
   // Define onSubmit function before useFormValidation
   const onSubmit = async (data) => {
-    console.log('Form submit triggered');
-
-    console.log('Checking calculation results...');
     if (!calculationResults) {
-      console.log('No calculation results available');
       showAlert("Please calculate production metrics before adding to the backlog.", 'warning');
       return;
     }
-
-    console.log('Submitting form with data:', { data, calculationResults });
 
     try {
       const orderData = {
@@ -78,9 +72,9 @@ function BacklogForm({ onSuccess }) {
         status: 'NOT SCHEDULED',
       };
 
-      console.log('Calling addOdpOrder with:', orderData);
       await addOdpOrder(orderData);
-      console.log('Order added successfully');
+
+      // Call success callback to refresh the list
 
       // Call success callback to refresh the list
       if (onSuccess) {
@@ -95,7 +89,6 @@ function BacklogForm({ onSuccess }) {
       setCalculationResults(null);
     } catch (error) {
       // Error is already handled by the store
-      console.error('Error adding order:', error);
       throw error; // Re-throw to trigger error handling
     }
   };
@@ -173,16 +166,8 @@ function BacklogForm({ onSuccess }) {
   };
 
   const handleCalculate = () => {
-    console.log('Calculate button clicked');
-    console.log('Selected phase:', selectedPhase);
-    console.log('Form data:', getValues());
     
     if (!selectedPhase || !getValues('quantity') || !getValues('bag_step')) {
-      console.log('Validation failed:', { 
-        hasPhase: !!selectedPhase, 
-        quantity: !!getValues('quantity'), 
-        bagStep: !!getValues('bag_step') 
-      });
       showAlert("Please select a phase and enter Quantity and Bag Step to calculate.", 'warning');
       return;
     }
@@ -193,9 +178,7 @@ function BacklogForm({ onSuccess }) {
       ...editablePhaseParams
     };
     
-    console.log('Phase for calculation:', phaseForCalculation);
     const results = calculateProductionMetrics(phaseForCalculation, getValues('quantity'), getValues('bag_step'));
-    console.log('Calculation results:', results);
     setCalculationResults(results);
   };
 

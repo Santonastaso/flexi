@@ -27,7 +27,6 @@ const DraggableTask = React.memo(({ task }) => {
 
   const moveTask = async (direction) => {
     if (!task.scheduled_start_time) {
-      console.log('Task is not scheduled yet, cannot move');
       return;
     }
 
@@ -51,9 +50,8 @@ const DraggableTask = React.memo(({ task }) => {
       };
 
       await updateOdpOrder(task.id, updates);
-      console.log(`Task moved ${direction} by 15 minutes`);
     } catch (error) {
-      console.error('Failed to move task:', error);
+      // Handle error silently
     } finally {
       setIsMoving(false);
     }

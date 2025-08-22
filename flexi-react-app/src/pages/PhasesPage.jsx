@@ -35,7 +35,6 @@ function PhasesPage() {
     if (!isInitialized) {
       init().catch(err => {
         setError('Failed to load phases data');
-        console.error('Error loading phases:', err);
       });
     }
   }, [init, isInitialized]);
@@ -74,7 +73,6 @@ function PhasesPage() {
       await updatePhase(updatedPhase.id, updatedPhase);
     } catch (error) {
       // Error is already handled by the store
-      console.error('Error updating phase:', error);
     }
   };
 
@@ -87,7 +85,6 @@ function PhasesPage() {
           await removePhase(phaseToDelete.id);
         } catch (error) {
           // Error is already handled by the store
-          console.error('Error deleting phase:', error);
         }
       },
       'danger'

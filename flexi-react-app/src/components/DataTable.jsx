@@ -58,16 +58,12 @@ function DataTable({ data, columns, onSaveRow, onDeleteRow }) {
   }, [columns, editingRowId, editedData, onSaveRow, onDeleteRow]);
 
   const tableData = useMemo(() => {
-    // Log data for debugging
+    // Check for duplicate IDs
     if (data && data.length > 0) {
-      console.log('📊 DataTable received data:', data.length, 'rows');
-      
-      // Check for duplicate IDs
       const ids = data.map(item => item.id);
       const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
       if (duplicateIds.length > 0) {
-        console.warn('⚠️ DataTable: Duplicate IDs detected:', duplicateIds);
-        console.warn('⚠️ DataTable: Full data with duplicates:', data);
+        // Duplicate IDs detected but not logged
       }
       
       // Check for duplicate objects (same ID, same data)
@@ -82,7 +78,7 @@ function DataTable({ data, columns, onSaveRow, onDeleteRow }) {
       });
       
       if (duplicates.length > 0) {
-        console.warn('⚠️ DataTable: Duplicate objects detected:', duplicates);
+        // Duplicate objects detected but not logged
       }
     }
     return data;

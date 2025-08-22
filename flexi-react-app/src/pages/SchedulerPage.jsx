@@ -61,10 +61,7 @@ function SchedulerPage() {
   // Initialize store on mount with performance tracking
   useEffect(() => {
     if (!isInitialized) {
-      const startTime = performance.now();
       init().finally(() => {
-        const endTime = performance.now();
-        console.log(`🚀 Store initialization took: ${(endTime - startTime).toFixed(2)}ms`);
         setIsInitialLoad(false);
       });
     } else {
@@ -125,17 +122,8 @@ function SchedulerPage() {
     const machineTypes = Array.from(machineTypeSet).sort();
     const machineNames = Array.from(machineNameSet).sort();
 
-    console.log('📋 Available filter options:', {
-      workCenters,
-      departments,
-      machineTypes,
-      machineNames
-    });
-
     const endTime = performance.now();
-    if (endTime - startTime > 5) {
-      console.log(`⚡ Machine data computation took: ${(endTime - startTime).toFixed(2)}ms`);
-    }
+    // Performance logging removed for production
 
     return { activeMachines, workCenters, departments, machineTypes, machineNames };
   }, [machines, selectedWorkCenter]);
@@ -214,8 +202,6 @@ function SchedulerPage() {
     } else if (draggedItem.type === 'event') {
       setActiveDragItem(draggedItem.event);
     }
-
-    console.log(`🎯 Drag start took: ${(performance.now() - startTime).toFixed(2)}ms`);
   }, []);
 
   const handleDragOver = useCallback((event) => {
@@ -267,7 +253,6 @@ function SchedulerPage() {
 
     // Prevent multiple rapid drag operations
     if (isDragOperationRef.current) {
-      console.log('🚫 Drag operation already in progress, ignoring');
       return;
     }
 
@@ -280,7 +265,6 @@ function SchedulerPage() {
     const { over, active } = event;
 
     if (!over) {
-      console.log(`✅ Drag cancelled - no drop zone (took ${(performance.now() - dragEndStartTime).toFixed(2)}ms)`);
       return;
     }
 
@@ -289,7 +273,6 @@ function SchedulerPage() {
 
     // Quick validation before async operation
     if (!draggedItem || !dropZone) {
-      console.log('❌ Invalid drag data');
       return;
     }
 
@@ -332,8 +315,6 @@ function SchedulerPage() {
             if (result?.error) {
               showAlert(result.error, 'error');
             }
-
-            console.log(`✅ Task scheduling took: ${(performance.now() - operationStartTime).toFixed(2)}ms`);
           }
 
           // Case 2: Dragging an existing scheduled event to a new slot (rescheduling)
@@ -367,26 +348,21 @@ function SchedulerPage() {
             if (result?.error) {
               showAlert(result.error, 'error');
             }
-
-            console.log(`✅ Event rescheduling took: ${(performance.now() - operationStartTime).toFixed(2)}ms`);
           }
 
           // Case 3: Dragging an event back to the task pool (unscheduling)
           else if (draggedItem.type === 'event' && dropZone.type === 'pool') {
             const eventToUnschedule = draggedItem.event;
             unscheduleTask(eventToUnschedule.id);
-            console.log(`✅ Task unscheduling took: ${(performance.now() - operationStartTime).toFixed(2)}ms`);
           }
 
           resolve();
         });
       });
     } catch (error) {
-      console.error('❌ Drag operation failed:', error);
       showAlert('An error occurred during the drag operation', 'error');
     } finally {
       isDragOperationRef.current = false;
-      console.log(`🎯 Total drag operation took: ${(performance.now() - dragEndStartTime).toFixed(2)}ms`);
     }
   }, [currentDate, scheduleTask, unscheduleTask, showAlert]);
 
@@ -727,8 +703,6 @@ function SchedulerPage() {
                   return;
                 }
                 
-                console.log('PDF Download: Found Gantt chart element:', ganttElement);
-                
                 // Get all the CSS styles from the current page
                 const styleSheets = Array.from(document.styleSheets);
                 let allStyles = '';
@@ -740,7 +714,7 @@ function SchedulerPage() {
                       allStyles += rule.cssText + '\n';
                     });
                   } catch (e) {
-                    console.log('Could not access stylesheet:', e);
+                    // Handle stylesheet access error silently
                   }
                 });
                 
@@ -797,8 +771,6 @@ function SchedulerPage() {
                 // Cleanup
                 document.body.removeChild(link);
                 window.URL.revokeObjectURL(url);
-                
-                console.log('PDF Download: Exact Gantt chart downloaded successfully');
               }}
               title="Download exact Gantt chart as HTML file"
             >

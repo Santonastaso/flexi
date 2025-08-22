@@ -153,13 +153,11 @@ function BacklogPage() {
         // For now, we'll just save the machine ID as is
         // In a real implementation, you might want to validate that the machine exists
         // and update related scheduling information
-        console.log('Machine assignment updated:', updatedOrder.scheduled_machine_id);
       }
 
       await updateOdpOrder(updatedOrder.id, updatedOrder);
     } catch (error) {
       // Error is already handled by the store
-      console.error('Error updating order:', error);
     }
   };
 
@@ -172,7 +170,6 @@ function BacklogPage() {
           await removeOdpOrder(orderToDelete.id);
         } catch (error) {
           // Error is already handled by the store
-          console.error('Error deleting order:', error);
         }
       },
       'danger'
