@@ -25,7 +25,6 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
 // A scheduled event that can be dragged to be rescheduled or unscheduled
 const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
     const [isLocked, setIsLocked] = useState(true); // Events start locked by default
-    const [isMoving, setIsMoving] = useState(false);
     
     // Get the update function from the store
     const { updateOdpOrder } = useOrderStore();
@@ -168,42 +167,6 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
         setIsLocked(!isLocked);
     }, [isLocked]);
 
-    const moveEvent = useCallback(async (direction) => {
-        if (!event.scheduled_start_time) {
-            return;
-        }
-
-        if (isMoving) return; // Prevent multiple simultaneous moves
-
-        setIsMoving(true);
-        
-        await handleAsync(
-            async () => {
-                const currentStartTime = new Date(event.scheduled_start_time);
-                const timeIncrement = 15 * 60 * 1000; // 15 minutes in milliseconds
-                
-                let newStartTime;
-                if (direction === 'back') {
-                    newStartTime = new Date(currentStartTime.getTime() - timeIncrement);
-                } else {
-                    newStartTime = new Date(currentStartTime.getTime() + timeIncrement);
-                }
-
-                // Only update the scheduled_start_time field, not the entire event
-                const updates = {
-                    scheduled_start_time: newStartTime.toISOString()
-                };
-
-                await updateOdpOrder(event.id, updates);
-            },
-            { 
-                context: 'Move Event', 
-                fallbackMessage: 'Failed to move event',
-                onFinally: () => setIsMoving(false)
-            }
-        );
-    }, [event.scheduled_start_time, event.id, isMoving, updateOdpOrder, handleAsync]);
-
     // Early return after ALL hooks have been called
     if (!eventPosition) return null;
 
@@ -249,7 +212,6 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                     title={`Delivery Date: ${event.delivery_date ? new Date(event.delivery_date).toLocaleDateString() : 'Not set'}
 Quantity: ${event.quantity || 'Not specified'}
 ${event.scheduled_start_time ? `Scheduled: ${new Date(event.scheduled_start_time).toLocaleString()}` : ''}`}
-                    disabled={isMoving}
                     style={{
                         width: `${buttonSize}px`,
                         height: `${buttonSize}px`,
@@ -266,7 +228,6 @@ ${event.scheduled_start_time ? `Scheduled: ${new Date(event.scheduled_start_time
                     className={`event-btn lock-btn ${isLocked ? 'locked' : 'unlocked'}`}
                     onClick={handleLockClick}
                     title={isLocked ? "Unlock to enable dragging" : "Lock to disable dragging"}
-                    disabled={isMoving}
                     style={{
                         width: `${buttonSize}px`,
                         height: `${buttonSize}px`,
@@ -283,63 +244,6 @@ ${event.scheduled_start_time ? `Scheduled: ${new Date(event.scheduled_start_time
                         </svg>
                     )}
                 </button>
-                
-                {/* Movement Arrows - only visible when unlocked */}
-                {!isLocked && (
-                    <>
-                        {/* Left Arrow - Move back 15 minutes */}
-                        <button 
-                            className={`event-btn move-btn move-left ${isMoving ? 'moving' : ''}`}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                moveEvent('back');
-                            }}
-                            title="Move back 15 minutes"
-                            disabled={isMoving}
-                            style={{
-                                width: `${buttonSize}px`,
-                                height: `${buttonSize}px`,
-                                fontSize: `${fontSize}px`
-                            }}
-                        >
-                            {isMoving ? (
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm6 13h-5v5l-1.42-1.42L12.17 15H6v-2h6.17l-1.59-1.58L13 10l5 5z"/>
-                                </svg>
-                            ) : (
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L13.17 12z"/>
-                                </svg>
-                            )}
-                        </button>
-                        
-                        {/* Right Arrow - Move forward 15 minutes */}
-                        <button 
-                            className={`event-btn move-btn move-right ${isMoving ? 'moving' : ''}`}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                moveEvent('forward');
-                            }}
-                            title="Move forward 15 minutes"
-                            disabled={isMoving}
-                            style={{
-                                width: `${buttonSize}px`,
-                                height: `${buttonSize}px`,
-                                fontSize: `${fontSize}px`
-                            }}
-                        >
-                            {isMoving ? (
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm6 13h-5v5l-1.42-1.42L12.17 15H6v-2h6.17l-1.59-1.58L13 10l5 5z"/>
-                                </svg>
-                            ) : (
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/>
-                                </svg>
-                            )}
-                        </button>
-                    </>
-                )}
                 
                 {/* Drag Handle - only active when unlocked */}
                 {!isLocked && (

@@ -6,7 +6,6 @@ import { useErrorHandler } from '../hooks';
 // Individual Draggable Task Component - optimized
 const DraggableTask = React.memo(({ task }) => {
   const [isLocked, setIsLocked] = useState(true); // Tasks start locked by default
-  const [isMoving, setIsMoving] = useState(false);
   
   // Get the update function from the store
   const { updateOdpOrder } = useOrderStore();
@@ -29,42 +28,6 @@ const DraggableTask = React.memo(({ task }) => {
     setIsLocked(!isLocked);
   };
 
-  const moveTask = async (direction) => {
-    if (!task.scheduled_start_time) {
-      return;
-    }
-
-    if (isMoving) return; // Prevent multiple simultaneous moves
-
-    setIsMoving(true);
-    
-    await handleAsync(
-      async () => {
-        const currentStartTime = new Date(task.scheduled_start_time);
-        const timeIncrement = 15 * 60 * 1000; // 15 minutes in milliseconds
-        
-        let newStartTime;
-        if (direction === 'back') {
-          newStartTime = new Date(currentStartTime.getTime() - timeIncrement);
-        } else {
-          newStartTime = new Date(currentStartTime.getTime() + timeIncrement);
-        }
-
-        // Only update the scheduled_start_time field, not the entire task
-        const updates = {
-          scheduled_start_time: newStartTime.toISOString()
-        };
-
-        await updateOdpOrder(task.id, updates);
-      },
-      { 
-        context: 'Move Task', 
-        fallbackMessage: 'Failed to move task',
-        onFinally: () => setIsMoving(false)
-      }
-    );
-  };
-
   return (
     <div ref={setNodeRef} style={style} className="task-item">
       <div className="task-content">
@@ -79,7 +42,6 @@ const DraggableTask = React.memo(({ task }) => {
           title={`Delivery Date: ${task.delivery_date ? new Date(task.delivery_date).toLocaleDateString() : 'Not set'}
 Quantity: ${task.quantity || 'Not specified'}
 ${task.scheduled_start_time ? `Scheduled: ${new Date(task.scheduled_start_time).toLocaleString()}` : ''}`}
-          disabled={isMoving}
         >
           ℹ️
         </button>
@@ -89,41 +51,9 @@ ${task.scheduled_start_time ? `Scheduled: ${new Date(task.scheduled_start_time).
           className={`task-btn lock-btn ${isLocked ? 'locked' : 'unlocked'}`}
           onClick={handleLockClick}
           title={isLocked ? "Unlock to enable dragging" : "Lock to disable dragging"}
-          disabled={isMoving}
         >
           {isLocked ? '🔒' : '🔓'}
         </button>
-        
-        {/* Movement Arrows - only visible when unlocked */}
-        {!isLocked && (
-          <>
-            {/* Left Arrow - Move back 15 minutes */}
-            <button 
-              className={`task-btn move-btn move-left ${isMoving ? 'moving' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                moveTask('back');
-              }}
-              title="Move back 15 minutes"
-              disabled={isMoving}
-            >
-              {isMoving ? '⏳' : '⬅️'}
-            </button>
-            
-            {/* Right Arrow - Move forward 15 minutes */}
-            <button 
-              className={`task-btn move-btn move-right ${isMoving ? 'moving' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                moveTask('forward');
-              }}
-              title="Move forward 15 minutes"
-              disabled={isMoving}
-            >
-              {isMoving ? '⏳' : '➡️'}
-            </button>
-          </>
-        )}
         
         {/* Drag Handle - only active when unlocked */}
         {!isLocked && (
