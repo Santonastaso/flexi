@@ -41,13 +41,13 @@ function DataTable({ data, columns, onSaveRow, onDeleteRow }) {
           <div className="action-buttons">
             {isEditing ? (
               <>
-                <button onClick={() => handleSave(row)} className="btn-save">Save</button>
-                <button onClick={() => setEditingRowId(null)} className="btn-cancel">Cancel</button>
+                <button onClick={() => handleSave(row)} className="nav-btn today">Save</button>
+                <button onClick={() => setEditingRowId(null)} className="nav-btn today">Cancel</button>
               </>
             ) : (
               <>
-                <button onClick={() => setEditingRowId(row.id)} className="btn-edit">Edit</button>
-                <button onClick={() => onDeleteRow(row.original)} className="btn-delete">Delete</button>
+                <button onClick={() => setEditingRowId(row.id)} className="nav-btn today">Edit</button>
+                <button onClick={() => onDeleteRow(row.original)} className="nav-btn today">Delete</button>
               </>
             )}
           </div>
@@ -105,11 +105,12 @@ function DataTable({ data, columns, onSaveRow, onDeleteRow }) {
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                // Use the header's unique ID - TanStack Table ensures these are unique
-                // No need for array indices since header.id is already unique within the group
+              {headerGroup.headers.map((header, headerIndex) => {
+                // Use header ID + index to ensure uniqueness across all header groups
+                // This handles cases where multiple columns might have the same header ID
+                const headerKey = `${headerGroup.id}_${header.id}_${headerIndex}`;
                 return (
-                  <th key={header.id} onClick={header.column.getToggleSortingHandler()}>
+                  <th key={headerKey} onClick={header.column.getToggleSortingHandler()}>
                     {flexRender(header.column.columnDef.header, header.getContext())}
                     {{ asc: ' 🔼', desc: ' 🔽' }[header.column.getIsSorted()] ?? null}
                   </th>
@@ -125,10 +126,10 @@ function DataTable({ data, columns, onSaveRow, onDeleteRow }) {
             const rowKey = row.original.id || row.id;
             return (
               <tr key={rowKey}>
-                {row.getVisibleCells().map((cell) => {
-                  // Use row ID + column ID for cell keys - no need for array indices
-                  // This ensures stable keys that don't change when data is reordered
-                  const cellKey = `${rowKey}_${cell.column.id}`;
+                {row.getVisibleCells().map((cell, cellIndex) => {
+                  // Use row ID + column ID + cell index for truly unique cell keys
+                  // This handles cases where column IDs might not be unique across all columns
+                  const cellKey = `${rowKey}_${cell.column.id}_${cellIndex}`;
                   return (
                     <td key={cellKey}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

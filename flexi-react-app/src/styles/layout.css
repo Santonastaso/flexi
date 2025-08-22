@@ -70,8 +70,11 @@ main {
 }
 
 .sidebar-logo img {
-    width: 32px;
-    height: 32px;
+    width: 360px !important;
+    height: 120px !important;
+    max-width: 360px !important;
+    max-height: 120px !important;
+    margin-left: -24px !important;
 }
 
 .sidebar-nav ul {

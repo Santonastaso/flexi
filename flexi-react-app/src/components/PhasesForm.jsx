@@ -58,7 +58,7 @@ function PhasesForm() {
 
   return (
     <div className="content-section">
-      <h2>Production Phases</h2>
+      <h2>Create Phases</h2>
       <form onSubmit={handleSubmit(addPhase)}>
         <div className="form-section">
           <h3 className="section-title">➕ Add New Phase</h3>
@@ -233,7 +233,7 @@ function PhasesForm() {
         <div className="form-actions" style={{ marginTop: '20px' }}>
           <button 
             type="submit" 
-            className="btn btn-primary" 
+            className="nav-btn today" 
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Adding Phase...' : 'Add Phase'}

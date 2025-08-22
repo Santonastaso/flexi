@@ -81,7 +81,8 @@ function MachineryPage() {
       cell: info => (
         <Link 
           to={`/machinery/${info.getValue()}/calendar`}
-          className="btn btn-primary btn-sm"
+          className="nav-btn today"
+          style={{ textDecoration: 'none' }}
         >
           View Calendar
         </Link>

@@ -66,7 +66,7 @@ function MachineForm() {
 
   return (
     <div className="content-section">
-      <h2>Add Machine</h2>
+      <h2>Create Machine</h2>
       <form onSubmit={handleSubmit(addMachine)}>
         {/* IDENTIFICAZIONE Section */}
         <div className="form-section">
@@ -303,7 +303,7 @@ function MachineForm() {
         <div className="form-actions" style={{ marginTop: '20px' }}>
           <button 
             type="submit" 
-            className="btn btn-primary"
+            className="nav-btn today"
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Adding Machine...' : 'Add Machine'}

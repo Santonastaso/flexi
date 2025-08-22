@@ -1,5 +1,84 @@
 /* ===== SCHEDULER & CALENDAR STYLES ===== */
 
+/* Drop Indicator Styles */
+.drop-indicator {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  border: 3px dashed #007bff !important;
+  background: rgba(0, 123, 255, 0.1) !important;
+  pointer-events: none !important;
+  z-index: 1000 !important;
+  border-radius: 4px !important;
+  animation: dropIndicatorPulse 1.5s ease-in-out infinite !important;
+}
+
+@keyframes dropIndicatorPulse {
+  0%, 100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+/* Scheduler Controls Section */
+.scheduler-controls-section {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border: 1px solid var(--border-color);
+  margin-bottom: 24px;
+}
+
+.scheduler-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 20px;
+  margin-top: 0;
+}
+
+.scheduler-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.machine-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.scheduler-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.calendar-navigation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.current-date {
+  font-weight: 600;
+  color: var(--text-dark);
+  padding: 0 16px;
+  min-width: 120px;
+  text-align: center;
+}
+
 /* Loading States */
 .scheduler-loading {
     display: flex;

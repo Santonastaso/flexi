@@ -218,6 +218,45 @@ function SchedulerPage() {
     console.log(`🎯 Drag start took: ${(performance.now() - startTime).toFixed(2)}ms`);
   }, []);
 
+  const handleDragOver = useCallback((event) => {
+    const { over } = event;
+    
+    // Remove any existing drop indicators
+    const existingIndicators = document.querySelectorAll('.drop-indicator');
+    existingIndicators.forEach(indicator => indicator.remove());
+    
+    if (over && over.data.current?.type === 'slot') {
+      const { machine, hour, minute, isUnavailable, hasScheduledTask } = over.data.current;
+      
+      // Don't show indicator for unavailable or occupied slots
+      if (isUnavailable || hasScheduledTask) return;
+      
+      // Find the time slot element
+      const slotElement = document.querySelector(`[data-hour="${hour}"][data-minute="${minute}"][data-machine-id="${machine.id}"]`);
+      if (slotElement) {
+        // Create drop indicator
+        const indicator = document.createElement('div');
+        indicator.className = 'drop-indicator';
+        indicator.style.cssText = `
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          border: 3px dashed #007bff;
+          background: rgba(0, 123, 255, 0.1);
+          pointer-events: none;
+          z-index: 1000;
+          border-radius: 4px;
+        `;
+        
+        // Position the indicator
+        slotElement.style.position = 'relative';
+        slotElement.appendChild(indicator);
+      }
+    }
+  }, []);
+
   const handleDragEnd = useCallback(async (event) => {
     const dragEndStartTime = performance.now();
 
@@ -233,6 +272,11 @@ function SchedulerPage() {
     }
 
     setActiveDragItem(null);
+    
+    // Clean up any drop indicators
+    const existingIndicators = document.querySelectorAll('.drop-indicator');
+    existingIndicators.forEach(indicator => indicator.remove());
+    
     const { over, active } = event;
 
     if (!over) {
@@ -368,17 +412,18 @@ function SchedulerPage() {
   }
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
       <div className="scheduler-container">
         <Suspense fallback={<LoadingFallback />}>
           <TaskPool tasks={tasks} currentDate={currentDate} />
         </Suspense>
 
-        <div className="calendar-header">
-          <h2 className="calendar-title">Production Schedule</h2>
-          <div className="calendar-controls">
-            {/* Machine Filter */}
-            <div className="machine-filter">
+        {/* Production Schedule Controls Section */}
+        <div className="scheduler-controls-section">
+          <h2 className="scheduler-title">Production Schedule</h2>
+          <div className="scheduler-controls">
+            {/* Machine Filters */}
+            <div className="machine-filters">
               {/* Work Center Filter */}
               <div className="searchable-dropdown" style={{ width: '200px' }}>
               <label htmlFor="work_center_filter">Work Center:</label>
@@ -635,17 +680,20 @@ function SchedulerPage() {
                 )}
               </div>
 
+            </div>
+
+            {/* Action Buttons */}
+            <div className="scheduler-actions">
               <button
-                className="btn btn-secondary"
+                className="nav-btn today"
                 onClick={clearFilters}
                 title="Clear all filters"
               >
                 Clear Filters
               </button>
-            </div>
 
-            {/* Calendar Navigation */}
-            <div className="calendar-navigation">
+              {/* Calendar Navigation */}
+              <div className="calendar-navigation">
               <button
                 className="nav-btn today"
                 onClick={() => navigateDate('today')}
@@ -667,187 +715,96 @@ function SchedulerPage() {
               </button>
             </div>
 
-            {/* PDF Print Button */}
+            {/* PDF Download Button */}
             <button
-              className="btn btn-primary"
+              className="nav-btn today"
               onClick={() => {
-                // Get the actual Gantt chart data from the store
-                const { odpOrders: tasks } = useStore.getState();
-                const scheduledTasks = tasks.filter(task => task.status === 'SCHEDULED');
+                // Find the actual Gantt chart element that's currently rendered on screen
+                const ganttElement = document.querySelector('.calendar-section .calendar-grid');
                 
-                // Use the filtered machines that are currently visible on screen
-                const machinesToPrint = filteredMachines;
+                if (!ganttElement) {
+                  alert('Gantt chart not found. Make sure the chart is visible on screen.');
+                  return;
+                }
                 
-                // Create a new window for printing
-                const printWindow = window.open('', '_blank', 'width=1200,height=800');
-                if (!printWindow) return;
+                console.log('PDF Download: Found Gantt chart element:', ganttElement);
                 
-                // Generate the complete 24-hour time header
-                const timeHeader = Array.from({ length: 24 }, (_, hour) => 
-                  `<div class="hour-header" style="grid-column: ${hour * 4 + 2} / span 4">${hour.toString().padStart(2, '0')}</div>`
-                ).join('');
+                // Get all the CSS styles from the current page
+                const styleSheets = Array.from(document.styleSheets);
+                let allStyles = '';
                 
-                // Generate machine rows with scheduled tasks
-                const machineRows = machinesToPrint.map(machine => {
-                  const machineTasks = scheduledTasks.filter(task => task.machine === machine.id);
-                  
-                  // Generate time slots for this machine
-                  const timeSlots = Array.from({ length: 96 }, (_, slotIndex) => {
-                    const hour = Math.floor(slotIndex / 4);
-                    const minute = (slotIndex % 4) * 15;
-                    
-                    // Check if this slot has a scheduled task
-                    const taskInSlot = machineTasks.find(task => {
-                      const startTime = new Date(task.scheduled_start_time);
-                      const taskHour = startTime.getHours();
-                      const taskMinute = startTime.getMinutes();
-                      const slotHour = hour;
-                      const slotMinute = minute;
-                      
-                      return taskHour === slotHour && taskMinute === slotMinute;
+                styleSheets.forEach(styleSheet => {
+                  try {
+                    const rules = Array.from(styleSheet.cssRules || styleSheet.rules || []);
+                    rules.forEach(rule => {
+                      allStyles += rule.cssText + '\n';
                     });
-                    
-                    if (taskInSlot) {
-                      const duration = taskInSlot.time_remaining || taskInSlot.duration || 1;
-                      const slotsToSpan = Math.min(duration * 4, 96 - slotIndex);
-                      return `<div class="time-slot scheduled" style="grid-column: ${slotIndex + 2}; grid-column-span: ${slotsToSpan}">
-                        <div class="scheduled-event">${taskInSlot.odp_number}</div>
-                      </div>`;
-                    }
-                    
-                    return `<div class="time-slot" style="grid-column: ${slotIndex + 2}"></div>`;
-                  }).join('');
-                  
-                  return `
-                    <div class="machine-row">
-                      <div class="machine-label">${machine.machine_name}</div>
-                      ${timeSlots}
-                    </div>
-                  `;
-                }).join('');
+                  } catch (e) {
+                    console.log('Could not access stylesheet:', e);
+                  }
+                });
                 
-                // Create the print content with actual Gantt chart data
-                const printContent = `
+                // Clone the Gantt chart element with all its content
+                const clonedElement = ganttElement.cloneNode(true);
+                
+                // Create the HTML content with the exact Gantt chart that's on screen
+                const htmlContent = `
                   <!DOCTYPE html>
                   <html>
                     <head>
-                      <title>Gantt Chart - Print</title>
+                      <title>Gantt Chart - ${formatDateDisplay()}</title>
                       <style>
+                        ${allStyles}
                         body { 
                           margin: 0; 
                           padding: 20px; 
-                          font-family: Arial, sans-serif; 
-                          font-size: 12px;
+                          font-family: Arial, sans-serif;
                         }
-                        .gantt-container {
+                        .calendar-section {
                           width: 100%;
-                          overflow: visible;
-                        }
-                        .calendar-grid {
-                          display: grid;
-                          grid-template-columns: 150px repeat(96, 20px);
-                          border: 1px solid #ccc;
-                          width: fit-content;
-                        }
-                        .calendar-header-row {
-                          display: contents;
-                        }
-                        .machine-label-header, .time-header {
-                          background: #f5f5f5;
-                          padding: 8px 4px;
-                          text-align: center;
-                          border-bottom: 1px solid #ccc;
-                          font-weight: bold;
-                        }
-                        .time-header {
-                          display: contents;
-                        }
-                        .hour-header {
-                          grid-column: span 4;
-                          text-align: center;
-                          border-right: 1px solid #ccc;
-                        }
-                        .calendar-body {
-                          display: contents;
-                        }
-                        .machine-row {
-                          display: contents;
-                          page-break-inside: avoid;
-                        }
-                        .machine-label {
-                          padding: 8px 4px;
-                          border-right: 1px solid #ccc;
-                          border-bottom: 1px solid #ccc;
-                          background: #f9f9f9;
-                          min-height: 40px;
-                          display: flex;
-                          align-items: center;
-                        }
-                        .time-slot {
-                          border-right: 1px solid #eee;
-                          border-bottom: 1px solid #eee;
-                          min-height: 40px;
-                          position: relative;
-                        }
-                        .scheduled-event {
-                          position: absolute;
-                          background: #007bff;
-                          color: white;
-                          padding: 2px 4px;
-                          border-radius: 2px;
-                          font-size: 10px;
-                          overflow: hidden;
-                          white-space: nowrap;
-                          z-index: 1;
-                          width: 100%;
-                          text-align: center;
-                        }
-                        @media print {
-                          body { margin: 0; }
-                          .gantt-container { width: 100%; }
+                          overflow-x: auto;
                         }
                       </style>
                     </head>
                     <body>
-                      <div class="gantt-container">
-                        <div class="calendar-grid">
-                          <div class="calendar-header-row">
-                            <div class="machine-label-header">Machines</div>
-                            <div class="time-header">
-                              ${timeHeader}
-                            </div>
-                          </div>
-                          <div class="calendar-body">
-                            ${machineRows}
-                          </div>
-                        </div>
+                      <div style="text-align: center; margin-bottom: 20px; font-size: 16px; font-weight: bold;">
+                        Gantt Chart - ${formatDateDisplay()}
                       </div>
-                      <script>
-                        // Force the chart to expand to full size
-                        const container = document.querySelector('.gantt-container');
-                        const grid = container.querySelector('.calendar-grid');
-                        if (grid) {
-                          grid.style.width = 'fit-content';
-                          grid.style.overflow = 'visible';
-                        }
-                        
-                        // Wait for content to render, then print
-                        setTimeout(() => {
-                          window.print();
-                          window.close();
-                        }, 500);
-                      </script>
+                      <div class="calendar-section">
+                        ${clonedElement.outerHTML}
+                      </div>
                     </body>
                   </html>
                 `;
                 
-                printWindow.document.write(printContent);
-                printWindow.document.close();
+                // Create a blob from the HTML content
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                
+                // Create a download link
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                
+                // Generate filename with current date
+                const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+                const timeStr = new Date().toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS format
+                link.download = `gantt-chart-${dateStr}-${timeStr}.html`;
+                
+                // Trigger download
+                document.body.appendChild(link);
+                link.click();
+                
+                // Cleanup
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                
+                console.log('PDF Download: Exact Gantt chart downloaded successfully');
               }}
-              title="Print current Gantt chart as PDF"
+              title="Download exact Gantt chart as HTML file"
             >
-              Print PDF
+              Download HTML
             </button>
+            </div>
           </div>
         </div>
 

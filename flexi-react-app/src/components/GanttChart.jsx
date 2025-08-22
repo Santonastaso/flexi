@@ -18,7 +18,7 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
   // Optimize className construction
   const slotClass = `time-slot${isUnavailable ? ' unavailable' : ''}${hasScheduledTask ? ' has-scheduled-task' : ''}`;
 
-  return <div ref={setNodeRef} className={slotClass} data-hour={hour} data-minute={minute} />;
+  return <div ref={setNodeRef} className={slotClass} data-hour={hour} data-minute={minute} data-machine-id={machine.id} />;
 });
 
 // A scheduled event that can be dragged to be rescheduled or unscheduled

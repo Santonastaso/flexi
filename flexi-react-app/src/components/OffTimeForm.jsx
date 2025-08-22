@@ -174,7 +174,7 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
         <div className="form-actions">
           <button
             type="submit"
-            className="set-off-time-btn"
+            className="nav-btn today"
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Setting...' : 'Set Off-Time'}

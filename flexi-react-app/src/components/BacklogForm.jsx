@@ -609,10 +609,10 @@ function BacklogForm({ onSuccess }) {
         )}
 
         <div className="form-actions" style={{ marginTop: '20px' }}>
-          <button type="button" className="btn btn-secondary" onClick={handleCalculate} disabled={!selectedPhase}>
+          <button type="button" className="nav-btn today" onClick={handleCalculate} disabled={!selectedPhase}>
             Calculate
           </button>
-          <button type="submit" className="btn btn-primary" disabled={!calculationResults || isSubmitting}>
+          <button type="submit" className="nav-btn today" disabled={!calculationResults || isSubmitting}>
             {isSubmitting ? 'Adding to Backlog...' : 'Add to Backlog'}
           </button>
         </div>

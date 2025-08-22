@@ -51,7 +51,7 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
     <div className="calendar-controls-container">
       <div className="calendar-navigation">
         <button 
-          className="btn btn-secondary"
+          className="nav-btn today"
           onClick={goToPrevious}
           aria-label="Previous"
         >
@@ -59,14 +59,14 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
         </button>
         
         <button 
-          className="btn btn-primary"
+          className="nav-btn today"
           onClick={goToToday}
         >
           Today
         </button>
         
         <button 
-          className="btn btn-secondary"
+          className="nav-btn today"
           onClick={goToNext}
           aria-label="Next"
         >
@@ -80,7 +80,6 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
         <select 
           value={currentView} 
           onChange={(e) => onViewChange(e.target.value)}
-          className="form-select"
         >
           <option value="Month">Month</option>
           <option value="Week">Week</option>

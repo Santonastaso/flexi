@@ -62,6 +62,23 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
             }
           }
         }
+      } else if (currentView === 'Year') {
+        // Year view - sync data for the entire year
+        const year = currentDate.getFullYear();
+        for (let month = 0; month < 12; month++) {
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          for (let day = 1; day <= daysInMonth; day++) {
+            const dateObj = new Date(year, month, day);
+            const dateStr = toDateString(dateObj);
+            const storeData = machineAvailability[dateStr];
+            if (storeData && Array.isArray(storeData)) {
+              const machineData = storeData.find(item => item.machine_id === machineId);
+              if (machineData && machineData.unavailable_hours) {
+                organizedData[dateStr] = machineData.unavailable_hours;
+              }
+            }
+          }
+        }
       } else {
         // Day view - just sync the current date
         const dateStr = toDateString(currentDate);
@@ -187,6 +204,58 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
             }
             
             console.log(`CalendarGrid: Final merged week data:`, mergedData);
+            setAvailabilityData(mergedData);
+          }
+        } else if (currentView === 'Year') {
+          // For year view, load data for the entire year
+          const year = currentDate.getFullYear();
+          const firstDay = new Date(year, 0, 1); // January 1st
+          const lastDay = new Date(year, 11, 31); // December 31st
+          
+          // Convert to date strings without timezone using toDateString
+          const firstDayStr = toDateString(firstDay);
+          const lastDayStr = toDateString(lastDay);
+          
+          console.log(`CalendarGrid: Loading year data for ${year}`, { 
+            firstDay, 
+            lastDay, 
+            firstDayStr, 
+            lastDayStr 
+          });
+          
+          // Load data for the year range using date strings
+          const yearData = await loadMachineAvailabilityForDateRange(machineId, firstDayStr, lastDayStr);
+          console.log(`CalendarGrid: Year data received:`, yearData);
+          
+          // Process the year data and organize by date
+          if (yearData && Array.isArray(yearData)) {
+            const organizedData = {};
+            yearData.forEach(item => {
+              if (item.date && item.unavailable_hours) {
+                // Convert date to the format expected by toDateString
+                const dateObj = new Date(item.date);
+                const dateStr = toDateString(dateObj);
+                organizedData[dateStr] = item.unavailable_hours;
+                console.log(`CalendarGrid: Organized year data for ${dateStr}:`, item.unavailable_hours);
+              }
+            });
+            
+            // Merge with store data (store data takes priority)
+            const mergedData = { ...organizedData };
+            if (machineAvailability) {
+              Object.keys(machineAvailability).forEach(dateStr => {
+                const storeData = machineAvailability[dateStr];
+                if (storeData && Array.isArray(storeData)) {
+                  const machineData = storeData.find(item => item.machine_id === machineId);
+                  if (machineData && machineData.unavailable_hours) {
+                    mergedData[dateStr] = machineData.unavailable_hours;
+                    console.log(`CalendarGrid: Merged store data for year ${dateStr}:`, machineData.unavailable_hours);
+                  }
+                }
+              });
+            }
+            
+            console.log(`CalendarGrid: Final merged year data:`, mergedData);
             setAvailabilityData(mergedData);
           }
         } else {
@@ -422,8 +491,8 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
             <div key={monthIndex} className="month-mini-calendar">
               <h4>{monthName}</h4>
               <div className="mini-month-grid">
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (
-                  <div key={day} className="mini-day-header">{day}</div>
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, dayIndex) => (
+                  <div key={`${monthIndex}-${dayIndex}-${day}`} className="mini-day-header">{day}</div>
                 ))}
                 {days.map((day, index) => {
                   if (day === null) {
