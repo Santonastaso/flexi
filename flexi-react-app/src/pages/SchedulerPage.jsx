@@ -40,12 +40,20 @@ function SchedulerPage() {
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeDragItem, setActiveDragItem] = useState(null);
-  const [workCenterFilter, setWorkCenterFilter] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState('');
+  const [workCenterFilter, setWorkCenterFilter] = useState([]);
+  const [departmentFilter, setDepartmentFilter] = useState([]);
+  const [machineTypeFilter, setMachineTypeFilter] = useState([]);
+  const [machineNameFilter, setMachineNameFilter] = useState([]);
 
-  // Use refs to avoid unnecessary re-renders
-  const filtersRef = useRef({ workCenterFilter, departmentFilter });
-  filtersRef.current = { workCenterFilter, departmentFilter };
+  // State for custom dropdowns
+  const [workCenterFilterOpen, setWorkCenterFilterOpen] = useState(false);
+  const [departmentFilterOpen, setDepartmentFilterOpen] = useState(false);
+  const [machineTypeFilterOpen, setMachineTypeFilterOpen] = useState(false);
+  const [machineNameFilterOpen, setMachineNameFilterOpen] = useState(false);
+  const [workCenterSearch, setWorkCenterSearch] = useState('');
+  const [departmentSearch, setDepartmentSearch] = useState('');
+  const [machineTypeSearch, setMachineTypeSearch] = useState('');
+  const [machineNameSearch, setMachineNameSearch] = useState('');
 
   // Performance monitoring
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -64,12 +72,27 @@ function SchedulerPage() {
     }
   }, [init, isInitialized]);
 
+  // Handle clicking outside dropdowns to close them
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.searchable-dropdown')) {
+        setWorkCenterFilterOpen(false);
+        setDepartmentFilterOpen(false);
+        setMachineTypeFilterOpen(false);
+        setMachineNameFilterOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Memoize machine filtering with optimized dependencies and early returns
   const machineData = useMemo(() => {
     const startTime = performance.now();
 
     if (!machines || machines.length === 0) {
-      return { activeMachines: [], workCenters: [], departments: [] };
+      return { activeMachines: [], workCenters: [], departments: [], machineTypes: [], machineNames: [] };
     }
 
     // First filter by work center, then by status
@@ -81,47 +104,71 @@ function SchedulerPage() {
     const activeMachines = workCenterFiltered.filter(m => m.status === MACHINE_STATUSES.ACTIVE);
 
     if (activeMachines.length === 0) {
-      return { activeMachines: [], workCenters: [], departments: [] };
+      return { activeMachines: [], workCenters: [], departments: [], machineTypes: [], machineNames: [] };
     }
 
     // Pre-compute work centers and departments with Set for better performance
     const workCenterSet = new Set();
     const departmentSet = new Set();
+    const machineTypeSet = new Set();
+    const machineNameSet = new Set();
 
     for (const machine of activeMachines) {
       if (machine.work_center) workCenterSet.add(machine.work_center);
       if (machine.department) departmentSet.add(machine.department);
+      if (machine.machine_type) machineTypeSet.add(machine.machine_type);
+      if (machine.machine_name) machineNameSet.add(machine.machine_name);
     }
 
     const workCenters = Array.from(workCenterSet).sort();
     const departments = Array.from(departmentSet).sort();
+    const machineTypes = Array.from(machineTypeSet).sort();
+    const machineNames = Array.from(machineNameSet).sort();
+
+    console.log('📋 Available filter options:', {
+      workCenters,
+      departments,
+      machineTypes,
+      machineNames
+    });
 
     const endTime = performance.now();
     if (endTime - startTime > 5) {
       console.log(`⚡ Machine data computation took: ${(endTime - startTime).toFixed(2)}ms`);
     }
 
-    return { activeMachines, workCenters, departments };
+    return { activeMachines, workCenters, departments, machineTypes, machineNames };
   }, [machines, selectedWorkCenter]);
 
   // Apply additional filters to machines
   const filteredMachines = useMemo(() => {
     const { activeMachines } = machineData;
-    const { workCenterFilter, departmentFilter } = filtersRef.current;
 
-    // Apply additional filters on top of work center filtering
+    // Apply filters sequentially for better performance
     let filtered = activeMachines;
 
-    if (workCenterFilter && workCenterFilter !== selectedWorkCenter) {
-      filtered = filtered.filter(machine => machine.work_center === workCenterFilter);
+    // Filter by work center (if selected)
+    if (workCenterFilter.length > 0) {
+      filtered = filtered.filter(machine => workCenterFilter.includes(machine.work_center));
     }
     
-    if (departmentFilter) {
-      filtered = filtered.filter(machine => machine.department === departmentFilter);
+    // Filter by department (if selected)
+    if (departmentFilter.length > 0) {
+      filtered = filtered.filter(machine => departmentFilter.includes(machine.department));
+    }
+
+    // Filter by machine type (if selected)
+    if (machineTypeFilter.length > 0) {
+      filtered = filtered.filter(machine => machineTypeFilter.includes(machine.machine_type));
+    }
+
+    // Filter by machine name (if selected)
+    if (machineNameFilter.length > 0) {
+      filtered = filtered.filter(machine => machineNameFilter.includes(machine.machine_name));
     }
 
     return filtered;
-  }, [machineData, selectedWorkCenter]);
+  }, [machineData, workCenterFilter, departmentFilter, machineTypeFilter, machineNameFilter]);
 
   // Memoize navigation functions to prevent unnecessary re-renders
   const navigateDate = useCallback((direction) => {
@@ -147,8 +194,10 @@ function SchedulerPage() {
   }, [currentDate]);
 
   const clearFilters = useCallback(() => {
-    setWorkCenterFilter('');
-    setDepartmentFilter('');
+    setWorkCenterFilter([]);
+    setDepartmentFilter([]);
+    setMachineTypeFilter([]);
+    setMachineNameFilter([]);
   }, []);
 
   // Debounce ref to prevent rapid drag operations
@@ -330,29 +379,261 @@ function SchedulerPage() {
           <div className="calendar-controls">
             {/* Machine Filter */}
             <div className="machine-filter">
+              {/* Work Center Filter */}
+              <div className="searchable-dropdown" style={{ width: '200px' }}>
               <label htmlFor="work_center_filter">Work Center:</label>
-              <select
+                <input 
+                  type="text" 
                 id="work_center_filter"
-                value={workCenterFilter}
-                onChange={(e) => setWorkCenterFilter(e.target.value)}
-              >
-                <option value="">All Work Centers</option>
-                {machineData.workCenters.map(center => (
-                  <option key={center} value={center}>{center}</option>
-                ))}
-              </select>
+                  value={workCenterSearch} 
+                  onChange={(e) => setWorkCenterSearch(e.target.value)} 
+                  onFocus={() => setWorkCenterFilterOpen(true)} 
+                  placeholder="Search Work Centers" 
+                />
+                {workCenterFilterOpen && machineData.workCenters.length > 0 && (
+                  <div className="dropdown-options">
+                    <div 
+                      className={`dropdown-option ${(() => {
+                        const visibleOptions = machineData.workCenters.filter(center => 
+                          center.toLowerCase().includes(workCenterSearch.toLowerCase())
+                        );
+                        return visibleOptions.every(option => workCenterFilter.includes(option)) && workCenterFilter.length > 0;
+                      })() ? 'selected' : ''}`}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const visibleOptions = machineData.workCenters.filter(center => 
+                          center.toLowerCase().includes(workCenterSearch.toLowerCase())
+                        );
+                        const allVisibleSelected = visibleOptions.every(option => workCenterFilter.includes(option));
+                        
+                        if (allVisibleSelected) {
+                          // Remove all visible options
+                          setWorkCenterFilter(prev => prev.filter(option => !visibleOptions.includes(option)));
+                        } else {
+                          // Add all visible options
+                          setWorkCenterFilter(prev => [...new Set([...prev, ...visibleOptions])]);
+                        }
+                      }}
+                    >
+                      <span className="phase-name">All Work Centers</span>
+                      <span className="phase-description">Show all work centers</span>
+                    </div>
+                    {machineData.workCenters
+                      .filter(center => center.toLowerCase().includes(workCenterSearch.toLowerCase()))
+                      .map(center => (
+                        <div 
+                          key={center} 
+                          className={`dropdown-option ${workCenterFilter.includes(center) ? 'selected' : ''}`}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (workCenterFilter.includes(center)) {
+                              setWorkCenterFilter(prev => prev.filter(wc => wc !== center));
+                            } else {
+                              setWorkCenterFilter(prev => [...prev.filter(wc => wc !== ''), center]);
+                            }
+                          }}
+                        >
+                          <span className="phase-name">{center}</span>
+                          <span className="phase-description">Work center</span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
 
+              {/* Department Filter */}
+              <div className="searchable-dropdown" style={{ width: '200px' }}>
               <label htmlFor="department_filter">Department:</label>
-              <select
+                <input 
+                  type="text" 
                 id="department_filter"
-                value={departmentFilter}
-                onChange={(e) => setDepartmentFilter(e.target.value)}
-              >
-                <option value="">All Departments</option>
-                {machineData.departments.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))}
-              </select>
+                  value={departmentSearch} 
+                  onChange={(e) => setDepartmentSearch(e.target.value)} 
+                  onFocus={() => setDepartmentFilterOpen(true)} 
+                  placeholder="Search Departments" 
+                />
+                {departmentFilterOpen && machineData.departments.length > 0 && (
+                  <div className="dropdown-options">
+                    <div 
+                      className={`dropdown-option ${(() => {
+                        const visibleOptions = machineData.departments.filter(dept => 
+                          dept.toLowerCase().includes(departmentSearch.toLowerCase())
+                        );
+                        return visibleOptions.every(option => departmentFilter.includes(option)) && departmentFilter.length > 0;
+                      })() ? 'selected' : ''}`}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const visibleOptions = machineData.departments.filter(dept => 
+                          dept.toLowerCase().includes(departmentSearch.toLowerCase())
+                        );
+                        const allVisibleSelected = visibleOptions.every(option => departmentFilter.includes(option));
+                        
+                        if (allVisibleSelected) {
+                          // Remove all visible options
+                          setDepartmentFilter(prev => prev.filter(option => !visibleOptions.includes(option)));
+                        } else {
+                          // Add all visible options
+                          setDepartmentFilter(prev => [...new Set([...prev, ...visibleOptions])]);
+                        }
+                      }}
+                    >
+                      <span className="phase-name">All Departments</span>
+                      <span className="phase-description">Show all departments</span>
+                    </div>
+                    {machineData.departments
+                      .filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase()))
+                      .map(dept => (
+                        <div 
+                          key={dept} 
+                          className={`dropdown-option ${departmentFilter.includes(dept) ? 'selected' : ''}`}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (departmentFilter.includes(dept)) {
+                              setDepartmentFilter(prev => prev.filter(d => d !== dept));
+                            } else {
+                              setDepartmentFilter(prev => [...prev.filter(d => d !== ''), dept]);
+                            }
+                          }}
+                        >
+                          <span className="phase-name">{dept}</span>
+                          <span className="phase-description">Department</span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Machine Type Filter */}
+              <div className="searchable-dropdown" style={{ width: '200px' }}>
+                <label htmlFor="machine_type_filter">Machine Type:</label>
+                <input 
+                  type="text" 
+                  id="machine_type_filter"
+                  value={machineTypeSearch} 
+                  onChange={(e) => setMachineTypeSearch(e.target.value)} 
+                  onFocus={() => setMachineTypeFilterOpen(true)} 
+                  placeholder="Search Machine Types" 
+                />
+                {machineTypeFilterOpen && machineData.machineTypes.length > 0 && (
+                  <div className="dropdown-options">
+                    <div 
+                      className={`dropdown-option ${(() => {
+                        const visibleOptions = machineData.machineTypes.filter(type => 
+                          type.toLowerCase().includes(machineTypeSearch.toLowerCase())
+                        );
+                        return visibleOptions.every(option => machineTypeFilter.includes(option)) && machineTypeFilter.length > 0;
+                      })() ? 'selected' : ''}`}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const visibleOptions = machineData.machineTypes.filter(type => 
+                          type.toLowerCase().includes(machineTypeSearch.toLowerCase())
+                        );
+                        const allVisibleSelected = visibleOptions.every(option => machineTypeFilter.includes(option));
+                        
+                        if (allVisibleSelected) {
+                          // Remove all visible options
+                          setMachineTypeFilter(prev => prev.filter(option => !visibleOptions.includes(option)));
+                        } else {
+                          // Add all visible options
+                          setMachineTypeFilter(prev => [...new Set([...prev, ...visibleOptions])]);
+                        }
+                      }}
+                    >
+                      <span className="phase-name">All Machine Types</span>
+                      <span className="phase-description">Show all machine types</span>
+                    </div>
+                    {machineData.machineTypes
+                      .filter(type => type.toLowerCase().includes(machineTypeSearch.toLowerCase()))
+                      .map(type => (
+                        <div 
+                          key={type} 
+                          className={`dropdown-option ${machineTypeFilter.includes(type) ? 'selected' : ''}`}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (machineTypeFilter.includes(type)) {
+                              setMachineTypeFilter(prev => prev.filter(t => t !== type));
+                            } else {
+                              setMachineTypeFilter(prev => [...prev.filter(t => t !== ''), type]);
+                            }
+                          }}
+                        >
+                          <span className="phase-name">{type}</span>
+                          <span className="phase-description">Machine type</span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Machine Name Filter */}
+              <div className="searchable-dropdown" style={{ width: '200px' }}>
+                <label htmlFor="machine_name_filter">Machine Name:</label>
+                <input 
+                  type="text" 
+                  id="machine_name_filter"
+                  value={machineNameSearch} 
+                  onChange={(e) => setMachineNameSearch(e.target.value)} 
+                  onFocus={() => setMachineNameFilterOpen(true)} 
+                  placeholder="Search Machine Names" 
+                />
+                {machineNameFilterOpen && machineData.machineNames.length > 0 && (
+                  <div className="dropdown-options">
+                    <div 
+                      className={`dropdown-option ${(() => {
+                        const visibleOptions = machineData.machineNames.filter(name => 
+                          name.toLowerCase().includes(machineNameSearch.toLowerCase())
+                        );
+                        return visibleOptions.every(option => machineNameFilter.includes(option)) && machineNameFilter.length > 0;
+                      })() ? 'selected' : ''}`}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const visibleOptions = machineData.machineNames.filter(name => 
+                          name.toLowerCase().includes(machineNameSearch.toLowerCase())
+                        );
+                        const allVisibleSelected = visibleOptions.every(option => machineNameFilter.includes(option));
+                        
+                        if (allVisibleSelected) {
+                          // Remove all visible options
+                          setMachineNameFilter(prev => prev.filter(option => !visibleOptions.includes(option)));
+                        } else {
+                          // Add all visible options
+                          setMachineNameFilter(prev => [...new Set([...prev, ...visibleOptions])]);
+                        }
+                      }}
+                    >
+                      <span className="phase-name">All Machine Names</span>
+                      <span className="phase-description">Show all machine names</span>
+                    </div>
+                    {machineData.machineNames
+                      .filter(name => name.toLowerCase().includes(machineNameSearch.toLowerCase()))
+                      .map(name => (
+                        <div 
+                          key={name} 
+                          className={`dropdown-option ${machineNameFilter.includes(name) ? 'selected' : ''}`}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (machineNameFilter.includes(name)) {
+                              setMachineNameFilter(prev => prev.filter(n => n !== name));
+                            } else {
+                              setMachineNameFilter(prev => [...prev.filter(n => n !== ''), name]);
+                            }
+                          }}
+                        >
+                          <span className="phase-name">{name}</span>
+                          <span className="phase-description">Machine name</span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
 
               <button
                 className="btn btn-secondary"
@@ -385,6 +666,188 @@ function SchedulerPage() {
                 &gt;
               </button>
             </div>
+
+            {/* PDF Print Button */}
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                // Get the actual Gantt chart data from the store
+                const { odpOrders: tasks } = useStore.getState();
+                const scheduledTasks = tasks.filter(task => task.status === 'SCHEDULED');
+                
+                // Use the filtered machines that are currently visible on screen
+                const machinesToPrint = filteredMachines;
+                
+                // Create a new window for printing
+                const printWindow = window.open('', '_blank', 'width=1200,height=800');
+                if (!printWindow) return;
+                
+                // Generate the complete 24-hour time header
+                const timeHeader = Array.from({ length: 24 }, (_, hour) => 
+                  `<div class="hour-header" style="grid-column: ${hour * 4 + 2} / span 4">${hour.toString().padStart(2, '0')}</div>`
+                ).join('');
+                
+                // Generate machine rows with scheduled tasks
+                const machineRows = machinesToPrint.map(machine => {
+                  const machineTasks = scheduledTasks.filter(task => task.machine === machine.id);
+                  
+                  // Generate time slots for this machine
+                  const timeSlots = Array.from({ length: 96 }, (_, slotIndex) => {
+                    const hour = Math.floor(slotIndex / 4);
+                    const minute = (slotIndex % 4) * 15;
+                    
+                    // Check if this slot has a scheduled task
+                    const taskInSlot = machineTasks.find(task => {
+                      const startTime = new Date(task.scheduled_start_time);
+                      const taskHour = startTime.getHours();
+                      const taskMinute = startTime.getMinutes();
+                      const slotHour = hour;
+                      const slotMinute = minute;
+                      
+                      return taskHour === slotHour && taskMinute === slotMinute;
+                    });
+                    
+                    if (taskInSlot) {
+                      const duration = taskInSlot.time_remaining || taskInSlot.duration || 1;
+                      const slotsToSpan = Math.min(duration * 4, 96 - slotIndex);
+                      return `<div class="time-slot scheduled" style="grid-column: ${slotIndex + 2}; grid-column-span: ${slotsToSpan}">
+                        <div class="scheduled-event">${taskInSlot.odp_number}</div>
+                      </div>`;
+                    }
+                    
+                    return `<div class="time-slot" style="grid-column: ${slotIndex + 2}"></div>`;
+                  }).join('');
+                  
+                  return `
+                    <div class="machine-row">
+                      <div class="machine-label">${machine.machine_name}</div>
+                      ${timeSlots}
+                    </div>
+                  `;
+                }).join('');
+                
+                // Create the print content with actual Gantt chart data
+                const printContent = `
+                  <!DOCTYPE html>
+                  <html>
+                    <head>
+                      <title>Gantt Chart - Print</title>
+                      <style>
+                        body { 
+                          margin: 0; 
+                          padding: 20px; 
+                          font-family: Arial, sans-serif; 
+                          font-size: 12px;
+                        }
+                        .gantt-container {
+                          width: 100%;
+                          overflow: visible;
+                        }
+                        .calendar-grid {
+                          display: grid;
+                          grid-template-columns: 150px repeat(96, 20px);
+                          border: 1px solid #ccc;
+                          width: fit-content;
+                        }
+                        .calendar-header-row {
+                          display: contents;
+                        }
+                        .machine-label-header, .time-header {
+                          background: #f5f5f5;
+                          padding: 8px 4px;
+                          text-align: center;
+                          border-bottom: 1px solid #ccc;
+                          font-weight: bold;
+                        }
+                        .time-header {
+                          display: contents;
+                        }
+                        .hour-header {
+                          grid-column: span 4;
+                          text-align: center;
+                          border-right: 1px solid #ccc;
+                        }
+                        .calendar-body {
+                          display: contents;
+                        }
+                        .machine-row {
+                          display: contents;
+                          page-break-inside: avoid;
+                        }
+                        .machine-label {
+                          padding: 8px 4px;
+                          border-right: 1px solid #ccc;
+                          border-bottom: 1px solid #ccc;
+                          background: #f9f9f9;
+                          min-height: 40px;
+                          display: flex;
+                          align-items: center;
+                        }
+                        .time-slot {
+                          border-right: 1px solid #eee;
+                          border-bottom: 1px solid #eee;
+                          min-height: 40px;
+                          position: relative;
+                        }
+                        .scheduled-event {
+                          position: absolute;
+                          background: #007bff;
+                          color: white;
+                          padding: 2px 4px;
+                          border-radius: 2px;
+                          font-size: 10px;
+                          overflow: hidden;
+                          white-space: nowrap;
+                          z-index: 1;
+                          width: 100%;
+                          text-align: center;
+                        }
+                        @media print {
+                          body { margin: 0; }
+                          .gantt-container { width: 100%; }
+                        }
+                      </style>
+                    </head>
+                    <body>
+                      <div class="gantt-container">
+                        <div class="calendar-grid">
+                          <div class="calendar-header-row">
+                            <div class="machine-label-header">Machines</div>
+                            <div class="time-header">
+                              ${timeHeader}
+                            </div>
+                          </div>
+                          <div class="calendar-body">
+                            ${machineRows}
+                          </div>
+                        </div>
+                      </div>
+                      <script>
+                        // Force the chart to expand to full size
+                        const container = document.querySelector('.gantt-container');
+                        const grid = container.querySelector('.calendar-grid');
+                        if (grid) {
+                          grid.style.width = 'fit-content';
+                          grid.style.overflow = 'visible';
+                        }
+                        
+                        // Wait for content to render, then print
+                        setTimeout(() => {
+                          window.print();
+                          window.close();
+                        }, 500);
+                      </script>
+                    </body>
+                  </html>
+                `;
+                
+                printWindow.document.write(printContent);
+                printWindow.document.close();
+              }}
+              title="Print current Gantt chart as PDF"
+            >
+              Print PDF
+            </button>
           </div>
         </div>
 
