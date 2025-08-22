@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useStore } from '../store/useStore';
+import { useUIStore } from '../store';
 import { 
   handleApiError, 
   logError, 
@@ -14,7 +14,7 @@ import {
  * Provides standardized error handling, logging, and user feedback
  */
 export const useErrorHandler = (context = '') => {
-  const { showAlert, showConfirmDialog } = useStore();
+  const { showAlert, showConfirmDialog } = useUIStore();
 
   /**
    * Handle errors with consistent logging and user feedback

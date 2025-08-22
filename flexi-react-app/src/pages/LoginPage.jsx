@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { useStore } from '../store/useStore';
+import { useUIStore } from '../store';
 import { WORK_CENTERS } from '../constants';
+import { useErrorHandler } from '../hooks';
 
 /**
  * LoginPage component for user authentication
@@ -18,8 +19,11 @@ function LoginPage() {
   const [formErrors, setFormErrors] = useState({});
 
   const { signIn, error: authError } = useAuth();
-  const setSelectedWorkCenter = useStore(state => state.setSelectedWorkCenter);
+  const { setSelectedWorkCenter } = useUIStore();
   const navigate = useNavigate();
+  
+  // Use unified error handling
+  const { handleAsync } = useErrorHandler('LoginPage');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -63,21 +67,24 @@ function LoginPage() {
 
     setIsSubmitting(true);
     
-    try {
-      const result = await signIn(formData.email, formData.password);
-      
-      if (result.success) {
-        // Set the selected work center
-        setSelectedWorkCenter(formData.workCenter);
-        navigate('/', { replace: true });
-      } else {
-        // Handle login failure silently
+    await handleAsync(
+      async () => {
+        const result = await signIn(formData.email, formData.password);
+        
+        if (result.success) {
+          // Set the selected work center
+          setSelectedWorkCenter(formData.workCenter);
+          navigate('/', { replace: true });
+        } else {
+          // Handle login failure silently
+        }
+      },
+      { 
+        context: 'Login', 
+        fallbackMessage: 'Failed to sign in. Please try again.',
+        onFinally: () => setIsSubmitting(false)
       }
-    } catch (error) {
-      // Handle error silently
-    } finally {
-      setIsSubmitting(false);
-    }
+    );
   };
 
   const getFieldError = (fieldName) => {

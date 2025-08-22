@@ -1,6 +1,7 @@
 import { supabase, handleSupabaseError } from './supabase/client';
 import { safeAsync, handleApiError } from '../utils/errorUtils';
 import { toDateString, addDaysToDate } from '../utils/dateUtils';
+import { AppConfig } from './config';
 
 /**
  * Modern API service for data operations
@@ -244,6 +245,15 @@ class ApiService {
     }
   }
 
+  async getMachineAvailability(machineId, dateStr) {
+    try {
+      const data = await this.getMachineAvailabilityForDate(machineId, dateStr);
+      return data?.unavailable_hours || [];
+    } catch (error) {
+      return [];
+    }
+  }
+
   async setMachineAvailability(machineId, dateStr, unavailableHours) {
     try {
       const { data, error } = await supabase
@@ -332,6 +342,46 @@ class ApiService {
       return results;
     } catch (error) {
       throw new Error(`Failed to set unavailable hours for range: ${handleSupabaseError(error)}`);
+    }
+  }
+
+  // ===== REAL-TIME SUBSCRIPTIONS =====
+  
+  setupRealtimeSubscriptions(onOdpOrdersChange, onMachinesChange, onPhasesChange) {
+    if (!AppConfig.SUPABASE.ENABLE_REALTIME) {
+      return null;
+    }
+    
+    const channel = supabase.channel('table-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'odp_orders' },
+        onOdpOrdersChange
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'machines' },
+        onMachinesChange
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'phases' },
+        onPhasesChange
+      )
+      .subscribe((status) => {
+        // Realtime subscription status handled silently
+      });
+
+    return channel;
+  }
+
+  cleanupRealtimeSubscriptions(channel) {
+    if (channel) {
+      try {
+        channel.unsubscribe();
+      } catch (error) {
+        // Silent cleanup - subscription might already be closed
+      }
     }
   }
 }

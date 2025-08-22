@@ -14,12 +14,13 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './auth/ProtectedRoute';
 import Alert from './components/Alert';
 import ConfirmDialog from './components/ConfirmDialog';
-import { useStore } from './store/useStore';
+import { useUIStore, useMainStore } from './store';
 import { useAuth } from './auth/AuthContext';
 
 // This component creates the main layout with the sidebar
 const AppLayout = () => {
-  const { alert, hideAlert, confirmDialog, hideConfirmDialog, cleanup } = useStore();
+  const { alert, hideAlert, confirmDialog, hideConfirmDialog } = useUIStore();
+  const { cleanup } = useMainStore();
   
   // Cleanup store when app unmounts
   useEffect(() => {

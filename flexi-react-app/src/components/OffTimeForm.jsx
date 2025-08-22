@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useStore } from '../store/useStore';
+import { useSchedulerStore, useUIStore } from '../store';
 import { toDateString, addDaysToDate } from '../utils/dateUtils';
 import { DEFAULT_VALUES, VALIDATION_MESSAGES } from '../constants';
+import { useErrorHandler } from '../hooks';
 
 function OffTimeForm({ machineId, currentDate, onSuccess }) {
   const [validationErrors, setValidationErrors] = useState({});
-  const setMachineUnavailability = useStore(state => state.setMachineUnavailability);
-  const showAlert = useStore(state => state.showAlert);
+  const { setMachineUnavailability } = useSchedulerStore();
+  const { showAlert } = useUIStore();
+  
+  // Use unified error handling
+  const { handleAsync } = useErrorHandler('OffTimeForm');
 
   const validateForm = (data) => {
     const errors = {};
@@ -51,21 +55,24 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
       return;
     }
 
-    try {
-      await setMachineUnavailability(machineId, data.startDate, data.endDate, data.startTime, data.endTime);
-      showAlert('Machine unavailability set successfully!', 'success');
-      
-      // Call the success callback to refresh calendar data
-      if (onSuccess) {
-        onSuccess();
+    await handleAsync(
+      async () => {
+        await setMachineUnavailability(machineId, data.startDate, data.endDate, data.startTime, data.endTime);
+        showAlert('Machine unavailability set successfully!', 'success');
+        
+        // Call the success callback to refresh calendar data
+        if (onSuccess) {
+          onSuccess();
+        }
+        
+        // Reset form
+        reset();
+      },
+      { 
+        context: 'Set Machine Unavailability', 
+        fallbackMessage: 'Failed to set machine unavailability'
       }
-      
-      // Reset form
-      reset();
-    } catch (error) {
-      showAlert(`Failed to set machine unavailability: ${error.message}`, 'error');
-      throw error; // Re-throw to trigger error handling
-    }
+    );
   };
 
   const {

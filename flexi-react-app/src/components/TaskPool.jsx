@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { useStore } from '../store/useStore';
+import { useOrderStore, useUIStore } from '../store';
+import { useErrorHandler } from '../hooks';
 
 // Individual Draggable Task Component - optimized
 const DraggableTask = React.memo(({ task }) => {
@@ -8,7 +9,10 @@ const DraggableTask = React.memo(({ task }) => {
   const [isMoving, setIsMoving] = useState(false);
   
   // Get the update function from the store
-  const updateOdpOrder = useStore(state => state.updateOdpOrder);
+  const { updateOdpOrder } = useOrderStore();
+  
+  // Use unified error handling
+  const { handleAsync } = useErrorHandler('TaskPool');
 
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: `task-${task.id}`,
@@ -33,28 +37,32 @@ const DraggableTask = React.memo(({ task }) => {
     if (isMoving) return; // Prevent multiple simultaneous moves
 
     setIsMoving(true);
-    try {
-      const currentStartTime = new Date(task.scheduled_start_time);
-      const timeIncrement = 15 * 60 * 1000; // 15 minutes in milliseconds
-      
-      let newStartTime;
-      if (direction === 'back') {
-        newStartTime = new Date(currentStartTime.getTime() - timeIncrement);
-      } else {
-        newStartTime = new Date(currentStartTime.getTime() + timeIncrement);
+    
+    await handleAsync(
+      async () => {
+        const currentStartTime = new Date(task.scheduled_start_time);
+        const timeIncrement = 15 * 60 * 1000; // 15 minutes in milliseconds
+        
+        let newStartTime;
+        if (direction === 'back') {
+          newStartTime = new Date(currentStartTime.getTime() - timeIncrement);
+        } else {
+          newStartTime = new Date(currentStartTime.getTime() + timeIncrement);
+        }
+
+        // Only update the scheduled_start_time field, not the entire task
+        const updates = {
+          scheduled_start_time: newStartTime.toISOString()
+        };
+
+        await updateOdpOrder(task.id, updates);
+      },
+      { 
+        context: 'Move Task', 
+        fallbackMessage: 'Failed to move task',
+        onFinally: () => setIsMoving(false)
       }
-
-      // Only update the scheduled_start_time field, not the entire task
-      const updates = {
-        scheduled_start_time: newStartTime.toISOString()
-      };
-
-      await updateOdpOrder(task.id, updates);
-    } catch (error) {
-      // Handle error silently
-    } finally {
-      setIsMoving(false);
-    }
+    );
   };
 
   return (
@@ -138,7 +146,7 @@ ${task.scheduled_start_time ? `Scheduled: ${new Date(task.scheduled_start_time).
 
 // Main Task Pool Component - optimized for performance
 function TaskPool({ tasks }) {
-  const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
+  const { selectedWorkCenter } = useUIStore();
   const { setNodeRef } = useDroppable({
     id: 'task-pool',
     data: { type: 'pool' },

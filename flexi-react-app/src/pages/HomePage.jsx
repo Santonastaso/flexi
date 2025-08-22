@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo } from 'react';
-import { useStore } from '../store/useStore';
+import { useMachineStore, useOrderStore, useUIStore, useMainStore } from '../store';
 import { MACHINE_STATUSES } from '../constants';
 
 
 function HomePage() {
-  const { machines, odpOrders: orders, isLoading, isInitialized, init, cleanup } = useStore();
+  const { machines } = useMachineStore();
+  const { odpOrders: orders } = useOrderStore();
+  const { isLoading, isInitialized } = useUIStore();
+  const { init, cleanup } = useMainStore();
 
   useEffect(() => {
     if (!isInitialized) {

@@ -3,22 +3,15 @@ import { Link } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 import MachineForm from '../components/MachineForm';
 import EditableCell from '../components/EditableCell';
-import { useStore } from '../store/useStore';
+import { useMachineStore, useUIStore, useMainStore } from '../store';
 import { useMachineValidation, useErrorHandler } from '../hooks';
 import { WORK_CENTERS } from '../constants';
 
 function MachineryPage() {
   // Use Zustand store to select state and actions
-  const machines = useStore(state => state.machines);
-  const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
-  const isLoading = useStore(state => state.isLoading);
-  const isInitialized = useStore(state => state.isInitialized);
-  const init = useStore(state => state.init);
-  const updateMachine = useStore(state => state.updateMachine);
-  const removeMachine = useStore(state => state.removeMachine);
-  const showAlert = useStore(state => state.showAlert);
-  const showConfirmDialog = useStore(state => state.showConfirmDialog);
-  const cleanup = useStore(state => state.cleanup);
+  const { machines, updateMachine, removeMachine } = useMachineStore();
+  const { selectedWorkCenter, isLoading, isInitialized, showAlert, showConfirmDialog } = useUIStore();
+  const { init, cleanup } = useMainStore();
 
   // Filter machines by work center
   const filteredMachines = useMemo(() => {

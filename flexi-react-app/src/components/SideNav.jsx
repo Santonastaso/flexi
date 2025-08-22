@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { useStore } from '../store/useStore';
+import { useUIStore } from '../store';
 import { AppConfig } from '../services/config';
+import { useErrorHandler } from '../hooks';
 import logo from '/assets/logo.svg';
 
 function SideNav() {
   const location = useLocation();
   const currentPage = location.pathname;
   const { user, signOut, isAuthenticated } = useAuth();
-  const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
+  const { selectedWorkCenter } = useUIStore();
   const [realtimeStatus, setRealtimeStatus] = useState('disconnected');
+  
+  // Use unified error handling
+  const { handleAsync } = useErrorHandler('SideNav');
   
   // Monitor real-time connection status
   useEffect(() => {
@@ -39,11 +43,13 @@ function SideNav() {
   ];
 
   const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      // Handle error silently
-    }
+    await handleAsync(
+      () => signOut(),
+      { 
+        context: 'Sign Out', 
+        fallbackMessage: 'Failed to sign out'
+      }
+    );
   };
 
   return (

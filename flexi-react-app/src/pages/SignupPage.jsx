@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { useErrorHandler } from '../hooks';
 
 /**
  * SignupPage component for user registration
@@ -19,6 +20,9 @@ function SignupPage() {
 
   const { signUp, error: authError } = useAuth();
   const navigate = useNavigate();
+  
+  // Use unified error handling
+  const { handleAsync } = useErrorHandler('SignupPage');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -72,25 +76,28 @@ function SignupPage() {
 
     setIsSubmitting(true);
     
-    try {
-      const userData = {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        full_name: `${formData.firstName} ${formData.lastName}`,
-      };
+    await handleAsync(
+      async () => {
+        const userData = {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          full_name: `${formData.firstName} ${formData.lastName}`,
+        };
 
-      const result = await signUp(formData.email, formData.password, userData);
-      
-      if (result.success) {
-        navigate('/', { replace: true });
-      } else {
-        // Handle signup failure silently
+        const result = await signUp(formData.email, formData.password, userData);
+        
+        if (result.success) {
+          navigate('/', { replace: true });
+        } else {
+          // Handle signup failure silently
+        }
+      },
+      { 
+        context: 'Signup', 
+        fallbackMessage: 'Failed to create account. Please try again.',
+        onFinally: () => setIsSubmitting(false)
       }
-    } catch (error) {
-      // Handle error silently
-    } finally {
-      setIsSubmitting(false);
-    }
+    );
   };
 
   const getFieldError = (fieldName) => {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { useErrorHandler } from '../hooks';
 
 /**
  * ForgotPasswordPage component for password reset
@@ -13,6 +14,9 @@ function ForgotPasswordPage() {
   const [error, setError] = useState('');
 
   const { resetPassword } = useAuth();
+  
+  // Use unified error handling
+  const { handleAsync } = useErrorHandler('ForgotPasswordPage');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,19 +34,22 @@ function ForgotPasswordPage() {
     setIsSubmitting(true);
     setError('');
 
-    try {
-      const result = await resetPassword(email);
-      
-      if (result.success) {
-        setIsSuccess(true);
-      } else {
-        setError(result.error || 'Failed to send reset email');
+    await handleAsync(
+      async () => {
+        const result = await resetPassword(email);
+        
+        if (result.success) {
+          setIsSuccess(true);
+        } else {
+          setError(result.error || 'Failed to send reset email');
+        }
+      },
+      { 
+        context: 'Password Reset', 
+        fallbackMessage: 'Failed to send reset email. Please try again.',
+        onFinally: () => setIsSubmitting(false)
       }
-    } catch (error) {
-      setError('An unexpected error occurred');
-    } finally {
-      setIsSubmitting(false);
-    }
+    );
   };
 
   if (isSuccess) {

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useStore } from '../store/useStore';
+import { usePhaseStore, useUIStore } from '../store';
 import {
   DEPARTMENT_TYPES,
   WORK_CENTERS,
@@ -8,7 +8,8 @@ import {
 } from '../constants';
 
 function PhasesForm() {
-  const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
+  const { selectedWorkCenter } = useUIStore();
+  const { addPhase } = usePhaseStore();
   
   const initialFormData = {
     name: '',
@@ -23,9 +24,6 @@ function PhasesForm() {
     costo_h_conf: DEFAULT_VALUES.PHASE.COSTO_H_CONF,
     contenuto_fase: '',
   };
-  
-  // Get addPhase action from Zustand store
-  const addPhase = useStore(state => state.addPhase);
 
   const {
     register,

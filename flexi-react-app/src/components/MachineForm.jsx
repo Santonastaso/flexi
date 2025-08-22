@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useStore } from '../store/useStore';
+import { useMachineStore, useUIStore } from '../store';
 import { useProductionCalculations } from '../hooks';
 import {
   DEPARTMENT_TYPES,
@@ -11,7 +11,8 @@ import {
 } from '../constants';
 
 function MachineForm() {
-  const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
+  const { selectedWorkCenter } = useUIStore();
+  const { addMachine } = useMachineStore();
   
   const initialFormData = {
     department: DEFAULT_VALUES.MACHINE.DEPARTMENT,
@@ -31,7 +32,6 @@ function MachineForm() {
   };
 
   const { getValidMachineTypes } = useProductionCalculations();
-  const addMachine = useStore(state => state.addMachine);
 
   const {
     register,

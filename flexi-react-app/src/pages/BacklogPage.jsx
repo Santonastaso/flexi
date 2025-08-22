@@ -2,24 +2,17 @@ import React, { useEffect, useMemo } from 'react';
 import DataTable from '../components/DataTable';
 import BacklogForm from '../components/BacklogForm';
 import EditableCell from '../components/EditableCell';
-import { useStore } from '../store/useStore';
+import { useOrderStore, useMachineStore, usePhaseStore, useUIStore, useMainStore } from '../store';
 import { WORK_CENTERS } from '../constants';
-import { useOrderValidation } from '../hooks';
+import { useOrderValidation, useErrorHandler } from '../hooks';
 
 function BacklogPage() {
   // Use Zustand store to select state and actions
-  const orders = useStore(state => state.odpOrders);
-  const machines = useStore(state => state.machines);
-  const phases = useStore(state => state.phases);
-  const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
-  const isLoading = useStore(state => state.isLoading);
-  const isInitialized = useStore(state => state.isInitialized);
-  const init = useStore(state => state.init);
-  const updateOdpOrder = useStore(state => state.updateOdpOrder);
-  const removeOdpOrder = useStore(state => state.removeOdpOrder);
-  const showAlert = useStore(state => state.showAlert);
-  const showConfirmDialog = useStore(state => state.showConfirmDialog);
-  const cleanup = useStore(state => state.cleanup);
+  const { odpOrders: orders, updateOdpOrder, removeOdpOrder } = useOrderStore();
+  const { machines } = useMachineStore();
+  const { phases } = usePhaseStore();
+  const { selectedWorkCenter, isLoading, isInitialized, showAlert, showConfirmDialog } = useUIStore();
+  const { init, cleanup } = useMainStore();
 
   // Filter orders by work center
   const filteredOrders = useMemo(() => {
@@ -33,6 +26,9 @@ function BacklogPage() {
 
   // Use modern validation hook
   const { validateOrder } = useOrderValidation();
+  
+  // Use unified error handling
+  const { handleAsync } = useErrorHandler('BacklogPage');
 
   // Initialize store on component mount
   useEffect(() => {
@@ -144,27 +140,29 @@ function BacklogPage() {
   ], [machines, phases]);
 
   const handleSaveOrder = async (updatedOrder) => {
-    try {
-      const validationErrors = validateOrder(updatedOrder);
-      
-      if (validationErrors.length > 0) {
-        // Show validation errors in the store alert
-        showAlert(`Validation errors:\n${validationErrors.join('\n')}`, 'error');
-        return;
-      }
-
-      // Handle machine assignment if the machine field was edited
-      if (updatedOrder.scheduled_machine_id && updatedOrder.scheduled_machine_id !== updatedOrder.original?.scheduled_machine_id) {
-        // The machine field was changed, we need to handle this properly
-        // For now, we'll just save the machine ID as is
-        // In a real implementation, you might want to validate that the machine exists
-        // and update related scheduling information
-      }
-
-      await updateOdpOrder(updatedOrder.id, updatedOrder);
-    } catch (error) {
-      // Error is already handled by the store
+    const validationErrors = validateOrder(updatedOrder);
+    
+    if (validationErrors.length > 0) {
+      // Show validation errors in the store alert
+      showAlert(`Validation errors:\n${validationErrors.join('\n')}`, 'error');
+      return;
     }
+
+    // Handle machine assignment if the machine field was edited
+    if (updatedOrder.scheduled_machine_id && updatedOrder.scheduled_machine_id !== updatedOrder.original?.scheduled_machine_id) {
+      // The machine field was changed, we need to handle this properly
+      // For now, we'll just save the machine ID as is
+      // In a real implementation, you might want to validate that the machine exists
+      // and update related scheduling information
+    }
+
+    await handleAsync(
+      () => updateOdpOrder(updatedOrder.id, updatedOrder),
+      { 
+        context: 'Update Order', 
+        fallbackMessage: 'Failed to update order' 
+      }
+    );
   };
 
   const handleDeleteOrder = async (orderToDelete) => {
@@ -172,11 +170,13 @@ function BacklogPage() {
       'Delete Order',
       `Are you sure you want to delete ODP "${orderToDelete.odp_number || orderToDelete.id}"? This action cannot be undone.`,
       async () => {
-        try {
-          await removeOdpOrder(orderToDelete.id);
-        } catch (error) {
-          // Error is already handled by the store
-        }
+        await handleAsync(
+          () => removeOdpOrder(orderToDelete.id),
+          { 
+            context: 'Delete Order', 
+            fallbackMessage: 'Failed to delete order' 
+          }
+        );
       },
       'danger'
     );

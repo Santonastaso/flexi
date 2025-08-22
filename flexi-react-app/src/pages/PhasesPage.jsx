@@ -2,24 +2,18 @@ import React, { useState, useEffect, useMemo } from 'react';
 import DataTable from '../components/DataTable';
 import PhasesForm from '../components/PhasesForm';
 import EditableCell from '../components/EditableCell';
-import { useStore } from '../store/useStore';
+import { usePhaseStore, useUIStore, useMainStore } from '../store';
 import { usePhaseValidation } from '../hooks/usePhaseValidation';
 import { WORK_CENTERS } from '../constants';
+import { useErrorHandler } from '../hooks';
 
 function PhasesPage() {
   const [error, setError] = useState(null);
   
   // Use Zustand store to select state and actions
-  const phases = useStore(state => state.phases);
-  const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
-  const isLoading = useStore(state => state.isLoading);
-  const isInitialized = useStore(state => state.isInitialized);
-  const init = useStore(state => state.init);
-  const updatePhase = useStore(state => state.updatePhase);
-  const removePhase = useStore(state => state.removePhase);
-  const showAlert = useStore(state => state.showAlert);
-  const showConfirmDialog = useStore(state => state.showConfirmDialog);
-  const cleanup = useStore(state => state.cleanup);
+  const { phases, updatePhase, removePhase } = usePhaseStore();
+  const { selectedWorkCenter, isLoading, isInitialized, showAlert, showConfirmDialog } = useUIStore();
+  const { init, cleanup } = useMainStore();
 
   // Filter phases by work center
   const filteredPhases = useMemo(() => {
@@ -30,6 +24,9 @@ function PhasesPage() {
 
   // Use the new phase validation hook
   const { validatePhase } = usePhaseValidation();
+  
+  // Use unified error handling
+  const { handleAsync } = useErrorHandler('PhasesPage');
 
   // Initialize store on component mount
   useEffect(() => {
@@ -67,19 +64,21 @@ function PhasesPage() {
 
 
   const handleSavePhase = async (updatedPhase) => {
-    try {
-      const validationErrors = validatePhase(updatedPhase);
-      
-      if (validationErrors.length > 0) {
-        // Show validation errors in the store alert
-        showAlert(`Validation errors:\n${validationErrors.join('\n')}`, 'error');
-        return;
-      }
-
-      await updatePhase(updatedPhase.id, updatedPhase);
-    } catch (error) {
-      // Error is already handled by the store
+    const validationErrors = validatePhase(updatedPhase);
+    
+    if (validationErrors.length > 0) {
+      // Show validation errors in the store alert
+      showAlert(`Validation errors:\n${validationErrors.join('\n')}`, 'error');
+      return;
     }
+
+    await handleAsync(
+      () => updatePhase(updatedPhase.id, updatedPhase),
+      { 
+        context: 'Update Phase', 
+        fallbackMessage: 'Failed to update phase' 
+      }
+    );
   };
 
   const handleDeletePhase = async (phaseToDelete) => {
@@ -87,11 +86,13 @@ function PhasesPage() {
       'Delete Phase',
       `Are you sure you want to delete "${phaseToDelete.name}"? This action cannot be undone.`,
       async () => {
-        try {
-          await removePhase(phaseToDelete.id);
-        } catch (error) {
-          // Error is already handled by the store
-        }
+        await handleAsync(
+          () => removePhase(phaseToDelete.id),
+          { 
+            context: 'Delete Phase', 
+            fallbackMessage: 'Failed to delete phase' 
+          }
+        );
       },
       'danger'
     );

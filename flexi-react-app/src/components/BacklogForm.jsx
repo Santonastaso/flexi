@@ -1,15 +1,21 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { useStore } from '../store/useStore';
+import { useOrderStore, usePhaseStore, useUIStore } from '../store';
 import { useProductionCalculations } from '../hooks/useProductionCalculations';
 import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES, SEAL_SIDES, PRODUCT_TYPES } from '../constants';
 import { toDateString, addDaysToDate } from '../utils/dateUtils';
 import { useOrderValidation } from '../hooks/useOrderValidation';
+import { useErrorHandler } from '../hooks';
 
 const BacklogForm = ({ onSuccess }) => {
-  const { addOdpOrder, phases, showAlert } = useStore();
+  const { addOdpOrder } = useOrderStore();
+  const { phases } = usePhaseStore();
+  const { showAlert, selectedWorkCenter } = useUIStore();
   const { calculateProductionMetrics, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
   const { validateOrder } = useOrderValidation();
+  
+  // Use unified error handling
+  const { handleAsync } = useErrorHandler('BacklogForm');
   
   const [phaseSearch, setPhaseSearch] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
@@ -21,8 +27,6 @@ const BacklogForm = ({ onSuccess }) => {
   
   // Ref to store the blur timeout
   const blurTimeoutRef = useRef(null);
-
-  const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
   
   const initialFormData = {
     odp_number: '', 
@@ -56,33 +60,34 @@ const BacklogForm = ({ onSuccess }) => {
       return;
     }
 
-    try {
-      const orderData = {
-        ...data,
-        duration: calculationResults.totals.duration,
-        cost: calculationResults.totals.cost,
-        status: 'NOT SCHEDULED',
-      };
+    await handleAsync(
+      async () => {
+        const orderData = {
+          ...data,
+          duration: calculationResults.totals.duration,
+          cost: calculationResults.totals.cost,
+          status: 'NOT SCHEDULED',
+        };
 
-      await addOdpOrder(orderData);
+        await addOdpOrder(orderData);
 
-      // Call success callback to refresh the list
+        // Call success callback to refresh the list
+        if (onSuccess) {
+          onSuccess();
+        }
 
-      // Call success callback to refresh the list
-      if (onSuccess) {
-        onSuccess();
+        // Reset form
+        Object.keys(initialFormData).forEach(key => setValue(key, initialFormData[key]));
+        setPhaseSearch('');
+        setSelectedPhase(null);
+        setEditablePhaseParams({});
+        setCalculationResults(null);
+      },
+      { 
+        context: 'Add Order', 
+        fallbackMessage: 'Failed to add order to backlog'
       }
-
-      // Reset form
-      Object.keys(initialFormData).forEach(key => setValue(key, initialFormData[key]));
-      setPhaseSearch('');
-      setSelectedPhase(null);
-      setEditablePhaseParams({});
-      setCalculationResults(null);
-    } catch (error) {
-      // Error is already handled by the store
-      throw error; // Re-throw to trigger error handling
-    }
+    );
   };
 
   const {

@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
-import { useStore } from '../store/useStore';
+import { useOrderStore, useSchedulerStore } from '../store';
 import {
   toDateString,
   getStartOfDay,
   getEndOfDay,
   isSameDate
 } from '../utils/dateUtils';
+import { useErrorHandler } from '../hooks';
 
 // A single 15-minute time slot on the calendar that can receive a dropped task
 const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasScheduledTask }) => {
@@ -27,7 +28,10 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
     const [isMoving, setIsMoving] = useState(false);
     
     // Get the update function from the store
-    const updateOdpOrder = useStore(state => state.updateOdpOrder);
+    const { updateOdpOrder } = useOrderStore();
+    
+    // Use unified error handling
+    const { handleAsync } = useErrorHandler('GanttChart');
 
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: `event-${event.id}`,
@@ -172,29 +176,33 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
         if (isMoving) return; // Prevent multiple simultaneous moves
 
         setIsMoving(true);
-        try {
-            const currentStartTime = new Date(event.scheduled_start_time);
-            const timeIncrement = 15 * 60 * 1000; // 15 minutes in milliseconds
-            
-            let newStartTime;
-            if (direction === 'back') {
-                newStartTime = new Date(currentStartTime.getTime() - timeIncrement);
-            } else {
-                newStartTime = new Date(currentStartTime.getTime() + timeIncrement);
+        
+        await handleAsync(
+            async () => {
+                const currentStartTime = new Date(event.scheduled_start_time);
+                const timeIncrement = 15 * 60 * 1000; // 15 minutes in milliseconds
+                
+                let newStartTime;
+                if (direction === 'back') {
+                    newStartTime = new Date(currentStartTime.getTime() - timeIncrement);
+                } else {
+                    newStartTime = new Date(currentStartTime.getTime() + timeIncrement);
+                }
+
+                // Only update the scheduled_start_time field, not the entire event
+                const updates = {
+                    scheduled_start_time: newStartTime.toISOString()
+                };
+
+                await updateOdpOrder(event.id, updates);
+            },
+            { 
+                context: 'Move Event', 
+                fallbackMessage: 'Failed to move event',
+                onFinally: () => setIsMoving(false)
             }
-
-            // Only update the scheduled_start_time field, not the entire event
-            const updates = {
-                scheduled_start_time: newStartTime.toISOString()
-            };
-
-            await updateOdpOrder(event.id, updates);
-        } catch (error) {
-            // Handle error silently
-        } finally {
-            setIsMoving(false);
-        }
-    }, [event.scheduled_start_time, event.id, isMoving, updateOdpOrder]);
+        );
+    }, [event.scheduled_start_time, event.id, isMoving, updateOdpOrder, handleAsync]);
 
     // Early return after ALL hooks have been called
     if (!eventPosition) return null;
@@ -416,8 +424,7 @@ const GanttChart = React.memo(({ machines, tasks, currentDate }) => {
     [tasks]
   );
 
-  const loadMachineAvailabilityForDate = useStore(state => state.loadMachineAvailabilityForDate);
-  const machineAvailability = useStore(state => state.machineAvailability);
+  const { loadMachineAvailabilityForDate, machineAvailability } = useSchedulerStore();
 
   const dateStr = useMemo(() => toDateString(currentDate), [currentDate]);
 

@@ -1,25 +1,31 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useStore } from '../store/useStore';
+import { useMachineStore, useOrderStore, useSchedulerStore, useUIStore } from '../store';
 import {
   toDateString,
   isTaskOverlapping,
   getStartOfWeek,
   getEndOfWeek
 } from '../utils/dateUtils';
+import { useErrorHandler } from '../hooks';
 
 function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
   const [availabilityData, setAvailabilityData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   
-  const machines = useStore(state => state.machines);
-  const odpOrders = useStore(state => state.odpOrders);
-  const machineAvailability = useStore(state => state.machineAvailability);
-  const getMachineAvailability = useStore(state => state.getMachineAvailability);
-  const loadMachineAvailabilityForDateRange = useStore(state => state.loadMachineAvailabilityForDateRange);
-  const toggleMachineHourAvailability = useStore(state => state.toggleMachineHourAvailability);
-  const showAlert = useStore(state => state.showAlert);
+  const { machines } = useMachineStore();
+  const { odpOrders } = useOrderStore();
+  const { machineAvailability, getMachineAvailability, loadMachineAvailabilityForDateRange, toggleMachineHourAvailability } = useSchedulerStore();
+  const { showAlert } = useUIStore();
+  
+  // Use unified error handling
+  const { handleAsync } = useErrorHandler('CalendarGrid');
   
   const machine = machines.find(m => m.id === machineId);
+  
+  // Early return if machine is not found
+  if (!machine) {
+    return <div className="loading">Loading machine data...</div>;
+  }
 
   // Optimized data processing with Map for O(1) lookups
   const processedAvailabilityData = useMemo(() => {
@@ -106,10 +112,14 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
       if (!machineId) return;
       
       setIsLoading(true);
+      
       try {
         // Use the optimized date range
         const { dateStrings } = dateRange;
-        if (dateStrings.length === 0) return;
+        if (dateStrings.length === 0) {
+          setIsLoading(false);
+          return;
+        }
         
         // Load data for the entire range at once
         const firstDateStr = dateStrings[0];
@@ -145,7 +155,8 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
           setAvailabilityData(mergedData);
         }
       } catch (error) {
-        // Handle error silently
+        console.error('Failed to load machine availability data:', error);
+        // Handle error silently for now
       } finally {
         setIsLoading(false);
       }
@@ -188,17 +199,17 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
       return;
     }
     
+    if (!machine) {
+      return;
+    }
+    
     try {
-      if (!machine) {
-        return;
-      }
-      
       await toggleMachineHourAvailability(machine.id, dateStr, hour);
-      
       // The store sync useEffect will automatically update the local state
       // No need to manually update local state here
     } catch (error) {
-      // Handle error silently
+      console.error('Failed to toggle machine hour availability:', error);
+      showAlert('Failed to toggle machine hour availability', 'error');
     }
   }, [hasScheduledTask, showAlert, machine, toggleMachineHourAvailability]);
 

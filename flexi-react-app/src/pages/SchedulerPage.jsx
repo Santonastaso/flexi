@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense, lazy } from 'react';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
-import { useStore } from '../store/useStore';
+import { useOrderStore, useMachineStore, useUIStore, useSchedulerStore, useMainStore } from '../store';
 import { addHoursToDate } from '../utils/dateUtils';
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
+import SearchableDropdown from '../components/SearchableDropdown';
 
 // Lazy load heavy components to improve initial load time
 const TaskPool = lazy(() => import('../components/TaskPool'));
@@ -24,18 +25,11 @@ const LoadingFallback = () => (
 
 function SchedulerPage() {
   // Select state and actions from Zustand store
-  const { 
-    odpOrders: tasks, 
-    machines, 
-    selectedWorkCenter,
-    isLoading, 
-    isInitialized, 
-    init, 
-    scheduleTask, 
-    unscheduleTask, 
-    showAlert, 
-    cleanup 
-  } = useStore();
+  const { odpOrders: tasks } = useOrderStore();
+  const { machines } = useMachineStore();
+  const { selectedWorkCenter, isLoading, isInitialized, showAlert } = useUIStore();
+  const { scheduleTask, unscheduleTask } = useSchedulerStore();
+  const { init, cleanup } = useMainStore();
 
 
 
@@ -46,15 +40,7 @@ function SchedulerPage() {
   const [machineTypeFilter, setMachineTypeFilter] = useState([]);
   const [machineNameFilter, setMachineNameFilter] = useState([]);
 
-  // State for custom dropdowns
-  const [workCenterFilterOpen, setWorkCenterFilterOpen] = useState(false);
-  const [departmentFilterOpen, setDepartmentFilterOpen] = useState(false);
-  const [machineTypeFilterOpen, setMachineTypeFilterOpen] = useState(false);
-  const [machineNameFilterOpen, setMachineNameFilterOpen] = useState(false);
-  const [workCenterSearch, setWorkCenterSearch] = useState('');
-  const [departmentSearch, setDepartmentSearch] = useState('');
-  const [machineTypeSearch, setMachineTypeSearch] = useState('');
-  const [machineNameSearch, setMachineNameSearch] = useState('');
+
 
   // Performance monitoring
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -75,20 +61,7 @@ function SchedulerPage() {
     };
   }, [init, isInitialized, cleanup]);
 
-  // Handle clicking outside dropdowns to close them
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!event.target.closest('.searchable-dropdown')) {
-        setWorkCenterFilterOpen(false);
-        setDepartmentFilterOpen(false);
-        setMachineTypeFilterOpen(false);
-        setMachineNameFilterOpen(false);
-      }
-    };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Memoize machine filtering with optimized dependencies and early returns
   const machineData = useMemo(() => {
@@ -406,262 +379,41 @@ function SchedulerPage() {
           <div className="scheduler-controls">
             {/* Machine Filters */}
             <div className="machine-filters">
-              {/* Work Center Filter */}
-              <div className="searchable-dropdown" style={{ width: '200px' }}>
-              <label htmlFor="work_center_filter">Work Center:</label>
-                <input 
-                  type="text" 
+              <SearchableDropdown
+                label="Work Center"
+                options={machineData.workCenters}
+                selectedOptions={workCenterFilter}
+                onSelectionChange={setWorkCenterFilter}
+                searchPlaceholder="Search Work Centers"
                 id="work_center_filter"
-                  value={workCenterSearch} 
-                  onChange={(e) => setWorkCenterSearch(e.target.value)} 
-                  onFocus={() => setWorkCenterFilterOpen(true)} 
-                  placeholder="Search Work Centers" 
-                />
-                {workCenterFilterOpen && machineData.workCenters.length > 0 && (
-                  <div className="dropdown-options">
-                    <div 
-                      className={`dropdown-option ${(() => {
-                        const visibleOptions = machineData.workCenters.filter(center => 
-                          center.toLowerCase().includes(workCenterSearch.toLowerCase())
-                        );
-                        return visibleOptions.every(option => workCenterFilter.includes(option)) && workCenterFilter.length > 0;
-                      })() ? 'selected' : ''}`}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const visibleOptions = machineData.workCenters.filter(center => 
-                          center.toLowerCase().includes(workCenterSearch.toLowerCase())
-                        );
-                        const allVisibleSelected = visibleOptions.every(option => workCenterFilter.includes(option));
-                        
-                        if (allVisibleSelected) {
-                          // Remove all visible options
-                          setWorkCenterFilter(prev => prev.filter(option => !visibleOptions.includes(option)));
-                        } else {
-                          // Add all visible options
-                          setWorkCenterFilter(prev => [...new Set([...prev, ...visibleOptions])]);
-                        }
-                      }}
-                    >
-                      <span className="phase-name">All Work Centers</span>
-                      <span className="phase-description">Show all work centers</span>
-                    </div>
-                    {machineData.workCenters
-                      .filter(center => center.toLowerCase().includes(workCenterSearch.toLowerCase()))
-                      .map(center => (
-                        <div 
-                          key={center} 
-                          className={`dropdown-option ${workCenterFilter.includes(center) ? 'selected' : ''}`}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (workCenterFilter.includes(center)) {
-                              setWorkCenterFilter(prev => prev.filter(wc => wc !== center));
-                            } else {
-                              setWorkCenterFilter(prev => [...prev.filter(wc => wc !== ''), center]);
-                            }
-                          }}
-                        >
-                          <span className="phase-name">{center}</span>
-                          <span className="phase-description">Work center</span>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Department Filter */}
-              <div className="searchable-dropdown" style={{ width: '200px' }}>
-              <label htmlFor="department_filter">Department:</label>
-                <input 
-                  type="text" 
+              />
+              
+              <SearchableDropdown
+                label="Department"
+                options={machineData.departments}
+                selectedOptions={departmentFilter}
+                onSelectionChange={setDepartmentFilter}
+                searchPlaceholder="Search Departments"
                 id="department_filter"
-                  value={departmentSearch} 
-                  onChange={(e) => setDepartmentSearch(e.target.value)} 
-                  onFocus={() => setDepartmentFilterOpen(true)} 
-                  placeholder="Search Departments" 
-                />
-                {departmentFilterOpen && machineData.departments.length > 0 && (
-                  <div className="dropdown-options">
-                    <div 
-                      className={`dropdown-option ${(() => {
-                        const visibleOptions = machineData.departments.filter(dept => 
-                          dept.toLowerCase().includes(departmentSearch.toLowerCase())
-                        );
-                        return visibleOptions.every(option => departmentFilter.includes(option)) && departmentFilter.length > 0;
-                      })() ? 'selected' : ''}`}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const visibleOptions = machineData.departments.filter(dept => 
-                          dept.toLowerCase().includes(departmentSearch.toLowerCase())
-                        );
-                        const allVisibleSelected = visibleOptions.every(option => departmentFilter.includes(option));
-                        
-                        if (allVisibleSelected) {
-                          // Remove all visible options
-                          setDepartmentFilter(prev => prev.filter(option => !visibleOptions.includes(option)));
-                        } else {
-                          // Add all visible options
-                          setDepartmentFilter(prev => [...new Set([...prev, ...visibleOptions])]);
-                        }
-                      }}
-                    >
-                      <span className="phase-name">All Departments</span>
-                      <span className="phase-description">Show all departments</span>
-                    </div>
-                    {machineData.departments
-                      .filter(dept => dept.toLowerCase().includes(departmentSearch.toLowerCase()))
-                      .map(dept => (
-                        <div 
-                          key={dept} 
-                          className={`dropdown-option ${departmentFilter.includes(dept) ? 'selected' : ''}`}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (departmentFilter.includes(dept)) {
-                              setDepartmentFilter(prev => prev.filter(d => d !== dept));
-                            } else {
-                              setDepartmentFilter(prev => [...prev.filter(d => d !== ''), dept]);
-                            }
-                          }}
-                        >
-                          <span className="phase-name">{dept}</span>
-                          <span className="phase-description">Department</span>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Machine Type Filter */}
-              <div className="searchable-dropdown" style={{ width: '200px' }}>
-                <label htmlFor="machine_type_filter">Machine Type:</label>
-                <input 
-                  type="text" 
-                  id="machine_type_filter"
-                  value={machineTypeSearch} 
-                  onChange={(e) => setMachineTypeSearch(e.target.value)} 
-                  onFocus={() => setMachineTypeFilterOpen(true)} 
-                  placeholder="Search Machine Types" 
-                />
-                {machineTypeFilterOpen && machineData.machineTypes.length > 0 && (
-                  <div className="dropdown-options">
-                    <div 
-                      className={`dropdown-option ${(() => {
-                        const visibleOptions = machineData.machineTypes.filter(type => 
-                          type.toLowerCase().includes(machineTypeSearch.toLowerCase())
-                        );
-                        return visibleOptions.every(option => machineTypeFilter.includes(option)) && machineTypeFilter.length > 0;
-                      })() ? 'selected' : ''}`}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const visibleOptions = machineData.machineTypes.filter(type => 
-                          type.toLowerCase().includes(machineTypeSearch.toLowerCase())
-                        );
-                        const allVisibleSelected = visibleOptions.every(option => machineTypeFilter.includes(option));
-                        
-                        if (allVisibleSelected) {
-                          // Remove all visible options
-                          setMachineTypeFilter(prev => prev.filter(option => !visibleOptions.includes(option)));
-                        } else {
-                          // Add all visible options
-                          setMachineTypeFilter(prev => [...new Set([...prev, ...visibleOptions])]);
-                        }
-                      }}
-                    >
-                      <span className="phase-name">All Machine Types</span>
-                      <span className="phase-description">Show all machine types</span>
-                    </div>
-                    {machineData.machineTypes
-                      .filter(type => type.toLowerCase().includes(machineTypeSearch.toLowerCase()))
-                      .map(type => (
-                        <div 
-                          key={type} 
-                          className={`dropdown-option ${machineTypeFilter.includes(type) ? 'selected' : ''}`}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (machineTypeFilter.includes(type)) {
-                              setMachineTypeFilter(prev => prev.filter(t => t !== type));
-                            } else {
-                              setMachineTypeFilter(prev => [...prev.filter(t => t !== ''), type]);
-                            }
-                          }}
-                        >
-                          <span className="phase-name">{type}</span>
-                          <span className="phase-description">Machine type</span>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Machine Name Filter */}
-              <div className="searchable-dropdown" style={{ width: '200px' }}>
-                <label htmlFor="machine_name_filter">Machine Name:</label>
-                <input 
-                  type="text" 
-                  id="machine_name_filter"
-                  value={machineNameSearch} 
-                  onChange={(e) => setMachineNameSearch(e.target.value)} 
-                  onFocus={() => setMachineNameFilterOpen(true)} 
-                  placeholder="Search Machine Names" 
-                />
-                {machineNameFilterOpen && machineData.machineNames.length > 0 && (
-                  <div className="dropdown-options">
-                    <div 
-                      className={`dropdown-option ${(() => {
-                        const visibleOptions = machineData.machineNames.filter(name => 
-                          name.toLowerCase().includes(machineNameSearch.toLowerCase())
-                        );
-                        return visibleOptions.every(option => machineNameFilter.includes(option)) && machineNameFilter.length > 0;
-                      })() ? 'selected' : ''}`}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const visibleOptions = machineData.machineNames.filter(name => 
-                          name.toLowerCase().includes(machineNameSearch.toLowerCase())
-                        );
-                        const allVisibleSelected = visibleOptions.every(option => machineNameFilter.includes(option));
-                        
-                        if (allVisibleSelected) {
-                          // Remove all visible options
-                          setMachineNameFilter(prev => prev.filter(option => !visibleOptions.includes(option)));
-                        } else {
-                          // Add all visible options
-                          setMachineNameFilter(prev => [...new Set([...prev, ...visibleOptions])]);
-                        }
-                      }}
-                    >
-                      <span className="phase-name">All Machine Names</span>
-                      <span className="phase-description">Show all machine names</span>
-                    </div>
-                    {machineData.machineNames
-                      .filter(name => name.toLowerCase().includes(machineNameSearch.toLowerCase()))
-                      .map(name => (
-                        <div 
-                          key={name} 
-                          className={`dropdown-option ${machineNameFilter.includes(name) ? 'selected' : ''}`}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (machineNameFilter.includes(name)) {
-                              setMachineNameFilter(prev => prev.filter(n => n !== name));
-                            } else {
-                              setMachineNameFilter(prev => [...prev.filter(n => n !== ''), name]);
-                            }
-                          }}
-                        >
-                          <span className="phase-name">{name}</span>
-                          <span className="phase-description">Machine name</span>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-
+              />
+              
+              <SearchableDropdown
+                label="Machine Type"
+                options={machineData.machineTypes}
+                selectedOptions={machineTypeFilter}
+                onSelectionChange={setMachineTypeFilter}
+                searchPlaceholder="Search Machine Types"
+                id="machine_type_filter"
+              />
+              
+              <SearchableDropdown
+                label="Machine Name"
+                options={machineData.machineNames}
+                selectedOptions={machineNameFilter}
+                onSelectionChange={setMachineNameFilter}
+                searchPlaceholder="Search Machine Names"
+                id="machine_name_filter"
+              />
             </div>
 
             {/* Action Buttons */}
