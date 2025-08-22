@@ -17,12 +17,18 @@ function MachineCalendarPage() {
   const isLoading = useStore(state => state.isLoading);
   const isInitialized = useStore(state => state.isInitialized);
   const init = useStore(state => state.init);
+  const cleanup = useStore(state => state.cleanup);
 
   useEffect(() => {
     if (!isInitialized) {
       init();
     }
-  }, [init, isInitialized]);
+    
+    // Cleanup function for component unmount
+    return () => {
+      cleanup();
+    };
+  }, [init, isInitialized, cleanup]);
 
   if (isLoading || !isInitialized) {
     return <div className="loading">Loading machine calendar...</div>;

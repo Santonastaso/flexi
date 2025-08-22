@@ -1,16 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useStore } from '../store/useStore';
-import { useProductionCalculations } from '../hooks';
-import {
-  DEPARTMENT_TYPES,
-  PRODUCT_TYPES,
-  SEAL_SIDES,
-  DEFAULT_VALUES,
-  WORK_CENTERS
-} from '../constants';
+import { useProductionCalculations } from '../hooks/useProductionCalculations';
+import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES, SEAL_SIDES, PRODUCT_TYPES } from '../constants';
+import { toDateString, addDaysToDate } from '../utils/dateUtils';
+import { useOrderValidation } from '../hooks/useOrderValidation';
 
-function BacklogForm({ onSuccess }) {
+const BacklogForm = ({ onSuccess }) => {
+  const { addOdpOrder, phases, showAlert } = useStore();
+  const { calculateProductionMetrics, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
+  const { validateOrder } = useOrderValidation();
+  
+  const [phaseSearch, setPhaseSearch] = useState('');
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const [selectedPhase, setSelectedPhase] = useState(null);
+  const [filteredPhases, setFilteredPhases] = useState([]);
+  const [editablePhaseParams, setEditablePhaseParams] = useState({});
+  const [calculationResults, setCalculationResults] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
+  
+  // Ref to store the blur timeout
+  const blurTimeoutRef = useRef(null);
+
   const selectedWorkCenter = useStore(state => state.selectedWorkCenter);
   
   const initialFormData = {
@@ -36,26 +47,7 @@ function BacklogForm({ onSuccess }) {
     fase: '',
   };
 
-  const [selectedPhase, setSelectedPhase] = useState(null);
-  const [editablePhaseParams, setEditablePhaseParams] = useState({});
-  const [calculationResults, setCalculationResults] = useState(null);
-  const [filteredPhases, setFilteredPhases] = useState([]);
-  const [phaseSearch, setPhaseSearch] = useState('');
-  const [isDropdownVisible, setDropdownVisible] = useState(false);
-  
-  // Use modern hooks instead of BusinessLogicService class
-  const { 
-    calculateProductionMetrics, 
-    autoDetermineWorkCenter, 
-    autoDetermineDepartment 
-  } = useProductionCalculations();
-  
   // useOrderValidation hook not needed for this component
-  
-  // Get state and actions from Zustand store
-  const phases = useStore(state => state.phases);
-  const addOdpOrder = useStore(state => state.addOdpOrder);
-  const showAlert = useStore(state => state.showAlert);
 
   // Define onSubmit function before useFormValidation
   const onSubmit = async (data) => {
@@ -138,6 +130,13 @@ function BacklogForm({ onSuccess }) {
     } else {
       setFilteredPhases([]);
     }
+    
+    // Cleanup function for component unmount
+    return () => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+    };
   }, [phaseSearch, department, workCenter, phases]);
 
   const handlePhaseParamChange = (field, value) => {
@@ -148,7 +147,7 @@ function BacklogForm({ onSuccess }) {
     setValue('fase', phase.id);
     setSelectedPhase(phase);
     setPhaseSearch(phase.name);
-    setDropdownVisible(false);
+    setIsDropdownVisible(false);
     setCalculationResults(null);
     
     // Clear phase error
@@ -447,8 +446,13 @@ function BacklogForm({ onSuccess }) {
                   id="phase_search"
                   value={phaseSearch} 
                   onChange={(e) => setPhaseSearch(e.target.value)} 
-                  onFocus={() => setDropdownVisible(true)} 
-                  onBlur={() => setTimeout(() => setDropdownVisible(false), 150)} 
+                  onFocus={() => setIsDropdownVisible(true)} 
+                  onBlur={() => {
+                    if (blurTimeoutRef.current) {
+                      clearTimeout(blurTimeoutRef.current);
+                    }
+                    blurTimeoutRef.current = setTimeout(() => setIsDropdownVisible(false), 150);
+                  }} 
                   placeholder="Search Production Phase" 
                   className={errors.phase ? 'error' : ''}
                 />

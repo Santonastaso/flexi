@@ -19,6 +19,7 @@ function PhasesPage() {
   const removePhase = useStore(state => state.removePhase);
   const showAlert = useStore(state => state.showAlert);
   const showConfirmDialog = useStore(state => state.showConfirmDialog);
+  const cleanup = useStore(state => state.cleanup);
 
   // Filter phases by work center
   const filteredPhases = useMemo(() => {
@@ -37,7 +38,12 @@ function PhasesPage() {
         setError('Failed to load phases data');
       });
     }
-  }, [init, isInitialized]);
+    
+    // Cleanup function for component unmount
+    return () => {
+      cleanup();
+    };
+  }, [init, isInitialized, cleanup]);
 
   const columns = useMemo(() => [
     { header: 'ID', accessorKey: 'id' },

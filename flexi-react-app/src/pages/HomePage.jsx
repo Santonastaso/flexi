@@ -4,13 +4,18 @@ import { MACHINE_STATUSES } from '../constants';
 
 
 function HomePage() {
-  const { machines, odpOrders: orders, isLoading, isInitialized, init } = useStore();
+  const { machines, odpOrders: orders, isLoading, isInitialized, init, cleanup } = useStore();
 
   useEffect(() => {
     if (!isInitialized) {
       init();
     }
-  }, [init, isInitialized]);
+    
+    // Cleanup function for component unmount
+    return () => {
+      cleanup();
+    };
+  }, [init, isInitialized, cleanup]);
 
   const metrics = useMemo(() => {
     if (isLoading) return {};

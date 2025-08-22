@@ -33,7 +33,8 @@ function SchedulerPage() {
     init, 
     scheduleTask, 
     unscheduleTask, 
-    showAlert 
+    showAlert, 
+    cleanup 
   } = useStore();
 
 
@@ -67,7 +68,12 @@ function SchedulerPage() {
     } else {
       setIsInitialLoad(false);
     }
-  }, [init, isInitialized]);
+    
+    // Cleanup function for component unmount
+    return () => {
+      cleanup();
+    };
+  }, [init, isInitialized, cleanup]);
 
   // Handle clicking outside dropdowns to close them
   useEffect(() => {

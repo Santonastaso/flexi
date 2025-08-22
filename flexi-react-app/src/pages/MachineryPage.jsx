@@ -18,6 +18,7 @@ function MachineryPage() {
   const removeMachine = useStore(state => state.removeMachine);
   const showAlert = useStore(state => state.showAlert);
   const showConfirmDialog = useStore(state => state.showConfirmDialog);
+  const cleanup = useStore(state => state.cleanup);
 
   // Filter machines by work center
   const filteredMachines = useMemo(() => {
@@ -37,7 +38,12 @@ function MachineryPage() {
     if (!isInitialized) {
       init();
     }
-  }, [init, isInitialized]);
+    
+    // Cleanup function for component unmount
+    return () => {
+      cleanup();
+    };
+  }, [init, isInitialized, cleanup]);
 
   const columns = useMemo(() => [
     // Identificazione

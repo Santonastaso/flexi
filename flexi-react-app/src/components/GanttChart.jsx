@@ -423,6 +423,11 @@ const GanttChart = React.memo(({ machines, tasks, currentDate }) => {
 
   useEffect(() => {
     loadMachineAvailabilityForDate(dateStr);
+    
+    // Cleanup function for component unmount
+    return () => {
+      // No specific cleanup needed for this effect, but good practice to have
+    };
   }, [dateStr, loadMachineAvailabilityForDate]);
 
   // Optimize unavailable hours processing with early returns

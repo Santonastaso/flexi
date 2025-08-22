@@ -19,6 +19,7 @@ function BacklogPage() {
   const removeOdpOrder = useStore(state => state.removeOdpOrder);
   const showAlert = useStore(state => state.showAlert);
   const showConfirmDialog = useStore(state => state.showConfirmDialog);
+  const cleanup = useStore(state => state.cleanup);
 
   // Filter orders by work center
   const filteredOrders = useMemo(() => {
@@ -38,7 +39,12 @@ function BacklogPage() {
     if (!isInitialized) {
       init();
     }
-  }, [init, isInitialized]);
+    
+    // Cleanup function for component unmount
+    return () => {
+      cleanup();
+    };
+  }, [init, isInitialized, cleanup]);
 
   // Callback for when a new order is successfully added
   const handleOrderAdded = () => {

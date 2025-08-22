@@ -95,6 +95,11 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
     };
     
     syncDataFromStore();
+    
+    // Cleanup function for component unmount
+    return () => {
+      // No specific cleanup needed for this effect, but good practice to have
+    };
   }, [machineId, currentDate, currentView, machineAvailability]);
 
   // Load availability data for the current view

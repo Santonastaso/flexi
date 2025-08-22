@@ -19,7 +19,14 @@ import { useAuth } from './auth/AuthContext';
 
 // This component creates the main layout with the sidebar
 const AppLayout = () => {
-  const { alert, hideAlert, confirmDialog, hideConfirmDialog } = useStore();
+  const { alert, hideAlert, confirmDialog, hideConfirmDialog, cleanup } = useStore();
+  
+  // Cleanup store when app unmounts
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
   
   return (
     <div className="main-content">

@@ -43,6 +43,35 @@ const setupRealtimeSubscriptions = (set, get) => {
   return channel;
 };
 
+// Cleanup function for real-time subscriptions
+const cleanupRealtimeSubscriptions = () => {
+  if (window.realtimeChannel) {
+    try {
+      window.realtimeChannel.unsubscribe();
+      window.realtimeChannel = null;
+    } catch (error) {
+      // Silent cleanup - subscription might already be closed
+    }
+  }
+};
+
+// Setup global cleanup on page unload
+let beforeUnloadHandler = null;
+if (typeof window !== 'undefined') {
+  beforeUnloadHandler = () => {
+    cleanupRealtimeSubscriptions();
+  };
+  window.addEventListener('beforeunload', beforeUnloadHandler);
+}
+
+// Cleanup function for removing global event listeners
+const cleanupGlobalListeners = () => {
+  if (typeof window !== 'undefined' && beforeUnloadHandler) {
+    window.removeEventListener('beforeunload', beforeUnloadHandler);
+    beforeUnloadHandler = null;
+  }
+};
+
 // Handle ODP Orders changes
 const handleOdpOrdersChange = (payload, set, get) => {
   const { eventType, newRecord, oldRecord } = payload;
@@ -396,10 +425,7 @@ export const useStore = create((set, get) => ({
 
   reset: () => {
     // Cleanup real-time subscriptions
-    if (window.realtimeChannel) {
-      window.realtimeChannel.unsubscribe();
-      window.realtimeChannel = null;
-    }
+    cleanupRealtimeSubscriptions();
     
     set({
       machines: [],
@@ -410,6 +436,12 @@ export const useStore = create((set, get) => ({
       isInitialized: false,
       alert: { message: '', type: 'info', isVisible: false }
     });
+  },
+
+  // Cleanup function for component unmounting
+  cleanup: () => {
+    cleanupRealtimeSubscriptions();
+    cleanupGlobalListeners();
   },
 
   // Alert actions
