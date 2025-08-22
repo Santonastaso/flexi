@@ -1,5 +1,25 @@
 /* ===== SCHEDULER & CALENDAR STYLES ===== */
 
+/* Global rule to ensure no shadows or transforms during dragging */
+*[class*="dragging"], *[class*="drag-overlay"] {
+    box-shadow: none !important;
+    filter: none !important;
+    text-shadow: none !important;
+    transform: none !important;
+}
+
+/* Hide original task during dragging to prevent old position persistence */
+.task-item.dragging {
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Hide original scheduled event during dragging to prevent old position persistence */
+.scheduled-event.dragging {
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
 /* Drop Indicator Styles */
 .drop-indicator {
   position: absolute !important;
@@ -863,16 +883,26 @@
 /* --- Task Pool --- */
 .task-pool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 16px; min-height: 120px; border: 2px dashed var(--border-color); border-radius: 12px; padding: 20px; background-color: rgba(0,0,0,0.02); transition: all 0.3s ease; }
 .task-pool-grid.drag-over { border-color: var(--primary-blue); background-color: rgba(37, 99, 235, 0.05); transform: scale(1.01); }
-.task-item { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 16px; border-radius: 12px; font-weight: 700; cursor: grab; user-select: none; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.2s ease; display: flex; align-items: center; justify-content: space-between; border: none; }
-.task-item:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
-.task-item.dragging { opacity: 0.5; transform: rotate(5deg) scale(1.05); }
+.task-item { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 16px; border-radius: 12px; font-weight: 700; cursor: grab; user-select: none; display: flex; align-items: center; justify-content: space-between; border: none; }
+.task-item:hover { }
+.task-item.dragging { 
+    opacity: 1; 
+    box-shadow: none !important; 
+    transform: none !important;
+    background: #4f46e5 !important;
+    color: white !important;
+    border-radius: 6px !important;
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    min-height: 36px !important;
+}
 
 .task-item.drag-overlay {
     cursor: grabbing;
     transform: rotate(3deg) scale(1.05);
     opacity: 0.9;
     z-index: 1002;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
 }
 .task-duration { background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 6px; font-size: 12px; }
 
@@ -935,8 +965,6 @@
     justify-content: center;
     gap: 4px;
     user-select: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    transition: transform 0.2s ease, box-shadow 0.2s ease; /* Only transition transform and shadow for better performance */
     overflow: visible;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1136,16 +1164,17 @@
 
 .scheduled-event:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 .scheduled-event.dragging {
-    opacity: 0.3;
+    opacity: 1;
     cursor: grabbing;
-    box-shadow: none;
+    box-shadow: none !important;
     z-index: 1001;
     pointer-events: none;
     transition: none;
+    background: #4f46e5 !important;
+    transform: none !important;
 }
 
 .scheduled-event.cross-day {
@@ -2314,16 +2343,34 @@
 /* --- Task Pool --- */
 .task-pool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 16px; min-height: 120px; border: 2px dashed var(--border-color); border-radius: 12px; padding: 20px; background-color: rgba(0,0,0,0.02); transition: all 0.3s ease; }
 .task-pool-grid.drag-over { border-color: var(--primary-blue); background-color: rgba(37, 99, 235, 0.05); transform: scale(1.01); }
-.task-item { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 16px; border-radius: 12px; font-weight: 700; user-select: none; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; gap: 8px; border: none; position: relative; }
-.task-item:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
-.task-item.dragging { opacity: 0.5; transform: rotate(5deg) scale(1.05); }
+.task-item { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 16px; border-radius: 12px; font-weight: 700; user-select: none; display: flex; flex-direction: column; align-items: center; gap: 8px; border: none; position: relative; }
+.task-item:hover { }
+.task-item.dragging { 
+    opacity: 1; 
+    box-shadow: none !important; 
+    transform: none !important;
+    background: #4f46e5 !important;
+    color: white !important;
+    border-radius: 6px !important;
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    min-height: 36px !important;
+}
 
 .task-item.drag-overlay {
     cursor: grabbing;
-    transform: rotate(3deg) scale(1.05);
-    opacity: 0.9;
+    opacity: 1;
     z-index: 1002;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    box-shadow: none !important;
+    background: #4f46e5 !important;
+    color: white !important;
+    border-radius: 6px !important;
+    padding: 6px 8px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    min-height: 36px !important;
+    transform: none !important;
 }
 .task-duration { background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 6px; font-size: 12px; }
 
@@ -2387,8 +2434,6 @@
     flex-direction: row;
     gap: 2px;
     margin-top: 0;
-    /* Ultra-light - minimal shadow */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
