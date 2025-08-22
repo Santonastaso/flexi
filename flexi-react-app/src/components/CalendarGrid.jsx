@@ -13,12 +13,73 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
   
   const machines = useStore(state => state.machines);
   const odpOrders = useStore(state => state.odpOrders);
+  const machineAvailability = useStore(state => state.machineAvailability);
   const getMachineAvailability = useStore(state => state.getMachineAvailability);
   const loadMachineAvailabilityForDateRange = useStore(state => state.loadMachineAvailabilityForDateRange);
   const toggleMachineHourAvailability = useStore(state => state.toggleMachineHourAvailability);
   const showAlert = useStore(state => state.showAlert);
   
   const machine = machines.find(m => m.id === machineId);
+
+  // Sync local state with store state when machineAvailability changes
+  useEffect(() => {
+    if (!machineId || !machineAvailability) return;
+    
+    // Extract data for the current view dates from the store
+    const syncDataFromStore = () => {
+      const organizedData = {};
+      
+      if (currentView === 'Month') {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        
+        // Process all dates in the month view
+        const currentDateObj = new Date(firstDay);
+        while (currentDateObj <= lastDay) {
+          const dateStr = toDateString(currentDateObj);
+          const storeData = machineAvailability[dateStr];
+          if (storeData && Array.isArray(storeData)) {
+            const machineData = storeData.find(item => item.machine_id === machineId);
+            if (machineData && machineData.unavailable_hours) {
+              organizedData[dateStr] = machineData.unavailable_hours;
+            }
+          }
+          currentDateObj.setDate(currentDateObj.getDate() + 1);
+        }
+      } else if (currentView === 'Week') {
+        const startOfWeek = getStartOfWeek(currentDate);
+        for (let i = 0; i < 7; i++) {
+          const day = new Date(startOfWeek);
+          day.setDate(startOfWeek.getDate() + i);
+          const dateStr = toDateString(day);
+          const storeData = machineAvailability[dateStr];
+          if (storeData && Array.isArray(storeData)) {
+            const machineData = storeData.find(item => item.machine_id === machineId);
+            if (machineData && machineData.unavailable_hours) {
+              organizedData[dateStr] = machineData.unavailable_hours;
+            }
+          }
+        }
+      } else {
+        // Day view - just sync the current date
+        const dateStr = toDateString(currentDate);
+        const storeData = machineAvailability[dateStr];
+        if (storeData && Array.isArray(storeData)) {
+          const machineData = storeData.find(item => item.machine_id === machineId);
+          if (machineData && machineData.unavailable_hours) {
+            organizedData[dateStr] = machineData.unavailable_hours;
+          }
+        }
+      }
+      
+      console.log('CalendarGrid: Syncing data from store:', organizedData);
+      setAvailabilityData(organizedData);
+    };
+    
+    syncDataFromStore();
+  }, [machineId, currentDate, currentView, machineAvailability]);
 
   // Load availability data for the current view
   useEffect(() => {
@@ -63,8 +124,24 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
                 console.log(`CalendarGrid: Organized data for ${dateStr}:`, item.unavailable_hours);
               }
             });
-            console.log(`CalendarGrid: Final organized data:`, organizedData);
-            setAvailabilityData(organizedData);
+            
+            // Merge with store data (store data takes priority)
+            const mergedData = { ...organizedData };
+            if (machineAvailability) {
+              Object.keys(machineAvailability).forEach(dateStr => {
+                const storeData = machineAvailability[dateStr];
+                if (storeData && Array.isArray(storeData)) {
+                  const machineData = storeData.find(item => item.machine_id === machineId);
+                  if (machineData && machineData.unavailable_hours) {
+                    mergedData[dateStr] = machineData.unavailable_hours;
+                    console.log(`CalendarGrid: Merged store data for ${dateStr}:`, machineData.unavailable_hours);
+                  }
+                }
+              });
+            }
+            
+            console.log(`CalendarGrid: Final merged data:`, mergedData);
+            setAvailabilityData(mergedData);
           }
         } else if (currentView === 'Week') {
           // For week view, load data for the entire week
@@ -93,17 +170,46 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
                 console.log(`CalendarGrid: Organized week data for ${dateStr}:`, item.unavailable_hours);
               }
             });
-            console.log(`CalendarGrid: Final organized week data:`, organizedData);
-            setAvailabilityData(organizedData);
+            
+            // Merge with store data (store data takes priority)
+            const mergedData = { ...organizedData };
+            if (machineAvailability) {
+              Object.keys(machineAvailability).forEach(dateStr => {
+                const storeData = machineAvailability[dateStr];
+                if (storeData && Array.isArray(storeData)) {
+                  const machineData = storeData.find(item => item.machine_id === machineId);
+                  if (machineData && machineData.unavailable_hours) {
+                    mergedData[dateStr] = machineData.unavailable_hours;
+                    console.log(`CalendarGrid: Merged store data for week ${dateStr}:`, machineData.unavailable_hours);
+                  }
+                }
+              });
+            }
+            
+            console.log(`CalendarGrid: Final merged week data:`, mergedData);
+            setAvailabilityData(mergedData);
           }
         } else {
           // For other views (like Day), load data for the specific date
           const dateStr = toDateString(currentDate);
           const data = await getMachineAvailability(machineId, dateStr);
           if (data && Array.isArray(data)) {
+            // Merge with store data (store data takes priority)
+            let finalData = data;
+            if (machineAvailability && machineAvailability[dateStr]) {
+              const storeData = machineAvailability[dateStr];
+              if (Array.isArray(storeData)) {
+                const machineData = storeData.find(item => item.machine_id === machineId);
+                if (machineData && machineData.unavailable_hours) {
+                  finalData = machineData.unavailable_hours;
+                  console.log(`CalendarGrid: Using store data for day view ${dateStr}:`, finalData);
+                }
+              }
+            }
+            
             setAvailabilityData(prev => ({
               ...prev,
-              [dateStr]: data
+              [dateStr]: finalData
             }));
           }
         }
@@ -115,7 +221,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
     };
     
     loadData();
-  }, [machineId, currentDate, currentView, refreshTrigger, getMachineAvailability, loadMachineAvailabilityForDateRange]);
+  }, [machineId, currentDate, currentView, refreshTrigger, machineAvailability, getMachineAvailability, loadMachineAvailabilityForDateRange]);
 
   // Check if a time slot has scheduled tasks
   const hasScheduledTask = (dateStr, hour) => {
@@ -154,24 +260,8 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
       console.log(`Toggling hour ${hour} for ${dateStr} on machine ${machine.id}`);
       await toggleMachineHourAvailability(machine.id, dateStr, hour);
       
-      // Update local state immediately for responsive UI
-      setAvailabilityData(prev => {
-        const newData = { ...prev };
-        if (!newData[dateStr]) newData[dateStr] = [];
-        
-        const currentHours = [...newData[dateStr]];
-        const hourStr = hour.toString();
-        
-        if (currentHours.includes(hourStr)) {
-          newData[dateStr] = currentHours.filter(h => h !== hourStr);
-          console.log(`Removed hour ${hourStr}, new array:`, newData[dateStr]);
-        } else {
-          newData[dateStr] = [...currentHours, hourStr].sort((a, b) => parseInt(a) - parseInt(b));
-          console.log(`Added hour ${hourStr}, new array:`, newData[dateStr]);
-        }
-        
-        return newData;
-      });
+      // The store sync useEffect will automatically update the local state
+      // No need to manually update local state here
     } catch (error) {
       console.error('Error toggling time slot:', error);
     }
