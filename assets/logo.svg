@@ -1,21 +1,24 @@
-<svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
+<svg width="80" height="40" viewBox="0 0 80 40" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <style>
       .logo-text {
         font-family: 'Arial', 'Helvetica', sans-serif;
         font-size: 24px;
-        font-weight: 600;
+        font-weight: 700;
         text-transform: lowercase;
       }
-      .flex-part {
-        fill: #3B82F6;
+      .flexi-part {
+        fill: #0ea5e9;
+      }
+      .x-part {
+        fill: #22c55e;
       }
       .i-part {
-        fill: #84CC16;
+        fill: #0ea5e9;
       }
     </style>
   </defs>
-  <text x="10" y="28" class="logo-text">
-    <tspan class="flex-part">flex</tspan><tspan class="i-part">i</tspan>
+  <text x="8" y="28" class="logo-text">
+    <tspan class="flexi-part">fle</tspan><tspan class="x-part">x</tspan><tspan class="i-part">i</tspan>
   </text>
 </svg>
