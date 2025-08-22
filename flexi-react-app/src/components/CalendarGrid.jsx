@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useStore } from '../store/useStore';
 import {
   toDateString,
@@ -21,86 +21,84 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
   
   const machine = machines.find(m => m.id === machineId);
 
+  // Optimized data processing with Map for O(1) lookups
+  const processedAvailabilityData = useMemo(() => {
+    if (!machineId || !machineAvailability) return {};
+    
+    const organizedData = {};
+    
+    // Create a Map for O(1) machine data lookups
+    const machineDataMap = new Map();
+    
+    // Process all dates in machineAvailability once
+    Object.entries(machineAvailability).forEach(([dateStr, dateData]) => {
+      if (Array.isArray(dateData)) {
+        // Find machine data once per date
+        const machineData = dateData.find(item => item.machine_id === machineId);
+        if (machineData && machineData.unavailable_hours) {
+          organizedData[dateStr] = machineData.unavailable_hours;
+          machineDataMap.set(dateStr, machineData);
+        }
+      }
+    });
+    
+    return { organizedData, machineDataMap };
+  }, [machineId, machineAvailability]);
+
+  // Optimized date range generation
+  const dateRange = useMemo(() => {
+    if (!currentDate) return { dates: [], dateStrings: [] };
+    
+    let dates = [];
+    let dateStrings = [];
+    
+    if (currentView === 'Month') {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      
+      const currentDateObj = new Date(firstDay);
+      while (currentDateObj <= lastDay) {
+        dates.push(new Date(currentDateObj));
+        dateStrings.push(toDateString(currentDateObj));
+        currentDateObj.setDate(currentDateObj.getDate() + 1);
+      }
+    } else if (currentView === 'Week') {
+      const startOfWeek = getStartOfWeek(currentDate);
+      for (let i = 0; i < 7; i++) {
+        const day = new Date(startOfWeek);
+        day.setDate(startOfWeek.getDate() + i);
+        dates.push(day);
+        dateStrings.push(toDateString(day));
+      }
+    } else if (currentView === 'Year') {
+      const year = currentDate.getFullYear();
+      for (let month = 0; month < 12; month++) {
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        for (let day = 1; day <= daysInMonth; day++) {
+          const dateObj = new Date(year, month, day);
+          dates.push(dateObj);
+          dateStrings.push(toDateString(dateObj));
+        }
+      }
+    } else {
+      // Day view
+      dates.push(currentDate);
+      dateStrings.push(toDateString(currentDate));
+    }
+    
+    return { dates, dateStrings };
+  }, [currentDate, currentView]);
+
   // Sync local state with store state when machineAvailability changes
   useEffect(() => {
     if (!machineId || !machineAvailability) return;
     
-    // Extract data for the current view dates from the store
-    const syncDataFromStore = () => {
-      const organizedData = {};
-      
-      if (currentView === 'Month') {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        
-        // Process all dates in the month view
-        const currentDateObj = new Date(firstDay);
-        while (currentDateObj <= lastDay) {
-          const dateStr = toDateString(currentDateObj);
-          const storeData = machineAvailability[dateStr];
-          if (storeData && Array.isArray(storeData)) {
-            const machineData = storeData.find(item => item.machine_id === machineId);
-            if (machineData && machineData.unavailable_hours) {
-              organizedData[dateStr] = machineData.unavailable_hours;
-            }
-          }
-          currentDateObj.setDate(currentDateObj.getDate() + 1);
-        }
-      } else if (currentView === 'Week') {
-        const startOfWeek = getStartOfWeek(currentDate);
-        for (let i = 0; i < 7; i++) {
-          const day = new Date(startOfWeek);
-          day.setDate(startOfWeek.getDate() + i);
-          const dateStr = toDateString(day);
-          const storeData = machineAvailability[dateStr];
-          if (storeData && Array.isArray(storeData)) {
-            const machineData = storeData.find(item => item.machine_id === machineId);
-            if (machineData && machineData.unavailable_hours) {
-              organizedData[dateStr] = machineData.unavailable_hours;
-            }
-          }
-        }
-      } else if (currentView === 'Year') {
-        // Year view - sync data for the entire year
-        const year = currentDate.getFullYear();
-        for (let month = 0; month < 12; month++) {
-          const daysInMonth = new Date(year, month + 1, 0).getDate();
-          for (let day = 1; day <= daysInMonth; day++) {
-            const dateObj = new Date(year, month, day);
-            const dateStr = toDateString(dateObj);
-            const storeData = machineAvailability[dateStr];
-            if (storeData && Array.isArray(storeData)) {
-              const machineData = storeData.find(item => item.machine_id === machineId);
-              if (machineData && machineData.unavailable_hours) {
-                organizedData[dateStr] = machineData.unavailable_hours;
-              }
-            }
-          }
-        }
-      } else {
-        // Day view - just sync the current date
-        const dateStr = toDateString(currentDate);
-        const storeData = machineAvailability[dateStr];
-        if (storeData && Array.isArray(storeData)) {
-          const machineData = storeData.find(item => item.machine_id === machineId);
-          if (machineData && machineData.unavailable_hours) {
-            organizedData[dateStr] = machineData.unavailable_hours;
-          }
-        }
-      }
-      
-      setAvailabilityData(organizedData);
-    };
-    
-    syncDataFromStore();
-    
-    // Cleanup function for component unmount
-    return () => {
-      // No specific cleanup needed for this effect, but good practice to have
-    };
-  }, [machineId, currentDate, currentView, machineAvailability]);
+    // Use the optimized data processing
+    const { organizedData } = processedAvailabilityData;
+    setAvailabilityData(organizedData);
+  }, [machineId, machineAvailability, processedAvailabilityData]);
 
   // Load availability data for the current view
   useEffect(() => {
@@ -109,151 +107,42 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
       
       setIsLoading(true);
       try {
-        if (currentView === 'Month') {
-          // For month view, load data for the entire month
-          const year = currentDate.getFullYear();
-          const month = currentDate.getMonth();
-          const firstDay = new Date(year, month, 1);
-          const lastDay = new Date(year, month + 1, 0);
+        // Use the optimized date range
+        const { dateStrings } = dateRange;
+        if (dateStrings.length === 0) return;
+        
+        // Load data for the entire range at once
+        const firstDateStr = dateStrings[0];
+        const lastDateStr = dateStrings[dateStrings.length - 1];
+        
+        const rangeData = await loadMachineAvailabilityForDateRange(machineId, firstDateStr, lastDateStr);
+        
+        // Process the range data efficiently
+        if (rangeData && Array.isArray(rangeData)) {
+          const organizedData = {};
           
-          // Convert to date strings without timezone using toDateString
-          const firstDayStr = toDateString(firstDay);
-          const lastDayStr = toDateString(lastDay);
-          
-          // Load data for the month range using date strings
-          const monthData = await loadMachineAvailabilityForDateRange(machineId, firstDayStr, lastDayStr);
-          
-          // Process the month data and organize by date
-          if (monthData && Array.isArray(monthData)) {
-            const organizedData = {};
-            monthData.forEach(item => {
-              if (item.date && item.unavailable_hours) {
-                // Convert date to the format expected by toDateString
-                const dateObj = new Date(item.date);
-                const dateStr = toDateString(dateObj);
-                organizedData[dateStr] = item.unavailable_hours;
-              }
-            });
-            
-            // Merge with store data (store data takes priority)
-            const mergedData = { ...organizedData };
-            if (machineAvailability) {
-              Object.keys(machineAvailability).forEach(dateStr => {
-                const storeData = machineAvailability[dateStr];
-                if (storeData && Array.isArray(storeData)) {
-                  const machineData = storeData.find(item => item.machine_id === machineId);
-                  if (machineData && machineData.unavailable_hours) {
-                    mergedData[dateStr] = machineData.unavailable_hours;
-                  }
-                }
-              });
+          // Process range data once
+          rangeData.forEach(item => {
+            if (item.date && item.unavailable_hours) {
+              const dateObj = new Date(item.date);
+              const dateStr = toDateString(dateObj);
+              organizedData[dateStr] = item.unavailable_hours;
             }
-            
-            setAvailabilityData(mergedData);
-          }
-        } else if (currentView === 'Week') {
-          // For week view, load data for the entire week
-          const startOfWeek = getStartOfWeek(currentDate);
-          const endOfWeek = getEndOfWeek(currentDate);
+          });
           
-          // Convert to date strings without timezone using toDateString
-          const startOfWeekStr = toDateString(startOfWeek);
-          const endOfWeekStr = toDateString(endOfWeek);
+          // Merge with store data efficiently using the Map
+          const { machineDataMap } = processedAvailabilityData;
+          const mergedData = { ...organizedData };
           
-          // Load data for the week range
-          const weekData = await loadMachineAvailabilityForDateRange(machineId, startOfWeekStr, endOfWeekStr);
-          
-          // Process the week data and organize by date
-          if (weekData && Array.isArray(weekData)) {
-            const organizedData = {};
-            weekData.forEach(item => {
-              if (item.date && item.unavailable_hours) {
-                // Convert date to the format expected by toDateString
-                const dateObj = new Date(item.date);
-                const dateStr = toDateString(dateObj);
-                organizedData[dateStr] = item.unavailable_hours;
-              }
-            });
-            
-            // Merge with store data (store data takes priority)
-            const mergedData = { ...organizedData };
-            if (machineAvailability) {
-              Object.keys(machineAvailability).forEach(dateStr => {
-                const storeData = machineAvailability[dateStr];
-                if (storeData && Array.isArray(storeData)) {
-                  const machineData = storeData.find(item => item.machine_id === machineId);
-                  if (machineData && machineData.unavailable_hours) {
-                    mergedData[dateStr] = machineData.unavailable_hours;
-                  }
-                }
-              });
+          // Use the Map for O(1) lookups instead of nested loops
+          dateStrings.forEach(dateStr => {
+            const storeMachineData = machineDataMap.get(dateStr);
+            if (storeMachineData && storeMachineData.unavailable_hours) {
+              mergedData[dateStr] = storeMachineData.unavailable_hours;
             }
-            
-            setAvailabilityData(mergedData);
-          }
-        } else if (currentView === 'Year') {
-          // For year view, load data for the entire year
-          const year = currentDate.getFullYear();
-          const firstDay = new Date(year, 0, 1); // January 1st
-          const lastDay = new Date(year, 11, 31); // December 31st
+          });
           
-          // Convert to date strings without timezone using toDateString
-          const firstDayStr = toDateString(firstDay);
-          const lastDayStr = toDateString(lastDay);
-          
-          // Load data for the year range using date strings
-          const yearData = await loadMachineAvailabilityForDateRange(machineId, firstDayStr, lastDayStr);
-          
-          // Process the year data and organize by date
-          if (yearData && Array.isArray(yearData)) {
-            const organizedData = {};
-            yearData.forEach(item => {
-              if (item.date && item.unavailable_hours) {
-                // Convert date to the format expected by toDateString
-                const dateObj = new Date(item.date);
-                const dateStr = toDateString(dateObj);
-                organizedData[dateStr] = item.unavailable_hours;
-              }
-            });
-            
-            // Merge with store data (store data takes priority)
-            const mergedData = { ...organizedData };
-            if (machineAvailability) {
-              Object.keys(machineAvailability).forEach(dateStr => {
-                const storeData = machineAvailability[dateStr];
-                if (storeData && Array.isArray(storeData)) {
-                  const machineData = storeData.find(item => item.machine_id === machineId);
-                  if (machineData && machineData.unavailable_hours) {
-                    mergedData[dateStr] = machineData.unavailable_hours;
-                  }
-                }
-              });
-            }
-            
-            setAvailabilityData(mergedData);
-          }
-        } else {
-          // For other views (like Day), load data for the specific date
-          const dateStr = toDateString(currentDate);
-          const data = await getMachineAvailability(machineId, dateStr);
-          if (data && Array.isArray(data)) {
-            // Merge with store data (store data takes priority)
-            let finalData = data;
-            if (machineAvailability && machineAvailability[dateStr]) {
-              const storeData = machineAvailability[dateStr];
-              if (Array.isArray(storeData)) {
-                const machineData = storeData.find(item => item.machine_id === machineId);
-                if (machineData && machineData.unavailable_hours) {
-                  finalData = machineData.unavailable_hours;
-                }
-              }
-            }
-            
-            setAvailabilityData(prev => ({
-              ...prev,
-              [dateStr]: finalData
-            }));
-          }
+          setAvailabilityData(mergedData);
         }
       } catch (error) {
         // Handle error silently
@@ -263,23 +152,36 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
     };
     
     loadData();
-  }, [machineId, currentDate, currentView, refreshTrigger, machineAvailability, getMachineAvailability, loadMachineAvailabilityForDateRange]);
+  }, [machineId, dateRange, processedAvailabilityData, loadMachineAvailabilityForDateRange]);
 
-  // Check if a time slot has scheduled tasks
-  const hasScheduledTask = (dateStr, hour) => {
-    if (!machine) return false;
-    
-    const scheduledTasks = odpOrders.filter(task => 
+  // Memoized scheduled tasks for the current machine to avoid repeated filtering
+  const scheduledTasksForMachine = useMemo(() => {
+    if (!machine) return [];
+    return odpOrders.filter(task => 
       task.status === 'SCHEDULED' && 
       task.scheduled_machine_id === machine.id
     );
-    
-    // Debug logging removed for production
-    
-    return scheduledTasks.some(task => isTaskOverlapping(task, dateStr, hour));
-  };
+  }, [machine, odpOrders]);
 
-  const handleTimeSlotClick = async (dateStr, hour) => {
+  // Check if a time slot has scheduled tasks
+  const hasScheduledTask = useCallback((dateStr, hour) => {
+    if (!machine || scheduledTasksForMachine.length === 0) return false;
+    
+    // Use the memoized scheduled tasks instead of filtering every time
+    return scheduledTasksForMachine.some(task => isTaskOverlapping(task, dateStr, hour));
+  }, [machine, scheduledTasksForMachine]);
+
+  // Memoized availability lookup for O(1) access
+  const availabilityLookup = useMemo(() => {
+    return new Map(Object.entries(availabilityData));
+  }, [availabilityData]);
+
+  // Optimized function to get availability for a specific date
+  const getAvailabilityForDate = useCallback((dateStr) => {
+    return availabilityLookup.get(dateStr) || [];
+  }, [availabilityLookup]);
+
+  const handleTimeSlotClick = useCallback(async (dateStr, hour) => {
     // Check if slot has scheduled tasks
     if (hasScheduledTask(dateStr, hour)) {
       showAlert('Cannot mark time slot as unavailable - it has scheduled tasks', 'error');
@@ -298,23 +200,11 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
     } catch (error) {
       // Handle error silently
     }
-  };
+  }, [hasScheduledTask, showAlert, machine, toggleMachineHourAvailability]);
 
-  const renderMonthView = () => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
-    
-    const days = [];
-    const currentDateObj = new Date(startDate);
-    
-    while (currentDateObj <= lastDay || days.length < 42) {
-      days.push(new Date(currentDateObj));
-      currentDateObj.setDate(currentDateObj.getDate() + 1);
-    }
+  const renderMonthView = useCallback(() => {
+    const { dates } = dateRange;
+    if (dates.length === 0) return null;
     
     const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
@@ -327,10 +217,10 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
         </div>
         
         <div className="calendar-days-grid">
-          {days.map((date, index) => {
+          {dates.map((date, index) => {
             const dateStr = toDateString(date);
-            const unavailableHours = availabilityData[dateStr] || [];
-            const isCurrentMonth = date.getMonth() === month;
+            const unavailableHours = getAvailabilityForDate(dateStr);
+            const isCurrentMonth = date.getMonth() === currentDate.getMonth();
             const isToday = date.toDateString() === new Date().toDateString();
             
             // Check if any hours on this day have scheduled tasks
@@ -367,18 +257,11 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
         </div>
       </div>
     );
-  };
+  }, [dateRange, getAvailabilityForDate, currentDate, hasScheduledTask]);
 
-  const renderWeekView = () => {
-    const startOfWeek = new Date(currentDate);
-    startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
-    
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(startOfWeek);
-      day.setDate(startOfWeek.getDate() + i);
-      days.push(day);
-    }
+  const renderWeekView = useCallback(() => {
+    const { dates } = dateRange;
+    if (dates.length === 0) return null;
     
     const hours = Array.from({ length: 24 }, (_, i) => i);
     
@@ -386,7 +269,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
       <div className="calendar-week-grid">
         <div className="time-column-header">
           <div className="time-header-cell">Time</div>
-          {days.map(day => (
+          {dates.map(day => (
             <div key={day.toISOString()} className="day-header-cell">
               {day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </div>
@@ -396,15 +279,13 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
         {hours.map(hour => (
           <div key={hour} className="time-row">
             <div className="time-label">{hour.toString().padStart(2, '0')}:00</div>
-            {days.map(day => {
+            {dates.map(day => {
               const dateStr = toDateString(day);
-              const unavailableHours = availabilityData[dateStr] || [];
+              const unavailableHours = getAvailabilityForDate(dateStr);
               // Convert hour to string for comparison since the database stores them as strings
               const hourStr = hour.toString();
               const isUnavailable = unavailableHours.includes(hourStr);
               const hasScheduled = hasScheduledTask(dateStr, hour);
-              
-              // Debug logging removed for production
               
               let slotClass = 'time-slot';
               if (isUnavailable) slotClass += ' unavailable';
@@ -426,9 +307,9 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
         ))}
       </div>
     );
-  };
+  }, [dateRange, getAvailabilityForDate, hasScheduledTask, handleTimeSlotClick]);
 
-  const renderYearView = () => {
+  const renderYearView = useCallback(() => {
     const year = currentDate.getFullYear();
     const months = Array.from({ length: 12 }, (_, i) => i);
     
@@ -461,7 +342,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
                   }
                   
                   const dateStr = toDateString(new Date(year, monthIndex, day));
-                  const unavailableHours = availabilityData[dateStr] || [];
+                  const unavailableHours = getAvailabilityForDate(dateStr);
                   const hasUnavailableHours = unavailableHours.length > 0;
                   
                   return (
@@ -480,7 +361,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
         })}
       </div>
     );
-  };
+  }, [currentDate, getAvailabilityForDate]);
 
   if (isLoading) {
     return <div className="loading">Loading calendar data...</div>;
