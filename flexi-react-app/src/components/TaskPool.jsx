@@ -31,7 +31,7 @@ const DraggableTask = React.memo(({ task }) => {
   return (
     <div ref={setNodeRef} style={style} className="task-item">
       <div className="task-content">
-        <span>{task.odp_number}</span>
+        <span className="task-label">{task.odp_number}</span>
         <span className="task-duration">{task.duration || 1}h</span>
       </div>
       
@@ -43,7 +43,9 @@ const DraggableTask = React.memo(({ task }) => {
 Quantity: ${task.quantity || 'Not specified'}
 ${task.scheduled_start_time ? `Scheduled: ${new Date(task.scheduled_start_time).toLocaleString()}` : ''}`}
         >
-          ℹ️
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+          </svg>
         </button>
         
         {/* Lock/Unlock Button */}
@@ -52,7 +54,15 @@ ${task.scheduled_start_time ? `Scheduled: ${new Date(task.scheduled_start_time).
           onClick={handleLockClick}
           title={isLocked ? "Unlock to enable dragging" : "Lock to disable dragging"}
         >
-          {isLocked ? '🔒' : '🔓'}
+          {isLocked ? (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/>
+            </svg>
+          ) : (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm6-9h-1V6c0-2.76-2.24-5-5-5-2.28 0-4.27 1.54-4.84 3.75-.14.54.18 1.08.72 1.22.53.14 1.08-.18 1.22-.72C9.44 6.06 10.72 5 12 5c1.66 0 3 1.34 3 3v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/>
+            </svg>
+          )}
         </button>
         
         {/* Drag Handle - only active when unlocked */}
@@ -63,7 +73,9 @@ ${task.scheduled_start_time ? `Scheduled: ${new Date(task.scheduled_start_time).
             {...attributes}
             title="Drag to schedule"
           >
-            🖐️
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+            </svg>
           </div>
         )}
       </div>
@@ -75,8 +87,9 @@ ${task.scheduled_start_time ? `Scheduled: ${new Date(task.scheduled_start_time).
 });
 
 // Main Task Pool Component - optimized for performance
-function TaskPool({ tasks }) {
+function TaskPool() {
   const { selectedWorkCenter } = useUIStore();
+  const { odpOrders: tasks } = useOrderStore();
   const { setNodeRef } = useDroppable({
     id: 'task-pool',
     data: { type: 'pool' },

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
-import { toDateString, addDaysToDate } from '../utils/dateUtils';
+import { toDateString, addDaysToDate, addHoursToDate } from '../utils/dateUtils';
 import { useOrderStore } from './useOrderStore';
 import { useMachineStore } from './useMachineStore';
 
@@ -13,6 +13,110 @@ export const useSchedulerStore = create((set, get) => ({
 
   // Actions
   setMachineAvailability: (availability) => set({ machineAvailability: availability }),
+
+  // Consolidated drag-and-drop methods
+  scheduleTaskFromSlot: async (taskId, machine, currentDate, hour, minute) => {
+    try {
+      // Get task and machine data
+      const { getOdpOrderById } = useOrderStore.getState();
+      const { getMachineById } = useMachineStore.getState();
+      const task = getOdpOrderById(taskId);
+      const machineData = getMachineById(machine.id);
+
+      if (!task || !machineData) {
+        return { error: 'Task or machine not found' };
+      }
+
+      // Calculate start and end times
+      const startDate = new Date(currentDate);
+      startDate.setHours(hour, minute, 0, 0);
+      const timeRemainingHours = task.time_remaining || task.duration || 1;
+      const endDate = addHoursToDate(startDate, timeRemainingHours);
+
+      // Create schedule data
+      const scheduleData = {
+        machine: machine.id,
+        start_time: startDate.toISOString(),
+        end_time: endDate.toISOString(),
+      };
+
+      // Use existing scheduleTask method with all validations
+      return await get().scheduleTask(taskId, scheduleData);
+    } catch (error) {
+      return { error: 'An error occurred during scheduling' };
+    }
+  },
+
+  rescheduleTaskToSlot: async (eventId, machine, currentDate, hour, minute) => {
+    try {
+      // Get event data
+      const { getOdpOrderById } = useOrderStore.getState();
+      const { getMachineById } = useMachineStore.getState();
+      const eventItem = getOdpOrderById(eventId);
+      const machineData = getMachineById(machine.id);
+
+      if (!eventItem || !machineData) {
+        return { error: 'Event or machine not found' };
+      }
+
+      // Calculate start and end times
+      const startDate = new Date(currentDate);
+      startDate.setHours(hour, minute, 0, 0);
+      const timeRemainingHours = eventItem.time_remaining || eventItem.duration || 1;
+      const endDate = addHoursToDate(startDate, timeRemainingHours);
+
+      // Create schedule data
+      const scheduleData = {
+        machine: machine.id,
+        start_time: startDate.toISOString(),
+        end_time: endDate.toISOString(),
+      };
+
+      // Use existing scheduleTask method with all validations
+      return await get().scheduleTask(eventId, scheduleData);
+    } catch (error) {
+      return { error: 'An error occurred during rescheduling' };
+    }
+  },
+
+  validateSlotAvailability: async (machine, currentDate, hour, minute) => {
+    try {
+      // Check if slot is unavailable
+      const dateStr = toDateString(currentDate);
+      const isUnavailable = await get().isTimeSlotUnavailable(machine.id, dateStr, hour);
+      
+      if (isUnavailable) {
+        return { error: 'Cannot schedule task on unavailable time slot' };
+      }
+
+      // Check if slot already has a scheduled task
+      const { getOdpOrders } = useOrderStore.getState();
+      const startDate = new Date(currentDate);
+      startDate.setHours(hour, minute, 0, 0);
+      const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour slot
+
+      const existingTasks = getOdpOrders().filter(o => 
+        o.scheduled_machine_id === machine.id && 
+        o.status === 'SCHEDULED' &&
+        o.scheduled_start_time
+      );
+
+      for (const existingTask of existingTasks) {
+        const existingStart = new Date(existingTask.scheduled_start_time);
+        const existingTimeRemaining = existingTask.time_remaining || existingTask.duration || 1;
+        const existingEnd = new Date(existingStart.getTime() + (existingTimeRemaining * 60 * 60 * 1000));
+        
+        // Check if the new time slot overlaps with existing task
+        if (startDate < existingEnd && endDate > existingStart) {
+          return { error: 'Cannot schedule task on occupied time slot' };
+        }
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { error: 'Error validating slot availability' };
+    }
+  },
 
   // Scheduler actions
   scheduleTask: async (taskId, eventData) => {

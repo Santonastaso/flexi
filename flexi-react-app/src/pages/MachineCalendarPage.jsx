@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useStore } from '../store/useStore';
+import { useMachineStore, useUIStore, useMainStore } from '../store';
 import CalendarViewControls from '../components/CalendarViewControls';
 import OffTimeForm from '../components/OffTimeForm';
 import CalendarGrid from '../components/CalendarGrid';
@@ -11,13 +11,14 @@ function MachineCalendarPage() {
   const [currentView, setCurrentView] = useState('Month');
   const [refreshKey, setRefreshKey] = useState(0);
   
-  const machine = useStore(state => 
-    state.machines.find(m => m.id === machineId)
-  );
-  const isLoading = useStore(state => state.isLoading);
-  const isInitialized = useStore(state => state.isInitialized);
-  const init = useStore(state => state.init);
-  const cleanup = useStore(state => state.cleanup);
+  // Use modern slice stores instead of legacy useStore
+  const { getMachineById } = useMachineStore();
+  const { getLoadingState, getInitializationState } = useUIStore();
+  const { init, cleanup } = useMainStore();
+  
+  const machine = getMachineById(machineId);
+  const isLoading = getLoadingState();
+  const isInitialized = getInitializationState();
 
   useEffect(() => {
     if (!isInitialized) {

@@ -86,43 +86,11 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
         return { baseLeft, baseWidth, eventSpansCurrentDay, eventStartsOnCurrentDay, eventEndsOnCurrentDay };
     }, [event.scheduled_start_time, event.time_remaining, event.duration, currentDate]);
 
-    // Calculate responsive button sizes based on task width - moved before conditional return
-    const buttonSize = useMemo(() => {
-        if (!eventPosition) return 22; // Default size
-        const { baseWidth } = eventPosition;
-        const isVerySmallTask = baseWidth < 60; // Less than 3 time slots (45 minutes)
-        const isSmallTask = baseWidth < 120; // Less than 6 time slots (1.5 hours)
-        return isVerySmallTask ? 18 : isSmallTask ? 20 : 22;
-    }, [eventPosition]);
-
-    const buttonGap = useMemo(() => {
-        if (!eventPosition) return 5; // Default gap
-        const { baseWidth } = eventPosition;
-        const isVerySmallTask = baseWidth < 60;
-        const isSmallTask = baseWidth < 120;
-        return isVerySmallTask ? 3 : isSmallTask ? 4 : 5;
-    }, [eventPosition]);
-
-    const fontSize = useMemo(() => {
-        if (!eventPosition) return 13; // Default size
-        const { baseWidth } = eventPosition;
-        const isVerySmallTask = baseWidth < 60;
-        const isSmallTask = baseWidth < 120;
-        return isVerySmallTask ? 11 : isSmallTask ? 12 : 13;
-    }, [eventPosition]);
-
-    const shouldOverlayButtons = useMemo(() => {
-        if (!eventPosition) return false;
-        const { baseWidth } = eventPosition;
-        const isVerySmallTask = baseWidth < 60;
-        return isVerySmallTask && baseWidth < 80; // Less than 4 time slots (1 hour)
-    }, [eventPosition]);
-
-    const isExtremelyNarrow = useMemo(() => {
-        if (!eventPosition) return false;
-        const { baseWidth } = eventPosition;
-        return baseWidth < 40; // Less than 2 time slots (30 minutes)
-    }, [eventPosition]);
+    // Simplified sizing logic - CSS will handle responsive behavior
+    const isVerySmallTask = eventPosition?.baseWidth < 60; // Less than 3 time slots (45 minutes)
+    const isSmallTask = eventPosition?.baseWidth < 120; // Less than 6 time slots (1.5 hours)
+    const shouldOverlayButtons = isVerySmallTask && eventPosition?.baseWidth < 80; // Less than 4 time slots (1 hour)
+    const isExtremelyNarrow = eventPosition?.baseWidth < 40; // Less than 2 time slots (30 minutes)
 
     const style = useMemo(() => {
         if (!eventPosition) return {};
@@ -159,8 +127,9 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
             opacity: 1,
             // Minimal transitions
             transition: 'opacity 0.1s ease',
+
         };
-    }, [eventPosition, isDragging, transform]);
+    }, [eventPosition, isDragging, transform, isSmallTask, isVerySmallTask, isExtremelyNarrow]);
 
     const handleLockClick = useCallback((e) => {
         e.stopPropagation(); // Prevent drag from starting
@@ -178,7 +147,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
         <div 
             ref={setNodeRef} 
             style={style || {}} 
-            className={`scheduled-event ${isDragging ? 'dragging' : ''} ${eventSpansCurrentDay && !eventStartsOnCurrentDay && !eventEndsOnCurrentDay ? 'cross-day' : ''}`}
+            className={`scheduled-event ${isDragging ? 'dragging' : ''} ${eventSpansCurrentDay && !eventStartsOnCurrentDay && !eventEndsOnCurrentDay ? 'cross-day' : ''} ${isVerySmallTask ? 'very-small' : ''} ${isSmallTask ? 'small' : ''} ${isExtremelyNarrow ? 'extremely-narrow' : ''}`}
         >
             <div 
                 className={`event-content`}
@@ -195,16 +164,6 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
             {!isDragging && (
                 <div 
                     className={`event-controls ${shouldOverlayButtons ? 'overlay' : ''}`}
-                    style={{
-                        gap: `${buttonGap}px`,
-                        marginTop: `${buttonGap}px`,
-                        flexDirection: shouldOverlayButtons ? 'column' : 'row',
-                        ...(shouldOverlayButtons && {
-                            left: isExtremelyNarrow ? '50%' : '50%',
-                            transform: isExtremelyNarrow ? 'translateX(-50%)' : 'translateX(-50%)',
-                            minWidth: isExtremelyNarrow ? '120px' : 'auto'
-                        })
-                    }}
                 >
                 {/* Info Button */}
                 <button 
@@ -212,11 +171,6 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                     title={`Delivery Date: ${event.delivery_date ? new Date(event.delivery_date).toLocaleDateString() : 'Not set'}
 Quantity: ${event.quantity || 'Not specified'}
 ${event.scheduled_start_time ? `Scheduled: ${new Date(event.scheduled_start_time).toLocaleString()}` : ''}`}
-                    style={{
-                        width: `${buttonSize}px`,
-                        height: `${buttonSize}px`,
-                        fontSize: `${fontSize}px`
-                    }}
                 >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
@@ -228,11 +182,6 @@ ${event.scheduled_start_time ? `Scheduled: ${new Date(event.scheduled_start_time
                     className={`event-btn lock-btn ${isLocked ? 'locked' : 'unlocked'}`}
                     onClick={handleLockClick}
                     title={isLocked ? "Unlock to enable dragging" : "Lock to disable dragging"}
-                    style={{
-                        width: `${buttonSize}px`,
-                        height: `${buttonSize}px`,
-                        fontSize: `${fontSize}px`
-                    }}
                 >
                     {isLocked ? (
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
@@ -252,11 +201,6 @@ ${event.scheduled_start_time ? `Scheduled: ${new Date(event.scheduled_start_time
                         {...listeners} 
                         {...attributes}
                         title="Drag to reschedule"
-                        style={{
-                            width: `${buttonSize}px`,
-                            height: `${buttonSize}px`,
-                            fontSize: `${fontSize + 2}px`
-                        }}
                     >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
@@ -322,7 +266,8 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
 });
 
 // The main Gantt Chart component - heavily optimized for performance
-const GanttChart = React.memo(({ machines, tasks, currentDate }) => {
+const GanttChart = React.memo(({ machines, currentDate }) => {
+  const { odpOrders: tasks } = useOrderStore();
   const scheduledTasks = useMemo(() =>
     tasks.filter(task => task.status === 'SCHEDULED'),
     [tasks]

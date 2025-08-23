@@ -545,6 +545,11 @@
     min-height: 36px;
     will-change: auto;
     transform: none;
+    
+    /* CSS custom properties for responsive sizing */
+    --button-size: 22px;
+    --button-gap: 5px;
+    --font-size: 13px;
 }
 
 .scheduled-event:hover {
@@ -585,6 +590,25 @@
     pointer-events: none;
 }
 
+/* Responsive sizing classes */
+.scheduled-event.small {
+    --button-size: 20px;
+    --button-gap: 4px;
+    --font-size: 12px;
+}
+
+.scheduled-event.very-small {
+    --button-size: 18px;
+    --button-gap: 3px;
+    --font-size: 11px;
+}
+
+.scheduled-event.extremely-narrow {
+    --button-size: 18px;
+    --button-gap: 3px;
+    --font-size: 11px;
+}
+
 .event-label {
     font-weight: 700;
     text-align: center;
@@ -612,19 +636,26 @@
 }
 
 .task-item {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--primary-blue);
     color: white;
-    padding: 12px 16px;
-    border-radius: 12px;
-    font-weight: 700;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-weight: 600;
     user-select: none;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
     border: none;
     position: relative;
     cursor: grab;
+    min-height: 36px;
+    font-size: 12px;
+    
+    /* CSS custom properties for responsive sizing - same as scheduled events */
+    --button-size: 22px;
+    --button-gap: 5px;
+    --font-size: 13px;
 }
 
 .task-item.dragging {
@@ -653,6 +684,12 @@
     font-weight: 600 !important;
     min-height: 36px !important;
     transform: none !important;
+}
+
+.task-label {
+    font-weight: 700;
+    text-align: center;
+    width: 100%;
 }
 
 .task-duration {
@@ -973,8 +1010,8 @@
 .task-controls, .event-controls {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-top: 6px;
+    gap: var(--button-gap);
+    margin-top: var(--button-gap);
     justify-content: center;
 }
 
@@ -1009,9 +1046,16 @@
     justify-content: center;
 }
 
+/* Handle extremely narrow events */
+.scheduled-event.extremely-narrow .event-controls.overlay {
+    min-width: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
 .task-btn, .event-btn {
-    width: 24px;
-    height: 24px;
+    width: var(--button-size);
+    height: var(--button-size);
     border: none;
     background: rgba(255, 255, 255, 0.9);
     border-radius: 4px;
@@ -1019,7 +1063,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: var(--font-size);
     transition: none;
     flex-shrink: 0;
     color: #374151;
@@ -1063,8 +1107,8 @@
 }
 
 .drag-handle {
-    width: 24px;
-    height: 24px;
+    width: var(--button-size);
+    height: var(--button-size);
     background: var(--warning-orange);
     border: none;
     border-radius: 4px;

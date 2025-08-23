@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense, lazy } from 'react';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import { useOrderStore, useMachineStore, useUIStore, useSchedulerStore, useMainStore } from '../store';
-import { addHoursToDate } from '../utils/dateUtils';
+
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
 import SearchableDropdown from '../components/SearchableDropdown';
 
@@ -25,10 +25,9 @@ const LoadingFallback = () => (
 
 function SchedulerPage() {
   // Select state and actions from Zustand store
-  const { odpOrders: tasks } = useOrderStore();
   const { machines } = useMachineStore();
   const { selectedWorkCenter, isLoading, isInitialized, showAlert } = useUIStore();
-  const { scheduleTask, unscheduleTask } = useSchedulerStore();
+  const { scheduleTask, unscheduleTask, scheduleTaskFromSlot, rescheduleTaskToSlot, validateSlotAvailability } = useSchedulerStore();
   const { init, cleanup } = useMainStore();
 
 
@@ -279,18 +278,8 @@ function SchedulerPage() {
               return resolve();
             }
 
-            const startDate = new Date(currentDate);
-            startDate.setHours(hour, minute, 0, 0);
-            const timeRemainingHours = task.time_remaining || task.duration || 1;
-            const endDate = addHoursToDate(startDate, timeRemainingHours);
-
-            const scheduleData = {
-              machine: machine.id,
-              start_time: startDate.toISOString(),
-              end_time: endDate.toISOString(),
-            };
-
-            const result = await scheduleTask(task.id, scheduleData);
+            // Use consolidated method from store
+            const result = await scheduleTaskFromSlot(task.id, machine, currentDate, hour, minute);
             if (result?.error) {
               showAlert(result.error, 'error');
             }
@@ -312,18 +301,8 @@ function SchedulerPage() {
               return resolve();
             }
 
-            const startDate = new Date(currentDate);
-            startDate.setHours(hour, minute, 0, 0);
-            const timeRemainingHours = eventItem.time_remaining || eventItem.duration || 1;
-            const endDate = addHoursToDate(startDate, timeRemainingHours);
-
-            const scheduleData = {
-              machine: machine.id,
-              start_time: startDate.toISOString(),
-              end_time: endDate.toISOString(),
-            };
-
-            const result = await scheduleTask(eventItem.id, scheduleData);
+            // Use consolidated method from store
+            const result = await rescheduleTaskToSlot(eventItem.id, machine, currentDate, hour, minute);
             if (result?.error) {
               showAlert(result.error, 'error');
             }
@@ -343,7 +322,7 @@ function SchedulerPage() {
     } finally {
       isDragOperationRef.current = false;
     }
-  }, [currentDate, scheduleTask, unscheduleTask, showAlert]);
+  }, [currentDate, scheduleTaskFromSlot, rescheduleTaskToSlot, unscheduleTask, showAlert]);
 
     // Show loading state during initial load
   if (isLoading || isInitialLoad) {
@@ -370,7 +349,7 @@ function SchedulerPage() {
     <DndContext onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
       <div className="scheduler-container">
         <Suspense fallback={<LoadingFallback />}>
-          <TaskPool tasks={tasks} currentDate={currentDate} />
+          <TaskPool />
         </Suspense>
 
         {/* Production Schedule Controls Section */}
@@ -539,7 +518,7 @@ function SchedulerPage() {
         </div>
 
         <Suspense fallback={<LoadingFallback />}>
-          <GanttChart machines={filteredMachines} tasks={tasks} currentDate={currentDate} />
+          <GanttChart machines={filteredMachines} currentDate={currentDate} />
         </Suspense>
       </div>
 
