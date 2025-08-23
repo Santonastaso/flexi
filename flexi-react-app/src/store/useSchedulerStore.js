@@ -445,7 +445,43 @@ export const useSchedulerStore = create((set, get) => ({
       const endDateObj = new Date(endDate);
       
       // Load updated availability data for the range
-      await get().loadMachineAvailabilityForDateRange(machineId, startDateObj, endDateObj);
+      const updatedData = await get().loadMachineAvailabilityForDateRange(machineId, startDateObj, endDateObj);
+      
+      // Update the store in the format that CalendarGrid expects
+      if (updatedData && Array.isArray(updatedData)) {
+        set(state => {
+          const next = { ...state.machineAvailability };
+          
+          // Process each date in the updated data
+          updatedData.forEach(item => {
+            if (item.date && item.unavailable_hours) {
+              const dateStr = toDateString(new Date(item.date));
+              
+              // Initialize the date array if it doesn't exist
+              if (!next[dateStr]) {
+                next[dateStr] = [];
+              }
+              
+              // Find existing machine data for this date
+              const existingMachineData = next[dateStr].find(r => r.machine_id === machineId);
+              
+              if (existingMachineData) {
+                // Update existing machine data
+                existingMachineData.unavailable_hours = item.unavailable_hours;
+              } else {
+                // Add new machine data
+                next[dateStr].push({
+                  machine_id: machineId,
+                  date: dateStr,
+                  unavailable_hours: item.unavailable_hours
+                });
+              }
+            }
+          });
+          
+          return { machineAvailability: next };
+        });
+      }
       
       return results;
     } catch (e) {

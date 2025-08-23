@@ -163,7 +163,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
     };
     
     loadData();
-  }, [machineId, dateRange, processedAvailabilityData, loadMachineAvailabilityForDateRange]);
+  }, [machineId, dateRange, processedAvailabilityData, loadMachineAvailabilityForDateRange, refreshTrigger]);
 
   // Memoized scheduled tasks for the current machine to avoid repeated filtering
   const scheduledTasksForMachine = useMemo(() => {
@@ -318,7 +318,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
         ))}
       </div>
     );
-  }, [dateRange, getAvailabilityForDate, hasScheduledTask, handleTimeSlotClick]);
+  }, [dateRange, getAvailabilityForDate, hasScheduledTask, handleTimeSlotClick, availabilityData]);
 
   const renderYearView = useCallback(() => {
     const year = currentDate.getFullYear();
@@ -372,7 +372,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
         })}
       </div>
     );
-  }, [currentDate, getAvailabilityForDate]);
+  }, [currentDate, getAvailabilityForDate, availabilityData]);
 
   if (isLoading) {
     return <div className="loading">Loading calendar data...</div>;
