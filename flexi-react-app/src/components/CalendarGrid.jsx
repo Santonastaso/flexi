@@ -97,18 +97,9 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
     return { dates, dateStrings };
   }, [currentDate, currentView]);
 
-  // Sync local state with store state when machineAvailability changes
+  // Consolidated data fetching and state management
   useEffect(() => {
-    if (!machineId || !machineAvailability) return;
-    
-    // Use the optimized data processing
-    const { organizedData } = processedAvailabilityData;
-    setAvailabilityData(organizedData);
-  }, [machineId, machineAvailability, processedAvailabilityData]);
-
-  // Load availability data for the current view
-  useEffect(() => {
-    const loadData = async () => {
+    const loadAndSyncData = async () => {
       if (!machineId) return;
       
       setIsLoading(true);
@@ -121,48 +112,54 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
           return;
         }
         
-        // Load data for the entire range at once
-        const firstDateStr = dateStrings[0];
-        const lastDateStr = dateStrings[dateStrings.length - 1];
+        // First, try to get data from the store
+        const { organizedData, machineDataMap } = processedAvailabilityData;
+        let finalAvailabilityData = { ...organizedData };
         
-        const rangeData = await loadMachineAvailabilityForDateRange(machineId, firstDateStr, lastDateStr);
+        // Check if we need to fetch fresh data from the API
+        const needsFreshData = dateStrings.some(dateStr => {
+          const storeData = machineDataMap.get(dateStr);
+          return !storeData || !storeData.unavailable_hours;
+        });
         
-        // Process the range data efficiently
-        if (rangeData && Array.isArray(rangeData)) {
-          const organizedData = {};
+        if (needsFreshData) {
+          // Load data for the entire range at once
+          const firstDateStr = dateStrings[0];
+          const lastDateStr = dateStrings[dateStrings.length - 1];
           
-          // Process range data once
-          rangeData.forEach(item => {
-            if (item.date && item.unavailable_hours) {
-              const dateObj = new Date(item.date);
-              const dateStr = toDateString(dateObj);
-              organizedData[dateStr] = item.unavailable_hours;
-            }
-          });
+          const rangeData = await loadMachineAvailabilityForDateRange(machineId, firstDateStr, lastDateStr);
           
-          // Merge with store data efficiently using the Map
-          const { machineDataMap } = processedAvailabilityData;
-          const mergedData = { ...organizedData };
-          
-          // Use the Map for O(1) lookups instead of nested loops
-          dateStrings.forEach(dateStr => {
-            const storeMachineData = machineDataMap.get(dateStr);
-            if (storeMachineData && storeMachineData.unavailable_hours) {
-              mergedData[dateStr] = storeMachineData.unavailable_hours;
-            }
-          });
-          
-          setAvailabilityData(mergedData);
+          // Process the fresh API data
+          if (rangeData && Array.isArray(rangeData)) {
+            const apiData = {};
+            
+            rangeData.forEach(item => {
+              if (item.date && item.unavailable_hours) {
+                const dateObj = new Date(item.date);
+                const dateStr = toDateString(dateObj);
+                apiData[dateStr] = item.unavailable_hours;
+              }
+            });
+            
+            // Merge API data with store data, giving priority to fresh data
+            finalAvailabilityData = { ...finalAvailabilityData, ...apiData };
+          }
         }
+        
+        // Set the final consolidated data
+        setAvailabilityData(finalAvailabilityData);
+        
       } catch (error) {
         console.error('Failed to load machine availability data:', error);
-        // Handle error silently for now
+        // Fallback to store data if API fails
+        const { organizedData } = processedAvailabilityData;
+        setAvailabilityData(organizedData);
       } finally {
         setIsLoading(false);
       }
     };
     
-    loadData();
+    loadAndSyncData();
   }, [machineId, dateRange, processedAvailabilityData, loadMachineAvailabilityForDateRange, refreshTrigger]);
 
   // Memoized scheduled tasks for the current machine to avoid repeated filtering
