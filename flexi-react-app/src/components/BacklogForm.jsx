@@ -1,34 +1,23 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { useOrderStore, usePhaseStore, useUIStore } from '../store';
+import { useOrderStore, useUIStore } from '../store';
 import { useProductionCalculations } from '../hooks/useProductionCalculations';
+import { usePhaseSearch } from '../hooks/usePhaseSearch';
 import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES, SEAL_SIDES, PRODUCT_TYPES } from '../constants';
-import { toDateString, addDaysToDate } from '../utils/dateUtils';
-import { useOrderValidation } from '../hooks/useOrderValidation';
 import { useErrorHandler } from '../hooks';
 
 const BacklogForm = ({ onSuccess }) => {
   const { addOdpOrder } = useOrderStore();
-  const { phases } = usePhaseStore();
   const { showAlert, selectedWorkCenter } = useUIStore();
   const { calculateProductionMetrics, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
-  const { validateOrder } = useOrderValidation();
   
   // Use unified error handling
   const { handleAsync } = useErrorHandler('BacklogForm');
   
-  const [phaseSearch, setPhaseSearch] = useState('');
-  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const [selectedPhase, setSelectedPhase] = useState(null);
-  const [filteredPhases, setFilteredPhases] = useState([]);
-  const [editablePhaseParams, setEditablePhaseParams] = useState({});
   const [calculationResults, setCalculationResults] = useState(null);
-  const [validationErrors, setValidationErrors] = useState({});
   
-  // Ref to store the blur timeout
-  const blurTimeoutRef = useRef(null);
-  
-  const initialFormData = {
+  // Memoize initialFormData to prevent unnecessary re-renders
+  const initialFormData = useMemo(() => ({
     odp_number: '', 
     article_code: '', 
     production_lot: '', 
@@ -49,9 +38,58 @@ const BacklogForm = ({ onSuccess }) => {
     customer_order_ref: '', 
     department: '', 
     fase: '',
-  };
+  }), [selectedWorkCenter]);
 
-  // useOrderValidation hook not needed for this component
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    watch,
+    setValue,
+    getValues,
+    reset,
+    clearErrors
+  } = useForm({
+    defaultValues: initialFormData
+  });
+
+  const articleCode = watch('article_code');
+  const department = watch('department');
+  const workCenter = watch('work_center');
+
+  // Use the extracted phase search hook
+  const {
+    phaseSearch,
+    setPhaseSearch,
+    isDropdownVisible,
+    setIsDropdownVisible,
+    selectedPhase,
+    setSelectedPhase,
+    filteredPhases,
+    editablePhaseParams,
+    setEditablePhaseParams,
+    handlePhaseParamChange,
+    handlePhaseSelect,
+    handleBlur
+  } = usePhaseSearch(department, workCenter);
+
+  useEffect(() => {
+    if (articleCode) {
+      const dept = autoDetermineDepartment(articleCode);
+      const wc = autoDetermineWorkCenter(articleCode);
+      setValue('department', dept);
+      // Only auto-set work center if BOTH is selected, otherwise keep the selected work center
+      if (selectedWorkCenter === WORK_CENTERS.BOTH) {
+        setValue('work_center', wc);
+      }
+      setValue('fase', '');
+      // Reset phase data directly instead of calling the function from the hook
+      setPhaseSearch('');
+      setSelectedPhase(null);
+      setEditablePhaseParams({});
+      setCalculationResults(null);
+    }
+  }, [articleCode, autoDetermineDepartment, autoDetermineWorkCenter, setValue, selectedWorkCenter]);
 
   // Define onSubmit function before useFormValidation
   const onSubmit = async (data) => {
@@ -76,8 +114,9 @@ const BacklogForm = ({ onSuccess }) => {
           onSuccess();
         }
 
-        // Reset form
-        Object.keys(initialFormData).forEach(key => setValue(key, initialFormData[key]));
+        // Use react-hook-form's reset function instead of manual reset
+        reset(initialFormData);
+        // Reset phase data directly instead of calling the function from the hook
         setPhaseSearch('');
         setSelectedPhase(null);
         setEditablePhaseParams({});
@@ -90,83 +129,9 @@ const BacklogForm = ({ onSuccess }) => {
     );
   };
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    watch,
-    setValue,
-    getValues,
-    reset,
-    clearErrors
-  } = useForm({
-    defaultValues: initialFormData
-  });
-
-  const articleCode = watch('article_code');
-  const department = watch('department');
-  const workCenter = watch('work_center');
-
-  useEffect(() => {
-    if (articleCode) {
-      const dept = autoDetermineDepartment(articleCode);
-      const wc = autoDetermineWorkCenter(articleCode);
-      setValue('department', dept);
-      // Only auto-set work center if BOTH is selected, otherwise keep the selected work center
-      if (selectedWorkCenter === WORK_CENTERS.BOTH) {
-        setValue('work_center', wc);
-      }
-      setValue('fase', '');
-      setPhaseSearch('');
-      setSelectedPhase(null);
-      setEditablePhaseParams({});
-      setCalculationResults(null);
-    }
-  }, [articleCode, autoDetermineDepartment, autoDetermineWorkCenter, setValue, selectedWorkCenter]);
-
-  useEffect(() => {
-    if (department || workCenter) {
-      const relevantPhases = phases.filter(p => 
-        (!department || p.department === department) &&
-        (!workCenter || p.work_center === workCenter)
-      );
-      const searchFiltered = relevantPhases.filter(p => p.name.toLowerCase().includes(phaseSearch.toLowerCase()));
-      setFilteredPhases(searchFiltered);
-    } else {
-      setFilteredPhases([]);
-    }
-    
-    // Cleanup function for component unmount
-    return () => {
-      if (blurTimeoutRef.current) {
-        clearTimeout(blurTimeoutRef.current);
-      }
-    };
-  }, [phaseSearch, department, workCenter, phases]);
-
-  const handlePhaseParamChange = (field, value) => {
-    setEditablePhaseParams(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handlePhaseSelect = (phase) => {
-    setValue('fase', phase.id);
-    setSelectedPhase(phase);
-    setPhaseSearch(phase.name);
-    setIsDropdownVisible(false);
+  const handlePhaseSelectWrapper = (phase) => {
+    handlePhaseSelect(phase, setValue, clearErrors);
     setCalculationResults(null);
-    
-    // Clear phase error
-    clearErrors('phase');
-    
-    // Initialize editable phase parameters with current phase values
-    setEditablePhaseParams({
-      v_stampa: phase.v_stampa || '',
-      t_setup_stampa: phase.t_setup_stampa || '',
-      costo_h_stampa: phase.costo_h_stampa || '',
-      v_conf: phase.v_conf || '',
-      t_setup_conf: phase.t_setup_conf || '',
-      costo_h_conf: phase.costo_h_conf || '',
-    });
   };
 
   const handleCalculate = () => {
@@ -185,8 +150,6 @@ const BacklogForm = ({ onSuccess }) => {
     const results = calculateProductionMetrics(phaseForCalculation, getValues('quantity'), getValues('bag_step'));
     setCalculationResults(results);
   };
-
-
 
   const getFieldError = (fieldName) => {
     return errors[fieldName] ? (
@@ -209,7 +172,7 @@ const BacklogForm = ({ onSuccess }) => {
               <input 
                 type="text" 
                 id="odp_number" 
-                {...register('odp_number')}
+                {...register('odp_number', { required: 'ODP Number is required' })}
                 placeholder="ODP Number" 
                 className={errors.odp_number ? 'error' : ''}
               />
@@ -220,7 +183,7 @@ const BacklogForm = ({ onSuccess }) => {
               <input 
                 type="text" 
                 id="article_code" 
-                {...register('article_code')}
+                {...register('article_code', { required: 'Article Code is required' })}
                 placeholder="Article Code" 
                 className={errors.article_code ? 'error' : ''}
               />
@@ -231,7 +194,7 @@ const BacklogForm = ({ onSuccess }) => {
               <input 
                 type="text" 
                 id="production_lot" 
-                {...register('production_lot')}
+                {...register('production_lot', { required: 'External Article Code is required' })}
                 placeholder="External Article Code" 
                 className={errors.production_lot ? 'error' : ''}
               />
@@ -297,7 +260,7 @@ const BacklogForm = ({ onSuccess }) => {
               <input 
                 type="number" 
                 id="bag_height" 
-                {...register('bag_height')}
+                {...register('bag_height', { required: 'Bag Height is required', min: { value: 0, message: 'Bag Height must be at least 0' } })}
                 placeholder="Bag Height" 
                 min="0" 
                 step="1"
@@ -310,7 +273,7 @@ const BacklogForm = ({ onSuccess }) => {
               <input 
                 type="number" 
                 id="bag_width" 
-                {...register('bag_width')}
+                {...register('bag_width', { required: 'Bag Width is required', min: { value: 0, message: 'Bag Width must be at least 0' } })}
                 placeholder="Bag Width" 
                 min="0" 
                 step="1"
@@ -323,7 +286,7 @@ const BacklogForm = ({ onSuccess }) => {
               <input 
                 type="number" 
                 id="bag_step" 
-                {...register('bag_step')}
+                {...register('bag_step', { required: 'Bag Step is required', min: { value: 0, message: 'Bag Step must be at least 0' } })}
                 placeholder="Bag Step" 
                 min="0" 
                 step="1"
@@ -345,7 +308,7 @@ const BacklogForm = ({ onSuccess }) => {
               <label htmlFor="product_type">Product Type *</label>
               <select 
                 id="product_type" 
-                {...register('product_type')}
+                {...register('product_type', { required: 'Product Type is required' })}
                 className={errors.product_type ? 'error' : ''}
               >
                 <option value="">Select product type</option>
@@ -360,7 +323,7 @@ const BacklogForm = ({ onSuccess }) => {
               <input 
                 type="number" 
                 id="quantity" 
-                {...register('quantity')}
+                {...register('quantity', { required: 'Quantity is required', min: { value: 0, message: 'Quantity must be at least 0' } })}
                 placeholder="Quantity" 
                 min="0" 
                 step="1"
@@ -373,7 +336,7 @@ const BacklogForm = ({ onSuccess }) => {
               <input 
                 type="number" 
                 id="quantity_per_box" 
-                {...register('quantity_per_box')}
+                {...register('quantity_per_box', { min: { value: 0, message: 'Quantity per Box must be at least 0' } })}
                 placeholder="Qty per Box" 
                 min="0" 
                 step="1"
@@ -384,7 +347,7 @@ const BacklogForm = ({ onSuccess }) => {
               <input 
                 type="number" 
                 id="quantity_completed" 
-                {...register('quantity_completed')}
+                {...register('quantity_completed', { min: { value: 0, message: 'Quantity Completed must be at least 0' } })}
                 placeholder="Qty Completed" 
                 min="0" 
                 step="1"
@@ -452,23 +415,22 @@ const BacklogForm = ({ onSuccess }) => {
                   value={phaseSearch} 
                   onChange={(e) => setPhaseSearch(e.target.value)} 
                   onFocus={() => setIsDropdownVisible(true)} 
-                  onBlur={() => {
-                    if (blurTimeoutRef.current) {
-                      clearTimeout(blurTimeoutRef.current);
-                    }
-                    blurTimeoutRef.current = setTimeout(() => setIsDropdownVisible(false), 150);
-                  }} 
+                  onBlur={handleBlur}
                   placeholder="Search Production Phase" 
-                  className={errors.phase ? 'error' : ''}
+                  className={errors.fase ? 'error' : ''}
                 />
-                {getFieldError('phase')}
+                <input 
+                  type="hidden" 
+                  {...register('fase', { required: 'Production Phase is required' })}
+                />
+                {getFieldError('fase')}
                 {isDropdownVisible && filteredPhases.length > 0 && (
                   <div className="dropdown-options">
                     {filteredPhases.map(phase => (
                       <div 
                         key={phase.id} 
                         className="dropdown-option" 
-                        onMouseDown={() => handlePhaseSelect(phase)}
+                        onMouseDown={() => handlePhaseSelectWrapper(phase)}
                       >
                         <span className="phase-name">{phase.name}</span>
                         <span className="phase-description">{phase.contenuto_fase || 'No description'}</span>
@@ -483,7 +445,7 @@ const BacklogForm = ({ onSuccess }) => {
               <input 
                 type="datetime-local" 
                 id="delivery_date" 
-                {...register('delivery_date')}
+                {...register('delivery_date', { required: 'Delivery Date is required' })}
                 className={errors.delivery_date ? 'error' : ''}
               />
               {getFieldError('delivery_date')}
