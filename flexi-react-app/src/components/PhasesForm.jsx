@@ -178,7 +178,7 @@ function PhasesForm() {
         {/* Conditional Packaging Parameters */}
         {department === DEPARTMENT_TYPES.PACKAGING && (
           <div className="form-section">
-            <h3 className="section-title">📦 Packaging Parameters</h3>
+            <h3 className="section-title">Packaging Parameters</h3>
             <div className="form-grid form-grid--3-cols">
               <div className="form-group">
                 <label htmlFor="v_conf">Packaging Speed (pz/h) *</label>

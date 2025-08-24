@@ -2,7 +2,7 @@
 
 /* Common table styles */
 .table-container {
-    background: var(--content-bg);
+    background: #ffffff;
     border-radius: var(--border-radius-large);
     border: 1px solid var(--border-color);
     overflow-x: auto;
@@ -38,12 +38,11 @@
 
 .modern-table td {
     font-size: 13px;
+    background: #ffffff;
+    color: #1f2937;
 }
 
-/* Row styling */
-.modern-table tr:nth-child(even) td {
-    background: var(--gray-light);
-}
+/* Row styling - removed alternating colors for consistent appearance */
 
 .modern-table tr:hover td {
     background: #d1e7f0;

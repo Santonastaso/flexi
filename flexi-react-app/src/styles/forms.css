@@ -2,9 +2,9 @@
 
 /* Form Container */
 .form-container {
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
-  padding: var(--spacing-xl);
+  padding: var(--spacing-lg);
   width: 100%;
 }
 
@@ -12,8 +12,8 @@
   background: var(--content-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-large);
-  padding: var(--spacing-xl);
-  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
   box-shadow: var(--shadow-sm);
   transition: box-shadow 0.2s ease;
   margin-top: 0;
@@ -24,13 +24,10 @@
 }
 
 .section-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 400;
   color: var(--text-dark);
   margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid var(--border-color);
-  text-align: center;
 }
 
 /* Form Grid Layouts */
@@ -41,29 +38,34 @@
 }
 
 .form-grid--2-cols {
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .form-grid--3-cols {
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .form-grid--4-cols {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
 }
 
 /* Form Groups */
 .form-group {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
+/* Ensure all form groups have consistent height */
 .form-group label {
   font-weight: 400;
   color: var(--text-dark);
-  margin-bottom: 8px;
-  font-size: 14px;
+  margin-bottom: 10px;
+  font-size: 13px;
   display: block;
+  height: 20px; /* Fixed height for labels */
+  line-height: 20px;
 }
 
 .form-group label.required::after {
@@ -76,13 +78,15 @@
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border: 2px solid var(--border-color);
   border-radius: var(--border-radius);
-  font-size: 14px;
+  font-size: 13px;
   transition: all 0.2s ease;
   background: var(--content-bg);
   font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
+  height: 42px; /* Fixed height for inputs */
+  box-sizing: border-box;
 }
 
 .form-group input:focus,
@@ -108,6 +112,21 @@
   opacity: 0.6;
 }
 
+/* Ensure select dropdowns align perfectly with inputs */
+.form-group select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px; /* Make room for the dropdown arrow */
+}
+
+/* Ensure consistent alignment across all form elements */
+.form-grid {
+  align-items: start;
+}
+
 /* Input Types */
 .form-group input[type="number"] {
   -moz-appearance: textfield;
@@ -121,12 +140,13 @@
 
 .form-group input[type="date"],
 .form-group input[type="time"] {
-  min-height: 44px;
+  min-height: 40px;
 }
 
 .form-group textarea {
+  height: auto;
+  min-height: 70px;
   resize: vertical;
-  min-height: 80px;
 }
 
 /* Checkbox and Radio Groups */
@@ -156,7 +176,7 @@
 
 /* Unit Labels */
 .unit-label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-light);
   font-weight: 400;
   margin-left: 8px;
@@ -165,8 +185,8 @@
 /* Error Messages */
 .error-message {
   color: var(--danger-red);
-  font-size: 12px;
-  margin-top: 4px;
+  font-size: 11px;
+  margin-top: 5px;
   display: block;
   font-weight: 400;
 }
@@ -189,14 +209,59 @@
   display: flex;
   justify-content: center;
   gap: 16px;
-  margin-top: 32px;
-  padding-top: 24px;
+  margin-top: 28px;
+  padding-top: 20px;
   border-top: 1px solid var(--border-color);
 }
 
 .form-actions .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* ===== BACKLOG FORM SPECIFIC STYLES ===== */
+
+/* Improve spacing for backlog form sections */
+.content-section .form-section {
+  margin-bottom: 24px;
+}
+
+.content-section .form-section:last-child {
+  margin-bottom: 0;
+}
+
+/* Better spacing for 3-column grids in backlog */
+.form-grid--3-cols {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+/* Additional spacing for form groups in backlog */
+.content-section .form-group {
+  margin-bottom: 16px;
+}
+
+.content-section .form-group:last-child {
+  margin-bottom: 0;
+}
+
+/* Better spacing for textarea in backlog */
+.content-section .form-group textarea {
+  min-height: 80px;
+  margin-top: 4px;
+}
+
+/* Improve spacing between sections */
+.content-section .form-section + .form-section {
+  margin-top: 8px;
+}
+
+/* Better spacing for the main form title */
+.content-section h2 {
+  margin-bottom: 24px;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text-dark);
 }
 
 /* Searchable Dropdown */
@@ -341,4 +406,43 @@
     border: 1px solid var(--border-color);
     border-radius: 0;
     font-size: 14px;
+}
+
+/* ===== RESPONSIVE GRID ALIGNMENT ===== */
+
+/* Ensure perfect alignment on all screen sizes */
+@media (max-width: 768px) {
+  .form-grid--3-cols {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .form-grid--2-cols {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .form-grid--4-cols {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-grid--4-cols {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Force consistent alignment for all form elements */
+.form-grid > * {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group {
+  min-height: 0;
+  flex: 1;
 }

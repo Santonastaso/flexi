@@ -253,7 +253,7 @@ const BacklogForm = ({ onSuccess }) => {
 
         {/* SPECIFICHE TECNICHE Section */}
         <div className="form-section">
-          <h3 className="section-title">🔧 Specifiche Tecniche</h3>
+          <h3 className="section-title">Specifiche Tecniche</h3>
           <div className="form-grid form-grid--3-cols">
             <div className="form-group">
               <label htmlFor="bag_height">Bag Height (mm) *</label>
@@ -360,7 +360,7 @@ const BacklogForm = ({ onSuccess }) => {
 
         {/* DATI COMMERCIALI Section */}
         <div className="form-section">
-          <h3 className="section-title">💰 Dati Commerciali</h3>
+          <h3 className="section-title">Dati Commerciali</h3>
           <div className="form-grid form-grid--3-cols">
             <div className="form-group">
               <label htmlFor="internal_customer_code">FLEXI Lot</label>
@@ -548,7 +548,7 @@ const BacklogForm = ({ onSuccess }) => {
         {/* Production Calculation Results */}
         {calculationResults && (
           <div className="form-section">
-            <h3 className="section-title">🧮 Production Calculation Results</h3>
+            <h3 className="section-title">Production Calculation Results</h3>
             <div className="form-grid form-grid--2-cols">
               <div className="form-group">
                 <label>Total Duration (hours):</label>

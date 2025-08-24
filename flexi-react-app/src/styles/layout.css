@@ -4,14 +4,14 @@
 .sidebar {
     width: 280px;
     background: var(--sap-primary);
-    border-right: 1px solid var(--sap-secondary);
+    border-right: none;
     position: fixed;
     height: 100vh;
     left: 0;
     top: 0;
     z-index: 1000;
     overflow-y: auto;
-    box-shadow: 2px 0 8px rgba(44, 62, 80, 0.3);
+    box-shadow: none;
     display: flex;
     flex-direction: column;
 }
@@ -22,7 +22,7 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: var(--bg-color);
+    background-color: #c4c4c4;
     margin-top: 0;
     padding-top: 0;
 }
@@ -37,24 +37,26 @@
 }
 
 main {
-    padding-bottom: 40px;
+    padding-bottom: 32px;
     padding-top: 0;
-    margin-top: 90px;
+    margin-top: 70px;
     flex: 1;
     display: flex;
     flex-direction: column;
+    background-color: #e5e7eb;
 }
 
 .content-section {
-    background-color: var(--content-bg);
+    background-color: #e5e7eb;
     padding: var(--spacing-lg);
     border-radius: var(--border-radius);
     border: 1px solid var(--border-light);
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
     transition: box-shadow 0.2s ease;
     box-shadow: var(--shadow-sm);
     width: 100%;
     margin-top: 0;
+    color: #1f2937;
 }
 
 .content-section:hover {
@@ -72,13 +74,13 @@ main {
     background: var(--sap-primary);
     color: var(--text-white);
     z-index: 999;
-    border-bottom: 1px solid var(--sap-secondary);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: none;
+    box-shadow: none;
     width: calc(100vw - 280px);
 }
 
 .sticky-header-content {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -86,21 +88,21 @@ main {
 
 .sticky-header-title {
     margin: 0;
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 400;
-    color: var(--text-white);
+    color: var(--text-white) !important;
 }
 
 .sticky-header-subtitle {
     margin: 4px 0 0 0;
-    font-size: 14px;
-    color: var(--gray-light);
+    font-size: 13px;
+    color: var(--text-white);
     font-weight: 400;
 }
 
 .sidebar-logo {
-    padding: var(--spacing-xl) var(--spacing-lg);
-    border-bottom: 1px solid var(--sap-secondary);
+    padding: var(--spacing-lg) var(--spacing-lg);
+    border-bottom: none;
     margin: 0;
     text-align: center;
     background: var(--sap-primary);
@@ -112,9 +114,18 @@ main {
     align-items: center;
     text-decoration: none;
     color: var(--text-white);
-    font-weight: 400;
-    font-size: 56px;
+    font-weight: 600;
+    font-size: 32px;
     justify-content: center;
+    letter-spacing: -0.5px;
+}
+
+.logo-flex {
+    color: var(--sap-accent);
+}
+
+.logo-i {
+    color: var(--status-active);
 }
 
 .sidebar-logo img {
@@ -127,7 +138,7 @@ main {
 
 /* Sidebar Navigation */
 .sidebar-links {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -140,7 +151,7 @@ main {
     gap: var(--spacing-md);
     padding: var(--spacing-md) var(--spacing-lg);
     text-decoration: none;
-    color: var(--gray-light);
+    color: var(--text-white);
     font-size: 14px;
     font-weight: 400;
     transition: all 0.2s ease;
@@ -148,29 +159,37 @@ main {
     border-radius: 0;
     background: transparent;
     border: none;
+    position: relative;
 }
 
 .sidebar-link:hover {
-    background: transparent;
+    background: var(--sap-secondary);
     color: var(--text-white);
-    opacity: 0.8;
 }
 
 .sidebar-link.active {
-    background: transparent;
-    color: var(--sap-accent);
-    font-weight: 400;
+    background: var(--sap-secondary);
+    color: var(--text-white);
+    font-weight: 500;
 }
 
-
+.sidebar-link.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--sap-accent);
+}
 
 /* Sidebar Section Titles */
 .sidebar-section-title {
     color: var(--gray-light);
-    font-size: 12px;
-    font-weight: 400;
+    font-size: 11px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
     margin-bottom: var(--spacing-md);
     padding: 0 var(--spacing-lg);
     margin-top: var(--spacing-sm);
@@ -190,13 +209,13 @@ main {
 .user-avatar {
     width: 48px;
     height: 48px;
-    background: var(--gray-dark);
-    border-radius: 0;
+    background: var(--sap-accent);
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--text-white);
-    font-weight: 400;
+    font-weight: 600;
     font-size: 18px;
     margin: 0 auto var(--spacing-md);
 }
@@ -214,11 +233,12 @@ main {
 }
 
 .user-email {
-    font-size: 12px;
-    color: var(--gray-light);
-    margin-bottom: var(--spacing-md);
+    font-size: 14px;
+    color: var(--text-white);
+    margin-bottom: var(--spacing-sm);
     word-break: break-all;
     line-height: 1.4;
+    font-weight: 400;
 }
 
 .user-work-center {
@@ -226,13 +246,10 @@ main {
 }
 
 .work-center-badge {
-    background: var(--status-active);
-    color: var(--text-white);
-    padding: 4px 8px;
-    border-radius: 0;
-    font-size: 11px;
+    color: var(--gray-light);
+    font-size: 12px;
     font-weight: 400;
-    display: inline-block;
+    display: block;
     margin-bottom: var(--spacing-sm);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -244,23 +261,23 @@ main {
 
 .status-indicator {
     display: inline-block;
-    padding: 2px 6px;
-    border-radius: 0;
+    padding: 4px 8px;
+    border-radius: 4px;
     font-size: 10px;
-    font-weight: 400;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     background: var(--status-inactive);
     color: var(--text-white);
 }
 
-.status-indicator.connected {
-    background: var(--status-active);
+.status-indicator.offline {
+    background: var(--status-inactive);
     color: var(--text-white);
 }
 
-.status-indicator.disconnected {
-    background: var(--status-inactive);
+.status-indicator.connected {
+    background: var(--status-active);
     color: var(--text-white);
 }
 
@@ -286,7 +303,7 @@ main {
     cursor: pointer;
     transition: all 0.2s ease;
     background: transparent;
-    color: var(--gray-light);
+    color: var(--text-white);
     margin-bottom: 0;
     text-align: left;
     justify-content: flex-start;

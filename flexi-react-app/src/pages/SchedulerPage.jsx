@@ -323,7 +323,7 @@ function SchedulerPage() {
   return (
     <DndContext onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
       <div className="content-section">
-        <StickyHeader title="Scheduler" />
+        <StickyHeader title="Production Scheduler" />
         
         <Suspense fallback={<LoadingFallback />}>
           <TaskPool />

@@ -325,9 +325,11 @@ const GanttChart = React.memo(({ machines, currentDate }) => {
   if (!machines || machines.length === 0) {
     return (
       <div className="calendar-section">
-        <div className="empty-state">
-          <h3>No machines available</h3>
-          <p>Please add machines to view the schedule.</p>
+        <div className="calendar-grid-container">
+          <div className="empty-state">
+            <h3>No machines available</h3>
+            <p>Please add machines to view the schedule.</p>
+          </div>
         </div>
       </div>
     );
@@ -335,24 +337,26 @@ const GanttChart = React.memo(({ machines, currentDate }) => {
 
   return (
     <div className="calendar-section">
-      <div className="calendar-grid">
-        <div className="calendar-header-row">
-          <div className="machine-label-header">Machines</div>
-          <div className="time-header">
-            {timeHeader}
+      <div className="calendar-grid-container">
+        <div className="calendar-grid">
+          <div className="calendar-header-row">
+            <div className="machine-label-header">Machines</div>
+            <div className="time-header">
+              {timeHeader}
+            </div>
           </div>
-        </div>
-        <div className="calendar-body">
-          {/* Render only visible machines - can be optimized further with virtualization */}
-          {machines.map(machine => (
-            <MachineRow
-              key={machine.id}
-              machine={machine}
-              scheduledEvents={scheduledTasks}
-              currentDate={currentDate}
-              unavailableByMachine={unavailableByMachine}
-            />
-          ))}
+          <div className="calendar-body">
+            {/* Render only visible machines - can be optimized further with virtualization */}
+            {machines.map(machine => (
+              <MachineRow
+                key={machine.id}
+                machine={machine}
+                scheduledEvents={scheduledTasks}
+                currentDate={currentDate}
+                unavailableByMachine={unavailableByMachine}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>

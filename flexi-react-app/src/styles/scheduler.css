@@ -38,7 +38,7 @@
 
 .section-controls {
     background: var(--content-bg);
-    border-radius: 0;
+    border-radius: var(--border-radius);
     padding: var(--spacing-lg);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-light);
@@ -46,8 +46,6 @@
     transition: box-shadow 0.2s ease;
     width: 100%;
     margin-top: var(--spacing-sm);
-    margin-left: 0;
-    margin-right: 0;
 }
 
 .section-controls:hover {
@@ -55,7 +53,7 @@
 }
 
 .section-title {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 400;
     color: var(--text-dark);
     margin-bottom: 20px;
@@ -87,14 +85,12 @@
 .calendar-container,
 .calendar-section,
 .task-pool-section {
-    background: var(--content-bg);
-    border-radius: 0;
+    background: #f0f2f5;
+    border-radius: var(--border-radius);
     padding: var(--spacing-lg);
     box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-light);
+    border: 2px solid #d1d5db;
     margin-bottom: var(--spacing-lg);
-    margin-left: 0;
-    margin-right: 0;
     transition: box-shadow 0.2s ease;
     width: 100%;
     min-width: 100%;
@@ -105,39 +101,20 @@
     flex-direction: column;
 }
 
-/* Override content-section padding for scheduler to remove left space */
+/* Scheduler sections now use the same spacing as forms */
 .content-section .task-pool-section {
-    margin-left: calc(-1 * var(--spacing-lg));
-    margin-right: calc(-1 * var(--spacing-lg));
-    margin-top: calc(-1 * var(--spacing-lg));
-    width: calc(100% + 2 * var(--spacing-lg));
-    border-left: none;
-    border-radius: 0;
-    padding-left: var(--spacing-lg);
-    padding-right: var(--spacing-lg);
-    padding-top: var(--spacing-lg);
+    margin-top: 0;
+    border-radius: var(--border-radius);
 }
 
 .content-section .section-controls {
-    margin-left: calc(-1 * var(--spacing-lg));
-    margin-right: calc(-1 * var(--spacing-lg));
     margin-top: 0;
-    width: calc(100% + 2 * var(--spacing-lg));
-    border-left: none;
-    border-radius: 0;
-    padding-left: var(--spacing-lg);
-    padding-right: var(--spacing-lg);
+    border-radius: var(--border-radius);
 }
 
 .content-section .calendar-section {
-    margin-left: calc(-1 * var(--spacing-lg));
-    margin-right: calc(-1 * var(--spacing-lg));
     margin-top: 0;
-    width: calc(100% + 2 * var(--spacing-lg));
-    border-left: none;
-    border-radius: 0;
-    padding-left: var(--spacing-lg);
-    padding-right: var(--spacing-lg);
+    border-radius: var(--border-radius);
 }
 
 .calendar-container:hover,
@@ -148,7 +125,6 @@
 
 .calendar-section {
     flex: 1;
-    overflow: hidden;
     contain: layout;
     width: 100%;
     min-width: 100%;
@@ -156,12 +132,7 @@
     flex-direction: column;
 }
 
-.task-pool-section h2 {
-    font-size: 20px;
-    font-weight: 400;
-    color: var(--text-dark);
-    margin-bottom: 8px;
-}
+
 
 .task-pool-section p {
     color: var(--text-light);
@@ -171,13 +142,16 @@
 
 .task-pool-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
     width: 100%;
     min-width: 100%;
     flex: 1;
-    padding: 16px 0;
+    padding: 16px;
     margin: 0;
+    background: #e8eaed;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
 }
 
 /* ===== CALENDAR CONTROLS ===== */
@@ -200,15 +174,15 @@
     background: var(--content-bg);
     border: 1px solid var(--border-color);
     color: var(--text-dark);
-    padding: 8px 16px;
+    padding: 6px 12px;
     border-radius: 0;
     cursor: pointer;
     font-weight: 400;
     transition: all 0.2s ease;
-    font-size: 14px;
+    font-size: 13px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .nav-btn:hover {
@@ -225,12 +199,12 @@
 }
 
 .nav-btn.arrow-btn {
-    padding: 8px 12px;
+    padding: 6px 10px;
 }
 
 .current-date,
 .current-period {
-    font-size: 20px;
+    font-size: 14px;
     font-weight: 400;
     color: var(--text-dark);
     margin: 0;
@@ -401,20 +375,38 @@
 }
 
 /* ===== CALENDAR GRID STYLES ===== */
-.calendar-grid {
+.calendar-grid-container {
+    overflow-x: auto;
     border: 1px solid var(--border-color);
     border-radius: 0;
-    overflow-x: auto;
     background: var(--content-bg);
     contain: layout;
+}
+
+.calendar-grid {
+    background: var(--content-bg);
+    contain: layout;
+    position: relative;
+    width: 2170px;
+    min-width: 2170px;
+}
+
+.calendar-grid-container .empty-state {
+    padding: 40px;
+    text-align: center;
+    color: var(--text-light);
 }
 
 .calendar-header-row {
     display: flex;
     background: var(--gray-light);
     border-bottom: 2px solid var(--border-color);
-    width: 100%;
+    width: 2170px;
     min-width: 2170px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .machine-label-header {
@@ -428,6 +420,9 @@
     font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    position: sticky;
+    left: 0;
+    z-index: 20;
 }
 
 .time-header {
@@ -462,11 +457,10 @@
 
 .calendar-body {
     width: 100%;
-    min-width: 100%;
+    min-width: 2170px;
     position: relative;
     flex: 1;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: visible;
 }
 
 .machine-row {
@@ -474,7 +468,7 @@
     border-bottom: 2px solid #d1d5db;
     min-height: 80px;
     width: 100%;
-    min-width: 100%;
+    min-width: 2170px;
     background: var(--content-bg);
     flex-shrink: 0;
 }
@@ -496,11 +490,14 @@
     justify-content: center;
     background: var(--content-bg);
     flex-shrink: 0;
+    position: sticky;
+    left: 0;
+    z-index: 15;
 }
 
 .machine-name {
     font-weight: 400;
-    font-size: 16px;
+    font-size: 14px;
     color: var(--text-dark);
     margin-bottom: 4px;
 }
@@ -704,15 +701,13 @@
 /* ===== TASK POOL ===== */
 .task-pool-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
-    margin-top: 16px;
-    min-height: 120px;
-    border: 2px dashed var(--border-color);
-    border-radius: 0;
-    padding: 20px;
-    background-color: rgba(0,0,0,0.02);
-    transition: all 0.3s ease;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+    width: 100%;
+    min-width: 100%;
+    flex: 1;
+    padding: 16px 0;
+    margin: 0;
 }
 
 .task-pool-grid.drag-over {
@@ -724,7 +719,7 @@
 .task-item {
     background: var(--sap-primary);
     color: var(--text-white);
-    padding: 6px 8px;
+    padding: 3px 4px;
     border-radius: 0;
     font-weight: 400;
     user-select: none;
@@ -735,13 +730,13 @@
     border: 1px solid var(--sap-secondary);
     position: relative;
     cursor: grab;
-    min-height: 36px;
-    font-size: 12px;
+    min-height: 18px;
+    font-size: 10px;
     
     /* CSS custom properties for responsive sizing - same as scheduled events */
-    --button-size: 22px;
-    --button-gap: 5px;
-    --font-size: 13px;
+    --button-size: 11px;
+    --button-gap: 2px;
+    --font-size: 10px;
 }
 
 .task-item.dragging {
@@ -752,10 +747,10 @@
     color: var(--text-white) !important;
     border: 1px solid var(--sap-secondary) !important;
     border-radius: 0 !important;
-    padding: 6px 8px !important;
-    font-size: 12px !important;
+    padding: 3px 4px !important;
+    font-size: 10px !important;
     font-weight: 400 !important;
-    min-height: 36px !important;
+    min-height: 18px !important;
 }
 
 .task-item.drag-overlay {
@@ -767,10 +762,10 @@
     color: var(--text-white) !important;
     border: 1px solid var(--sap-secondary) !important;
     border-radius: 0 !important;
-    padding: 6px 8px !important;
-    font-size: 12px !important;
+    padding: 3px 4px !important;
+    font-size: 10px !important;
     font-weight: 400 !important;
-    min-height: 36px !important;
+    min-height: 18px !important;
     transform: none !important;
 }
 
@@ -782,9 +777,9 @@
 
 .task-duration {
     background: rgba(255,255,255,0.2);
-    padding: 4px 8px;
+    padding: 2px 4px;
     border-radius: 0;
-    font-size: 12px;
+    font-size: 10px;
 }
 
 /* ===== CALENDAR VIEWS ===== */
@@ -948,6 +943,7 @@
     padding: 8px;
     text-align: center;
     font-weight: 400;
+    font-size: 14px;
     color: var(--text-light);
     background: var(--gray-light);
     display: flex;

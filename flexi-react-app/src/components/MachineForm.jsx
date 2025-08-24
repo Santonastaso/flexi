@@ -147,7 +147,7 @@ function MachineForm() {
 
         {/* CAPACITÀ TECNICHE Section */}
         <div className="form-section">
-          <h3 className="section-title">🔧 Capacità Tecniche</h3>
+          <h3 className="section-title">Capacità Tecniche</h3>
           <div className="form-grid form-grid--3-cols">
             <div className="form-group">
               <label htmlFor="min_web_width">Min Web Width (mm)</label>
@@ -205,7 +205,7 @@ function MachineForm() {
 
         {/* PERFORMANCE Section */}
         <div className="form-section">
-          <h3 className="section-title">⚡ Performance</h3>
+          <h3 className="section-title">Performance</h3>
           <div className="form-grid form-grid--3-cols">
             <div className="form-group">
               <label htmlFor="standard_speed">Standard Speed</label>

@@ -1,16 +1,20 @@
 /* ===== CSS CUSTOM PROPERTIES ===== */
 :root {
-    /* SAP Cloud Platform inspired color palette */
-    --bg-color: #d1d5db;
+    /* Dark theme color palette */
+    --bg-color: #ffffff;
     --text-dark: #2C3E50;
     --text-light: #6c757d;
     --text-white: #ffffff;
     
-    /* Primary SAP colors */
-    --sap-primary: #2C3E50;
-    --sap-secondary: #34495E;
+    /* Primary dark colors */
+    --sap-primary: #1a1f2e;
+    --sap-secondary: #2a3142;
     --sap-accent: #3498DB;
     --sap-accent-hover: #2980B9;
+    
+    /* Legacy color variables for compatibility */
+    --primary-blue: #3498DB;
+    --primary-blue-hover: #2980B9;
     
     /* Status colors */
     --status-active: #27AE60;
@@ -21,7 +25,7 @@
     /* UI colors */
     --border-color: #BDC3C7;
     --border-light: #E5E7E9;
-    --gray-light: #e5e7eb;
+    --gray-light: #9ca3af;
     --gray-medium: #95A5A6;
     --gray-dark: #7F8C8D;
     --content-bg: #f8f9fa;

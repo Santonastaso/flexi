@@ -106,7 +106,7 @@ function TaskPool() {
 
   return (
     <div className="task-pool-section">
-      <h2>Task Pool</h2>
+      <h2 className="section-title">Task Pool</h2>
       <p>Drag tasks from here to schedule them, or drag scheduled events back here to unschedule them.</p>
       <div ref={setNodeRef} id="task_pool" className="task-pool-grid">
         {unscheduledTasks.length > 0 ? (
