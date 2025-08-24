@@ -70,7 +70,7 @@ function MachineForm() {
       <form onSubmit={handleSubmit(addMachine)}>
         {/* IDENTIFICAZIONE Section */}
         <div className="form-section">
-          <h3 className="section-title">🏷️ Identificazione</h3>
+          <h3 className="section-title">Identificazione</h3>
           <div className="form-grid form-grid--4-cols">
             <div className="form-group">
               <label htmlFor="department">Department *</label>
@@ -268,7 +268,7 @@ function MachineForm() {
         
         {/* DISPONIBILITÀ Section */}
         <div className="form-section">
-          <h3 className="section-title">📅 Disponibilità</h3>
+          <h3 className="section-title">Disponibilità</h3>
           <div className="form-group">
             <label>Active Shifts</label>
             <div className="checkbox-group">

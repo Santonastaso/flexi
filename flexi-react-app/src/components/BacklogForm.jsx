@@ -165,7 +165,7 @@ const BacklogForm = ({ onSuccess }) => {
       <form onSubmit={handleSubmit(onSubmit)}>
         {/* IDENTIFICAZIONE Section */}
         <div className="form-section">
-          <h3 className="section-title">🏷️ Identificazione</h3>
+          <h3 className="section-title">Identificazione</h3>
           <div className="form-grid form-grid--3-cols">
             <div className="form-group">
               <label htmlFor="odp_number">ODP Number *</label>
@@ -394,7 +394,7 @@ const BacklogForm = ({ onSuccess }) => {
 
         {/* DATI LAVORAZIONE & PIANIFICAZIONE Section */}
         <div className="form-section">
-          <h3 className="section-title">⚙️ Dati Lavorazione & Pianificazione</h3>
+          <h3 className="section-title">Dati Lavorazione & Pianificazione</h3>
           <div className="form-grid form-grid--3-cols">
             <div className="form-group">
               <label htmlFor="department">Department</label>
@@ -456,7 +456,7 @@ const BacklogForm = ({ onSuccess }) => {
         {/* Selected Phase Parameters */}
         {selectedPhase && (
           <div className="form-section">
-            <h3 className="section-title">📊 Selected Phase Parameters</h3>
+            <h3 className="section-title">Selected Phase Parameters</h3>
             <div className="form-grid form-grid--3-cols">
               {selectedPhase.department === DEPARTMENT_TYPES.PRINTING ? (
                 <>

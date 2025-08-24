@@ -32,11 +32,19 @@ function MachineCalendarPage() {
   }, [init, isInitialized, cleanup]);
 
   if (isLoading || !isInitialized) {
-    return <div className="loading">Loading machine calendar...</div>;
+    return (
+      <div className="content-section">
+        <div className="loading">Loading machine calendar...</div>
+      </div>
+    );
   }
 
   if (!machine) {
-    return <div className="error">Machine not found</div>;
+    return (
+      <div className="content-section">
+        <div className="error">Machine not found</div>
+      </div>
+    );
   }
 
   const handleDateChange = (newDate) => {
@@ -54,33 +62,31 @@ function MachineCalendarPage() {
   };
 
   return (
-    <div className="page-container">
-      <div className="content-section">
-        <div className="calendar-header">
-          <h1>Machine Availability Calendar</h1>
-          <h2>{machine.machine_name}</h2>
-        </div>
-        
-        <CalendarViewControls
-          currentDate={currentDate}
-          currentView={currentView}
-          onDateChange={handleDateChange}
-          onViewChange={handleViewChange}
-        />
-        
-        <OffTimeForm
-          machineId={machine.id}
-          currentDate={currentDate}
-          onSuccess={handleOffTimeSuccess}
-        />
-        
-        <CalendarGrid
-          machineId={machine.id}
-          currentDate={currentDate}
-          currentView={currentView}
-          refreshTrigger={refreshKey}
-        />
+    <div className="content-section">
+      <div className="calendar-header">
+        <h1>Machine Availability Calendar</h1>
+        <h2>{machine.machine_name}</h2>
       </div>
+      
+      <CalendarViewControls
+        currentDate={currentDate}
+        currentView={currentView}
+        onDateChange={handleDateChange}
+        onViewChange={handleViewChange}
+      />
+      
+      <OffTimeForm
+        machineId={machine.id}
+        currentDate={currentDate}
+        onSuccess={handleOffTimeSuccess}
+      />
+      
+      <CalendarGrid
+        machineId={machine.id}
+        currentDate={currentDate}
+        currentView={currentView}
+        refreshTrigger={refreshKey}
+      />
     </div>
   );
 }

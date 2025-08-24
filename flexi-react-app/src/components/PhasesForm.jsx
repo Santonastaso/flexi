@@ -59,7 +59,7 @@ function PhasesForm() {
       <h2>Create Phases</h2>
       <form onSubmit={handleSubmit(addPhase)}>
         <div className="form-section">
-          <h3 className="section-title">➕ Add New Phase</h3>
+          <h3 className="section-title">Add New Phase</h3>
           <div className="form-grid form-grid--4-cols">
             <div className="form-group">
               <label htmlFor="name">Phase Name *</label>
@@ -69,6 +69,7 @@ function PhasesForm() {
                 {...register('name')}
                 placeholder="e.g., High-Speed Printing" 
                 className={errors.name ? 'error' : ''}
+                required
               />
               {getFieldError('name')}
             </div>
@@ -132,7 +133,7 @@ function PhasesForm() {
         {/* Conditional Printing Parameters */}
         {department === DEPARTMENT_TYPES.PRINTING && (
           <div className="form-section">
-            <h3 className="section-title">🖨️ Printing Parameters</h3>
+            <h3 className="section-title">Printing Parameters</h3>
             <div className="form-grid form-grid--3-cols">
               <div className="form-group">
                 <label htmlFor="v_stampa">Printing Speed (mt/h) *</label>

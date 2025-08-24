@@ -2,7 +2,6 @@ import React, { useEffect, useMemo } from 'react';
 import { useMachineStore, useOrderStore, useUIStore, useMainStore } from '../store';
 import { MACHINE_STATUSES } from '../constants';
 
-
 function HomePage() {
   const { machines } = useMachineStore();
   const { odpOrders: orders } = useOrderStore();
@@ -85,7 +84,11 @@ function HomePage() {
 
   return (
     <div className="content-section">
-      <h2>Production Dashboard</h2>
+      {/* Main Title */}
+      <div className="page-header">
+        <h1>Production Dashboard</h1>
+        <p>Overview of your production operations and key metrics</p>
+      </div>
       
       {/* Key Metrics - Horizontal Layout */}
       <div className="metrics-grid">

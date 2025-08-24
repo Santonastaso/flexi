@@ -1,28 +1,41 @@
 /* ===== CSS CUSTOM PROPERTIES ===== */
 :root {
-    /* SAP-inspired color palette */
-    --bg-color: #f7f7f7;
-    --text-dark: #333333;
-    --text-light: #666666;
-    --primary-blue: #007BFF;
-    --primary-blue-hover: #0056b3;
-    --secondary-blue: #E0EFF9;
-    --accent-orange: #FFA500;
-    --warning-orange: #f59e0b;
-    --danger-red: #FF0000;
-    --success-green: #28a745;
-    --success-green-hover: #218838;
-    --border-color: #E0E0E0;
-    --gray-light: #f8f9fa;
-    --gray-medium: #6c757d;
+    /* SAP Cloud Platform inspired color palette */
+    --bg-color: #d1d5db;
+    --text-dark: #2C3E50;
+    --text-light: #6c757d;
+    --text-white: #ffffff;
+    
+    /* Primary SAP colors */
+    --sap-primary: #2C3E50;
+    --sap-secondary: #34495E;
+    --sap-accent: #3498DB;
+    --sap-accent-hover: #2980B9;
+    
+    /* Status colors */
+    --status-active: #27AE60;
+    --status-inactive: #E74C3C;
+    --status-warning: #F39C12;
+    --status-info: #3498DB;
+    
+    /* UI colors */
+    --border-color: #BDC3C7;
+    --border-light: #E5E7E9;
+    --gray-light: #e5e7eb;
+    --gray-medium: #95A5A6;
+    --gray-dark: #7F8C8D;
+    --content-bg: #f8f9fa;
     
     /* Theming values */
-    --border-radius: 4px;
-    --border-radius-large: 8px;
+    --border-radius: 0px;
+    --border-radius-large: 0px;
+    --spacing-sm: 8px;
     --spacing-md: 16px;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-    --shadow-md: 0 2px 8px rgba(0,0,0,0.15);
-    --shadow-lg: 0 4px 16px rgba(0,0,0,0.1);
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --shadow-sm: 0 1px 3px rgba(44, 62, 80, 0.1);
+    --shadow-md: 0 2px 8px rgba(44, 62, 80, 0.15);
+    --shadow-lg: 0 4px 16px rgba(44, 62, 80, 0.1);
 }
 
 /* ===== RESET & BASE STYLES ===== */
@@ -58,17 +71,34 @@ h1, h2, h3 {
     font-weight: 600;
     color: var(--text-dark);
     line-height: 1.3;
-    margin-bottom: 12px;
+    margin-bottom: var(--spacing-md);
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', sans-serif;
 }
 
-h1 { font-size: 28px; }
-h2 { font-size: 20px; }
-h3 { font-size: 16px; margin-bottom: 8px; }
+h1 { 
+    font-size: 28px; 
+    font-weight: 700;
+    color: var(--sap-primary);
+}
+
+h2 { 
+    font-size: 20px; 
+    font-weight: 600;
+    color: var(--sap-secondary);
+}
+
+h3 { 
+    font-size: 16px; 
+    margin-bottom: var(--spacing-sm);
+    font-weight: 600;
+    color: var(--text-dark);
+}
 
 p {
-    line-height: 1.4;
+    line-height: 1.5;
     color: var(--text-light);
-    margin-bottom: 12px;
+    margin-bottom: var(--spacing-md);
+    font-size: 14px;
 }
 
 /* ===== UTILITY CLASSES ===== */

@@ -160,7 +160,7 @@ function LoginPage() {
           {/* Authentication Error */}
           {authError && (
             <div className="auth-error">
-              <span className="error-icon">⚠️</span>
+              <span className="error-icon">●</span>
               {authError}
             </div>
           )}

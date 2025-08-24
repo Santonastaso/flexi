@@ -4,18 +4,19 @@
 .form-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 24px;
+  padding: var(--spacing-xl);
   width: 100%;
 }
 
 .form-section {
-  background: white;
+  background: var(--content-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-large);
-  padding: 24px;
-  margin-bottom: 24px;
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
   box-shadow: var(--shadow-sm);
   transition: box-shadow 0.2s ease;
+  margin-top: var(--spacing-sm);
 }
 
 .form-section:hover {
@@ -80,7 +81,7 @@
   border-radius: var(--border-radius);
   font-size: 14px;
   transition: all 0.2s ease;
-  background: white;
+  background: var(--content-bg);
   font-family: inherit;
 }
 
@@ -193,59 +194,9 @@
   border-top: 1px solid var(--border-color);
 }
 
-.form-actions .btn {
-  min-width: 120px;
-  padding: 12px 24px;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: var(--border-radius);
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
 .form-actions .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-/* Button Variants */
-.btn-primary {
-  background: var(--primary-blue);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--primary-blue-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.btn-secondary {
-  background: var(--gray-medium);
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--text-dark);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.btn-danger {
-  background: var(--danger-red);
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
 }
 
 /* Searchable Dropdown */
@@ -262,9 +213,9 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
+  background: var(--content-bg);
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  border-radius: 0;
   box-shadow: var(--shadow-md);
   max-height: 200px;
   overflow-y: auto;
@@ -301,14 +252,14 @@
 
 /* Result Values */
 .result-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--primary-blue);
-  text-align: center;
-  padding: 16px;
-  background: var(--gray-light);
-  border-radius: var(--border-radius);
-  border: 2px solid var(--border-color);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--sap-accent);
+    text-align: center;
+    padding: 16px;
+    background: var(--content-bg);
+    border-radius: 0;
+    border: 2px solid var(--border-color);
 }
 
 /* Responsive Design */
@@ -336,6 +287,9 @@
   
   .form-actions .btn {
     width: 100%;
+    background: var(--sap-primary);
+    color: var(--text-white);
+    border: 1px solid var(--sap-secondary);
   }
   
   .section-title {
@@ -359,4 +313,32 @@
     padding: 10px 12px;
     font-size: 16px; /* Prevents zoom on iOS */
   }
+}
+
+.form-input {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: 0;
+    font-size: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background: var(--content-bg);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--sap-accent);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+    background: var(--text-white);
+}
+
+.form-input.error {
+    border-color: var(--status-inactive);
+    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.1);
+}
+
+.date-input {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 0;
+    font-size: 14px;
 }

@@ -41,17 +41,10 @@ function SchedulerPage() {
 
 
 
-  // Performance monitoring
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-
-  // Initialize store on mount with performance tracking
+  // Initialize store on mount
   useEffect(() => {
     if (!isInitialized) {
-      init().finally(() => {
-        setIsInitialLoad(false);
-      });
-    } else {
-      setIsInitialLoad(false);
+      init();
     }
     
     // Cleanup function for component unmount
@@ -325,7 +318,7 @@ function SchedulerPage() {
   }, [currentDate, scheduleTaskFromSlot, rescheduleTaskToSlot, unscheduleTask, showAlert]);
 
     // Show loading state during initial load
-  if (isLoading || isInitialLoad) {
+  if (isLoading) {
     return (
       <div className="scheduler-loading">
         <div className="loading-container">

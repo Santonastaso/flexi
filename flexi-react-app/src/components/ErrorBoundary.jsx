@@ -155,17 +155,17 @@ Please describe what you were doing when this error occurred:
 
             <div className="error-boundary__actions">
               <button 
-                onClick={this.handleRetry}
-                className="error-boundary__button error-boundary__button--primary"
+                onClick={this.handleRetry} 
+                className="btn-primary"
               >
-                🔄 Try Again
+                Try Again
               </button>
               
               <button 
-                onClick={this.handleGoHome}
-                className="error-boundary__button error-boundary__button--secondary"
+                onClick={this.handleGoHome} 
+                className="btn-secondary"
               >
-                🏠 Go to Home
+                Go to Home
               </button>
               
               <button 

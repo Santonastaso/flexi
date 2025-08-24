@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, Outlet, Navigate } from 'react-router-dom';
+import { Routes, Route, Outlet, Navigate, useLocation } from 'react-router-dom';
 import SideNav from './components/SideNav';
 import MachineryPage from './pages/MachineryPage';
 import MachineCalendarPage from './pages/MachineCalendarPage';
@@ -17,6 +17,30 @@ import ConfirmDialog from './components/ConfirmDialog';
 import { useUIStore, useMainStore } from './store';
 import { useAuth } from './auth/AuthContext';
 
+// Dynamic header component that shows current page title
+const DynamicHeader = () => {
+  const location = useLocation();
+  
+  const getPageTitle = () => {
+    const path = location.pathname;
+    if (path === '/') return 'Home';
+    if (path === '/machinery') return 'Machinery';
+    if (path === '/phases') return 'Phases';
+    if (path === '/backlog') return 'Backlog';
+    if (path === '/scheduler') return 'Scheduler';
+    if (path.includes('/machinery/') && path.includes('/calendar')) return 'Machine Calendar';
+    return 'Flexi Scheduler';
+  };
+
+  return (
+    <header className="app-header">
+      <div className="header-content">
+        <h1 className="header-title">{getPageTitle()}</h1>
+      </div>
+    </header>
+  );
+};
+
 // This component creates the main layout with the sidebar
 const AppLayout = () => {
   const { alert, hideAlert, confirmDialog, hideConfirmDialog } = useUIStore();
@@ -33,6 +57,8 @@ const AppLayout = () => {
     <div className="main-content">
       <SideNav />
       <div className="page-container">
+        <DynamicHeader />
+        
         <main>
           <Outlet />
         </main>

@@ -9,8 +9,8 @@ import {
 import { useErrorHandler } from '../hooks';
 
 function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
-  const [availabilityData, setAvailabilityData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [updatingSlots, setUpdatingSlots] = useState({}); // State to track loading slots
   
   const { machines } = useMachineStore();
   const { odpOrders } = useOrderStore();
@@ -27,29 +27,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
     return <div className="loading">Loading machine data...</div>;
   }
 
-  // Optimized data processing with Map for O(1) lookups
-  const processedAvailabilityData = useMemo(() => {
-    if (!machineId || !machineAvailability) return {};
-    
-    const organizedData = {};
-    
-    // Create a Map for O(1) machine data lookups
-    const machineDataMap = new Map();
-    
-    // Process all dates in machineAvailability once
-    Object.entries(machineAvailability).forEach(([dateStr, dateData]) => {
-      if (Array.isArray(dateData)) {
-        // Find machine data once per date
-        const machineData = dateData.find(item => item.machine_id === machineId);
-        if (machineData && machineData.unavailable_hours) {
-          organizedData[dateStr] = machineData.unavailable_hours;
-          machineDataMap.set(dateStr, machineData);
-        }
-      }
-    });
-    
-    return { organizedData, machineDataMap };
-  }, [machineId, machineAvailability]);
+
 
   // Optimized date range generation
   const dateRange = useMemo(() => {
@@ -97,70 +75,26 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
     return { dates, dateStrings };
   }, [currentDate, currentView]);
 
-  // Consolidated data fetching and state management
+  // Simple data loading - just load what's needed from the store
   useEffect(() => {
-    const loadAndSyncData = async () => {
-      if (!machineId) return;
+    const loadData = async () => {
+      if (!machineId || !dateRange.dateStrings.length) return;
       
       setIsLoading(true);
-      
       try {
-        // Use the optimized date range
-        const { dateStrings } = dateRange;
-        if (dateStrings.length === 0) {
-          setIsLoading(false);
-          return;
-        }
+        const firstDateStr = dateRange.dateStrings[0];
+        const lastDateStr = dateRange.dateStrings[dateRange.dateStrings.length - 1];
         
-        // First, try to get data from the store
-        const { organizedData, machineDataMap } = processedAvailabilityData;
-        let finalAvailabilityData = { ...organizedData };
-        
-        // Check if we need to fetch fresh data from the API
-        const needsFreshData = dateStrings.some(dateStr => {
-          const storeData = machineDataMap.get(dateStr);
-          return !storeData || !storeData.unavailable_hours;
-        });
-        
-        if (needsFreshData) {
-          // Load data for the entire range at once
-          const firstDateStr = dateStrings[0];
-          const lastDateStr = dateStrings[dateStrings.length - 1];
-          
-          const rangeData = await loadMachineAvailabilityForDateRange(machineId, firstDateStr, lastDateStr);
-          
-          // Process the fresh API data
-          if (rangeData && Array.isArray(rangeData)) {
-            const apiData = {};
-            
-            rangeData.forEach(item => {
-              if (item.date && item.unavailable_hours) {
-                const dateObj = new Date(item.date);
-                const dateStr = toDateString(dateObj);
-                apiData[dateStr] = item.unavailable_hours;
-              }
-            });
-            
-            // Merge API data with store data, giving priority to fresh data
-            finalAvailabilityData = { ...finalAvailabilityData, ...apiData };
-          }
-        }
-        
-        // Set the final consolidated data
-        setAvailabilityData(finalAvailabilityData);
-        
+        await loadMachineAvailabilityForDateRange(machineId, firstDateStr, lastDateStr);
       } catch (error) {
         console.error('Failed to load machine availability data:', error);
-        // Fallback to store data if API fails
-        const { organizedData } = processedAvailabilityData;
-        setAvailabilityData(organizedData);
       } finally {
         setIsLoading(false);
       }
     };
     
-    loadAndSyncData();
-  }, [machineId, dateRange, processedAvailabilityData, loadMachineAvailabilityForDateRange, refreshTrigger]);
+    loadData();
+  }, [machineId, dateRange.dateStrings, loadMachineAvailabilityForDateRange, refreshTrigger]);
 
   // Memoized scheduled tasks for the current machine to avoid repeated filtering
   const scheduledTasksForMachine = useMemo(() => {
@@ -179,18 +113,22 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
     return scheduledTasksForMachine.some(task => isTaskOverlapping(task, dateStr, hour));
   }, [machine, scheduledTasksForMachine]);
 
-  // Memoized availability lookup for O(1) access
-  const availabilityLookup = useMemo(() => {
-    return new Map(Object.entries(availabilityData));
-  }, [availabilityData]);
-
-  // Optimized function to get availability for a specific date
+  // Direct access to store data - no need for local state
   const getAvailabilityForDate = useCallback((dateStr) => {
-    return availabilityLookup.get(dateStr) || [];
-  }, [availabilityLookup]);
+    const dateData = machineAvailability[dateStr];
+    if (Array.isArray(dateData)) {
+      const machineData = dateData.find(item => item.machine_id === machineId);
+      if (machineData && machineData.unavailable_hours) {
+        // Ensure we return an array of strings for consistent comparison
+        return Array.isArray(machineData.unavailable_hours) 
+          ? machineData.unavailable_hours.map(h => h.toString())
+          : [];
+      }
+    }
+    return [];
+  }, [machineAvailability, machineId]);
 
   const handleTimeSlotClick = useCallback(async (dateStr, hour) => {
-    // Check if slot has scheduled tasks
     if (hasScheduledTask(dateStr, hour)) {
       showAlert('Cannot mark time slot as unavailable - it has scheduled tasks', 'error');
       return;
@@ -199,14 +137,18 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
     if (!machine) {
       return;
     }
-    
+
+    const slotKey = `${dateStr}-${hour}`;
+    setUpdatingSlots(prev => ({ ...prev, [slotKey]: true })); // Show loading for this slot
+
     try {
       await toggleMachineHourAvailability(machine.id, dateStr, hour);
-      // The store sync useEffect will automatically update the local state
-      // No need to manually update local state here
+      // On success, the store update will trigger a re-render automatically.
     } catch (error) {
       console.error('Failed to toggle machine hour availability:', error);
-      showAlert('Failed to toggle machine hour availability', 'error');
+      showAlert('An unexpected error occurred.', 'error');
+    } finally {
+      setUpdatingSlots(prev => ({ ...prev, [slotKey]: false })); // Hide loading for this slot
     }
   }, [hasScheduledTask, showAlert, machine, toggleMachineHourAvailability]);
 
@@ -290,23 +232,25 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
             {dates.map(day => {
               const dateStr = toDateString(day);
               const unavailableHours = getAvailabilityForDate(dateStr);
-              // Convert hour to string for comparison since the database stores them as strings
               const hourStr = hour.toString();
               const isUnavailable = unavailableHours.includes(hourStr);
               const hasScheduled = hasScheduledTask(dateStr, hour);
+              const slotKey = `${dateStr}-${hour}`;
+              const isUpdating = updatingSlots[slotKey];
               
               let slotClass = 'time-slot';
               if (isUnavailable) slotClass += ' unavailable';
               if (hasScheduled) slotClass += ' has-scheduled-task';
-              
+              if (isUpdating) slotClass += ' updating'; // Style for the loading state
+
               return (
                 <div
                   key={`${dateStr}-${hour}`}
                   className={slotClass}
-                  onClick={() => handleTimeSlotClick(dateStr, hour)}
+                  onClick={() => !isUpdating && handleTimeSlotClick(dateStr, hour)} // Prevent clicks while updating
                 >
                   <div className="time-slot-content">
-                    {isUnavailable ? '❌' : hasScheduled ? '📋' : '✓'}
+                    {isUpdating ? '...' : isUnavailable ? '❌' : hasScheduled ? '📋' : '✓'}
                   </div>
                 </div>
               );
@@ -315,7 +259,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
         ))}
       </div>
     );
-  }, [dateRange, getAvailabilityForDate, hasScheduledTask, handleTimeSlotClick, availabilityData]);
+  }, [dateRange, getAvailabilityForDate, hasScheduledTask, handleTimeSlotClick, updatingSlots]);
 
   const renderYearView = useCallback(() => {
     const year = currentDate.getFullYear();
@@ -369,7 +313,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
         })}
       </div>
     );
-  }, [currentDate, getAvailabilityForDate, availabilityData]);
+  }, [currentDate, getAvailabilityForDate]);
 
   if (isLoading) {
     return <div className="loading">Loading calendar data...</div>;

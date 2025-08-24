@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
 import { toDateString, addDaysToDate, addHoursToDate } from '../utils/dateUtils';
+import { handleApiError } from '../utils/errorUtils';
 import { useOrderStore } from './useOrderStore';
 import { useMachineStore } from './useMachineStore';
+import { useUIStore } from './useUIStore';
 
 export const useSchedulerStore = create((set, get) => ({
   // State
@@ -213,26 +215,44 @@ export const useSchedulerStore = create((set, get) => ({
     const startDateStr = startDate instanceof Date ? toDateString(startDate) : startDate;
     const endDateStr = endDate instanceof Date ? toDateString(endDate) : endDate;
     
-    const cacheKey = `${machineId}_${startDateStr}_${endDateStr}`;
-    const { machineAvailability } = get();
-    if (machineAvailability[cacheKey]) return machineAvailability[cacheKey];
-    
-    set(state => ({ 
-      machineAvailability: { 
-        ...state.machineAvailability, 
-        [cacheKey]: { _loading: true } 
-      } 
-    }));
-    
     try {
       const data = await apiService.getMachineAvailabilityForDateRange(machineId, startDateStr, endDateStr);
       
-      set(state => ({ 
-        machineAvailability: { 
-          ...state.machineAvailability, 
-          [cacheKey]: data || [] 
-        } 
-      }));
+      // Store the data in the proper date-based structure that the rest of the system expects
+      set(state => {
+        const next = { ...state.machineAvailability };
+        
+        // Process each date from the API response
+        if (Array.isArray(data)) {
+          data.forEach(item => {
+            if (item.date && item.unavailable_hours) {
+              const dateStr = item.date;
+              
+              // Ensure the date array exists
+              if (!next[dateStr]) {
+                next[dateStr] = [];
+              }
+              
+              // Find existing machine data for this date
+              const existingMachineData = next[dateStr].find(r => r.machine_id === machineId);
+              
+              if (existingMachineData) {
+                // Update existing machine data
+                existingMachineData.unavailable_hours = item.unavailable_hours;
+              } else {
+                // Add new machine data
+                next[dateStr].push({
+                  machine_id: machineId,
+                  date: dateStr,
+                  unavailable_hours: item.unavailable_hours
+                });
+              }
+            }
+          });
+        }
+        
+        return { machineAvailability: next };
+      });
       
       return data;
     } catch (e) {
@@ -269,7 +289,7 @@ export const useSchedulerStore = create((set, get) => ({
         
         // Check if task is on the same date
         if (taskStart < targetDateEnd && taskEnd > targetDateStart) {
-          // Check if any unavailable hour overlaps with the task
+          // Check if any unavailable hour overlaps with scheduled task
           for (const hour of unavailableHours) {
             const hourStart = new Date(targetDateStart.getTime() + parseInt(hour) * 60 * 60 * 1000);
             const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
@@ -290,9 +310,15 @@ export const useSchedulerStore = create((set, get) => ({
         else next[dateStr].push({ machine_id: machineId, date: dateStr, unavailable_hours: unavailableHours });
         return { machineAvailability: next };
       });
+      
+      // Show success alert
+      useUIStore.getState().showAlert(`Machine availability updated successfully for ${dateStr}`, 'success');
       return true;
-    } catch (e) {
-      throw e;
+    } catch (error) {
+      // Use centralized error handling
+      const appError = handleApiError(error, 'Machine Availability');
+      useUIStore.getState().showAlert(appError.message, 'error');
+      throw appError;
     }
   },
 
@@ -300,38 +326,31 @@ export const useSchedulerStore = create((set, get) => ({
     try {
       const currentUnavailableHours = await get().getMachineAvailability(machineId, dateStr);
       
-      // Convert hour to string for comparison since the database stores them as strings
       const hourStr = hour.toString();
       
       let newUnavailableHours;
       if (currentUnavailableHours.includes(hourStr)) {
-        // Remove hour if already unavailable
         newUnavailableHours = currentUnavailableHours.filter(h => h !== hourStr);
       } else {
-        // Add hour if not unavailable
         newUnavailableHours = [...currentUnavailableHours, hourStr].sort((a, b) => parseInt(a) - parseInt(b));
       }
       
-      // Update the API
+      // First, update the database via the API service.
       await apiService.setMachineAvailability(machineId, dateStr, newUnavailableHours);
       
-      // Force update the store in the format that CalendarGrid expects
+      // After the API call succeeds, directly update the state.
       set(state => {
         const next = { ...state.machineAvailability };
         
-        // Ensure the date array exists
         if (!next[dateStr]) {
           next[dateStr] = [];
         }
         
-        // Find existing machine data for this date
         const existingMachineData = next[dateStr].find(r => r.machine_id === machineId);
         
         if (existingMachineData) {
-          // Update existing machine data
           existingMachineData.unavailable_hours = newUnavailableHours;
         } else {
-          // Add new machine data
           next[dateStr].push({
             machine_id: machineId,
             date: dateStr,
@@ -341,10 +360,15 @@ export const useSchedulerStore = create((set, get) => ({
         
         return { machineAvailability: next };
       });
-      
+
+      // Show success alert
+      useUIStore.getState().showAlert(`Time slot ${hourStr}:00 updated successfully`, 'success');
       return true;
-    } catch (e) {
-      throw e;
+    } catch (error) {
+      // Use centralized error handling
+      const appError = handleApiError(error, 'Machine Availability');
+      useUIStore.getState().showAlert(appError.message, 'error');
+      throw appError;
     }
   },
 

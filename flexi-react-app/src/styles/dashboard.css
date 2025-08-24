@@ -4,22 +4,69 @@
 .dashboard-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 24px;
-    width: 100%;
+    padding: var(--spacing-xl);
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+.breadcrumb-separator {
+    color: var(--gray-medium);
+    font-weight: 500;
+}
+
+/* Page Header */
+.page-header {
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--sap-primary);
+    margin: 0 0 var(--spacing-md) 0;
+}
+
+.page-subtitle {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.count-badge {
+    background: var(--sap-accent);
+    color: var(--text-white);
+    padding: 4px 12px;
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    font-weight: 600;
 }
 
 .dashboard-header {
+    background: var(--content-bg);
+    border: 1px solid var(--border-light);
+    border-radius: 0;
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
     text-align: center;
-    margin-bottom: 32px;
-    padding-bottom: 24px;
-    border-bottom: 2px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    margin-top: var(--spacing-sm);
 }
 
 .dashboard-header h1 {
     font-size: 32px;
     font-weight: 700;
-    color: var(--text-dark);
-    margin: 0 0 16px 0;
+    color: var(--sap-primary);
+    margin: 0 0 var(--spacing-md) 0;
 }
 
 .dashboard-header p {
@@ -31,16 +78,21 @@
 
 .dashboard-controls {
     display: flex;
-    justify-content: center;
-    gap: 16px;
+    gap: var(--spacing-md);
     align-items: center;
-    margin-top: 24px;
-    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    background: var(--content-bg);
+    border: 1px solid var(--border-light);
+    border-radius: 0;
+    box-shadow: var(--shadow-sm);
+    margin-top: var(--spacing-sm);
 }
 
 .date-range {
     display: flex;
-    gap: 12px;
+    gap: var(--spacing-md);
     align-items: center;
 }
 
@@ -53,34 +105,34 @@
 .date-input {
     padding: 8px 12px;
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 0;
     font-size: 14px;
 }
 
 .date-input:focus {
     outline: none;
-    border-color: var(--primary-blue);
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+    border-color: var(--sap-accent);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
 }
 
 /* Metrics Grid */
 .metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 24px;
-    margin-bottom: 32px;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
     max-width: 1000px;
     margin-left: auto;
     margin-right: auto;
 }
 
 .metric-card {
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    background: var(--content-bg);
+    border: 1px solid var(--border-light);
+    border-radius: 0;
     box-shadow: var(--shadow-sm);
     transition: all 0.3s ease;
-    padding: 24px;
+    padding: var(--spacing-lg);
     text-align: center;
 }
 
@@ -90,7 +142,7 @@
 }
 
 .metric-card h3 {
-    margin: 0 0 16px 0;
+    margin: 0 0 var(--spacing-md) 0;
     font-size: 14px;
     color: var(--text-light);
     font-weight: 500;
@@ -101,12 +153,12 @@
 .metric-value {
     font-size: 32px;
     font-weight: 700;
-    color: var(--text-dark);
-    margin-bottom: 8px;
+    color: var(--sap-primary);
+    margin-bottom: var(--spacing-sm);
 }
 
 .metric-value.delayed {
-    color: var(--danger-red);
+    color: var(--status-inactive);
 }
 
 .metric-subtitle {
@@ -118,19 +170,19 @@
 .charts-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 32px;
-    margin-bottom: 32px;
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
     max-width: 1000px;
     margin-left: auto;
     margin-right: auto;
 }
 
 .chart-section {
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    background: var(--content-bg);
+    border: 1px solid var(--border-light);
+    border-radius: 0;
     box-shadow: var(--shadow-sm);
-    padding: 24px;
+    padding: var(--spacing-lg);
     transition: all 0.3s ease;
 }
 
@@ -140,9 +192,9 @@
 }
 
 .chart-section h3 {
-    margin: 0 0 20px 0;
+    margin: 0 0 var(--spacing-lg) 0;
     font-size: 18px;
-    color: var(--text-dark);
+    color: var(--sap-primary);
     font-weight: 600;
     text-align: center;
 }
@@ -151,13 +203,13 @@
 .work-center-chart {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: var(--spacing-lg);
 }
 
 .work-center-group h4 {
-    margin: 0 0 12px 0;
+    margin: 0 0 var(--spacing-md) 0;
     font-size: 14px;
-    color: var(--text-dark);
+    color: var(--sap-secondary);
     font-weight: 600;
     text-align: center;
 }
@@ -165,13 +217,13 @@
 .status-bars {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--spacing-sm);
 }
 
 .status-bar {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--spacing-md);
 }
 
 .status-label {
@@ -182,10 +234,10 @@
 }
 
 .status-bar-fill {
-    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-    color: white;
+    background: linear-gradient(135deg, var(--sap-accent), var(--sap-accent-hover));
+    color: var(--text-white);
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 11px;
     font-weight: 600;
     text-align: center;
@@ -198,18 +250,18 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: var(--spacing-md);
 }
 
 .chart-bar {
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, var(--status-active), #1e8449);
     width: 80px;
-    border-radius: 4px 4px 0 0;
+    border-radius: 0;
     display: flex;
     align-items: flex-end;
     justify-content: center;
     padding: 12px 0;
-    color: white;
+    color: var(--text-white);
     font-weight: 600;
     font-size: 16px;
     min-height: 60px;

@@ -8,8 +8,6 @@ import { WORK_CENTERS } from '../constants';
 import { useErrorHandler } from '../hooks';
 
 function PhasesPage() {
-  const [error, setError] = useState(null);
-  
   // Use Zustand store to select state and actions
   const { phases, updatePhase, removePhase } = usePhaseStore();
   const { selectedWorkCenter, isLoading, isInitialized, showAlert, showConfirmDialog } = useUIStore();
@@ -31,9 +29,7 @@ function PhasesPage() {
   // Initialize store on component mount
   useEffect(() => {
     if (!isInitialized) {
-      init().catch(err => {
-        setError('Failed to load phases data');
-      });
+      init();
     }
     
     // Cleanup function for component unmount
@@ -110,16 +106,6 @@ function PhasesPage() {
     return (
       <div className="content-section">
         <div className="error">Please select a work center to view phases data.</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="content-section">
-        <div className="error-message" style={{ color: 'red', textAlign: 'center', padding: '20px' }}>
-          {error}
-        </div>
       </div>
     );
   }

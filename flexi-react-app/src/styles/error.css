@@ -22,14 +22,44 @@
 /* Common container styles */
 .error-boundary__container,
 .async-error-boundary__container {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  background: var(--content-bg);
+  border-radius: 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);  
   padding: 40px;
   max-width: 600px;
   width: 100%;
   text-align: center;
   animation: slideInUp 0.6s ease-out;
+}
+
+.error-boundary__header {
+    background: var(--sap-primary);
+    color: var(--text-white);
+    padding: var(--spacing-lg);
+    text-align: center;
+}
+
+.error-boundary__content {
+    padding: var(--spacing-xl);
+    background: var(--content-bg);
+}
+
+.error-boundary__error-details {
+    background: var(--gray-light);
+    border: 1px solid var(--border-color);
+    border-radius: 0;
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    overflow-x: auto;
+    color: var(--text-dark);
+}
+
+.error-boundary__footer {
+    border-top: 1px solid var(--border-light);
+    padding-top: var(--spacing-lg);
+    background: var(--content-bg);
 }
 
 /* Common icon styles */
@@ -72,7 +102,7 @@
   margin-bottom: 32px;
   padding: 12px;
   background: #fed7d7;
-  border-radius: 8px;
+  border-radius: 0;
   border: 1px solid #feb2b2;
 }
 
@@ -81,7 +111,7 @@
 .async-error-boundary__details {
   background: #f7fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 0;
   margin-bottom: 32px;
   text-align: left;
 }
@@ -111,7 +141,7 @@
   background: #2d3748;
   color: #e2e8f0;
   padding: 16px;
-  border-radius: 6px;
+  border-radius: 0;
   overflow-x: auto;
   font-size: 12px;
   line-height: 1.4;
@@ -131,9 +161,11 @@
 /* Common button styles */
 .error-boundary__button,
 .async-error-boundary__button {
+  background: var(--sap-primary);
+  color: var(--text-white);
+  border: 1px solid var(--sap-secondary);
   padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
+  border-radius: 0;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -144,51 +176,25 @@
   gap: 8px;
 }
 
-/* Button variants */
-.error-boundary__button--primary {
-  background: #4299e1;
-  color: white;
-}
-
-.error-boundary__button--primary:hover {
-  background: #3182ce;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
-}
-
-.error-boundary__button--secondary {
-  background: #edf2f7;
-  color: #4a5568;
-  border: 1px solid #e2e8f0;
-}
-
-.error-boundary__button--secondary:hover {
-  background: #e2e8f0;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.async-error-boundary__button--primary {
-  background: #f56565;
-  color: white;
-}
-
-.async-error-boundary__button--primary:hover {
-  background: #e53e3e;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(245, 101, 101, 0.4);
-}
-
+/* Button variants - All use the same unified style */
+.error-boundary__button--primary,
+.error-boundary__button--secondary,
+.async-error-boundary__button--primary,
 .async-error-boundary__button--secondary {
-  background: #edf2f7;
-  color: #4a5568;
-  border: 1px solid #e2e8f0;
+  background: var(--sap-primary);
+  color: var(--text-white);
+  border: 1px solid var(--sap-secondary);
 }
 
+.error-boundary__button--primary:hover,
+.error-boundary__button--secondary:hover,
+.async-error-boundary__button--primary:hover,
 .async-error-boundary__button--secondary:hover {
-  background: #e2e8f0;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: var(--sap-accent);
+  color: var(--text-white);
+  border-color: var(--sap-accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 /* Common footer styles */
@@ -205,18 +211,18 @@
 }
 
 .error-boundary__error-id code {
-  background: #f7fafc;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  color: #2d3748;
+    background: var(--gray-light);
+    padding: 4px 8px;
+    border-radius: 0;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    color: var(--text-dark);
 }
 
 .error-boundary__help,
 .async-error-boundary__help {
-  font-size: 14px;
-  color: #a0aec0;
-  line-height: 1.5;
+    font-size: 14px;
+    color: var(--text-light);
+    line-height: 1.5;
 }
 
 /* Responsive Design */
@@ -285,16 +291,17 @@
 /* ===== ERROR TEST COMPONENT STYLES ===== */
 
 .error-test {
-  padding: 40px 20px;
+  padding: var(--spacing-xl) var(--spacing-lg);
   max-width: 800px;
   margin: 0 auto;
 }
 
 .error-test__container {
-  background: white;
-  border-radius: 12px;
+  background: var(--content-bg);
+  border-radius: 0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  padding: 32px;
+  padding: var(--spacing-xl);
+  margin-top: var(--spacing-sm);
 }
 
 .error-test__container h2 {
@@ -319,9 +326,11 @@
 
 /* Common error test button styles */
 .error-test__button {
+  background: var(--sap-primary);
+  color: var(--text-white);
+  border: 1px solid var(--sap-secondary);
   padding: 16px 24px;
-  border: none;
-  border-radius: 8px;
+  border-radius: 0;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -334,55 +343,39 @@
 }
 
 .error-test__button:hover {
-  transform: translateY(-2px);
+  background: var(--sap-accent);
+  color: var(--text-white);
+  border-color: var(--sap-accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
-/* Button color variants */
-.error-test__button--danger {
-  background: #e53e3e;
-  color: white;
-}
-
-.error-test__button--danger:hover {
-  background: #c53030;
-  box-shadow: 0 4px 12px rgba(229, 62, 62, 0.4);
-}
-
-.error-test__button--warning {
-  background: #d69e2e;
-  color: white;
-}
-
-.error-test__button--warning:hover {
-  background: #b7791f;
-  box-shadow: 0 4px 12px rgba(214, 158, 46, 0.4);
-}
-
-.error-test__button--info {
-  background: #3182ce;
-  color: white;
-}
-
-.error-test__button--info:hover {
-  background: #2c5aa0;
-  box-shadow: 0 4px 12px rgba(49, 130, 206, 0.4);
-}
-
+/* Button color variants - All use the same unified style */
+.error-test__button--danger,
+.error-test__button--warning,
+.error-test__button--info,
 .error-test__button--secondary {
-  background: #718096;
-  color: white;
+  background: var(--sap-primary);
+  color: var(--text-white);
+  border: 1px solid var(--sap-secondary);
 }
 
+.error-test__button--danger:hover,
+.error-test__button--warning:hover,
+.error-test__button--info:hover,
 .error-test__button--secondary:hover {
-  background: #4a5568;
-  box-shadow: 0 4px 12px rgba(113, 128, 150, 0.4);
+  background: var(--sap-accent);
+  color: var(--text-white);
+  border-color: var(--sap-accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .error-test__info {
-  background: #f7fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 24px;
+    background: var(--content-bg);
+    border: 1px solid var(--border-light);
+    border-radius: 0;
+    padding: 24px;
 }
 
 .error-test__info h3 {
