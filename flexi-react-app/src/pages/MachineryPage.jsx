@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 import MachineForm from '../components/MachineForm';
 import EditableCell from '../components/EditableCell';
+import StickyHeader from '../components/StickyHeader';
 import { useMachineStore, useUIStore, useMainStore } from '../store';
 import { useMachineValidation, useErrorHandler } from '../hooks';
 import { WORK_CENTERS } from '../constants';
@@ -131,7 +132,7 @@ function MachineryPage() {
     <>
       <MachineForm />
       <div className="content-section">
-        <h2>Machinery Catalog</h2>
+        <StickyHeader title="Machinery Catalog" />
         <DataTable
           columns={columns}
           data={filteredMachines}

@@ -10,11 +10,11 @@ function SideNav() {
   const navigate = useNavigate();
 
   const navLinks = [
-    { href: '/', label: 'Home', icon: '●' },
-    { href: '/machinery', label: 'Machinery', icon: '●' },
-    { href: '/phases', label: 'Phases', icon: '●' },
-    { href: '/backlog', label: 'Backlog', icon: '●' },
-    { href: '/scheduler', label: 'Scheduler', icon: '●' }
+    { href: '/', label: 'Home' },
+    { href: '/machinery', label: 'Machinery' },
+    { href: '/phases', label: 'Phases' },
+    { href: '/backlog', label: 'Backlog' },
+    { href: '/scheduler', label: 'Scheduler' }
   ];
 
   const handleSignOut = async () => {

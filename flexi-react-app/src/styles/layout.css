@@ -28,15 +28,18 @@
 }
 
 .page-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 var(--spacing-xl) var(--spacing-xl);
+    max-width: none;
+    margin: 0;
+    padding: 0;
     width: 100%;
     flex: 1;
+    margin-top: 0;
 }
 
 main {
     padding-bottom: 40px;
+    padding-top: 0;
+    margin-top: 90px;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -51,7 +54,7 @@ main {
     transition: box-shadow 0.2s ease;
     box-shadow: var(--shadow-sm);
     width: 100%;
-    margin-top: var(--spacing-sm);
+    margin-top: 0;
 }
 
 .content-section:hover {
@@ -59,6 +62,42 @@ main {
 }
 
 /* ===== HEADER & NAVIGATION ===== */
+
+/* Sticky Header */
+.sticky-header {
+    position: fixed;
+    top: 0;
+    left: 280px;
+    right: 0;
+    background: var(--sap-primary);
+    color: var(--text-white);
+    z-index: 999;
+    border-bottom: 1px solid var(--sap-secondary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: calc(100vw - 280px);
+}
+
+.sticky-header-content {
+    padding: var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sticky-header-title {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--text-white);
+}
+
+.sticky-header-subtitle {
+    margin: 4px 0 0 0;
+    font-size: 14px;
+    color: var(--gray-light);
+    font-weight: 400;
+}
+
 .sidebar-logo {
     padding: var(--spacing-xl) var(--spacing-lg);
     border-bottom: 1px solid var(--sap-secondary);
@@ -71,10 +110,9 @@ main {
 .sidebar-logo a {
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
     text-decoration: none;
     color: var(--text-white);
-    font-weight: 700;
+    font-weight: 400;
     font-size: 56px;
     justify-content: center;
 }
@@ -121,29 +159,16 @@ main {
 .sidebar-link.active {
     background: transparent;
     color: var(--sap-accent);
-    font-weight: 500;
+    font-weight: 400;
 }
 
-.sidebar-link::before {
-    content: '';
-    width: 16px;
-    height: 16px;
-    background: var(--text-white);
-    opacity: 0.7;
-    display: inline-block;
-    margin-right: var(--spacing-sm);
-}
 
-.sidebar-link.active::before {
-    background: var(--sap-accent);
-    opacity: 1;
-}
 
 /* Sidebar Section Titles */
 .sidebar-section-title {
     color: var(--gray-light);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: var(--spacing-md);
@@ -171,7 +196,7 @@ main {
     align-items: center;
     justify-content: center;
     color: var(--text-white);
-    font-weight: 700;
+    font-weight: 400;
     font-size: 18px;
     margin: 0 auto var(--spacing-md);
 }
@@ -182,7 +207,7 @@ main {
 }
 
 .user-name {
-    font-weight: 600;
+    font-weight: 400;
     font-size: 14px;
     margin-bottom: var(--spacing-sm);
     color: var(--text-white);
@@ -206,7 +231,7 @@ main {
     padding: 4px 8px;
     border-radius: 0;
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 400;
     display: inline-block;
     margin-bottom: var(--spacing-sm);
     text-transform: uppercase;
@@ -222,7 +247,7 @@ main {
     padding: 2px 6px;
     border-radius: 0;
     font-size: 10px;
-    font-weight: 500;
+    font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     background: var(--status-inactive);
@@ -323,7 +348,7 @@ main {
 .header-title {
     color: var(--text-white);
     font-size: 20px;
-    font-weight: 700;
+    font-weight: 400;
     margin: 0;
 }
 
@@ -340,7 +365,7 @@ main {
     color: var(--text-white);
     padding: 8px 12px;
     border-radius: 0;
-    font-weight: 600;
+    font-weight: 400;
     font-size: 14px;
 }
 
@@ -358,7 +383,7 @@ main {
 
 .page-header h1 {
     font-size: 32px;
-    font-weight: 700;
+    font-weight: 400;
     color: var(--sap-primary);
     margin-bottom: var(--spacing-sm);
 }

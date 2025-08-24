@@ -19,7 +19,7 @@
 
 .breadcrumb-separator {
     color: var(--gray-medium);
-    font-weight: 500;
+    font-weight: 400;
 }
 
 /* Page Header */
@@ -31,7 +31,7 @@
 
 .page-header h1 {
     font-size: 28px;
-    font-weight: 700;
+    font-weight: 400;
     color: var(--sap-primary);
     margin: 0 0 var(--spacing-md) 0;
 }
@@ -48,7 +48,7 @@
     padding: 4px 12px;
     border-radius: var(--border-radius);
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 400;
 }
 
 .dashboard-header {
@@ -64,7 +64,7 @@
 
 .dashboard-header h1 {
     font-size: 32px;
-    font-weight: 700;
+    font-weight: 400;
     color: var(--sap-primary);
     margin: 0 0 var(--spacing-md) 0;
 }
@@ -97,7 +97,7 @@
 }
 
 .date-range label {
-    font-weight: 500;
+    font-weight: 400;
     color: var(--text-dark);
     font-size: 14px;
 }
@@ -145,14 +145,14 @@
     margin: 0 0 var(--spacing-md) 0;
     font-size: 14px;
     color: var(--text-light);
-    font-weight: 500;
+    font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .metric-value {
     font-size: 32px;
-    font-weight: 700;
+    font-weight: 400;
     color: var(--sap-primary);
     margin-bottom: var(--spacing-sm);
 }
@@ -195,7 +195,7 @@
     margin: 0 0 var(--spacing-lg) 0;
     font-size: 18px;
     color: var(--sap-primary);
-    font-weight: 600;
+    font-weight: 400;
     text-align: center;
 }
 
@@ -210,7 +210,7 @@
     margin: 0 0 var(--spacing-md) 0;
     font-size: 14px;
     color: var(--sap-secondary);
-    font-weight: 600;
+    font-weight: 400;
     text-align: center;
 }
 
@@ -230,7 +230,7 @@
     min-width: 80px;
     font-size: 12px;
     color: var(--text-light);
-    font-weight: 500;
+    font-weight: 400;
 }
 
 .status-bar-fill {
@@ -239,7 +239,7 @@
     padding: 4px 8px;
     border-radius: 0;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 400;
     text-align: center;
     min-width: 30px;
     transition: width 0.3s ease;
@@ -262,7 +262,7 @@
     justify-content: center;
     padding: 12px 0;
     color: var(--text-white);
-    font-weight: 600;
+    font-weight: 400;
     font-size: 16px;
     min-height: 60px;
     transition: height 0.3s ease;
@@ -271,7 +271,7 @@
 .chart-x-axis {
     font-size: 14px;
     color: var(--text-light);
-    font-weight: 500;
+    font-weight: 400;
 }
 
 /* Loading State */

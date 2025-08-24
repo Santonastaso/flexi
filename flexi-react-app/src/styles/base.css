@@ -51,7 +51,7 @@ html, body {
 }
 
 body {
-    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
     background-color: var(--bg-color);
     color: var(--text-dark);
     font-smoothing: antialiased;
@@ -68,29 +68,29 @@ body {
 
 /* ===== TYPOGRAPHY ===== */
 h1, h2, h3 {
-    font-weight: 600;
+    font-weight: 400;
     color: var(--text-dark);
     line-height: 1.3;
     margin-bottom: var(--spacing-md);
-    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', sans-serif;
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
 }
 
 h1 { 
     font-size: 28px; 
-    font-weight: 700;
+    font-weight: 400;
     color: var(--sap-primary);
 }
 
 h2 { 
     font-size: 20px; 
-    font-weight: 600;
+    font-weight: 400;
     color: var(--sap-secondary);
 }
 
 h3 { 
     font-size: 16px; 
     margin-bottom: var(--spacing-sm);
-    font-weight: 600;
+    font-weight: 400;
     color: var(--text-dark);
 }
 

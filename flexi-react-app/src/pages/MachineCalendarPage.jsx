@@ -4,6 +4,7 @@ import { useMachineStore, useUIStore, useMainStore } from '../store';
 import CalendarViewControls from '../components/CalendarViewControls';
 import OffTimeForm from '../components/OffTimeForm';
 import CalendarGrid from '../components/CalendarGrid';
+import StickyHeader from '../components/StickyHeader';
 
 function MachineCalendarPage() {
   const { machineId } = useParams();
@@ -63,10 +64,10 @@ function MachineCalendarPage() {
 
   return (
     <div className="content-section">
-      <div className="calendar-header">
-        <h1>Machine Availability Calendar</h1>
-        <h2>{machine.machine_name}</h2>
-      </div>
+      <StickyHeader
+        title="Machine Availability Calendar"
+        subtitle={machine.machine_name}
+      />
       
       <CalendarViewControls
         currentDate={currentDate}

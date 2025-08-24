@@ -4,6 +4,7 @@ import { useOrderStore, useMachineStore, useUIStore, useSchedulerStore, useMainS
 
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
 import SearchableDropdown from '../components/SearchableDropdown';
+import StickyHeader from '../components/StickyHeader';
 
 // Lazy load heavy components to improve initial load time
 const TaskPool = lazy(() => import('../components/TaskPool'));
@@ -11,16 +12,7 @@ const GanttChart = lazy(() => import('../components/GanttChart'));
 
 // Loading fallback component
 const LoadingFallback = () => (
-  <div className="loading-fallback" style={{
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '40px',
-    fontSize: '16px',
-    color: '#666'
-  }}>
-    Loading scheduler components...
-  </div>
+  <div className="loading">Loading scheduler components...</div>
 );
 
 function SchedulerPage() {
@@ -30,16 +22,12 @@ function SchedulerPage() {
   const { scheduleTask, unscheduleTask, scheduleTaskFromSlot, rescheduleTaskToSlot, validateSlotAvailability } = useSchedulerStore();
   const { init, cleanup } = useMainStore();
 
-
-
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeDragItem, setActiveDragItem] = useState(null);
   const [workCenterFilter, setWorkCenterFilter] = useState([]);
   const [departmentFilter, setDepartmentFilter] = useState([]);
   const [machineTypeFilter, setMachineTypeFilter] = useState([]);
   const [machineNameFilter, setMachineNameFilter] = useState([]);
-
-
 
   // Initialize store on mount
   useEffect(() => {
@@ -52,8 +40,6 @@ function SchedulerPage() {
       cleanup();
     };
   }, [init, isInitialized, cleanup]);
-
-
 
   // Memoize machine filtering with optimized dependencies and early returns
   const machineData = useMemo(() => {
@@ -317,15 +303,11 @@ function SchedulerPage() {
     }
   }, [currentDate, scheduleTaskFromSlot, rescheduleTaskToSlot, unscheduleTask, showAlert]);
 
-    // Show loading state during initial load
+  // Show loading state during initial load
   if (isLoading) {
     return (
-      <div className="scheduler-loading">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <h3>Loading Production Scheduler...</h3>
-          <p>Initializing components and data</p>
-        </div>
+      <div className="content-section">
+        <div className="loading">Loading Production Scheduler...</div>
       </div>
     );
   }
@@ -335,22 +317,24 @@ function SchedulerPage() {
       <div className="content-section">
         <div className="error">Please select a work center to view scheduler data.</div>
       </div>
-      );
+    );
   }
 
   return (
     <DndContext onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-      <div className="scheduler-container">
+      <div className="content-section">
+        <StickyHeader title="Scheduler" />
+        
         <Suspense fallback={<LoadingFallback />}>
           <TaskPool />
         </Suspense>
 
         {/* Production Schedule Controls Section */}
-        <div className="scheduler-controls-section">
-          <h2 className="scheduler-title">Production Schedule</h2>
-          <div className="scheduler-controls">
+        <div className="section-controls">
+          <h2 className="section-title">Production Schedule</h2>
+          <div className="controls-grid">
             {/* Machine Filters */}
-            <div className="machine-filters">
+            <div className="filters-section">
               <SearchableDropdown
                 label="Work Center"
                 options={machineData.workCenters}
@@ -389,7 +373,7 @@ function SchedulerPage() {
             </div>
 
             {/* Action Buttons */}
-            <div className="scheduler-actions">
+            <div className="actions-section">
               <button
                 className="nav-btn today"
                 onClick={clearFilters}
@@ -400,112 +384,112 @@ function SchedulerPage() {
 
               {/* Calendar Navigation */}
               <div className="calendar-navigation">
+                <button
+                  className="nav-btn today"
+                  onClick={() => navigateDate('today')}
+                >
+                  Today
+                </button>
+                <button
+                  className="nav-btn"
+                  onClick={() => navigateDate('prev')}
+                >
+                  &lt;
+                </button>
+                <span className="current-date">{formatDateDisplay()}</span>
+                <button
+                  className="nav-btn"
+                  onClick={() => navigateDate('next')}
+                >
+                  &gt;
+                </button>
+              </div>
+
+              {/* PDF Download Button */}
               <button
                 className="nav-btn today"
-                onClick={() => navigateDate('today')}
-              >
-                Today
-              </button>
-              <button
-                className="nav-btn"
-                onClick={() => navigateDate('prev')}
-              >
-                &lt;
-              </button>
-              <span className="current-date">{formatDateDisplay()}</span>
-              <button
-                className="nav-btn"
-                onClick={() => navigateDate('next')}
-              >
-                &gt;
-              </button>
-            </div>
-
-            {/* PDF Download Button */}
-            <button
-              className="nav-btn today"
-              onClick={() => {
-                // Find the actual Gantt chart element that's currently rendered on screen
-                const ganttElement = document.querySelector('.calendar-section .calendar-grid');
-                
-                if (!ganttElement) {
-                  alert('Gantt chart not found. Make sure the chart is visible on screen.');
-                  return;
-                }
-                
-                // Get all the CSS styles from the current page
-                const styleSheets = Array.from(document.styleSheets);
-                let allStyles = '';
-                
-                styleSheets.forEach(styleSheet => {
-                  try {
-                    const rules = Array.from(styleSheet.cssRules || styleSheet.rules || []);
-                    rules.forEach(rule => {
-                      allStyles += rule.cssText + '\n';
-                    });
-                  } catch (e) {
-                    // Handle stylesheet access error silently
+                onClick={() => {
+                  // Find the actual Gantt chart element that's currently rendered on screen
+                  const ganttElement = document.querySelector('.calendar-section .calendar-grid');
+                  
+                  if (!ganttElement) {
+                    alert('Gantt chart not found. Make sure the chart is visible on screen.');
+                    return;
                   }
-                });
-                
-                // Clone the Gantt chart element with all its content
-                const clonedElement = ganttElement.cloneNode(true);
-                
-                // Create the HTML content with the exact Gantt chart that's on screen
-                const htmlContent = `
-                  <!DOCTYPE html>
-                  <html>
-                    <head>
-                      <title>Gantt Chart - ${formatDateDisplay()}</title>
-                      <style>
-                        ${allStyles}
-                        body { 
-                          margin: 0; 
-                          padding: 20px; 
-                          font-family: Arial, sans-serif;
-                        }
-                        .calendar-section {
-                          width: 100%;
-                          overflow-x: auto;
-                        }
-                      </style>
-                    </head>
-                    <body>
-                      <div style="text-align: center; margin-bottom: 20px; font-size: 16px; font-weight: bold;">
-                        Gantt Chart - ${formatDateDisplay()}
-                      </div>
-                      <div class="calendar-section">
-                        ${clonedElement.outerHTML}
-                      </div>
-                    </body>
-                  </html>
-                `;
-                
-                // Create a blob from the HTML content
-                const blob = new Blob([htmlContent], { type: 'text/html' });
-                
-                // Create a download link
-                const url = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                
-                // Generate filename with current date
-                const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-                const timeStr = new Date().toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS format
-                link.download = `gantt-chart-${dateStr}-${timeStr}.html`;
-                
-                // Trigger download
-                document.body.appendChild(link);
-                link.click();
-                
-                // Cleanup
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(url);
-              }}
-              title="Download exact Gantt chart as HTML file"
-            >
-              Download HTML
-            </button>
+                  
+                  // Get all the CSS styles from the current page
+                  const styleSheets = Array.from(document.styleSheets);
+                  let allStyles = '';
+                  
+                  styleSheets.forEach(styleSheet => {
+                    try {
+                      const rules = Array.from(styleSheet.cssRules || styleSheet.rules || []);
+                      rules.forEach(rule => {
+                        allStyles += rule.cssText + '\n';
+                      });
+                    } catch (e) {
+                      // Handle stylesheet access error silently
+                    }
+                  });
+                  
+                  // Clone the Gantt chart element with all its content
+                  const clonedElement = ganttElement.cloneNode(true);
+                  
+                  // Create the HTML content with the exact Gantt chart that's on screen
+                  const htmlContent = `
+                    <!DOCTYPE html>
+                    <html>
+                      <head>
+                        <title>Gantt Chart - ${formatDateDisplay()}</title>
+                        <style>
+                          ${allStyles}
+                          body { 
+                            margin: 0; 
+                            padding: 20px; 
+                            font-family: Arial, sans-serif;
+                          }
+                          .calendar-section {
+                            width: 100%;
+                            overflow-x: auto;
+                          }
+                        </style>
+                      </head>
+                      <body>
+                        <div style="text-align: center; margin-bottom: 20px; font-size: 16px; font-weight: bold;">
+                          Gantt Chart - ${formatDateDisplay()}
+                        </div>
+                        <div class="calendar-section">
+                          ${clonedElement.outerHTML}
+                        </div>
+                      </body>
+                    </html>
+                  `;
+                  
+                  // Create a blob from the HTML content
+                  const blob = new Blob([htmlContent], { type: 'text/html' });
+                  
+                  // Create a download link
+                  const url = window.URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  
+                  // Generate filename with current date
+                  const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+                  const timeStr = new Date().toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS format
+                  link.download = `gantt-chart-${dateStr}-${timeStr}.html`;
+                  
+                  // Trigger download
+                  document.body.appendChild(link);
+                  link.click();
+                  
+                  // Cleanup
+                  document.body.removeChild(link);
+                  window.URL.revokeObjectURL(url);
+                }}
+                title="Download exact Gantt chart as HTML file"
+              >
+                Download HTML
+              </button>
             </div>
           </div>
         </div>

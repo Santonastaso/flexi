@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import DataTable from '../components/DataTable';
 import PhasesForm from '../components/PhasesForm';
 import EditableCell from '../components/EditableCell';
+import StickyHeader from '../components/StickyHeader';
 import { usePhaseStore, useUIStore, useMainStore } from '../store';
 import { usePhaseValidation } from '../hooks/usePhaseValidation';
 import { WORK_CENTERS } from '../constants';
@@ -114,7 +115,7 @@ function PhasesPage() {
     <>
       <PhasesForm />
       <div className="content-section">
-        <h2>Production Phases</h2>
+        <StickyHeader title="Production Phases" />
         <DataTable
           columns={columns}
           data={filteredPhases}

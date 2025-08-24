@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import DataTable from '../components/DataTable';
 import BacklogForm from '../components/BacklogForm';
 import EditableCell from '../components/EditableCell';
+import StickyHeader from '../components/StickyHeader';
 import { useOrderStore, useMachineStore, usePhaseStore, useUIStore, useMainStore } from '../store';
 import { WORK_CENTERS } from '../constants';
 import { useOrderValidation, useErrorHandler } from '../hooks';
@@ -194,7 +195,7 @@ function BacklogPage() {
     <>
       <BacklogForm onSuccess={handleOrderAdded} />
       <div className="content-section">
-        <h2>Production Backlog</h2>
+        <StickyHeader title="Production Backlog" />
         <DataTable
           columns={columns}
           data={filteredOrders}

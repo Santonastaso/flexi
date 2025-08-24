@@ -35,15 +35,8 @@
 }
 
 /* ===== SCHEDULER LAYOUT ===== */
-.scheduler-container {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-lg);
-    height: 100%;
-    contain: layout style paint;
-}
 
-.scheduler-controls-section {
+.section-controls {
     background: var(--content-bg);
     border-radius: 0;
     padding: var(--spacing-lg);
@@ -53,34 +46,36 @@
     transition: box-shadow 0.2s ease;
     width: 100%;
     margin-top: var(--spacing-sm);
+    margin-left: 0;
+    margin-right: 0;
 }
 
-.scheduler-controls-section:hover {
+.section-controls:hover {
     box-shadow: var(--shadow-md);
 }
 
-.scheduler-title {
+.section-title {
     font-size: 20px;
-    font-weight: 700;
+    font-weight: 400;
     color: var(--text-dark);
     margin-bottom: 20px;
     margin-top: 0;
 }
 
-.scheduler-controls {
+.controls-grid {
     display: flex;
     flex-direction: column;
     gap: 20px;
 }
 
-.machine-filters {
+.filters-section {
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
     align-items: flex-end;
 }
 
-.scheduler-actions {
+.actions-section {
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
@@ -98,10 +93,51 @@
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-light);
     margin-bottom: var(--spacing-lg);
+    margin-left: 0;
+    margin-right: 0;
     transition: box-shadow 0.2s ease;
     width: 100%;
+    min-width: 100%;
     contain: layout style paint;
-    margin-top: var(--spacing-sm);
+    margin-top: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Override content-section padding for scheduler to remove left space */
+.content-section .task-pool-section {
+    margin-left: calc(-1 * var(--spacing-lg));
+    margin-right: calc(-1 * var(--spacing-lg));
+    margin-top: calc(-1 * var(--spacing-lg));
+    width: calc(100% + 2 * var(--spacing-lg));
+    border-left: none;
+    border-radius: 0;
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
+    padding-top: var(--spacing-lg);
+}
+
+.content-section .section-controls {
+    margin-left: calc(-1 * var(--spacing-lg));
+    margin-right: calc(-1 * var(--spacing-lg));
+    margin-top: 0;
+    width: calc(100% + 2 * var(--spacing-lg));
+    border-left: none;
+    border-radius: 0;
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
+}
+
+.content-section .calendar-section {
+    margin-left: calc(-1 * var(--spacing-lg));
+    margin-right: calc(-1 * var(--spacing-lg));
+    margin-top: 0;
+    width: calc(100% + 2 * var(--spacing-lg));
+    border-left: none;
+    border-radius: 0;
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
 }
 
 .calendar-container:hover,
@@ -114,11 +150,15 @@
     flex: 1;
     overflow: hidden;
     contain: layout;
+    width: 100%;
+    min-width: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .task-pool-section h2 {
     font-size: 20px;
-    font-weight: 700;
+    font-weight: 400;
     color: var(--text-dark);
     margin-bottom: 8px;
 }
@@ -127,6 +167,17 @@
     color: var(--text-light);
     font-size: 14px;
     margin-bottom: 16px;
+}
+
+.task-pool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    width: 100%;
+    min-width: 100%;
+    flex: 1;
+    padding: 16px 0;
+    margin: 0;
 }
 
 /* ===== CALENDAR CONTROLS ===== */
@@ -152,7 +203,7 @@
     padding: 8px 16px;
     border-radius: 0;
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 400;
     transition: all 0.2s ease;
     font-size: 14px;
     display: flex;
@@ -180,7 +231,7 @@
 .current-date,
 .current-period {
     font-size: 20px;
-    font-weight: 700;
+    font-weight: 400;
     color: var(--text-dark);
     margin: 0;
     min-width: 200px;
@@ -203,7 +254,7 @@
 .calendar-view-selector h3 {
     margin: 0;
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 400;
     color: var(--text-dark);
     min-width: 200px;
 }
@@ -219,7 +270,7 @@
     padding: 10px 16px;
     border-radius: 0;
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 400;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -273,7 +324,7 @@
     margin: 0 0 16px 0;
     color: var(--text-dark);
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 400;
 }
 
 .date-range-inputs {
@@ -291,7 +342,7 @@
 
 .input-group label {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 400;
     color: var(--text-dark);
 }
 
@@ -315,7 +366,7 @@
     border: none;
     padding: 12px 24px;
     border-radius: 0;
-    font-weight: 600;
+    font-weight: 400;
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 14px;
@@ -369,7 +420,7 @@
 .machine-label-header {
     min-width: 250px;
     padding: 16px;
-    font-weight: 800;
+    font-weight: 400;
     border-right: 2px solid var(--border-color);
     flex-shrink: 0;
     background: var(--gray-light);
@@ -390,7 +441,7 @@
     width: 20px;
     min-width: 20px;
     text-align: center;
-    font-weight: 700;
+    font-weight: 400;
     color: var(--text-light);
     font-size: 10px;
     border-right: 1px solid var(--border-color);
@@ -411,8 +462,11 @@
 
 .calendar-body {
     width: 100%;
-    min-width: 2170px;
+    min-width: 100%;
     position: relative;
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 .machine-row {
@@ -420,8 +474,9 @@
     border-bottom: 2px solid #d1d5db;
     min-height: 80px;
     width: 100%;
-    min-width: 2170px;
+    min-width: 100%;
     background: var(--content-bg);
+    flex-shrink: 0;
 }
 
 .machine-row:last-child {
@@ -444,7 +499,7 @@
 }
 
 .machine-name {
-    font-weight: 800;
+    font-weight: 400;
     font-size: 16px;
     color: var(--text-dark);
     margin-bottom: 4px;
@@ -453,7 +508,7 @@
 .machine-city {
     color: var(--text-light);
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -466,6 +521,7 @@
     min-width: 1920px;
     flex-shrink: 0;
     overflow: visible;
+    width: 100%;
 }
 
 .time-slot {
@@ -543,7 +599,7 @@
     min-height: 60px;
     box-sizing: border-box;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 400;
     background: var(--content-bg);
 }
 
@@ -559,7 +615,7 @@
     border-radius: 0;
     padding: 6px 8px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 400;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -640,7 +696,7 @@
 }
 
 .event-label {
-    font-weight: 700;
+    font-weight: 400;
     text-align: center;
     width: 100%;
 }
@@ -670,7 +726,7 @@
     color: var(--text-white);
     padding: 6px 8px;
     border-radius: 0;
-    font-weight: 600;
+    font-weight: 400;
     user-select: none;
     display: flex;
     flex-direction: column;
@@ -698,7 +754,7 @@
     border-radius: 0 !important;
     padding: 6px 8px !important;
     font-size: 12px !important;
-    font-weight: 600 !important;
+    font-weight: 400 !important;
     min-height: 36px !important;
 }
 
@@ -713,13 +769,13 @@
     border-radius: 0 !important;
     padding: 6px 8px !important;
     font-size: 12px !important;
-    font-weight: 600 !important;
+    font-weight: 400 !important;
     min-height: 36px !important;
     transform: none !important;
 }
 
 .task-label {
-    font-weight: 700;
+    font-weight: 400;
     text-align: center;
     width: 100%;
 }
@@ -748,7 +804,7 @@
 .week-day-header {
     padding: 12px 8px;
     text-align: center;
-    font-weight: 600;
+    font-weight: 400;
     color: var(--text-dark);
     border-right: 1px solid var(--border-color);
 }
@@ -783,7 +839,7 @@
 
 .calendar-day.today {
     background: var(--secondary-blue);
-    font-weight: 600;
+    font-weight: 400;
 }
 
 .calendar-day.unavailable {
@@ -797,7 +853,7 @@
 }
 
 .day-number {
-    font-weight: 600;
+    font-weight: 400;
     color: var(--text-dark);
     font-size: 16px;
     margin-bottom: 8px;
@@ -815,7 +871,7 @@
     border-radius: 0;
     background: var(--text-light);
     color: white;
-    font-weight: 600;
+    font-weight: 400;
 }
 
 .scheduled-tasks-indicator {
@@ -827,7 +883,7 @@
     border-radius: 0;
     background: var(--gray-medium);
     color: white;
-    font-weight: 600;
+    font-weight: 400;
 }
 
 .calendar-day.has-scheduled-tasks {
@@ -856,7 +912,7 @@
 .day-header-cell {
     padding: 12px 8px;
     text-align: center;
-    font-weight: 600;
+    font-weight: 400;
     color: var(--text-dark);
     border-right: 1px solid var(--border-color);
 }
@@ -891,7 +947,7 @@
 .time-label {
     padding: 8px;
     text-align: center;
-    font-weight: 600;
+    font-weight: 400;
     color: var(--text-light);
     background: var(--gray-light);
     display: flex;
@@ -962,7 +1018,7 @@
     min-height: 40px;
     box-sizing: border-box;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 400;
 }
 
 /* Year View */
@@ -983,7 +1039,7 @@
 .month-mini-calendar h4 {
     margin-bottom: 12px;
     color: var(--text-dark);
-    font-weight: 600;
+    font-weight: 400;
 }
 
 .mini-month-grid {
@@ -994,7 +1050,7 @@
 
 .mini-day-header {
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 400;
     color: var(--text-light);
     background: var(--gray-light);
     border-radius: 0;
@@ -1007,7 +1063,7 @@
     align-items: center;
     justify-content: center;
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 400;
     border-radius: 0;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -1042,7 +1098,7 @@
 .mini-day.unavailable {
     background: rgba(239, 68, 68, 0.1);
     color: var(--danger-red);
-    font-weight: 600;
+    font-weight: 400;
 }
 
 /* ===== TASK CONTROLS ===== */
