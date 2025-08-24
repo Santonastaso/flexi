@@ -7,22 +7,24 @@ import {
   DEFAULT_VALUES
 } from '../constants';
 
-function PhasesForm() {
+function PhasesForm({ phaseToEdit }) {
   const { selectedWorkCenter } = useUIStore();
-  const { addPhase } = usePhaseStore();
+  const { addPhase, updatePhase } = usePhaseStore();
+  
+  const isEditMode = Boolean(phaseToEdit);
   
   const initialFormData = {
-    name: '',
-    department: DEFAULT_VALUES.PHASE.DEPARTMENT,
-    numero_persone: DEFAULT_VALUES.PHASE.NUMERO_PERSONE,
-    work_center: selectedWorkCenter === WORK_CENTERS.BOTH ? '' : (selectedWorkCenter || DEFAULT_VALUES.PHASE.WORK_CENTER),
-    v_stampa: DEFAULT_VALUES.PHASE.V_STAMPA,
-    t_setup_stampa: DEFAULT_VALUES.PHASE.T_SETUP_STAMPA,
-    costo_h_stampa: DEFAULT_VALUES.PHASE.COSTO_H_STAMPA,
-    v_conf: DEFAULT_VALUES.PHASE.V_CONF,
-    t_setup_conf: DEFAULT_VALUES.PHASE.T_SETUP_CONF,
-    costo_h_conf: DEFAULT_VALUES.PHASE.COSTO_H_CONF,
-    contenuto_fase: '',
+    name: phaseToEdit?.name || '',
+    department: phaseToEdit?.department || DEFAULT_VALUES.PHASE.DEPARTMENT,
+    numero_persone: phaseToEdit?.numero_persone || DEFAULT_VALUES.PHASE.NUMERO_PERSONE,
+    work_center: phaseToEdit?.work_center || (selectedWorkCenter === WORK_CENTERS.BOTH ? DEFAULT_VALUES.PHASE.WORK_CENTER : selectedWorkCenter),
+    v_stampa: phaseToEdit?.v_stampa || DEFAULT_VALUES.PHASE.V_STAMPA,
+    t_setup_stampa: phaseToEdit?.t_setup_stampa || DEFAULT_VALUES.PHASE.T_SETUP_STAMPA,
+    costo_h_stampa: phaseToEdit?.costo_h_stampa || DEFAULT_VALUES.PHASE.COSTO_H_STAMPA,
+    v_conf: phaseToEdit?.v_conf || DEFAULT_VALUES.PHASE.V_CONF,
+    t_setup_conf: phaseToEdit?.t_setup_conf || DEFAULT_VALUES.PHASE.T_SETUP_CONF,
+    costo_h_conf: phaseToEdit?.costo_h_conf || DEFAULT_VALUES.PHASE.COSTO_H_CONF,
+    contenuto_fase: phaseToEdit?.contenuto_fase || '',
   };
 
   const {
@@ -54,12 +56,19 @@ function PhasesForm() {
     ) : null;
   };
 
+  const onSubmit = async (data) => {
+    if (isEditMode) {
+      await updatePhase(phaseToEdit.id, data);
+    } else {
+      await addPhase(data);
+    }
+  };
+
   return (
     <div className="content-section">
-      <h2>Create Phases</h2>
-      <form onSubmit={handleSubmit(addPhase)}>
+      <form onSubmit={handleSubmit(onSubmit)}>
         <div className="form-section">
-          <h3 className="section-title">Add New Phase</h3>
+          <h3 className="section-title">Phase Information</h3>
           <div className="form-grid form-grid--4-cols">
             <div className="form-group">
               <label htmlFor="name">Phase Name *</label>
@@ -235,7 +244,10 @@ function PhasesForm() {
             className="nav-btn today" 
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Adding Phase...' : 'Add Phase'}
+            {isSubmitting 
+              ? (isEditMode ? 'Updating Phase...' : 'Adding Phase...') 
+              : (isEditMode ? 'Update Phase' : 'Add Phase')
+            }
           </button>
         </div>
       </form>

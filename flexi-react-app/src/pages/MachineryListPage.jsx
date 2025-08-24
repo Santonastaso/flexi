@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import DataTable from '../components/DataTable';
-import MachineForm from '../components/MachineForm';
 import EditableCell from '../components/EditableCell';
 import StickyHeader from '../components/StickyHeader';
 import { useMachineStore, useUIStore, useMainStore } from '../store';
 import { useMachineValidation, useErrorHandler } from '../hooks';
 import { WORK_CENTERS } from '../constants';
 
-function MachineryPage() {
+function MachineryListPage() {
   // Use Zustand store to select state and actions
   const { machines, updateMachine, removeMachine } = useMachineStore();
   const { selectedWorkCenter, isLoading, isInitialized, showAlert, showConfirmDialog } = useUIStore();
@@ -25,7 +24,7 @@ function MachineryPage() {
   const { validateMachine } = useMachineValidation();
   
   // Use unified error handling
-  const { handleCrudError, handleAsync } = useErrorHandler('MachineryPage');
+  const { handleCrudError, handleAsync } = useErrorHandler('MachineryListPage');
 
   // Initialize store on component mount
   useEffect(() => {
@@ -129,19 +128,16 @@ function MachineryPage() {
   }
 
   return (
-    <>
-      <MachineForm />
-      <div className="content-section">
-        <StickyHeader title="Machinery Catalog" />
-        <DataTable
-          columns={columns}
-          data={filteredMachines}
-          onSaveRow={handleSaveMachine}
-          onDeleteRow={handleDeleteMachine}
-        />
-      </div>
-    </>
+    <div className="content-section">
+      <StickyHeader title="Machinery Catalog" />
+      <DataTable
+        columns={columns}
+        data={filteredMachines}
+        onSaveRow={handleSaveMachine}
+        onDeleteRow={handleDeleteMachine}
+      />
+    </div>
   );
 }
 
-export default MachineryPage;
+export default MachineryListPage;

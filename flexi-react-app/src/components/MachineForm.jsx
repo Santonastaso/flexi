@@ -10,25 +10,27 @@ import {
   DEFAULT_VALUES
 } from '../constants';
 
-function MachineForm() {
+function MachineForm({ machineToEdit }) {
   const { selectedWorkCenter } = useUIStore();
-  const { addMachine } = useMachineStore();
+  const { addMachine, updateMachine } = useMachineStore();
+  
+  const isEditMode = Boolean(machineToEdit);
   
   const initialFormData = {
-    department: DEFAULT_VALUES.MACHINE.DEPARTMENT,
-    machine_type: '',
-    machine_name: '',
-    work_center: selectedWorkCenter === WORK_CENTERS.BOTH ? '' : (selectedWorkCenter || DEFAULT_VALUES.MACHINE.WORK_CENTER),
-    min_web_width: DEFAULT_VALUES.MACHINE.MIN_WEB_WIDTH,
-    max_web_width: DEFAULT_VALUES.MACHINE.MAX_WEB_WIDTH,
-    min_bag_height: DEFAULT_VALUES.MACHINE.MIN_BAG_HEIGHT,
-    max_bag_height: DEFAULT_VALUES.MACHINE.MAX_BAG_HEIGHT,
-    standard_speed: '',
-    setup_time_standard: DEFAULT_VALUES.MACHINE.SETUP_TIME_STANDARD,
-    changeover_color: DEFAULT_VALUES.MACHINE.CHANGEOVER_COLOR,
-    changeover_material: DEFAULT_VALUES.MACHINE.CHANGEOVER_MATERIAL,
-    active_shifts: DEFAULT_VALUES.MACHINE.ACTIVE_SHIFTS,
-    status: DEFAULT_VALUES.MACHINE.STATUS,
+    department: machineToEdit?.department || DEFAULT_VALUES.MACHINE.DEPARTMENT,
+    machine_type: machineToEdit?.machine_type || '',
+    machine_name: machineToEdit?.machine_name || '',
+    work_center: machineToEdit?.work_center || (selectedWorkCenter === WORK_CENTERS.BOTH ? DEFAULT_VALUES.MACHINE.WORK_CENTER : selectedWorkCenter),
+    min_web_width: machineToEdit?.min_web_width || DEFAULT_VALUES.MACHINE.MIN_WEB_WIDTH,
+    max_web_width: machineToEdit?.max_web_width || DEFAULT_VALUES.MACHINE.MAX_WEB_WIDTH,
+    min_bag_height: machineToEdit?.min_bag_height || DEFAULT_VALUES.MACHINE.MIN_BAG_HEIGHT,
+    max_bag_height: machineToEdit?.max_bag_height || DEFAULT_VALUES.MACHINE.MAX_BAG_HEIGHT,
+    standard_speed: machineToEdit?.standard_speed || '',
+    setup_time_standard: machineToEdit?.setup_time_standard || DEFAULT_VALUES.MACHINE.SETUP_TIME_STANDARD,
+    changeover_color: machineToEdit?.changeover_color || DEFAULT_VALUES.MACHINE.CHANGEOVER_COLOR,
+    changeover_material: machineToEdit?.changeover_material || DEFAULT_VALUES.MACHINE.CHANGEOVER_MATERIAL,
+    active_shifts: machineToEdit?.active_shifts || DEFAULT_VALUES.MACHINE.ACTIVE_SHIFTS,
+    status: machineToEdit?.status || DEFAULT_VALUES.MACHINE.STATUS,
   };
 
   const { getValidMachineTypes } = useProductionCalculations();
@@ -64,10 +66,17 @@ function MachineForm() {
     }
   };
 
+  const onSubmit = async (data) => {
+    if (isEditMode) {
+      await updateMachine(machineToEdit.id, data);
+    } else {
+      await addMachine(data);
+    }
+  };
+
   return (
     <div className="content-section">
-      <h2>Create Machine</h2>
-      <form onSubmit={handleSubmit(addMachine)}>
+      <form onSubmit={handleSubmit(onSubmit)}>
         {/* IDENTIFICAZIONE Section */}
         <div className="form-section">
           <h3 className="section-title">Identificazione</h3>
@@ -306,7 +315,10 @@ function MachineForm() {
             className="nav-btn today"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Adding Machine...' : 'Add Machine'}
+            {isSubmitting 
+              ? (isEditMode ? 'Updating Machine...' : 'Adding Machine...') 
+              : (isEditMode ? 'Update Machine' : 'Add Machine')
+            }
           </button>
         </div>
       </form>

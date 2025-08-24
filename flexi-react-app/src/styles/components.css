@@ -536,6 +536,7 @@ button[type="submit"] {
     cursor: pointer;
     transition: all 0.2s ease;
     font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
+    text-decoration: none;
 }
 
 input[type="submit"]:hover,
@@ -554,6 +555,7 @@ button,
     background: var(--sap-primary) !important;
     color: var(--text-white) !important;
     border: 1px solid var(--sap-secondary) !important;
+    text-decoration: none !important;
 }
 
 button:hover,

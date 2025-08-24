@@ -1,10 +1,13 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import SideNav from './components/SideNav';
-import MachineryPage from './pages/MachineryPage';
+import MachineryListPage from './pages/MachineryListPage';
+import MachineryFormPage from './pages/MachineryFormPage';
 import MachineCalendarPage from './pages/MachineCalendarPage';
-import PhasesPage from './pages/PhasesPage';
-import BacklogPage from './pages/BacklogPage';
+import PhasesListPage from './pages/PhasesListPage';
+import PhasesFormPage from './pages/PhasesFormPage';
+import BacklogListPage from './pages/BacklogListPage';
+import BacklogFormPage from './pages/BacklogFormPage';
 import SchedulerPage from './pages/SchedulerPage';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -74,10 +77,16 @@ function App() {
             <Route index element={<HomePage />} />
             
             {/* Add routes for your migrated pages */}
-            <Route path="machinery" element={<MachineryPage />} />
+            <Route path="machinery" element={<MachineryListPage />} />
+            <Route path="machinery/add" element={<MachineryFormPage />} />
+            <Route path="machinery/:id/edit" element={<MachineryFormPage />} />
             <Route path="machinery/:machineId/calendar" element={<MachineCalendarPage />} />
-            <Route path="phases" element={<PhasesPage />} />
-            <Route path="backlog" element={<BacklogPage />} />
+            <Route path="phases" element={<PhasesListPage />} />
+            <Route path="phases/add" element={<PhasesFormPage />} />
+            <Route path="phases/:id/edit" element={<PhasesFormPage />} />
+            <Route path="backlog" element={<BacklogListPage />} />
+            <Route path="backlog/add" element={<BacklogFormPage />} />
+            <Route path="backlog/:id/edit" element={<BacklogFormPage />} />
             <Route path="scheduler" element={<SchedulerPage />} />
           </Route>
         </Route>

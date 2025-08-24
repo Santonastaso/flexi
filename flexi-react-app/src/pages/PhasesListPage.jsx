@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import DataTable from '../components/DataTable';
-import PhasesForm from '../components/PhasesForm';
 import EditableCell from '../components/EditableCell';
 import StickyHeader from '../components/StickyHeader';
 import { usePhaseStore, useUIStore, useMainStore } from '../store';
-import { usePhaseValidation } from '../hooks/usePhaseValidation';
+import { usePhaseValidation, useErrorHandler } from '../hooks';
 import { WORK_CENTERS } from '../constants';
-import { useErrorHandler } from '../hooks';
 
-function PhasesPage() {
+function PhasesListPage() {
   // Use Zustand store to select state and actions
   const { phases, updatePhase, removePhase } = usePhaseStore();
   const { selectedWorkCenter, isLoading, isInitialized, showAlert, showConfirmDialog } = useUIStore();
@@ -21,11 +20,11 @@ function PhasesPage() {
     return phases.filter(phase => phase.work_center === selectedWorkCenter);
   }, [phases, selectedWorkCenter]);
 
-  // Use the new phase validation hook
+  // Use modern validation hook
   const { validatePhase } = usePhaseValidation();
   
   // Use unified error handling
-  const { handleAsync } = useErrorHandler('PhasesPage');
+  const { handleCrudError, handleAsync } = useErrorHandler('PhasesListPage');
 
   // Initialize store on component mount
   useEffect(() => {
@@ -40,27 +39,37 @@ function PhasesPage() {
   }, [init, isInitialized, cleanup]);
 
   const columns = useMemo(() => [
-    { header: 'ID', accessorKey: 'id' },
+    // Identificazione
+    { header: 'Phase ID', accessorKey: 'id' },
     { header: 'Phase Name', accessorKey: 'name', cell: EditableCell },
-    { header: 'Department', accessorKey: 'department', cell: EditableCell },
-    { header: 'Work Center', accessorKey: 'work_center', cell: EditableCell },
-    { header: 'Print Speed (mt/h)', accessorKey: 'v_stampa', cell: EditableCell },
-    { header: 'Print Setup (h)', accessorKey: 't_setup_stampa', cell: EditableCell },
-    { header: 'Print Cost (€/h)', accessorKey: 'costo_h_stampa', cell: EditableCell },
-    { header: 'Package Speed (pz/h)', accessorKey: 'v_conf', cell: EditableCell },
-    { header: 'Package Setup (h)', accessorKey: 't_setup_conf', cell: EditableCell },
-    { header: 'Package Cost (€/h)', accessorKey: 'costo_h_conf', cell: EditableCell },
-    { header: '# People', accessorKey: 'numero_persone', cell: EditableCell },
-    {
-      header: 'Created At',
+    { header: 'Work Center', accessorKey: 'work_center' },
+    { header: 'Department', accessorKey: 'department' },
+    // Capacità Tecniche
+    { header: 'Numero Persone', accessorKey: 'numero_persone', cell: EditableCell },
+    { header: 'V Stampa', accessorKey: 'v_stampa', cell: EditableCell },
+    { header: 'T Setup Stampa (h)', accessorKey: 't_setup_stampa', cell: EditableCell },
+    { header: 'Costo H Stampa', accessorKey: 'costo_h_stampa', cell: EditableCell },
+    { header: 'V Conf', accessorKey: 'v_conf', cell: EditableCell },
+    { header: 'T Setup Conf (h)', accessorKey: 't_setup_conf', cell: EditableCell },
+    { header: 'Costo H Conf', accessorKey: 'costo_h_conf', cell: EditableCell },
+    // Contenuto
+    { header: 'Contenuto Fase', accessorKey: 'contenuto_fase', cell: EditableCell },
+    // Additional
+    { 
+      header: 'Created At', 
       accessorKey: 'created_at',
       cell: info => new Date(info.getValue()).toLocaleDateString()
     },
+    { 
+      header: 'Updated At', 
+      accessorKey: 'updated_at',
+      cell: info => new Date(info.getValue()).toLocaleDateString()
+    },
+
   ], []);
 
-
-
   const handleSavePhase = async (updatedPhase) => {
+    // Use the new validation hook
     const validationErrors = validatePhase(updatedPhase);
     
     if (validationErrors.length > 0) {
@@ -68,13 +77,10 @@ function PhasesPage() {
       showAlert(`Validation errors:\n${validationErrors.join('\n')}`, 'error');
       return;
     }
-
+    
     await handleAsync(
       () => updatePhase(updatedPhase.id, updatedPhase),
-      { 
-        context: 'Update Phase', 
-        fallbackMessage: 'Failed to update phase' 
-      }
+      { context: 'Update Phase', fallbackMessage: 'Failed to update phase' }
     );
   };
 
@@ -85,10 +91,7 @@ function PhasesPage() {
       async () => {
         await handleAsync(
           () => removePhase(phaseToDelete.id),
-          { 
-            context: 'Delete Phase', 
-            fallbackMessage: 'Failed to delete phase' 
-          }
+          { context: 'Delete Phase', fallbackMessage: 'Failed to delete phase' }
         );
       },
       'danger'
@@ -96,35 +99,24 @@ function PhasesPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="content-section">
-        <div className="loading">Loading phases data...</div>
-      </div>
-    );
+    return <div>Loading phases data...</div>;
   }
 
   if (!selectedWorkCenter) {
-    return (
-      <div className="content-section">
-        <div className="error">Please select a work center to view phases data.</div>
-      </div>
-    );
+    return <div className="error">Please select a work center to view phases data.</div>;
   }
 
   return (
-    <>
-      <PhasesForm />
-      <div className="content-section">
-        <StickyHeader title="Production Phases" />
-        <DataTable
-          columns={columns}
-          data={filteredPhases}
-          onSaveRow={handleSavePhase}
-          onDeleteRow={handleDeletePhase}
-        />
-      </div>
-    </>
+    <div className="content-section">
+      <StickyHeader title="Phases Catalog" />
+      <DataTable
+        columns={columns}
+        data={filteredPhases}
+        onSaveRow={handleSavePhase}
+        onDeleteRow={handleDeletePhase}
+      />
+    </div>
   );
 }
 
-export default PhasesPage;
+export default PhasesListPage;

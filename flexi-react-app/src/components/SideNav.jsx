@@ -11,9 +11,30 @@ function SideNav() {
 
   const navLinks = [
     { href: '/', label: 'Home' },
-    { href: '/machinery', label: 'Machinery' },
-    { href: '/phases', label: 'Phases' },
-    { href: '/backlog', label: 'Backlog' },
+    { 
+      href: '/machinery', 
+      label: 'Machinery',
+      subLinks: [
+        { href: '/machinery', label: 'List' },
+        { href: '/machinery/add', label: 'Add' }
+      ]
+    },
+    { 
+      href: '/phases', 
+      label: 'Phases',
+      subLinks: [
+        { href: '/phases', label: 'List' },
+        { href: '/phases/add', label: 'Add' }
+      ]
+    },
+    { 
+      href: '/backlog', 
+      label: 'Backlog',
+      subLinks: [
+        { href: '/backlog', label: 'List' },
+        { href: '/backlog/add', label: 'Add' }
+      ]
+    },
     { href: '/scheduler', label: 'Scheduler' }
   ];
 
@@ -62,15 +83,34 @@ function SideNav() {
       {/* Navigation */}
       <div className="sidebar-links">
         <h3 className="sidebar-section-title">NAVIGATION</h3>
-        {navLinks.map((link) => (
-          <Link
-            key={link.href}
-            to={link.href}
-            className={`sidebar-link ${location.pathname === link.href ? 'active' : ''}`}
-          >
-            <span>{link.label}</span>
-          </Link>
-        ))}
+        {navLinks.map((link) => {
+          const isActive = location.pathname === link.href || 
+            (link.subLinks && link.subLinks.some(subLink => location.pathname === subLink.href));
+          
+          return (
+            <div key={link.href} className="nav-item">
+              <Link
+                to={link.href}
+                className={`sidebar-link ${isActive ? 'active' : ''}`}
+              >
+                <span>{link.label}</span>
+              </Link>
+              {link.subLinks && (
+                <div className="sub-nav">
+                  {link.subLinks.map((subLink) => (
+                    <Link
+                      key={subLink.href}
+                      to={subLink.href}
+                      className={`sub-nav-link ${location.pathname === subLink.href ? 'active' : ''}`}
+                    >
+                      <span>{subLink.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* User Profile */}

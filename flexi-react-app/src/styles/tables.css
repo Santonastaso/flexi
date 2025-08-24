@@ -97,6 +97,13 @@
     gap: 8px;
 }
 
+/* Action buttons in tables */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
 /* Common button container styles */
 .action-buttons, .save-cancel-buttons {
     display: flex;

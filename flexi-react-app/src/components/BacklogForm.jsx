@@ -6,8 +6,8 @@ import { usePhaseSearch } from '../hooks/usePhaseSearch';
 import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES, SEAL_SIDES, PRODUCT_TYPES } from '../constants';
 import { useErrorHandler } from '../hooks';
 
-const BacklogForm = ({ onSuccess }) => {
-  const { addOdpOrder } = useOrderStore();
+const BacklogForm = ({ onSuccess, orderToEdit }) => {
+  const { addOdpOrder, updateOdpOrder } = useOrderStore();
   const { showAlert, selectedWorkCenter } = useUIStore();
   const { calculateProductionMetrics, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
   
@@ -16,29 +16,31 @@ const BacklogForm = ({ onSuccess }) => {
   
   const [calculationResults, setCalculationResults] = useState(null);
   
+  const isEditMode = Boolean(orderToEdit);
+  
   // Memoize initialFormData to prevent unnecessary re-renders
   const initialFormData = useMemo(() => ({
-    odp_number: '', 
-    article_code: '', 
-    production_lot: '', 
-    work_center: selectedWorkCenter === WORK_CENTERS.BOTH ? '' : (selectedWorkCenter || ''),
-    nome_cliente: '', 
-    description: '', 
-    delivery_date: '', 
-    bag_height: '',
-    bag_width: '', 
-    bag_step: '', 
-    seal_sides: DEFAULT_VALUES.ORDER.SEAL_SIDES, 
-    product_type: '',
-    quantity: '', 
-    quantity_per_box: '', 
-    quantity_completed: DEFAULT_VALUES.ORDER.QUANTITY_COMPLETED,
-    internal_customer_code: '', 
-    external_customer_code: '',
-    customer_order_ref: '', 
-    department: '', 
-    fase: '',
-  }), [selectedWorkCenter]);
+    odp_number: orderToEdit?.odp_number || '', 
+    article_code: orderToEdit?.article_code || '', 
+    production_lot: orderToEdit?.production_lot || '', 
+    work_center: orderToEdit?.work_center || (selectedWorkCenter === WORK_CENTERS.BOTH ? '' : (selectedWorkCenter || '')),
+    nome_cliente: orderToEdit?.nome_cliente || '', 
+    description: orderToEdit?.description || '', 
+    delivery_date: orderToEdit?.delivery_date || '', 
+    bag_height: orderToEdit?.bag_height || '',
+    bag_width: orderToEdit?.bag_width || '', 
+    bag_step: orderToEdit?.bag_step || '', 
+    seal_sides: orderToEdit?.seal_sides || DEFAULT_VALUES.ORDER.SEAL_SIDES, 
+    product_type: orderToEdit?.product_type || '',
+    quantity: orderToEdit?.quantity || '', 
+    quantity_per_box: orderToEdit?.quantity_per_box || '', 
+    quantity_completed: orderToEdit?.quantity_completed || DEFAULT_VALUES.ORDER.QUANTITY_COMPLETED,
+    internal_customer_code: orderToEdit?.internal_customer_code || '', 
+    external_customer_code: orderToEdit?.external_customer_code || '',
+    customer_order_ref: orderToEdit?.customer_order_ref || '', 
+    department: orderToEdit?.department || '', 
+    fase: orderToEdit?.fase || '',
+  }), [selectedWorkCenter, orderToEdit]);
 
   const {
     register,
@@ -104,12 +106,16 @@ const BacklogForm = ({ onSuccess }) => {
           ...data,
           duration: calculationResults.totals.duration,
           cost: calculationResults.totals.cost,
-          status: 'NOT SCHEDULED',
+          status: isEditMode ? orderToEdit.status : 'NOT SCHEDULED',
         };
 
-        await addOdpOrder(orderData);
+        if (isEditMode) {
+          await updateOdpOrder(orderToEdit.id, orderData);
+        } else {
+          await addOdpOrder(orderData);
+        }
 
-        // Call success callback to refresh the list
+        // Call success callback to refresh the list if provided
         if (onSuccess) {
           onSuccess();
         }
@@ -123,8 +129,8 @@ const BacklogForm = ({ onSuccess }) => {
         setCalculationResults(null);
       },
       { 
-        context: 'Add Order', 
-        fallbackMessage: 'Failed to add order to backlog'
+        context: isEditMode ? 'Update Order' : 'Add Order', 
+        fallbackMessage: isEditMode ? 'Failed to update order' : 'Failed to add order to backlog'
       }
     );
   };
@@ -161,7 +167,6 @@ const BacklogForm = ({ onSuccess }) => {
 
   return (
     <div className="content-section">
-      <h2>Create ODP</h2>
       <form onSubmit={handleSubmit(onSubmit)}>
         {/* IDENTIFICAZIONE Section */}
         <div className="form-section">
@@ -567,7 +572,10 @@ const BacklogForm = ({ onSuccess }) => {
             Calculate
           </button>
           <button type="submit" className="nav-btn today" disabled={!calculationResults || isSubmitting}>
-            {isSubmitting ? 'Adding to Backlog...' : 'Add to Backlog'}
+            {isSubmitting 
+              ? (isEditMode ? 'Updating Order...' : 'Adding to Backlog...') 
+              : (isEditMode ? 'Update Order' : 'Add to Backlog')
+            }
           </button>
         </div>
       </form>
