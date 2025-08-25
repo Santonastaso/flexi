@@ -198,7 +198,7 @@ export const VALIDATION_CONFIGS = {
       {
         condition: (data) => data.delivery_date && data.scheduled_start_time && new Date(data.scheduled_start_time) > new Date(data.delivery_date),
         errorField: 'scheduled_start_time',
-        message: 'Production start cannot be after delivery date'
+        message: 'Scheduled start cannot be after delivery date'
       }
     ]
   },

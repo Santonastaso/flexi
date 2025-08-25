@@ -110,7 +110,7 @@ export const VALIDATION_MESSAGES = {
   MIN_BAG_HEIGHT_EXCEEDS_MAX: 'Minimum bag height cannot exceed maximum bag height',
   BAG_WIDTH_LESS_THAN_STEP: 'Bag width cannot be less than bag step',
   QUANTITY_COMPLETED_EXCEEDS_TOTAL: 'Quantity completed cannot exceed total quantity',
-  PRODUCTION_START_AFTER_DELIVERY: 'Production start cannot be after delivery date'
+  SCHEDULED_START_AFTER_DELIVERY: 'Scheduled start cannot be after delivery date'
 };
 
 // ===== DEFAULT VALUES =====

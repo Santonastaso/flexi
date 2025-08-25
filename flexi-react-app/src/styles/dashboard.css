@@ -291,6 +291,100 @@
     gap: var(--spacing-lg);
 }
 
+/* ===== MATRIX TABLES ===== */
+.matrix-tables-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+}
+
+.matrix-table-section {
+    background: var(--content-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-xl);
+    box-shadow: var(--shadow-sm);
+}
+
+.matrix-table-section h3 {
+    margin: 0 0 var(--spacing-lg) 0;
+    font-size: 18px;
+    color: var(--sap-primary);
+    font-weight: 400;
+    text-align: center;
+}
+
+.matrix-table {
+    overflow-x: auto;
+}
+
+.matrix-table table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.matrix-table th {
+    background: var(--sap-primary);
+    color: var(--text-white);
+    padding: var(--spacing-md);
+    text-align: center;
+    font-weight: 400;
+    font-size: 14px;
+    border: 1px solid var(--border-color);
+}
+
+.matrix-table td {
+    padding: var(--spacing-md);
+    text-align: center;
+    border: 1px solid var(--border-color);
+    font-size: 14px;
+}
+
+.matrix-table .department-label {
+    background: var(--sap-secondary);
+    color: var(--text-white);
+    font-weight: 500;
+    text-align: left;
+}
+
+.matrix-table .metric-cell {
+    background: var(--content-bg);
+    color: var(--text-dark);
+    font-weight: 400;
+    font-size: 16px;
+}
+
+.matrix-table .metric-cell:hover {
+    background: rgba(52, 152, 219, 0.05);
+    transition: background-color 0.2s ease;
+}
+
+/* Responsive adjustments for matrix tables */
+@media (max-width: 768px) {
+    .matrix-tables-container {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-lg);
+    }
+    
+    .matrix-table-section {
+        padding: var(--spacing-lg);
+    }
+    
+    .matrix-table th,
+    .matrix-table td {
+        padding: var(--spacing-sm);
+        font-size: 12px;
+    }
+    
+    .matrix-table .metric-cell {
+        font-size: 14px;
+    }
+}
+
 .work-center-group h4 {
     margin: 0 0 var(--spacing-md) 0;
     font-size: 14px;

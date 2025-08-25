@@ -194,9 +194,6 @@ export const useSchedulerStore = create((set, get) => ({
       scheduled_machine_id: eventData.machine,
       scheduled_start_time: eventData.start_time,
       scheduled_end_time: eventData.end_time,
-      production_start: eventData.start_time,
-      production_end: eventData.end_time,
-      color: eventData.color,
       status: 'SCHEDULED',
     };
     
@@ -211,9 +208,6 @@ export const useSchedulerStore = create((set, get) => ({
       scheduled_machine_id: null,
       scheduled_start_time: null,
       scheduled_end_time: null,
-      production_start: null,
-      production_end: null,
-      color: null,
       status: 'NOT SCHEDULED',
     };
     

@@ -95,8 +95,13 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
 
   // Define onSubmit function before useFormValidation
   const onSubmit = async (data) => {
-    if (!calculationResults) {
+    if (!calculationResults || !calculationResults.totals) {
       showAlert("Calcola le metriche di produzione prima di aggiungere al backlog.", 'warning');
+      return;
+    }
+
+    if (typeof calculationResults.totals.duration !== 'number' || typeof calculationResults.totals.cost !== 'number') {
+      showAlert("Risultati del calcolo non validi. Ricalcola le metriche di produzione.", 'error');
       return;
     }
 
@@ -154,6 +159,19 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     };
     
     const results = calculateProductionMetrics(phaseForCalculation, getValues('quantity'), getValues('bag_step'));
+    
+    if (!results) {
+      showAlert("Errore nel calcolo. Verifica che tutti i parametri della fase siano impostati correttamente.", 'error');
+      setCalculationResults(null);
+      return;
+    }
+    
+    if (typeof results.totals?.duration !== 'number' || typeof results.totals?.cost !== 'number') {
+      showAlert("Risultati del calcolo non validi. Verifica i parametri della fase.", 'error');
+      setCalculationResults(null);
+      return;
+    }
+    
     setCalculationResults(results);
   };
 
@@ -551,17 +569,25 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         )}
 
         {/* Production Calculation Results */}
-        {calculationResults && (
+        {calculationResults && calculationResults.totals && (
           <div className="form-section">
             <h3 className="section-title">Risultati Calcolo Produzione</h3>
             <div className="form-grid form-grid--2-cols">
               <div className="form-group">
                 <label>Durata Totale (ore):</label>
-                <div className="result-value">{calculationResults.totals.duration.toFixed(2)}</div>
+                <div className="result-value">
+                  {typeof calculationResults.totals.duration === 'number' 
+                    ? calculationResults.totals.duration.toFixed(2) 
+                    : 'Errore calcolo'}
+                </div>
               </div>
               <div className="form-group">
                 <label>Costo Totale (€):</label>
-                <div className="result-value">{calculationResults.totals.cost.toFixed(2)}</div>
+                <div className="result-value">
+                  {typeof calculationResults.totals.cost === 'number' 
+                    ? calculationResults.totals.cost.toFixed(2) 
+                    : 'Errore calcolo'}
+                </div>
               </div>
             </div>
           </div>

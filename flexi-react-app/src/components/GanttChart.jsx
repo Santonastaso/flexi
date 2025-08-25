@@ -164,9 +164,12 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                 {/* Info Button */}
                 <button 
                     className="event-btn info-btn" 
-                    title={`Data Consegna: ${event.delivery_date ? new Date(event.delivery_date).toLocaleDateString() : 'Non impostata'}
+                    title={`Codice Articolo: ${event.article_code || 'Non specificato'}
+Codice Articolo Esterno: ${event.external_article_code || 'Non specificato'}
+Data Consegna: ${event.delivery_date ? new Date(event.delivery_date).toLocaleDateString() : 'Non impostata'}
 Quantità: ${event.quantity || 'Non specificata'}
-${event.scheduled_start_time ? `Programmato: ${new Date(event.scheduled_start_time).toLocaleString()}` : ''}`}
+${event.scheduled_start_time ? `Inizio Programmato: ${new Date(event.scheduled_start_time).toLocaleString()}` : 'Non programmato'}
+${event.scheduled_end_time ? `Fine Programmata: ${new Date(event.scheduled_end_time).toLocaleString()}` : 'Non programmato'}`}
                 >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>

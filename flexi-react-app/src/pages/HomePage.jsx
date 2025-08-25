@@ -126,6 +126,51 @@ function HomePage() {
       ? weeklyDurations.reduce((sum, duration) => sum + duration, 0) / weeklyDurations.length 
       : 0;
 
+    // Calculate cost and duration matrices by work center and department
+    const costMatrix = {};
+    const durationMatrix = {};
+    
+    // Initialize matrices
+    const workCenters = ['ZANICA', 'BUSTO_GAROLFO'];
+    const departments = ['STAMPA', 'CONFEZIONAMENTO'];
+    
+    workCenters.forEach(center => {
+      costMatrix[center.toLowerCase().replace('_', '')] = {};
+      durationMatrix[center.toLowerCase().replace('_', '')] = {};
+      
+      departments.forEach(dept => {
+        const deptLower = dept.toLowerCase();
+        
+        // Filter orders by work center and department
+        const deptOrders = orders.filter(order => {
+          if (!order.work_center || !order.department) return false;
+          return order.work_center === center && order.department === dept;
+        });
+        
+        // Calculate average cost for this combination
+        const validCosts = deptOrders
+          .filter(order => order.cost && order.cost > 0)
+          .map(order => order.cost);
+        
+        const avgCost = validCosts.length > 0 
+          ? validCosts.reduce((sum, cost) => sum + cost, 0) / validCosts.length 
+          : 0;
+        
+        // Calculate average duration for this combination
+        const validDurations = deptOrders
+          .filter(order => order.duration && order.duration > 0)
+          .map(order => order.duration);
+        
+        const avgDuration = validDurations.length > 0 
+          ? validDurations.reduce((sum, duration) => sum + duration, 0) / validDurations.length 
+          : 0;
+        
+        // Store in matrices
+        costMatrix[center.toLowerCase().replace('_', '')][deptLower] = avgCost;
+        durationMatrix[center.toLowerCase().replace('_', '')][deptLower] = avgDuration;
+      });
+    });
+
     return {
       machinesByWorkCenter,
       completedThisWeek,
@@ -137,7 +182,9 @@ function HomePage() {
       tasksPerDay,
       avgWeeklyCost,
       avgWeeklyDuration,
-      weeklyOrdersCount: weeklyOrders.length
+      weeklyOrdersCount: weeklyOrders.length,
+      costMatrix,
+      durationMatrix
     };
   }, [machines, orders, isLoading]);
 
@@ -263,6 +310,81 @@ function HomePage() {
           <h3>Durata Media</h3>
           <div className="metric-value">{metrics.avgWeeklyDuration.toFixed(1)}h</div>
           <div className="metric-subtitle">Per Lavoro Questa Settimana</div>
+        </div>
+      </div>
+
+      {/* Matrix Tables for Cost and Duration by Work Center and Department */}
+      <div className="matrix-tables-container">
+        {/* Cost Matrix Table */}
+        <div className="matrix-table-section">
+          <h3>Costo Medio per Centro di Lavoro e Reparto</h3>
+          <div className="matrix-table">
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>ZANICA</th>
+                  <th>BUSTO GAROLFO</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="department-label">STAMPA</td>
+                  <td className="metric-cell">
+                    €{metrics.costMatrix?.stampa?.zanica?.toFixed(2) || '0.00'}
+                  </td>
+                  <td className="metric-cell">
+                    €{metrics.costMatrix?.stampa?.busto_garolfo?.toFixed(2) || '0.00'}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="department-label">CONFEZIONAMENTO</td>
+                  <td className="metric-cell">
+                    €{metrics.costMatrix?.confezionamento?.zanica?.toFixed(2) || '0.00'}
+                  </td>
+                  <td className="metric-cell">
+                    €{metrics.costMatrix?.confezionamento?.busto_garolfo?.toFixed(2) || '0.00'}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Duration Matrix Table */}
+        <div className="matrix-table-section">
+          <h3>Durata Media per Centro di Lavoro e Reparto</h3>
+          <div className="matrix-table">
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>ZANICA</th>
+                  <th>BUSTO GAROLFO</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="department-label">STAMPA</td>
+                  <td className="metric-cell">
+                    {metrics.durationMatrix?.stampa?.zanica?.toFixed(1) || '0.0'}h
+                  </td>
+                  <td className="metric-cell">
+                    {metrics.durationMatrix?.stampa?.busto_garolfo?.toFixed(1) || '0.0'}h
+                  </td>
+                </tr>
+                <tr>
+                  <td className="department-label">CONFEZIONAMENTO</td>
+                  <td className="metric-cell">
+                    {metrics.durationMatrix?.confezionamento?.zanica?.toFixed(1) || '0.0'}h
+                  </td>
+                  <td className="metric-cell">
+                    {metrics.durationMatrix?.confezionamento?.busto_garolfo?.toFixed(1) || '0.0'}h
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

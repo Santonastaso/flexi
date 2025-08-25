@@ -680,7 +680,9 @@ function SchedulerPage() {
             pointerEvents: 'none' // Improve drag performance
           }}>
             <span>{activeDragItem.odp_number}</span>
-            <span className="task-duration">{activeDragItem.duration || 1}h</span>
+            <span className="task-time">
+              {activeDragItem.time_remaining ? Number(activeDragItem.time_remaining).toFixed(1) : (activeDragItem.duration || 1).toFixed(1)}h
+            </span>
           </div>
         ) : null}
       </DragOverlay>
