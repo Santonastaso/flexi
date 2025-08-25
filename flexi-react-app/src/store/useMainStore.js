@@ -398,7 +398,7 @@ export const useMainStore = create((set, get) => ({
       machines: getMachines(),
       odpOrders: getOdpOrders(),
       phases: getPhases(),
-      machineAvailability: getMachineAvailability(),
+              machineAvailability: getMachineAvailabilityState(),
       isLoading: getLoadingState(),
       isInitialized: getInitializationState(),
     };

@@ -11,10 +11,10 @@ export const useSchedulerStore = create((set, get) => ({
   machineAvailability: {},
 
   // Selectors
-  getMachineAvailability: () => get().machineAvailability,
+  getMachineAvailabilityState: () => get().machineAvailability,
 
   // Actions
-  setMachineAvailability: (availability) => set({ machineAvailability: availability }),
+  setMachineAvailabilityState: (availability) => set({ machineAvailability: availability }),
 
   // Consolidated drag-and-drop methods
   scheduleTaskFromSlot: async (taskId, machine, currentDate, hour, minute) => {
@@ -154,24 +154,37 @@ export const useSchedulerStore = create((set, get) => ({
       }
     }
 
-    // Check for overlaps with unavailable slots on the same machine
-    const newStartDate = toDateString(newStart);
+    // Check for overlaps with unavailable slots on the same machine across all days the task spans
+    const taskStartDate = new Date(newStart.getFullYear(), newStart.getMonth(), newStart.getDate());
+    const taskEndDate = new Date(newEnd.getFullYear(), newEnd.getMonth(), newEnd.getDate());
     
-    // Check machine availability for the target date
-    const dateAvailability = get().machineAvailability[newStartDate];
-    if (dateAvailability && Array.isArray(dateAvailability)) {
-      const machineAvailability = dateAvailability.find(ma => ma.machine_id === eventData.machine);
-      
-      if (machineAvailability && machineAvailability.unavailable_hours && Array.isArray(machineAvailability.unavailable_hours)) {
-        const targetDateStart = new Date(newStart.getFullYear(), newStart.getMonth(), newStart.getDate());
+    // Generate all dates between start and end (inclusive)
+    const datesToCheck = [];
+    let currentDate = new Date(taskStartDate);
+    while (currentDate <= taskEndDate) {
+      datesToCheck.push(toDateString(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // Check each date for unavailable slots
+    for (const dateStr of datesToCheck) {
+      const dateAvailability = get().machineAvailability[dateStr];
+      if (dateAvailability && Array.isArray(dateAvailability)) {
+        const machineAvailability = dateAvailability.find(ma => ma.machine_id === eventData.machine);
         
-        for (const hour of machineAvailability.unavailable_hours) {
-          const hourStart = new Date(targetDateStart.getTime() + parseInt(hour) * 60 * 60 * 1000);
-          const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
+        if (machineAvailability && machineAvailability.unavailable_hours && Array.isArray(machineAvailability.unavailable_hours)) {
+          const targetDateStart = new Date(new Date(dateStr).getFullYear(), new Date(dateStr).getMonth(), new Date(dateStr).getDate());
           
-          // Check if task overlaps with unavailable hour
-          if (newStart < hourEnd && newEnd > hourStart) {
-            return { error: `Task overlaps with unavailable slot at hour ${hour}:00` };
+          for (const hour of machineAvailability.unavailable_hours) {
+            const hourStart = new Date(targetDateStart.getTime() + parseInt(hour) * 60 * 60 * 1000);
+            const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
+            
+            // Check if task overlaps with unavailable hour
+            if (newStart < hourEnd && newEnd > hourStart) {
+              const dateObj = new Date(dateStr);
+              const formattedDate = dateObj.toLocaleDateString('en-GB'); // dd/mm/yyyy format
+              return { error: `Task overlaps with unavailable slot at hour ${hour}:00 on ${formattedDate}` };
+            }
           }
         }
       }
