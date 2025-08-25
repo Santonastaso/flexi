@@ -130,16 +130,18 @@ function HomePage() {
     const costMatrix = {};
     const durationMatrix = {};
     
-    // Initialize matrices
-    const workCenters = ['ZANICA', 'BUSTO_GAROLFO'];
+    // Initialize matrices with department-first structure to match UI expectations
     const departments = ['STAMPA', 'CONFEZIONAMENTO'];
+    const workCenters = ['ZANICA', 'BUSTO_GAROLFO'];
     
-    workCenters.forEach(center => {
-      costMatrix[center.toLowerCase().replace('_', '')] = {};
-      durationMatrix[center.toLowerCase().replace('_', '')] = {};
+    departments.forEach(dept => {
+      const deptLower = dept.toLowerCase();
+      costMatrix[deptLower] = {};
+      durationMatrix[deptLower] = {};
       
-      departments.forEach(dept => {
-        const deptLower = dept.toLowerCase();
+      workCenters.forEach(center => {
+        // Create consistent keys for the matrix
+        const centerKey = center === 'BUSTO_GAROLFO' ? 'busto_garolfo' : center.toLowerCase();
         
         // Filter orders by work center and department
         const deptOrders = orders.filter(order => {
@@ -165,9 +167,9 @@ function HomePage() {
           ? validDurations.reduce((sum, duration) => sum + duration, 0) / validDurations.length 
           : 0;
         
-        // Store in matrices
-        costMatrix[center.toLowerCase().replace('_', '')][deptLower] = avgCost;
-        durationMatrix[center.toLowerCase().replace('_', '')][deptLower] = avgDuration;
+        // Store in matrices with department-first structure
+        costMatrix[deptLower][centerKey] = avgCost;
+        durationMatrix[deptLower][centerKey] = avgDuration;
       });
     });
 
@@ -207,7 +209,6 @@ function HomePage() {
           borderColor: 'rgb(59, 130, 246)',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
           tension: 0.4,
-          fill: true,
         },
       ],
     };
