@@ -13,26 +13,26 @@ function SideNav() {
     { href: '/', label: 'Home' },
     { 
       href: '/machinery', 
-      label: 'Machinery',
+      label: 'Macchine',
       subLinks: [
-        { href: '/machinery', label: 'List' },
-        { href: '/machinery/add', label: 'Add' }
+        { href: '/machinery', label: 'Lista' },
+        { href: '/machinery/add', label: 'Aggiungi' }
       ]
     },
     { 
       href: '/phases', 
-      label: 'Phases',
+      label: 'Fasi',
       subLinks: [
-        { href: '/phases', label: 'List' },
-        { href: '/phases/add', label: 'Add' }
+        { href: '/phases', label: 'Lista' },
+        { href: '/phases/add', label: 'Aggiungi' }
       ]
     },
     { 
       href: '/backlog', 
       label: 'Backlog',
       subLinks: [
-        { href: '/backlog', label: 'List' },
-        { href: '/backlog/add', label: 'Add' }
+        { href: '/backlog', label: 'Lista' },
+        { href: '/backlog/add', label: 'Aggiungi' }
       ]
     },
     { href: '/scheduler', label: 'Scheduler' }
@@ -60,10 +60,10 @@ function SideNav() {
         <div className="sidebar-links">
           <h3 className="sidebar-section-title">NAVIGATION</h3>
           <Link to="/login" className="sidebar-link">
-            <span>Login</span>
+            <span>Accedi</span>
           </Link>
           <Link to="/signup" className="sidebar-link">
-            <span>Sign Up</span>
+            <span>Registrati</span>
           </Link>
         </div>
       </nav>
@@ -137,7 +137,7 @@ function SideNav() {
       <div className="sidebar-actions">
         <h3 className="sidebar-section-title">ACCOUNT</h3>
         <button onClick={handleSignOut} className="sidebar-action-btn signout-btn">
-          <span>Sign Out</span>
+          <span>Esci</span>
         </button>
       </div>
     </nav>

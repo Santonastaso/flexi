@@ -35,21 +35,21 @@ function PhasesFormPage() {
   }, [isEditMode, isLoading, phase, navigate]);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div>Caricamento...</div>;
   }
 
   if (isEditMode && !phase) {
-    return <div className="error">Phase not found.</div>;
+    return <div className="error">Fase non trovata.</div>;
   }
 
   // Allow access if work center is selected or if BOTH is selected (which allows any work center)
   if (!selectedWorkCenter) {
-    return <div className="error">Please select a work center to manage phases.</div>;
+    return <div className="error">Seleziona un centro di lavoro per gestire le fasi.</div>;
   }
 
   return (
     <div className="content-section">
-      <StickyHeader title={isEditMode ? `Edit Phase: ${phase?.name}` : 'Add New Phase'} />
+      <StickyHeader title={isEditMode ? `Modifica Fase: ${phase?.name}` : 'Aggiungi Nuova Fase'} />
       <PhasesForm phaseToEdit={phase} />
     </div>
   );

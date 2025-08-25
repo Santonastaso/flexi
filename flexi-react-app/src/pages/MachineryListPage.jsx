@@ -40,42 +40,42 @@ function MachineryListPage() {
 
   const columns = useMemo(() => [
     // Identificazione
-    { header: 'Machine ID', accessorKey: 'id' },
-    { header: 'Machine Type', accessorKey: 'machine_type' },
-    { header: 'Machine Name', accessorKey: 'machine_name', cell: EditableCell },
-    { header: 'Work Center', accessorKey: 'work_center' },
-    { header: 'Department', accessorKey: 'department' },
-    { header: 'Status', accessorKey: 'status', cell: EditableCell },
+    { header: 'ID Macchina', accessorKey: 'id' },
+    { header: 'Tipo Macchina', accessorKey: 'machine_type' },
+    { header: 'Nome Macchina', accessorKey: 'machine_name', cell: EditableCell },
+    { header: 'Centro di Lavoro', accessorKey: 'work_center' },
+    { header: 'Reparto', accessorKey: 'department' },
+    { header: 'Stato', accessorKey: 'status', cell: EditableCell },
     // Capacità Tecniche
-    { header: 'Min Web (mm)', accessorKey: 'min_web_width', cell: EditableCell },
-    { header: 'Max Web (mm)', accessorKey: 'max_web_width', cell: EditableCell },
-    { header: 'Min Bag (mm)', accessorKey: 'min_bag_height', cell: EditableCell },
-    { header: 'Max Bag (mm)', accessorKey: 'max_bag_height', cell: EditableCell },
+    { header: 'Larghezza Min (mm)', accessorKey: 'min_web_width', cell: EditableCell },
+    { header: 'Larghezza Max (mm)', accessorKey: 'max_web_width', cell: EditableCell },
+    { header: 'Altezza Min (mm)', accessorKey: 'min_bag_height', cell: EditableCell },
+    { header: 'Altezza Max (mm)', accessorKey: 'max_bag_height', cell: EditableCell },
     // Performance
-    { header: 'Std Speed', accessorKey: 'standard_speed', cell: EditableCell },
+    { header: 'Velocità Std', accessorKey: 'standard_speed', cell: EditableCell },
     { header: 'Setup (h)', accessorKey: 'setup_time_standard', cell: EditableCell },
-    { header: 'Color Change (h)', accessorKey: 'changeover_color', cell: EditableCell },
-    { header: 'Material Change (h)', accessorKey: 'changeover_material', cell: EditableCell },
+    { header: 'Cambio Colore (h)', accessorKey: 'changeover_color', cell: EditableCell },
+    { header: 'Cambio Materiale (h)', accessorKey: 'changeover_material', cell: EditableCell },
     // Disponibilità
     { 
-      header: 'Active Shifts', 
+      header: 'Turni Attivi', 
       accessorKey: 'active_shifts',
       cell: info => Array.isArray(info.getValue()) ? info.getValue().join(', ') : ''
     },
     // Additional
     { 
-      header: 'Created At', 
+      header: 'Creato il', 
       accessorKey: 'created_at',
       cell: info => new Date(info.getValue()).toLocaleDateString()
     },
     { 
-      header: 'Updated At', 
+      header: 'Aggiornato il', 
       accessorKey: 'updated_at',
       cell: info => new Date(info.getValue()).toLocaleDateString()
     },
     // Calendar
     {
-      header: 'Calendar',
+      header: 'Calendario',
       accessorKey: 'id',
       cell: info => (
         <Link 
@@ -83,7 +83,7 @@ function MachineryListPage() {
           className="nav-btn today"
           style={{ textDecoration: 'none' }}
         >
-          View Calendar
+          Visualizza Calendario
         </Link>
       )
     }
@@ -95,24 +95,24 @@ function MachineryListPage() {
     
     if (validationErrors.length > 0) {
       // Show validation errors in the store alert
-      showAlert(`Validation errors:\n${validationErrors.join('\n')}`, 'error');
+      showAlert(`Errori di validazione:\n${validationErrors.join('\n')}`, 'error');
       return;
     }
     
     await handleAsync(
       () => updateMachine(updatedMachine.id, updatedMachine),
-      { context: 'Update Machine', fallbackMessage: 'Failed to update machine' }
+      { context: 'Aggiorna Macchina', fallbackMessage: 'Aggiornamento macchina fallito' }
     );
   };
 
   const handleDeleteMachine = async (machineToDelete) => {
     showConfirmDialog(
-      'Delete Machine',
-      `Are you sure you want to delete "${machineToDelete.machine_name}"? This action cannot be undone.`,
+      'Elimina Macchina',
+      `Sei sicuro di voler eliminare "${machineToDelete.machine_name}"? Questa azione non può essere annullata.`,
       async () => {
         await handleAsync(
           () => removeMachine(machineToDelete.id),
-          { context: 'Delete Machine', fallbackMessage: 'Failed to delete machine' }
+          { context: 'Elimina Macchina', fallbackMessage: 'Eliminazione macchina fallita' }
         );
       },
       'danger'
@@ -120,16 +120,16 @@ function MachineryListPage() {
   };
 
   if (isLoading) {
-    return <div>Loading machinery data...</div>;
+    return <div>Caricamento dati macchine...</div>;
   }
 
   if (!selectedWorkCenter) {
-    return <div className="error">Please select a work center to view machinery data.</div>;
+    return <div className="error">Seleziona un centro di lavoro per visualizzare i dati delle macchine.</div>;
   }
 
   return (
     <div className="content-section">
-      <StickyHeader title="Machinery Catalog" />
+      <StickyHeader title="Catalogo Macchine" />
       <DataTable
         columns={columns}
         data={filteredMachines}

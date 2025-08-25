@@ -34,20 +34,20 @@ function DataTable({ data, columns, onSaveRow, onDeleteRow }) {
 
     const actionColumn = {
       id: 'actions',
-      header: 'Actions',
+      header: 'Azioni',
       cell: ({ row }) => {
         const isEditing = row.id === editingRowId;
         return (
           <div className="action-buttons">
             {isEditing ? (
               <>
-                <button onClick={() => handleSave(row)} className="nav-btn today">Save</button>
-                <button onClick={() => setEditingRowId(null)} className="nav-btn today">Cancel</button>
+                <button onClick={() => handleSave(row)} className="nav-btn today">Salva</button>
+                <button onClick={() => setEditingRowId(null)} className="nav-btn today">Annulla</button>
               </>
             ) : (
               <>
-                <button onClick={() => setEditingRowId(row.id)} className="nav-btn today">Edit</button>
-                <button onClick={() => onDeleteRow(row.original)} className="nav-btn today">Delete</button>
+                <button onClick={() => setEditingRowId(row.id)} className="nav-btn today">Modifica</button>
+                <button onClick={() => onDeleteRow(row.original)} className="nav-btn today">Elimina</button>
               </>
             )}
           </div>

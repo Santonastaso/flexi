@@ -101,7 +101,7 @@ function MachineForm({ machineToEdit }) {
                 {...register('machine_type')}
                 className={errors.machine_type ? 'error' : ''}
               >
-                <option value="">Select machine type</option>
+                <option value="">Seleziona tipo macchina</option>
                 {getValidMachineTypes(department).map(type => 
                   <option key={type} value={type}>{type}</option>
                 )}
@@ -115,7 +115,7 @@ function MachineForm({ machineToEdit }) {
                 type="text" 
                 id="machine_name" 
                 {...register('machine_name')}
-                placeholder="Descriptive name" 
+                placeholder="Nome descrittivo" 
                 className={errors.machine_name ? 'error' : ''}
               />
               {errors.machine_name && <span className="error-message">{errors.machine_name.message}</span>}
@@ -129,7 +129,7 @@ function MachineForm({ machineToEdit }) {
                         id="work_center"
                         className={errors.work_center ? 'error' : ''}
                       >
-                        <option value="">Select a work center</option>
+                        <option value="">Seleziona un centro di lavoro</option>
                         <option value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</option>
                         <option value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</option>
                       </select>
@@ -137,7 +137,7 @@ function MachineForm({ machineToEdit }) {
                       <input
                         type="text"
                         id="work_center"
-                        value={selectedWorkCenter || 'No work center selected'}
+                        value={selectedWorkCenter || 'Nessun centro di lavoro selezionato'}
                         disabled
                         className="disabled-input"
                         style={{ backgroundColor: '#f5f5f5', color: '#666' }}
@@ -146,9 +146,9 @@ function MachineForm({ machineToEdit }) {
                     {selectedWorkCenter === WORK_CENTERS.BOTH ? (
                       errors.work_center && <span className="error-message">{errors.work_center.message}</span>
                     ) : (
-                      <small style={{ color: '#666', fontSize: '12px' }}>
-                        Work center is set based on your login selection
-                      </small>
+                                              <small style={{ color: '#666', fontSize: '12px' }}>
+                          Il centro di lavoro è impostato in base alla tua selezione di accesso
+                        </small>
                     )}
                   </div>
           </div>
@@ -222,7 +222,7 @@ function MachineForm({ machineToEdit }) {
                 type="number" 
                 id="standard_speed" 
                 {...register('standard_speed')}
-                placeholder="pz/h or mt/h" 
+                placeholder="pz/h o mt/h" 
                 min="0" 
                 step="1" 
                 className={errors.standard_speed ? 'error' : ''}
@@ -316,8 +316,8 @@ function MachineForm({ machineToEdit }) {
             disabled={isSubmitting}
           >
             {isSubmitting 
-              ? (isEditMode ? 'Updating Machine...' : 'Adding Machine...') 
-              : (isEditMode ? 'Update Machine' : 'Add Machine')
+              ? (isEditMode ? 'Aggiornamento Macchina...' : 'Aggiunta Macchina...') 
+              : (isEditMode ? 'Aggiorna Macchina' : 'Aggiungi Macchina')
             }
           </button>
         </div>

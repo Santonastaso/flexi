@@ -40,40 +40,40 @@ function BacklogListPage() {
 
   const columns = useMemo(() => [
     // Identificazione
-    { header: 'ODP Number', accessorKey: 'odp_number', cell: EditableCell },
-    { header: 'Article Code', accessorKey: 'article_code', cell: EditableCell },
-    { header: 'Production Lot', accessorKey: 'production_lot', cell: EditableCell },
-    { header: 'Work Center', accessorKey: 'work_center' },
-    { header: 'Department', accessorKey: 'department' },
-    { header: 'Customer Name', accessorKey: 'nome_cliente', cell: EditableCell },
-    { header: 'Description', accessorKey: 'description', cell: EditableCell },
-    // Bag Specifications
-    { header: 'Bag Height (mm)', accessorKey: 'bag_height', cell: EditableCell },
-    { header: 'Bag Width (mm)', accessorKey: 'bag_width', cell: EditableCell },
-    { header: 'Bag Step (mm)', accessorKey: 'bag_step', cell: EditableCell },
-    { header: 'Seal Sides', accessorKey: 'seal_sides' },
-    { header: 'Product Type', accessorKey: 'product_type' },
-    // Quantities
-    { header: 'Quantity', accessorKey: 'quantity', cell: EditableCell },
-    { header: 'Quantity per Box', accessorKey: 'quantity_per_box', cell: EditableCell },
-    { header: 'Quantity Completed', accessorKey: 'quantity_completed', cell: EditableCell },
-    // Customer Codes
-    { header: 'Internal Customer Code', accessorKey: 'internal_customer_code', cell: EditableCell },
-    { header: 'External Customer Code', accessorKey: 'external_customer_code', cell: EditableCell },
-    { header: 'Customer Order Ref', accessorKey: 'customer_order_ref', cell: EditableCell },
-    // Dates
+    { header: 'Numero ODP', accessorKey: 'odp_number', cell: EditableCell },
+    { header: 'Codice Articolo', accessorKey: 'article_code', cell: EditableCell },
+    { header: 'Lotto Produzione', accessorKey: 'production_lot', cell: EditableCell },
+    { header: 'Centro di Lavoro', accessorKey: 'work_center' },
+    { header: 'Reparto', accessorKey: 'department' },
+    { header: 'Nome Cliente', accessorKey: 'nome_cliente', cell: EditableCell },
+    { header: 'Descrizione', accessorKey: 'description', cell: EditableCell },
+    // Specifiche Busta
+    { header: 'Altezza Busta (mm)', accessorKey: 'bag_height', cell: EditableCell },
+    { header: 'Larghezza Busta (mm)', accessorKey: 'bag_width', cell: EditableCell },
+    { header: 'Passo Busta (mm)', accessorKey: 'bag_step', cell: EditableCell },
+    { header: 'Lati Sigillati', accessorKey: 'seal_sides' },
+    { header: 'Tipo Prodotto', accessorKey: 'product_type' },
+    // Quantità
+    { header: 'Quantità', accessorKey: 'quantity', cell: EditableCell },
+    { header: 'Quantità per Scatola', accessorKey: 'quantity_per_box', cell: EditableCell },
+    { header: 'Quantità Completata', accessorKey: 'quantity_completed', cell: EditableCell },
+    // Codici Cliente
+    { header: 'Codice Cliente Interno', accessorKey: 'internal_customer_code', cell: EditableCell },
+    { header: 'Codice Cliente Esterno', accessorKey: 'external_customer_code', cell: EditableCell },
+    { header: 'Riferimento Ordine Cliente', accessorKey: 'customer_order_ref', cell: EditableCell },
+    // Date
     { 
-      header: 'Delivery Date', 
+      header: 'Data Consegna', 
       accessorKey: 'delivery_date',
-      cell: info => info.getValue() ? new Date(info.getValue()).toLocaleDateString() : 'Not set'
+      cell: info => info.getValue() ? new Date(info.getValue()).toLocaleDateString() : 'Non impostata'
     },
     { 
-      header: 'Created At', 
+      header: 'Creato il', 
       accessorKey: 'created_at',
       cell: info => new Date(info.getValue()).toLocaleDateString()
     },
     { 
-      header: 'Updated At', 
+      header: 'Aggiornato il', 
       accessorKey: 'updated_at',
       cell: info => new Date(info.getValue()).toLocaleDateString()
     },
@@ -86,24 +86,24 @@ function BacklogListPage() {
     
     if (validationErrors.length > 0) {
       // Show validation errors in the store alert
-      showAlert(`Validation errors:\n${validationErrors.join('\n')}`, 'error');
+      showAlert(`Errori di validazione:\n${validationErrors.join('\n')}`, 'error');
       return;
     }
     
     await handleAsync(
       () => updateOdpOrder(updatedOrder.id, updatedOrder),
-      { context: 'Update Order', fallbackMessage: 'Failed to update order' }
+      { context: 'Aggiorna Ordine', fallbackMessage: 'Aggiornamento ordine fallito' }
     );
   };
 
   const handleDeleteOrder = async (orderToDelete) => {
     showConfirmDialog(
-      'Delete Order',
-      `Are you sure you want to delete "${orderToDelete.odp_number}"? This action cannot be undone.`,
+      'Elimina Ordine',
+      `Sei sicuro di voler eliminare "${orderToDelete.odp_number}"? Questa azione non può essere annullata.`,
       async () => {
         await handleAsync(
           () => removeOdpOrder(orderToDelete.id),
-          { context: 'Delete Order', fallbackMessage: 'Failed to delete order' }
+          { context: 'Elimina Ordine', fallbackMessage: 'Eliminazione ordine fallita' }
         );
       },
       'danger'
@@ -111,16 +111,16 @@ function BacklogListPage() {
   };
 
   if (isLoading) {
-    return <div>Loading backlog data...</div>;
+    return <div>Caricamento dati backlog...</div>;
   }
 
   if (!selectedWorkCenter) {
-    return <div className="error">Please select a work center to view backlog data.</div>;
+    return <div className="error">Seleziona un centro di lavoro per visualizzare i dati del backlog.</div>;
   }
 
   return (
     <div className="content-section">
-      <StickyHeader title="Production Backlog" />
+      <StickyHeader title="Backlog Produzione" />
       <DataTable
         columns={columns}
         data={filteredOrders}

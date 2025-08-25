@@ -155,7 +155,7 @@ function HomePage() {
       }),
       datasets: [
         {
-          label: 'Tasks Started',
+          label: 'Lavori Iniziati',
           data: last7Days.map(date => metrics.tasksPerDay[date] || 0),
           borderColor: 'rgb(59, 130, 246)',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -206,7 +206,7 @@ function HomePage() {
   if (isLoading) {
     return (
       <div className="content-section">
-        <div className="loading">Loading dashboard...</div>
+        <div className="loading">Caricamento dashboard...</div>
       </div>
     );
   }
@@ -214,33 +214,33 @@ function HomePage() {
   return (
     <div className="content-section">
       {/* Main Title */}
-      <StickyHeader title="Production Dashboard" />
+      <StickyHeader title="Dashboard Produzione" />
       
       {/* Key Metrics - Horizontal Layout */}
       <div className="metrics-grid">
         <div className="metric-card">
-          <h3>Total Machines</h3>
+          <h3>Macchine Totali</h3>
           <div className="metric-value">{metrics.totalMachines}</div>
-          <div className="metric-subtitle">Active: {metrics.activeMachines}</div>
+          <div className="metric-subtitle">Attive: {metrics.activeMachines}</div>
         </div>
         
         <div className="metric-card">
-          <h3>Total Orders</h3>
+          <h3>Ordini Totali</h3>
           <div className="metric-value">{metrics.totalOrders}</div>
         </div>
         
         <div className="metric-card">
-          <h3>Completed This Week</h3>
+          <h3>Completati Questa Settimana</h3>
           <div className="metric-value">{metrics.completedThisWeek}</div>
         </div>
         
         <div className="metric-card">
-          <h3>Tasks in WIP</h3>
+          <h3>Lavori in Corso</h3>
           <div className="metric-value">{metrics.tasksInWip}</div>
         </div>
         
         <div className="metric-card">
-          <h3>Delayed Tasks</h3>
+          <h3>Lavori Ritardati</h3>
           <div className="metric-value delayed">{metrics.delayedTasks}</div>
         </div>
       </div>
@@ -248,21 +248,21 @@ function HomePage() {
       {/* Weekly Metrics Row */}
       <div className="weekly-metrics-row">
         <div className="weekly-metric-card">
-          <h3>Weekly Orders</h3>
+          <h3>Ordini Settimanali</h3>
           <div className="metric-value">{metrics.weeklyOrdersCount}</div>
-          <div className="metric-subtitle">This Week</div>
+          <div className="metric-subtitle">Questa Settimana</div>
         </div>
         
         <div className="weekly-metric-card">
-          <h3>Avg Cost</h3>
+          <h3>Costo Medio</h3>
           <div className="metric-value">€{metrics.avgWeeklyCost.toFixed(2)}</div>
-          <div className="metric-subtitle">Per Task This Week</div>
+          <div className="metric-subtitle">Per Lavoro Questa Settimana</div>
         </div>
         
-        <div className="weekly-metric-card">
-          <h3>Avg Duration</h3>
+        <div className="metric-card">
+          <h3>Durata Media</h3>
           <div className="metric-value">{metrics.avgWeeklyDuration.toFixed(1)}h</div>
-          <div className="metric-subtitle">Per Task This Week</div>
+          <div className="metric-subtitle">Per Lavoro Questa Settimana</div>
         </div>
       </div>
 
@@ -270,7 +270,7 @@ function HomePage() {
       <div className="charts-container">
         {/* Tasks per Day Line Chart */}
         <div className="chart-section line-chart-section">
-          <h3>Tasks Started per Day (Last 7 Days)</h3>
+          <h3>Lavori Iniziati per Giorno (Ultimi 7 Giorni)</h3>
           <div className="chart-container">
             {tasksPerDayChartData && (
               <Line data={tasksPerDayChartData} options={lineChartOptions} height={300} />
@@ -280,7 +280,7 @@ function HomePage() {
 
         {/* Machines by Work Center - Pie Charts */}
         <div className="chart-section pie-charts-section">
-          <h3>Machines by Work Center & Status</h3>
+          <h3>Macchine per Centro di Lavoro e Stato</h3>
           <div className="pie-charts-grid">
             {Object.entries(metrics.machinesByWorkCenter || {}).map(([center, statuses]) => {
               const pieData = {

@@ -40,10 +40,10 @@ function PhasesListPage() {
 
   const columns = useMemo(() => [
     // Identificazione
-    { header: 'Phase ID', accessorKey: 'id' },
-    { header: 'Phase Name', accessorKey: 'name', cell: EditableCell },
-    { header: 'Work Center', accessorKey: 'work_center' },
-    { header: 'Department', accessorKey: 'department' },
+    { header: 'ID Fase', accessorKey: 'id' },
+    { header: 'Nome Fase', accessorKey: 'name', cell: EditableCell },
+    { header: 'Centro di Lavoro', accessorKey: 'work_center' },
+    { header: 'Reparto', accessorKey: 'department' },
     // Capacità Tecniche
     { header: 'Numero Persone', accessorKey: 'numero_persone', cell: EditableCell },
     { header: 'V Stampa', accessorKey: 'v_stampa', cell: EditableCell },
@@ -56,12 +56,12 @@ function PhasesListPage() {
     { header: 'Contenuto Fase', accessorKey: 'contenuto_fase', cell: EditableCell },
     // Additional
     { 
-      header: 'Created At', 
+      header: 'Creato il', 
       accessorKey: 'created_at',
       cell: info => new Date(info.getValue()).toLocaleDateString()
     },
     { 
-      header: 'Updated At', 
+      header: 'Aggiornato il', 
       accessorKey: 'updated_at',
       cell: info => new Date(info.getValue()).toLocaleDateString()
     },
@@ -74,24 +74,24 @@ function PhasesListPage() {
     
     if (validationErrors.length > 0) {
       // Show validation errors in the store alert
-      showAlert(`Validation errors:\n${validationErrors.join('\n')}`, 'error');
+      showAlert(`Errori di validazione:\n${validationErrors.join('\n')}`, 'error');
       return;
     }
     
     await handleAsync(
       () => updatePhase(updatedPhase.id, updatedPhase),
-      { context: 'Update Phase', fallbackMessage: 'Failed to update phase' }
+      { context: 'Aggiorna Fase', fallbackMessage: 'Aggiornamento fase fallito' }
     );
   };
 
   const handleDeletePhase = async (phaseToDelete) => {
     showConfirmDialog(
-      'Delete Phase',
-      `Are you sure you want to delete "${phaseToDelete.name}"? This action cannot be undone.`,
+      'Elimina Fase',
+      `Sei sicuro di voler eliminare "${phaseToDelete.name}"? Questa azione non può essere annullata.`,
       async () => {
         await handleAsync(
           () => removePhase(phaseToDelete.id),
-          { context: 'Delete Phase', fallbackMessage: 'Failed to delete phase' }
+          { context: 'Elimina Fase', fallbackMessage: 'Eliminazione fase fallita' }
         );
       },
       'danger'
@@ -99,16 +99,16 @@ function PhasesListPage() {
   };
 
   if (isLoading) {
-    return <div>Loading phases data...</div>;
+    return <div>Caricamento dati fasi...</div>;
   }
 
   if (!selectedWorkCenter) {
-    return <div className="error">Please select a work center to view phases data.</div>;
+    return <div className="error">Seleziona un centro di lavoro per visualizzare i dati delle fasi.</div>;
   }
 
   return (
     <div className="content-section">
-      <StickyHeader title="Phases Catalog" />
+      <StickyHeader title="Catalogo Fasi" />
       <DataTable
         columns={columns}
         data={filteredPhases}

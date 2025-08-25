@@ -38,29 +38,29 @@ function SignupPage() {
     const errors = {};
     
     if (!formData.email.trim()) {
-      errors.email = 'Email is required';
+      errors.email = 'Email richiesta';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Please enter a valid email address';
+      errors.email = 'Inserisci un indirizzo email valido';
     }
     
     if (!formData.password) {
-      errors.password = 'Password is required';
+      errors.password = 'Password richiesta';
     } else if (formData.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
+      errors.password = 'La password deve essere di almeno 6 caratteri';
     }
     
     if (!formData.confirmPassword) {
-      errors.confirmPassword = 'Please confirm your password';
+      errors.confirmPassword = 'Conferma la tua password';
     } else if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match';
+      errors.confirmPassword = 'Le password non coincidono';
     }
     
     if (!formData.firstName.trim()) {
-      errors.firstName = 'First name is required';
+      errors.firstName = 'Nome richiesto';
     }
     
     if (!formData.lastName.trim()) {
-      errors.lastName = 'Last name is required';
+      errors.lastName = 'Cognome richiesto';
     }
     
     setFormErrors(errors);
@@ -94,7 +94,7 @@ function SignupPage() {
       },
       { 
         context: 'Signup', 
-        fallbackMessage: 'Failed to create account. Please try again.',
+        fallbackMessage: 'Creazione account fallita. Riprova.',
         onFinally: () => setIsSubmitting(false)
       }
     );
@@ -112,22 +112,22 @@ function SignupPage() {
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-header">
-          <h1>Create Account</h1>
-          <p>Sign up to get started with your account</p>
+          <h1>Crea Account</h1>
+          <p>Registrati per iniziare con il tuo account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
           {/* Name Fields */}
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="firstName">First Name</label>
+              <label htmlFor="firstName">Nome</label>
               <input
                 type="text"
                 id="firstName"
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
-                placeholder="Enter your first name"
+                placeholder="Inserisci il tuo nome"
                 className={formErrors.firstName ? 'error' : ''}
                 disabled={isSubmitting}
                 autoComplete="given-name"
@@ -136,14 +136,14 @@ function SignupPage() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="lastName">Last Name</label>
+              <label htmlFor="lastName">Cognome</label>
               <input
                 type="text"
                 id="lastName"
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                placeholder="Enter your last name"
+                placeholder="Inserisci il tuo cognome"
                 className={formErrors.lastName ? 'error' : ''}
                 disabled={isSubmitting}
                 autoComplete="family-name"
@@ -154,14 +154,14 @@ function SignupPage() {
 
           {/* Email Field */}
           <div className="form-group">
-            <label htmlFor="email">Email Address</label>
+            <label htmlFor="email">Indirizzo Email</label>
             <input
               type="email"
               id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="Enter your email"
+              placeholder="Inserisci la tua email"
               className={formErrors.email ? 'error' : ''}
               disabled={isSubmitting}
               autoComplete="email"
@@ -179,7 +179,7 @@ function SignupPage() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="Create a password"
+                placeholder="Crea una password"
                 className={formErrors.password ? 'error' : ''}
                 disabled={isSubmitting}
                 autoComplete="new-password"
@@ -188,14 +188,14 @@ function SignupPage() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm Password</label>
+              <label htmlFor="confirmPassword">Conferma Password</label>
               <input
                 type="password"
                 id="confirmPassword"
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                placeholder="Confirm your password"
+                placeholder="Conferma la tua password"
                 className={formErrors.confirmPassword ? 'error' : ''}
                 disabled={isSubmitting}
                 autoComplete="new-password"
@@ -218,17 +218,17 @@ function SignupPage() {
             className="btn btn-primary auth-submit"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Creating Account...' : 'Create Account'}
+            {isSubmitting ? 'Creazione Account...' : 'Crea Account'}
           </button>
         </form>
 
         {/* Additional Links */}
         <div className="auth-links">
           <div className="auth-divider">
-            <span>Already have an account?</span>
+            <span>Hai già un account?</span>
           </div>
           <Link to="/login" className="btn btn-secondary">
-            Sign In
+            Accedi
           </Link>
         </div>
       </div>

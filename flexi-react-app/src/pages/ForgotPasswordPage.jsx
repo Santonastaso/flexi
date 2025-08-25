@@ -22,12 +22,12 @@ function ForgotPasswordPage() {
     e.preventDefault();
     
     if (!email.trim()) {
-      setError('Please enter your email address');
+      setError('Inserisci il tuo indirizzo email');
       return;
     }
 
     if (!/\S+@\S+\.\S+/.test(email)) {
-      setError('Please enter a valid email address');
+      setError('Inserisci un indirizzo email valido');
       return;
     }
 
@@ -41,12 +41,12 @@ function ForgotPasswordPage() {
         if (result.success) {
           setIsSuccess(true);
         } else {
-          setError(result.error || 'Failed to send reset email');
+          setError(result.error || 'Invio email di reset fallito');
         }
       },
       { 
         context: 'Password Reset', 
-        fallbackMessage: 'Failed to send reset email. Please try again.',
+        fallbackMessage: 'Invio email di reset fallito. Riprova.',
         onFinally: () => setIsSubmitting(false)
       }
     );
@@ -57,18 +57,18 @@ function ForgotPasswordPage() {
       <div className="auth-page">
         <div className="auth-container">
           <div className="auth-header">
-            <h1>Check Your Email</h1>
-            <p>We've sent a password reset link to {email}</p>
+            <h1>Controlla la Tua Email</h1>
+            <p>Abbiamo inviato un link per il reset della password a {email}</p>
           </div>
           
           <div className="auth-success">
             <div className="success-icon">✅</div>
-            <p>If you don't see the email, check your spam folder.</p>
+            <p>Se non vedi l'email, controlla la cartella spam.</p>
           </div>
           
           <div className="auth-links">
             <Link to="/login" className="btn btn-primary">
-              Back to Sign In
+              Torna all'Accesso
             </Link>
           </div>
         </div>
@@ -81,19 +81,19 @@ function ForgotPasswordPage() {
       <div className="auth-container">
         <div className="auth-header">
           <h1>Reset Password</h1>
-          <p>Enter your email to receive a password reset link</p>
+          <p>Inserisci la tua email per ricevere un link per il reset della password</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="email">Email Address</label>
+            <label htmlFor="email">Indirizzo Email</label>
             <input
               type="email"
               id="email"
               name="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder="Inserisci la tua email"
               disabled={isSubmitting}
               autoComplete="email"
             />
@@ -111,13 +111,13 @@ function ForgotPasswordPage() {
             className="btn btn-primary auth-submit"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Sending...' : 'Send Reset Link'}
+            {isSubmitting ? 'Invio...' : 'Invia Link di Reset'}
           </button>
         </form>
 
         <div className="auth-links">
           <Link to="/login" className="auth-link">
-            Back to Sign In
+            Torna all'Accesso
           </Link>
         </div>
       </div>

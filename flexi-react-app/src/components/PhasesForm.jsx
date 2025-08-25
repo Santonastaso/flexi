@@ -68,22 +68,22 @@ function PhasesForm({ phaseToEdit }) {
     <div className="content-section">
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="form-section">
-          <h3 className="section-title">Phase Information</h3>
+          <h3 className="section-title">Informazioni Fase</h3>
           <div className="form-grid form-grid--4-cols">
             <div className="form-group">
-              <label htmlFor="name">Phase Name *</label>
+              <label htmlFor="name">Nome Fase *</label>
               <input 
                 type="text" 
                 id="name" 
                 {...register('name')}
-                placeholder="e.g., High-Speed Printing" 
+                placeholder="es. Stampa Alta Velocità" 
                 className={errors.name ? 'error' : ''}
                 required
               />
               {getFieldError('name')}
             </div>
             <div className="form-group">
-              <label htmlFor="department">Phase Type *</label>
+              <label htmlFor="department">Tipo Fase *</label>
               <select 
                 id="department" 
                 {...register('department')}
@@ -95,7 +95,7 @@ function PhasesForm({ phaseToEdit }) {
               {getFieldError('department')}
             </div>
             <div className="form-group">
-              <label htmlFor="numero_persone">Number of People Required *</label>
+              <label htmlFor="numero_persone">Numero di Persone Richieste *</label>
               <input 
                 type="number" 
                 id="numero_persone" 
@@ -107,14 +107,14 @@ function PhasesForm({ phaseToEdit }) {
               {getFieldError('numero_persone')}
             </div>
             <div className="form-group">
-              <label htmlFor="work_center">Work Center *</label>
+              <label htmlFor="work_center">Centro di Lavoro *</label>
               {selectedWorkCenter === WORK_CENTERS.BOTH ? (
                 <select
                   {...register('work_center', { required: 'Work center is required' })}
                   id="work_center"
                   className={errors.work_center ? 'error' : ''}
                 >
-                  <option value="">Select a work center</option>
+                  <option value="">Seleziona un centro di lavoro</option>
                   <option value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</option>
                   <option value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</option>
                 </select>
@@ -122,7 +122,7 @@ function PhasesForm({ phaseToEdit }) {
                 <input
                   type="text"
                   id="work_center"
-                  value={selectedWorkCenter || 'No work center selected'}
+                  value={selectedWorkCenter || 'Nessun centro di lavoro selezionato'}
                   disabled
                   className="disabled-input"
                   style={{ backgroundColor: '#f5f5f5', color: '#666' }}
@@ -132,7 +132,7 @@ function PhasesForm({ phaseToEdit }) {
                 errors.work_center && <span className="error-message">{errors.work_center.message}</span>
               ) : (
                 <small style={{ color: '#666', fontSize: '12px' }}>
-                  Work center is set based on your login selection
+                  Il centro di lavoro è impostato in base alla tua selezione di accesso
                 </small>
               )}
             </div>
@@ -142,10 +142,10 @@ function PhasesForm({ phaseToEdit }) {
         {/* Conditional Printing Parameters */}
         {department === DEPARTMENT_TYPES.PRINTING && (
           <div className="form-section">
-            <h3 className="section-title">Printing Parameters</h3>
+            <h3 className="section-title">Parametri Stampa</h3>
             <div className="form-grid form-grid--3-cols">
               <div className="form-group">
-                <label htmlFor="v_stampa">Printing Speed (mt/h) *</label>
+                <label htmlFor="v_stampa">Velocità Stampa (mt/h) *</label>
                 <input 
                   type="number" 
                   id="v_stampa" 
@@ -157,7 +157,7 @@ function PhasesForm({ phaseToEdit }) {
                 {getFieldError('v_stampa')}
               </div>
               <div className="form-group">
-                <label htmlFor="t_setup_stampa">Setup Time (hours)</label>
+                <label htmlFor="t_setup_stampa">Tempo Setup (ore)</label>
                 <input 
                   type="number" 
                   id="t_setup_stampa" 
@@ -169,7 +169,7 @@ function PhasesForm({ phaseToEdit }) {
                 {getFieldError('t_setup_stampa')}
               </div>
               <div className="form-group">
-                <label htmlFor="costo_h_stampa">Hourly Cost (€/h)</label>
+                <label htmlFor="costo_h_stampa">Costo Orario (€/h)</label>
                 <input 
                   type="number" 
                   id="costo_h_stampa" 
@@ -187,10 +187,10 @@ function PhasesForm({ phaseToEdit }) {
         {/* Conditional Packaging Parameters */}
         {department === DEPARTMENT_TYPES.PACKAGING && (
           <div className="form-section">
-            <h3 className="section-title">Packaging Parameters</h3>
+            <h3 className="section-title">Parametri Confezionamento</h3>
             <div className="form-grid form-grid--3-cols">
               <div className="form-group">
-                <label htmlFor="v_conf">Packaging Speed (pz/h) *</label>
+                <label htmlFor="v_conf">Velocità Confezionamento (pz/h) *</label>
                 <input 
                   type="number" 
                   id="v_conf" 
@@ -202,7 +202,7 @@ function PhasesForm({ phaseToEdit }) {
                 {getFieldError('v_conf')}
               </div>
               <div className="form-group">
-                <label htmlFor="t_setup_conf">Setup Time (hours)</label>
+                <label htmlFor="t_setup_conf">Tempo Setup (ore)</label>
                 <input 
                   type="number" 
                   id="t_setup_conf" 
@@ -214,7 +214,7 @@ function PhasesForm({ phaseToEdit }) {
                 {getFieldError('t_setup_conf')}
               </div>
               <div className="form-group">
-                <label htmlFor="costo_h_conf">Hourly Cost (€/h)</label>
+                <label htmlFor="costo_h_conf">Costo Orario (€/h)</label>
                 <input 
                   type="number" 
                   id="costo_h_conf" 
@@ -227,12 +227,12 @@ function PhasesForm({ phaseToEdit }) {
               </div>
             </div>
             <div className="form-group">
-              <label htmlFor="contenuto_fase">Phase Content Description</label>
+              <label htmlFor="contenuto_fase">Descrizione Contenuto Fase</label>
               <textarea 
                 id="contenuto_fase" 
                 {...register('contenuto_fase')}
                 rows="3"
-                placeholder="Describe the phase content and requirements..."
+                placeholder="Descrivi il contenuto della fase e i requisiti..."
               />
             </div>
           </div>
@@ -245,8 +245,8 @@ function PhasesForm({ phaseToEdit }) {
             disabled={isSubmitting}
           >
             {isSubmitting 
-              ? (isEditMode ? 'Updating Phase...' : 'Adding Phase...') 
-              : (isEditMode ? 'Update Phase' : 'Add Phase')
+              ? (isEditMode ? 'Aggiornamento Fase...' : 'Aggiunta Fase...') 
+              : (isEditMode ? 'Aggiorna Fase' : 'Aggiungi Fase')
             }
           </button>
         </div>

@@ -164,9 +164,9 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                 {/* Info Button */}
                 <button 
                     className="event-btn info-btn" 
-                    title={`Delivery Date: ${event.delivery_date ? new Date(event.delivery_date).toLocaleDateString() : 'Not set'}
-Quantity: ${event.quantity || 'Not specified'}
-${event.scheduled_start_time ? `Scheduled: ${new Date(event.scheduled_start_time).toLocaleString()}` : ''}`}
+                    title={`Data Consegna: ${event.delivery_date ? new Date(event.delivery_date).toLocaleDateString() : 'Non impostata'}
+Quantità: ${event.quantity || 'Non specificata'}
+${event.scheduled_start_time ? `Programmato: ${new Date(event.scheduled_start_time).toLocaleString()}` : ''}`}
                 >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
@@ -177,7 +177,7 @@ ${event.scheduled_start_time ? `Scheduled: ${new Date(event.scheduled_start_time
                 <button 
                     className={`event-btn lock-btn ${isLocked ? 'locked' : 'unlocked'}`}
                     onClick={handleLockClick}
-                    title={isLocked ? "Unlock to enable dragging" : "Lock to disable dragging"}
+                    title={isLocked ? "Sblocca per abilitare il trascinamento" : "Blocca per disabilitare il trascinamento"}
                 >
                     {isLocked ? (
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
@@ -196,7 +196,7 @@ ${event.scheduled_start_time ? `Scheduled: ${new Date(event.scheduled_start_time
                         className="drag-handle" 
                         {...listeners} 
                         {...attributes}
-                        title="Drag to reschedule"
+                        title="Trascina per riprogrammare"
                     >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
@@ -213,7 +213,7 @@ ${event.scheduled_start_time ? `Scheduled: ${new Date(event.scheduled_start_time
                             // Call the unschedule function from the store
                             useSchedulerStore.getState().unscheduleTask(event.id);
                         }}
-                        title="Unschedule task and return to pool"
+                        title="Annulla programmazione e riporta al pool"
                     >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M19 13H5v-2h14v2z"/>
@@ -339,10 +339,10 @@ const GanttChart = React.memo(({ machines, currentDate }) => {
     return (
       <div className="calendar-section">
         <div className="calendar-grid-container">
-          <div className="empty-state">
-            <h3>No machines available</h3>
-            <p>Please add machines to view the schedule.</p>
-          </div>
+                      <div className="empty-state">
+              <h3>Nessuna macchina disponibile</h3>
+              <p>Aggiungi macchine per visualizzare il programma.</p>
+            </div>
         </div>
       </div>
     );
@@ -353,7 +353,7 @@ const GanttChart = React.memo(({ machines, currentDate }) => {
       <div className="calendar-grid-container">
         <div className="calendar-grid">
           <div className="calendar-header-row">
-            <div className="machine-label-header">Machines</div>
+            <div className="machine-label-header">Macchine</div>
             <div className="time-header">
               {timeHeader}
             </div>

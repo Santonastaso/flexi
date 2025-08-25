@@ -36,11 +36,11 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
 
   const getCurrentPeriodLabel = () => {
     if (currentView === 'Month') {
-      return currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      return currentDate.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
     } else if (currentView === 'Week') {
       const startOfWeek = getStartOfWeek(currentDate);
       const endOfWeek = getEndOfWeek(currentDate);
-      return `${startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      return `${startOfWeek.toLocaleDateString('it-IT', { month: 'short', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('it-IT', { month: 'short', day: 'numeric', year: 'numeric' })}`;
     } else if (currentView === 'Year') {
       return currentDate.getFullYear().toString();
     }
@@ -55,14 +55,14 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
           onClick={goToPrevious}
           aria-label="Previous"
         >
-          ← Previous
+          ← Precedente
         </button>
         
         <button 
           className="nav-btn today"
           onClick={goToToday}
         >
-          Today
+          Oggi
         </button>
         
         <button 
@@ -70,7 +70,7 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
           onClick={goToNext}
           aria-label="Next"
         >
-          Next →
+          Successivo →
         </button>
       </div>
       
@@ -81,9 +81,9 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
           value={currentView} 
           onChange={(e) => onViewChange(e.target.value)}
         >
-          <option value="Month">Month</option>
-          <option value="Week">Week</option>
-          <option value="Year">Year</option>
+          <option value="Month">Mese</option>
+          <option value="Week">Settimana</option>
+          <option value="Year">Anno</option>
         </select>
       </div>
     </div>

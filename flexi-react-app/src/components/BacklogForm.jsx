@@ -96,7 +96,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   // Define onSubmit function before useFormValidation
   const onSubmit = async (data) => {
     if (!calculationResults) {
-      showAlert("Please calculate production metrics before adding to the backlog.", 'warning');
+      showAlert("Calcola le metriche di produzione prima di aggiungere al backlog.", 'warning');
       return;
     }
 
@@ -130,7 +130,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       },
       { 
         context: isEditMode ? 'Update Order' : 'Add Order', 
-        fallbackMessage: isEditMode ? 'Failed to update order' : 'Failed to add order to backlog'
+        fallbackMessage: isEditMode ? 'Aggiornamento ordine fallito' : 'Aggiunta ordine al backlog fallita'
       }
     );
   };
@@ -143,7 +143,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   const handleCalculate = () => {
     
     if (!selectedPhase || !getValues('quantity') || !getValues('bag_step')) {
-      showAlert("Please select a phase and enter Quantity and Bag Step to calculate.", 'warning');
+      showAlert("Seleziona una fase e inserisci Quantità e Passo Busta per calcolare.", 'warning');
       return;
     }
     
@@ -178,7 +178,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 type="text" 
                 id="odp_number" 
                 {...register('odp_number', { required: 'ODP Number is required' })}
-                placeholder="ODP Number" 
+                placeholder="Numero ODP" 
                 className={errors.odp_number ? 'error' : ''}
               />
               {getFieldError('odp_number')}
@@ -189,7 +189,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 type="text" 
                 id="article_code" 
                 {...register('article_code', { required: 'Article Code is required' })}
-                placeholder="Article Code" 
+                placeholder="Codice Articolo" 
                 className={errors.article_code ? 'error' : ''}
               />
               {getFieldError('article_code')}
@@ -200,7 +200,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 type="text" 
                 id="production_lot" 
                 {...register('production_lot', { required: 'External Article Code is required' })}
-                placeholder="External Article Code" 
+                placeholder="Codice Articolo Esterno" 
                 className={errors.production_lot ? 'error' : ''}
               />
               {getFieldError('production_lot')}
@@ -213,7 +213,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                   id="work_center"
                   className={errors.work_center ? 'error' : ''}
                 >
-                  <option value="">Select a work center</option>
+                  <option value="">Seleziona un centro di lavoro</option>
                   <option value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</option>
                   <option value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</option>
                 </select>
@@ -221,7 +221,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 <input 
                   type="text" 
                   id="work_center" 
-                  value={selectedWorkCenter || 'No work center selected'}
+                  value={selectedWorkCenter || 'Nessun centro di lavoro selezionato'}
                   disabled
                   className="disabled-input"
                   style={{ backgroundColor: '#f5f5f5', color: '#666' }}
@@ -231,7 +231,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 errors.work_center && <span className="error-message">{errors.work_center.message}</span>
               ) : (
                 <small style={{ color: '#666', fontSize: '12px' }}>
-                  Work center is set based on your login selection
+                  Il centro di lavoro è impostato in base alla tua selezione di accesso
                 </small>
               )}
             </div>
@@ -241,7 +241,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 type="text" 
                 id="nome_cliente" 
                 {...register('nome_cliente')}
-                placeholder="Customer Name" 
+                placeholder="Nome Cliente" 
               />
             </div>
             <div className="form-group">
@@ -249,7 +249,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
               <textarea 
                 id="description" 
                 {...register('description')}
-                placeholder="Description" 
+                placeholder="Descrizione" 
                 rows="2"
               />
             </div>
@@ -266,7 +266,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 type="number" 
                 id="bag_height" 
                 {...register('bag_height', { required: 'Bag Height is required', min: { value: 0, message: 'Bag Height must be at least 0' } })}
-                placeholder="Bag Height" 
+                placeholder="Altezza Busta" 
                 min="0" 
                 step="1"
                 className={errors.bag_height ? 'error' : ''}
@@ -279,7 +279,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 type="number" 
                 id="bag_width" 
                 {...register('bag_width', { required: 'Bag Width is required', min: { value: 0, message: 'Bag Width must be at least 0' } })}
-                placeholder="Bag Width" 
+                placeholder="Larghezza Busta" 
                 min="0" 
                 step="1"
                 className={errors.bag_width ? 'error' : ''}
@@ -292,7 +292,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 type="number" 
                 id="bag_step" 
                 {...register('bag_step', { required: 'Bag Step is required', min: { value: 0, message: 'Bag Step must be at least 0' } })}
-                placeholder="Bag Step" 
+                placeholder="Passo Busta" 
                 min="0" 
                 step="1"
                 className={errors.bag_step ? 'error' : ''}
@@ -316,7 +316,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 {...register('product_type', { required: 'Product Type is required' })}
                 className={errors.product_type ? 'error' : ''}
               >
-                <option value="">Select product type</option>
+                <option value="">Seleziona tipo prodotto</option>
                 <option value={PRODUCT_TYPES.CREMA}>Crema</option>
                 <option value={PRODUCT_TYPES.LIQUIDO}>Liquido</option>
                 <option value={PRODUCT_TYPES.POLVERI}>Polveri</option>
@@ -329,7 +329,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 type="number" 
                 id="quantity" 
                 {...register('quantity', { required: 'Quantity is required', min: { value: 0, message: 'Quantity must be at least 0' } })}
-                placeholder="Quantity" 
+                placeholder="Quantità" 
                 min="0" 
                 step="1"
                 className={errors.quantity ? 'error' : ''}
@@ -342,7 +342,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 type="number" 
                 id="quantity_per_box" 
                 {...register('quantity_per_box', { min: { value: 0, message: 'Quantity per Box must be at least 0' } })}
-                placeholder="Qty per Box" 
+                placeholder="Q.tà per Scatola" 
                 min="0" 
                 step="1"
               />
@@ -353,7 +353,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 type="number" 
                 id="quantity_completed" 
                 {...register('quantity_completed', { min: { value: 0, message: 'Quantity Completed must be at least 0' } })}
-                placeholder="Qty Completed" 
+                placeholder="Q.tà Completata" 
                 min="0" 
                 step="1"
                 className={errors.quantity_completed ? 'error' : ''}
@@ -373,7 +373,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 type="text" 
                 id="internal_customer_code" 
                 {...register('internal_customer_code')}
-                placeholder="FLEXI Lot" 
+                placeholder="Lotto FLEXI" 
               />
             </div>
             <div className="form-group">
@@ -382,7 +382,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 type="text" 
                 id="external_customer_code" 
                 {...register('external_customer_code')}
-                placeholder="Customer Lot" 
+                placeholder="Lotto Cliente" 
               />
             </div>
             <div className="form-group">
@@ -391,7 +391,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 type="text" 
                 id="customer_order_ref" 
                 {...register('customer_order_ref')}
-                placeholder="Customer Reference" 
+                placeholder="Riferimento Cliente" 
               />
             </div>
           </div>
@@ -407,7 +407,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 type="text" 
                 id="department" 
                 {...register('department')}
-                placeholder="Department" 
+                placeholder="Reparto" 
                 readOnly 
               />
             </div>
@@ -421,7 +421,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                   onChange={(e) => setPhaseSearch(e.target.value)} 
                   onFocus={() => setIsDropdownVisible(true)} 
                   onBlur={handleBlur}
-                  placeholder="Search Production Phase" 
+                  placeholder="Cerca Fase Produzione" 
                   className={errors.fase ? 'error' : ''}
                 />
                 <input 
@@ -438,7 +438,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                         onMouseDown={() => handlePhaseSelectWrapper(phase)}
                       >
                         <span className="phase-name">{phase.name}</span>
-                        <span className="phase-description">{phase.contenuto_fase || 'No description'}</span>
+                        <span className="phase-description">{phase.contenuto_fase || 'Nessuna descrizione'}</span>
                       </div>
                     ))}
                   </div>
@@ -461,7 +461,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         {/* Selected Phase Parameters */}
         {selectedPhase && (
           <div className="form-section">
-            <h3 className="section-title">Selected Phase Parameters</h3>
+            <h3 className="section-title">Parametri Fase Selezionata</h3>
             <div className="form-grid form-grid--3-cols">
               {selectedPhase.department === DEPARTMENT_TYPES.PRINTING ? (
                 <>
@@ -472,7 +472,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                       id="v_stampa"
                       value={editablePhaseParams.v_stampa || selectedPhase.v_stampa || ''} 
                       onChange={(e) => handlePhaseParamChange('v_stampa', e.target.value)}
-                      placeholder="Print Speed"
+                      placeholder="Velocità Stampa"
                       min="0"
                     />
                     <span className="unit-label">mt/h</span>
@@ -484,20 +484,20 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                       id="t_setup_stampa"
                       value={editablePhaseParams.t_setup_stampa || selectedPhase.t_setup_stampa || ''} 
                       onChange={(e) => handlePhaseParamChange('t_setup_stampa', e.target.value)}
-                      placeholder="Setup Time"
+                      placeholder="Tempo Setup"
                       min="0"
                       step="0.1"
                     />
                     <span className="unit-label">h</span>
                   </div>
                   <div className="form-group">
-                    <label htmlFor="costo_h_stampa">Print Cost:</label>
+                    <label htmlFor="costo_h_stampa">Costo Stampa:</label>
                     <input 
                       type="number" 
                       id="costo_h_stampa"
                       value={editablePhaseParams.costo_h_stampa || selectedPhase.costo_h_stampa || ''} 
                       onChange={(e) => handlePhaseParamChange('costo_h_stampa', e.target.value)}
-                      placeholder="Hourly Cost"
+                      placeholder="Costo Orario"
                       min="0"
                       step="0.01"
                     />
@@ -507,38 +507,38 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
               ) : (
                 <>
                   <div className="form-group">
-                    <label htmlFor="v_conf">Package Speed:</label>
+                    <label htmlFor="v_conf">Velocità Confezionamento:</label>
                     <input 
                       type="number" 
                       id="v_conf"
                       value={editablePhaseParams.v_conf || selectedPhase.v_conf || ''} 
                       onChange={(e) => handlePhaseParamChange('v_conf', e.target.value)}
-                      placeholder="Package Speed"
+                      placeholder="Velocità Confezionamento"
                       min="0"
                     />
                     <span className="unit-label">pz/h</span>
                   </div>
                   <div className="form-group">
-                    <label htmlFor="t_setup_conf">Package Setup:</label>
+                    <label htmlFor="t_setup_conf">Setup Confezionamento:</label>
                     <input 
                       type="number" 
                       id="t_setup_conf"
                       value={editablePhaseParams.t_setup_conf || selectedPhase.t_setup_conf || ''} 
                       onChange={(e) => handlePhaseParamChange('t_setup_conf', e.target.value)}
-                      placeholder="Setup Time"
+                      placeholder="Tempo Setup"
                       min="0"
                       step="0.1"
                     />
                     <span className="unit-label">h</span>
                   </div>
                   <div className="form-group">
-                    <label htmlFor="costo_h_conf">Package Cost:</label>
+                    <label htmlFor="costo_h_conf">Costo Confezionamento:</label>
                     <input 
                       type="number" 
                       id="costo_h_conf"
                       value={editablePhaseParams.costo_h_conf || selectedPhase.costo_h_conf || ''} 
                       onChange={(e) => handlePhaseParamChange('costo_h_conf', e.target.value)}
-                      placeholder="Hourly Cost"
+                      placeholder="Costo Orario"
                       min="0"
                       step="0.01"
                     />
@@ -553,14 +553,14 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         {/* Production Calculation Results */}
         {calculationResults && (
           <div className="form-section">
-            <h3 className="section-title">Production Calculation Results</h3>
+            <h3 className="section-title">Risultati Calcolo Produzione</h3>
             <div className="form-grid form-grid--2-cols">
               <div className="form-group">
-                <label>Total Duration (hours):</label>
+                <label>Durata Totale (ore):</label>
                 <div className="result-value">{calculationResults.totals.duration.toFixed(2)}</div>
               </div>
               <div className="form-group">
-                <label>Total Cost (€):</label>
+                <label>Costo Totale (€):</label>
                 <div className="result-value">{calculationResults.totals.cost.toFixed(2)}</div>
               </div>
             </div>
@@ -569,12 +569,12 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
 
         <div className="form-actions" style={{ marginTop: '20px' }}>
           <button type="button" className="nav-btn today" onClick={handleCalculate} disabled={!selectedPhase}>
-            Calculate
+            Calcola
           </button>
           <button type="submit" className="nav-btn today" disabled={!calculationResults || isSubmitting}>
             {isSubmitting 
-              ? (isEditMode ? 'Updating Order...' : 'Adding to Backlog...') 
-              : (isEditMode ? 'Update Order' : 'Add to Backlog')
+              ? (isEditMode ? 'Aggiornamento Ordine...' : 'Aggiunta al Backlog...') 
+              : (isEditMode ? 'Aggiorna Ordine' : 'Aggiungi al Backlog')
             }
           </button>
         </div>

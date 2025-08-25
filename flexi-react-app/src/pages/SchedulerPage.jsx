@@ -12,7 +12,7 @@ const GanttChart = lazy(() => import('../components/GanttChart'));
 
 // Loading fallback component
 const LoadingFallback = () => (
-  <div className="loading">Loading scheduler components...</div>
+  <div className="loading">Caricamento componenti scheduler...</div>
 );
 
 function SchedulerPage() {
@@ -135,7 +135,7 @@ function SchedulerPage() {
   const formatDateDisplay = useCallback(() => {
     const today = new Date();
     const isToday = currentDate.toDateString() === today.toDateString();
-    return isToday ? 'Today' : currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    return isToday ? 'Oggi' : currentDate.toLocaleDateString('it-IT', { month: 'long', day: 'numeric' });
   }, [currentDate]);
 
   const clearFilters = useCallback(() => {
@@ -248,12 +248,12 @@ function SchedulerPage() {
 
             // Immediate constraint checks (no async)
             if (isUnavailable) {
-              showAlert('Cannot schedule task on unavailable time slot', 'error');
+              showAlert('Impossibile pianificare il lavoro su uno slot temporale non disponibile', 'error');
               return resolve();
             }
 
             if (hasScheduledTask) {
-              showAlert('Cannot schedule task on occupied time slot', 'error');
+              showAlert('Impossibile pianificare il lavoro su uno slot temporale occupato', 'error');
               return resolve();
             }
 
@@ -271,12 +271,12 @@ function SchedulerPage() {
 
             // Immediate constraint checks
             if (isUnavailable) {
-              showAlert('Cannot reschedule task to unavailable time slot', 'error');
+              showAlert('Impossibile riprogrammare il lavoro su uno slot temporale non disponibile', 'error');
               return resolve();
             }
 
             if (hasScheduledTask) {
-              showAlert('Cannot reschedule task to occupied time slot', 'error');
+              showAlert('Impossibile riprogrammare il lavoro su uno slot temporale occupato', 'error');
               return resolve();
             }
 
@@ -297,7 +297,7 @@ function SchedulerPage() {
         });
       });
     } catch (error) {
-      showAlert('An error occurred during the drag operation', 'error');
+      showAlert('Si è verificato un errore durante l\'operazione di trascinamento', 'error');
     } finally {
       isDragOperationRef.current = false;
     }
@@ -307,7 +307,7 @@ function SchedulerPage() {
   if (isLoading) {
     return (
       <div className="content-section">
-        <div className="loading">Loading Production Scheduler...</div>
+        <div className="loading">Caricamento Scheduler Produzione...</div>
       </div>
     );
   }
@@ -315,7 +315,7 @@ function SchedulerPage() {
   if (!selectedWorkCenter) {
     return (
       <div className="content-section">
-        <div className="error">Please select a work center to view scheduler data.</div>
+        <div className="error">Seleziona un centro di lavoro per visualizzare i dati dello scheduler.</div>
       </div>
     );
   }
@@ -323,7 +323,7 @@ function SchedulerPage() {
   return (
     <DndContext onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
       <div className="content-section">
-        <StickyHeader title="Production Scheduler" />
+        <StickyHeader title="Scheduler Produzione" />
         
         <Suspense fallback={<LoadingFallback />}>
           <TaskPool />
@@ -331,43 +331,43 @@ function SchedulerPage() {
 
         {/* Production Schedule Controls Section */}
         <div className="section-controls">
-          <h2 className="section-title">Production Schedule</h2>
+          <h2 className="section-title">Programma Produzione</h2>
           <div className="controls-grid">
             {/* Machine Filters */}
             <div className="filters-section">
               <SearchableDropdown
-                label="Work Center"
+                label="Centro di Lavoro"
                 options={machineData.workCenters}
                 selectedOptions={workCenterFilter}
                 onSelectionChange={setWorkCenterFilter}
-                searchPlaceholder="Search Work Centers"
+                searchPlaceholder="Cerca Centri di Lavoro"
                 id="work_center_filter"
               />
               
               <SearchableDropdown
-                label="Department"
+                label="Reparto"
                 options={machineData.departments}
                 selectedOptions={departmentFilter}
                 onSelectionChange={setDepartmentFilter}
-                searchPlaceholder="Search Departments"
+                searchPlaceholder="Cerca Reparti"
                 id="department_filter"
               />
               
               <SearchableDropdown
-                label="Machine Type"
+                label="Tipo Macchina"
                 options={machineData.machineTypes}
                 selectedOptions={machineTypeFilter}
                 onSelectionChange={setMachineTypeFilter}
-                searchPlaceholder="Search Machine Types"
+                searchPlaceholder="Cerca Tipi di Macchina"
                 id="machine_type_filter"
               />
               
               <SearchableDropdown
-                label="Machine Name"
+                label="Nome Macchina"
                 options={machineData.machineNames}
                 selectedOptions={machineNameFilter}
                 onSelectionChange={setMachineNameFilter}
-                searchPlaceholder="Search Machine Names"
+                searchPlaceholder="Cerca Nomi Macchine"
                 id="machine_name_filter"
               />
             </div>
@@ -379,7 +379,7 @@ function SchedulerPage() {
                 onClick={clearFilters}
                 title="Clear all filters"
               >
-                Clear Filters
+                Cancella Filtri
               </button>
 
               {/* Calendar Navigation */}
@@ -388,7 +388,7 @@ function SchedulerPage() {
                   className="nav-btn today"
                   onClick={() => navigateDate('today')}
                 >
-                  Today
+                  Oggi
                 </button>
                 <button
                   className="nav-btn"
@@ -413,7 +413,7 @@ function SchedulerPage() {
                   const ganttElement = document.querySelector('.calendar-section .calendar-grid');
                   
                   if (!ganttElement) {
-                    alert('Gantt chart not found. Make sure the chart is visible on screen.');
+                    alert('Grafico Gantt non trovato. Assicurati che il grafico sia visibile sullo schermo.');
                     return;
                   }
                   
@@ -440,7 +440,7 @@ function SchedulerPage() {
                     <!DOCTYPE html>
                     <html>
                       <head>
-                        <title>Gantt Chart - ${formatDateDisplay()}</title>
+                        <title>Grafico Gantt - ${formatDateDisplay()}</title>
                         <style>
                           ${allStyles}
                           body { 
@@ -456,7 +456,7 @@ function SchedulerPage() {
                       </head>
                       <body>
                         <div style="text-align: center; margin-bottom: 20px; font-size: 16px; font-weight: bold;">
-                          Gantt Chart - ${formatDateDisplay()}
+                          Grafico Gantt - ${formatDateDisplay()}
                         </div>
                         <div class="calendar-section">
                           ${clonedElement.outerHTML}
@@ -476,7 +476,7 @@ function SchedulerPage() {
                   // Generate filename with current date
                   const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
                   const timeStr = new Date().toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS format
-                  link.download = `gantt-chart-${dateStr}-${timeStr}.html`;
+                  link.download = `grafico-gantt-${dateStr}-${timeStr}.html`;
                   
                   // Trigger download
                   document.body.appendChild(link);
@@ -488,7 +488,7 @@ function SchedulerPage() {
                 }}
                 title="Download exact Gantt chart as HTML file"
               >
-                Download HTML
+                Scarica HTML
               </button>
             </div>
           </div>

@@ -39,19 +39,19 @@ function LoginPage() {
     const errors = {};
     
     if (!formData.email.trim()) {
-      errors.email = 'Email is required';
+      errors.email = 'Email richiesta';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Please enter a valid email address';
+      errors.email = 'Inserisci un indirizzo email valido';
     }
     
     if (!formData.password) {
-      errors.password = 'Password is required';
+      errors.password = 'Password richiesta';
     } else if (formData.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
+      errors.password = 'La password deve essere di almeno 6 caratteri';
     }
 
     if (!formData.workCenter) {
-      errors.workCenter = 'Work center is required';
+      errors.workCenter = 'Centro di lavoro richiesto';
     }
     
     setFormErrors(errors);
@@ -81,7 +81,7 @@ function LoginPage() {
       },
       { 
         context: 'Login', 
-        fallbackMessage: 'Failed to sign in. Please try again.',
+        fallbackMessage: 'Accesso fallito. Riprova.',
         onFinally: () => setIsSubmitting(false)
       }
     );
@@ -99,21 +99,21 @@ function LoginPage() {
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-header">
-          <h1>Welcome Back</h1>
-          <p>Sign in to your account to continue</p>
+          <h1>Bentornato</h1>
+          <p>Accedi al tuo account per continuare</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
           {/* Email Field */}
           <div className="form-group">
-            <label htmlFor="email">Email Address</label>
+            <label htmlFor="email">Indirizzo Email</label>
             <input
               type="email"
               id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="Enter your email"
+              placeholder="Inserisci la tua email"
               className={formErrors.email ? 'error' : ''}
               disabled={isSubmitting}
               autoComplete="email"
@@ -130,7 +130,7 @@ function LoginPage() {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Enter your password"
+              placeholder="Inserisci la tua password"
               className={formErrors.password ? 'error' : ''}
               disabled={isSubmitting}
               autoComplete="current-password"
@@ -140,7 +140,7 @@ function LoginPage() {
 
           {/* Work Center Field */}
           <div className="form-group">
-            <label htmlFor="workCenter">Work Center *</label>
+            <label htmlFor="workCenter">Centro di Lavoro *</label>
             <select
               id="workCenter"
               name="workCenter"
@@ -149,7 +149,7 @@ function LoginPage() {
               className={formErrors.workCenter ? 'error' : ''}
               disabled={isSubmitting}
             >
-              <option value="">Select a work center</option>
+              <option value="">Seleziona un centro di lavoro</option>
               <option value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</option>
               <option value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</option>
               <option value={WORK_CENTERS.BOTH}>{WORK_CENTERS.BOTH}</option>
@@ -171,20 +171,20 @@ function LoginPage() {
             className="btn btn-primary auth-submit"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Signing In...' : 'Sign In'}
+            {isSubmitting ? 'Accesso in corso...' : 'Accedi'}
           </button>
         </form>
 
         {/* Additional Links */}
         <div className="auth-links">
           <Link to="/forgot-password" className="auth-link">
-            Forgot your password?
+            Password dimenticata?
           </Link>
           <div className="auth-divider">
-            <span>Don't have an account?</span>
+            <span>Non hai un account?</span>
           </div>
           <Link to="/signup" className="btn btn-secondary">
-            Create Account
+            Crea Account
           </Link>
         </div>
 
@@ -192,7 +192,7 @@ function LoginPage() {
           {import.meta.env.MODE === 'development' && (
           <div className="auth-demo">
             <details>
-              <summary>Demo Credentials (Development Only)</summary>
+              <summary>Credenziali Demo (Solo Sviluppo)</summary>
               <div className="demo-credentials">
                 <p><strong>Email:</strong> demo@example.com</p>
                 <p><strong>Password:</strong> demo123</p>
@@ -201,7 +201,7 @@ function LoginPage() {
                   className="btn btn-sm btn-secondary"
                   onClick={() => setFormData({ email: 'demo@example.com', password: 'demo123', workCenter: WORK_CENTERS.ZANICA })}
                 >
-                  Use Demo Credentials
+                  Usa Credenziali Demo
                 </button>
               </div>
             </details>

@@ -49,7 +49,7 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
     await handleAsync(
       async () => {
         await setMachineUnavailability(machineId, data.startDate, data.endDate, data.startTime, data.endTime);
-        showAlert('Machine unavailability set successfully!', 'success');
+        showAlert('Indisponibilità macchina impostata con successo!', 'success');
         
         // Call the success callback to refresh calendar data
         if (onSuccess) {
@@ -61,7 +61,7 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
       },
       { 
         context: 'Set Machine Unavailability', 
-        fallbackMessage: 'Failed to set machine unavailability'
+        fallbackMessage: 'Impostazione indisponibilità macchina fallita'
       }
     );
   };
@@ -104,12 +104,12 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
 
   return (
     <div className="off-time-section">
-      <h3>Set Off-Time Period</h3>
+      <h3>Imposta Periodo di Non Disponibilità</h3>
       
       <form onSubmit={handleSubmit(onSubmit)} className="off-time-form">
         <div className="form-grid form-grid--4-cols">
           <div className="form-group">
-            <label htmlFor="startDate">Start Date</label>
+            <label htmlFor="startDate">Data Inizio</label>
             <input
               type="date"
               id="startDate"
@@ -120,7 +120,7 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
           </div>
           
           <div className="form-group">
-            <label htmlFor="startTime">Start Time</label>
+            <label htmlFor="startTime">Ora Inizio</label>
             <input
               type="time"
               id="startTime"
@@ -131,7 +131,7 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
           </div>
           
           <div className="form-group">
-            <label htmlFor="endDate">End Date</label>
+            <label htmlFor="endDate">Data Fine</label>
             <input
               type="date"
               id="endDate"
@@ -142,7 +142,7 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
           </div>
           
           <div className="form-group">
-            <label htmlFor="endTime">End Time</label>
+            <label htmlFor="endTime">Ora Fine</label>
             <input
               type="time"
               id="endTime"
@@ -159,7 +159,7 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
             className="nav-btn today"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Setting...' : 'Set Off-Time'}
+            {isSubmitting ? 'Impostazione...' : 'Imposta Non Disponibilità'}
           </button>
         </div>
       </form>

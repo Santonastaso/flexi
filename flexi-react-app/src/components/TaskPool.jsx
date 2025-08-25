@@ -39,9 +39,9 @@ const DraggableTask = React.memo(({ task }) => {
         {/* Info Button */}
         <button 
           className="task-btn info-btn" 
-          title={`Delivery Date: ${task.delivery_date ? new Date(task.delivery_date).toLocaleDateString() : 'Not set'}
-Quantity: ${task.quantity || 'Not specified'}
-${task.scheduled_start_time ? `Scheduled: ${new Date(task.scheduled_start_time).toLocaleString()}` : ''}`}
+          title={`Data Consegna: ${task.delivery_date ? new Date(task.delivery_date).toLocaleDateString() : 'Non impostata'}
+Quantità: ${task.quantity || 'Non specificata'}
+${task.scheduled_start_time ? `Programmato: ${new Date(task.scheduled_start_time).toLocaleString()}` : ''}`}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
@@ -52,7 +52,7 @@ ${task.scheduled_start_time ? `Scheduled: ${new Date(task.scheduled_start_time).
         <button 
           className={`task-btn lock-btn ${isLocked ? 'locked' : 'unlocked'}`}
           onClick={handleLockClick}
-          title={isLocked ? "Unlock to enable dragging" : "Lock to disable dragging"}
+          title={isLocked ? "Sblocca per abilitare il trascinamento" : "Blocca per disabilitare il trascinamento"}
         >
           {isLocked ? (
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
@@ -71,7 +71,7 @@ ${task.scheduled_start_time ? `Scheduled: ${new Date(task.scheduled_start_time).
             className="drag-handle" 
             {...listeners} 
             {...attributes}
-            title="Drag to schedule"
+            title="Trascina per programmare"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
               <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
@@ -106,15 +106,15 @@ function TaskPool() {
 
   return (
     <div className="task-pool-section">
-      <h2 className="section-title">Task Pool</h2>
-      <p>Drag tasks from here to schedule them, or drag scheduled events back here to unschedule them.</p>
+      <h2 className="section-title">Pool Lavori</h2>
+      <p>Trascina i lavori da qui per programmarli, o trascina gli eventi programmati qui per annullarli.</p>
       <div ref={setNodeRef} id="task_pool" className="task-pool-grid">
         {unscheduledTasks.length > 0 ? (
           unscheduledTasks.map(task => (
             <DraggableTask key={task.id} task={task} />
           ))
         ) : (
-          <div className="empty-state">No unscheduled tasks available</div>
+          <div className="empty-state">Nessun lavoro non programmato disponibile</div>
         )}
       </div>
     </div>

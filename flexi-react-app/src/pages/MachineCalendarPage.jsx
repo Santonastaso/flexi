@@ -35,7 +35,7 @@ function MachineCalendarPage() {
   if (isLoading || !isInitialized) {
     return (
       <div className="content-section">
-        <div className="loading">Loading machine calendar...</div>
+        <div className="loading">Caricamento calendario macchina...</div>
       </div>
     );
   }
@@ -43,7 +43,7 @@ function MachineCalendarPage() {
   if (!machine) {
     return (
       <div className="content-section">
-        <div className="error">Machine not found</div>
+        <div className="error">Macchina non trovata</div>
       </div>
     );
   }
@@ -65,7 +65,7 @@ function MachineCalendarPage() {
   return (
     <div className="content-section">
       <StickyHeader
-        title="Machine Availability Calendar"
+        title="Calendario Disponibilità Macchina"
         subtitle={machine.machine_name}
       />
       

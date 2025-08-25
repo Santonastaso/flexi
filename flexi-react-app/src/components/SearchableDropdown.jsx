@@ -105,8 +105,8 @@ function SearchableDropdown({
             className={`dropdown-option ${allVisibleSelected ? 'selected' : ''}`}
             onMouseDown={handleAllOptionClick}
           >
-            <span className="phase-name">All {label}s</span>
-            <span className="phase-description">Show all {label.toLowerCase()}s</span>
+            <span className="phase-name">Tutti i {label}</span>
+            <span className="phase-description">Mostra tutti i {label.toLowerCase()}</span>
           </div>
           
           {/* Individual options */}

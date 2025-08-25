@@ -6,8 +6,8 @@ const ConfirmDialog = ({
   message, 
   onConfirm, 
   onCancel, 
-  confirmText = 'Delete', 
-  cancelText = 'Cancel',
+  confirmText = 'Elimina', 
+  cancelText = 'Annulla',
   type = 'danger'
 }) => {
   if (!isOpen) return null;
