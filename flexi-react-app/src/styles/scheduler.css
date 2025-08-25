@@ -171,6 +171,15 @@
     margin-top: 2px;
 }
 
+.task-lookup-workcenter {
+    display: block;
+    font-size: 11px;
+    color: var(--sap-accent);
+    font-weight: 500;
+    margin-top: 2px;
+    text-transform: uppercase;
+}
+
 /* ===== CALENDAR SECTIONS ===== */
 .calendar-container,
 .calendar-section,

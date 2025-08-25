@@ -18,7 +18,7 @@ const LoadingFallback = () => (
 function SchedulerPage() {
   // Select state and actions from Zustand store
   const { machines } = useMachineStore();
-  const { odpOrders, getScheduledOrders } = useOrderStore();
+  const { odpOrders, getOdpOrdersByWorkCenter, getScheduledOrders } = useOrderStore();
   const { selectedWorkCenter, isLoading, isInitialized, showAlert } = useUIStore();
   const { scheduleTask, unscheduleTask, scheduleTaskFromSlot, rescheduleTaskToSlot, validateSlotAvailability } = useSchedulerStore();
   const { init, cleanup } = useMainStore();
@@ -42,6 +42,21 @@ function SchedulerPage() {
       cleanup();
     };
   }, [init, isInitialized, cleanup]);
+
+  // Get ODP orders filtered by selected work center
+  const filteredOdpOrders = useMemo(() => {
+    if (!selectedWorkCenter) return [];
+    const filtered = getOdpOrdersByWorkCenter(selectedWorkCenter);
+    console.log(`Filtered ODP orders for work center ${selectedWorkCenter}:`, filtered.map(o => ({ id: o.id, odp_number: o.odp_number, work_center: o.work_center, status: o.status })));
+    return filtered;
+  }, [selectedWorkCenter, getOdpOrdersByWorkCenter]);
+
+  // Get scheduled orders filtered by selected work center
+  const scheduledOrders = useMemo(() => {
+    const scheduled = filteredOdpOrders.filter(order => order.status === 'SCHEDULED');
+    console.log(`Scheduled orders for work center ${selectedWorkCenter}:`, scheduled.map(o => ({ id: o.id, odp_number: o.odp_number, work_center: o.work_center })));
+    return scheduled;
+  }, [filteredOdpOrders, selectedWorkCenter]);
 
   // Memoize machine filtering with optimized dependencies and early returns
   const machineData = useMemo(() => {
@@ -150,19 +165,40 @@ function SchedulerPage() {
   const handleTaskLookup = useCallback(() => {
     if (!taskLookup.trim()) return;
     
-    // Find the task in scheduled orders
-    const task = odpOrders.find(t => t.odp_number === taskLookup.trim() && t.status === 'SCHEDULED');
+    console.log(`=== TASK LOOKUP DEBUG ===`);
+    console.log(`Searching for ODP: "${taskLookup.trim()}"`);
+    console.log(`Current taskLookup state: "${taskLookup}"`);
+    console.log(`Available scheduled orders:`, scheduledOrders.map(o => ({ id: o.id, odp_number: o.odp_number, work_center: o.work_center })));
+    
+    // Find the task in scheduled orders with exact match first, then partial match
+    let task = scheduledOrders.find(t => t.odp_number === taskLookup.trim());
+    console.log(`Exact match result:`, task ? { id: task.id, odp_number: task.odp_number } : 'No exact match');
+    
+    // If no exact match, try partial match
     if (!task) {
+      task = scheduledOrders.find(t => 
+        t.odp_number.toLowerCase().includes(taskLookup.trim().toLowerCase())
+      );
+      console.log(`Partial match result:`, task ? { id: task.id, odp_number: task.odp_number } : 'No partial match');
+    }
+    
+    if (!task) {
+      console.log(`No task found for ODP: "${taskLookup.trim()}"`);
       showAlert('Lavoro non trovato o non programmato', 'warning');
       return;
     }
     
+    console.log(`Final selected task:`, { id: task.id, odp_number: task.odp_number, work_center: task.work_center, machine_id: task.scheduled_machine_id });
+    
     // Find the machine
     const machine = machines.find(m => m.id === task.scheduled_machine_id);
     if (!machine) {
-      showAlert('Macchina non trovata per questo lavoro', 'warning');
+      console.log(`No machine found for task machine ID: ${task.scheduled_machine_id}`);
+      showAlert('Macchina non trovata per questo lavoro', 'error');
       return;
     }
+    
+    console.log(`Found machine:`, { id: machine.id, name: machine.machine_name, work_center: machine.work_center });
     
     // Set machine filters to show only this machine
     setMachineNameFilter([machine.machine_name]);
@@ -175,9 +211,11 @@ function SchedulerPage() {
       setCurrentDate(new Date(task.scheduled_start_time));
     }
     
+    // Clear the search input after successful lookup
     setTaskLookup('');
-    showAlert(`Lavoro trovato su ${machine.machine_name}`, 'success');
-  }, [taskLookup, odpOrders, machines, showAlert]);
+    showAlert(`Lavoro "${task.odp_number}" trovato su ${machine.machine_name}`, 'success');
+    console.log(`=== END TASK LOOKUP DEBUG ===`);
+  }, [taskLookup, scheduledOrders, machines, showAlert]);
 
   // Debounce ref to prevent rapid drag operations
   const dragTimeoutRef = useRef(null);
@@ -372,35 +410,91 @@ function SchedulerPage() {
                 type="text"
                 placeholder="Inserisci numero ODP per cercare..."
                 value={taskLookup}
-                onChange={(e) => setTaskLookup(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleTaskLookup()}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  console.log(`Search input changed to: "${value}"`);
+                  setTaskLookup(value);
+                }}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    console.log(`Enter pressed, current taskLookup: "${taskLookup}"`);
+                    handleTaskLookup();
+                  }
+                }}
                 className="task-lookup-input"
               />
               {taskLookup && (
                 <div className="task-lookup-dropdown">
-                  {odpOrders
+                  {scheduledOrders
                     .filter(order => 
-                      order.status === 'SCHEDULED' && 
                       order.odp_number.toLowerCase().includes(taskLookup.toLowerCase())
                     )
+                    .sort((a, b) => {
+                      // Sort by exact match first, then by relevance
+                      const aExact = a.odp_number.toLowerCase() === taskLookup.toLowerCase();
+                      const bExact = b.odp_number.toLowerCase() === taskLookup.toLowerCase();
+                      if (aExact && !bExact) return -1;
+                      if (!aExact && bExact) return 1;
+                      return a.odp_number.localeCompare(b.odp_number);
+                    })
                     .slice(0, 5)
                     .map(order => (
                       <div 
                         key={order.id} 
                         className="task-lookup-option"
                         onClick={() => {
-                          setTaskLookup(order.odp_number);
-                          handleTaskLookup();
+                          console.log(`Clicked on ODP option: ${order.odp_number} (ID: ${order.id})`);
+                          // Perform lookup directly with the selected ODP number
+                          const odpNumber = order.odp_number;
+                          console.log(`Performing lookup for ODP: ${odpNumber}`);
+                          
+                          // Find the task directly
+                          const task = scheduledOrders.find(t => t.odp_number === odpNumber);
+                          if (!task) {
+                            console.log(`Task not found for ODP: ${odpNumber}`);
+                            return;
+                          }
+                          
+                          console.log(`Found task:`, { id: task.id, odp_number: task.odp_number, work_center: task.work_center });
+                          
+                          // Find the machine
+                          const machine = machines.find(m => m.id === task.scheduled_machine_id);
+                          if (!machine) {
+                            console.log(`No machine found for task machine ID: ${task.scheduled_machine_id}`);
+                            showAlert('Macchina non trovata per questo lavoro', 'error');
+                            return;
+                          }
+                          
+                          console.log(`Found machine:`, { id: machine.id, name: machine.machine_name, work_center: machine.work_center });
+                          
+                          // Set machine filters to show only this machine
+                          setMachineNameFilter([machine.machine_name]);
+                          setWorkCenterFilter([machine.work_center]);
+                          setDepartmentFilter([machine.department]);
+                          setMachineTypeFilter([machine.machine_type]);
+                          
+                          // Navigate to the start date of the task
+                          if (task.scheduled_start_time) {
+                            setCurrentDate(new Date(task.scheduled_start_time));
+                          }
+                          
+                          // Clear the search input
+                          setTaskLookup('');
+                          showAlert(`Lavoro "${task.odp_number}" trovato su ${machine.machine_name}`, 'success');
                         }}
                       >
                         <span className="task-lookup-odp">{order.odp_number}</span>
                         <span className="task-lookup-product">{order.product_name || 'Prodotto non specificato'}</span>
+                        <span className="task-lookup-workcenter">({order.work_center})</span>
                       </div>
                     ))}
                 </div>
               )}
             </div>
-            <button onClick={handleTaskLookup} className="nav-btn today">
+            <button onClick={() => {
+              console.log(`Search button clicked, current taskLookup: "${taskLookup}"`);
+              handleTaskLookup();
+            }} className="nav-btn today">
               Cerca
             </button>
           </div>
