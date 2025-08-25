@@ -7,7 +7,7 @@ import {
   getEndOfDay,
   isSameDate
 } from '../utils/dateUtils';
-import { useErrorHandler } from '../hooks';
+
 
 // A single 15-minute time slot on the calendar that can receive a dropped task
 const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasScheduledTask }) => {
@@ -26,11 +26,7 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
 const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
     const [isLocked, setIsLocked] = useState(true); // Events start locked by default
     
-    // Get the update function from the store
-    const { updateOdpOrder } = useOrderStore();
-    
-    // Use unified error handling
-    const { handleAsync } = useErrorHandler('GanttChart');
+    // Note: updateOdpOrder and handleAsync are available if needed for future features
 
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: `event-${event.id}`,
@@ -206,6 +202,23 @@ ${event.scheduled_start_time ? `Scheduled: ${new Date(event.scheduled_start_time
                             <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
                         </svg>
                     </div>
+                )}
+                
+                {/* Unschedule Button - only active when unlocked */}
+                {!isLocked && (
+                    <button 
+                        className="event-btn unschedule-btn"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            // Call the unschedule function from the store
+                            useSchedulerStore.getState().unscheduleTask(event.id);
+                        }}
+                        title="Unschedule task and return to pool"
+                    >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 13H5v-2h14v2z"/>
+                        </svg>
+                    </button>
                 )}
             </div>
             )}

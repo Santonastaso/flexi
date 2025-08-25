@@ -31,8 +31,8 @@
     --content-bg: #f8f9fa;
     
     /* Theming values */
-    --border-radius: 0px;
-    --border-radius-large: 0px;
+    --border-radius: 6px;
+    --border-radius-large: 8px;
     --spacing-sm: 8px;
     --spacing-md: 16px;
     --spacing-lg: 24px;

@@ -54,7 +54,7 @@
 .dashboard-header {
     background: var(--content-bg);
     border: 1px solid var(--border-light);
-    border-radius: 0;
+    border-radius: var(--border-radius);
     padding: var(--spacing-xl);
     margin-bottom: var(--spacing-xl);
     text-align: center;
@@ -85,7 +85,7 @@
     padding: var(--spacing-lg);
     background: var(--content-bg);
     border: 1px solid var(--border-light);
-    border-radius: 0;
+    border-radius: var(--border-radius);
     box-shadow: var(--shadow-sm);
     margin-top: var(--spacing-sm);
 }
@@ -102,17 +102,18 @@
     font-size: 14px;
 }
 
-.date-input {
+.date-range input {
     padding: 8px 12px;
     border: 1px solid var(--border-color);
-    border-radius: 0;
+    border-radius: var(--border-radius);
     font-size: 14px;
+    background: var(--content-bg);
 }
 
-.date-input:focus {
+.date-range input:focus {
     outline: none;
     border-color: var(--sap-accent);
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 /* Metrics Grid */
@@ -121,23 +122,19 @@
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: var(--spacing-lg);
     margin-bottom: var(--spacing-xl);
-    max-width: 1000px;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .metric-card {
     background: var(--content-bg);
     border: 1px solid var(--border-light);
-    border-radius: 0;
-    box-shadow: var(--shadow-sm);
-    transition: all 0.3s ease;
+    border-radius: var(--border-radius);
     padding: var(--spacing-lg);
     text-align: center;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease;
 }
 
 .metric-card:hover {
-    transform: translateY(-2px);
     box-shadow: var(--shadow-md);
 }
 
@@ -164,31 +161,55 @@
 .metric-subtitle {
     font-size: 12px;
     color: var(--text-light);
+    font-weight: 400;
+}
+
+/* Weekly Metrics Row */
+.weekly-metrics-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.weekly-metric-card {
+    background: var(--content-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease;
+    border-left: 4px solid var(--sap-accent);
+}
+
+.weekly-metric-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.weekly-metric-card h3 {
+    margin: 0 0 var(--spacing-md) 0;
+    font-size: 14px;
+    color: var(--text-light);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 /* Charts Container */
 .charts-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    grid-template-columns: 1fr;
     gap: var(--spacing-xl);
     margin-bottom: var(--spacing-xl);
-    max-width: 1000px;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 .chart-section {
     background: var(--content-bg);
     border: 1px solid var(--border-light);
-    border-radius: 0;
+    border-radius: var(--border-radius);
+    padding: var(--spacing-xl);
     box-shadow: var(--shadow-sm);
-    padding: var(--spacing-lg);
-    transition: all 0.3s ease;
-}
-
-.chart-section:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
 }
 
 .chart-section h3 {
@@ -197,6 +218,70 @@
     color: var(--sap-primary);
     font-weight: 400;
     text-align: center;
+}
+
+/* Line Chart Section */
+.line-chart-section {
+    grid-column: 1 / -1;
+}
+
+.chart-container {
+    height: 300px;
+    position: relative;
+}
+
+/* Pie Charts Section */
+.pie-charts-section {
+    grid-column: 1 / -1;
+}
+
+.pie-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-xl);
+}
+
+.pie-chart-item {
+    text-align: center;
+}
+
+.pie-chart-item h4 {
+    margin: 0 0 var(--spacing-md) 0;
+    font-size: 16px;
+    color: var(--sap-secondary);
+    font-weight: 400;
+}
+
+.pie-chart-container {
+    height: 200px;
+    position: relative;
+    margin-bottom: var(--spacing-md);
+}
+
+.pie-chart-legend {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 12px;
+    color: var(--text-light);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.legend-label {
+    font-weight: 400;
 }
 
 /* Work Center Chart */
@@ -237,7 +322,7 @@
     background: linear-gradient(135deg, var(--sap-accent), var(--sap-accent-hover));
     color: var(--text-white);
     padding: 4px 8px;
-    border-radius: 0;
+    border-radius: var(--border-radius);
     font-size: 11px;
     font-weight: 400;
     text-align: center;
@@ -256,7 +341,7 @@
 .chart-bar {
     background: linear-gradient(135deg, var(--status-active), #1e8449);
     width: 80px;
-    border-radius: 0;
+    border-radius: var(--border-radius);
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -287,6 +372,10 @@
     .charts-container {
         grid-template-columns: 1fr;
         max-width: 600px;
+    }
+    
+    .pie-charts-grid {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -320,7 +409,14 @@
         margin-bottom: 24px;
     }
     
-    .metric-card {
+    .weekly-metrics-row {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    
+    .metric-card,
+    .weekly-metric-card {
         padding: 16px;
     }
     
@@ -335,5 +431,9 @@
     
     .chart-section {
         padding: 16px;
+    }
+    
+    .pie-charts-grid {
+        gap: 20px;
     }
 }
