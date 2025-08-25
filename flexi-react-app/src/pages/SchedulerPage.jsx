@@ -18,6 +18,7 @@ const LoadingFallback = () => (
 function SchedulerPage() {
   // Select state and actions from Zustand store
   const { machines } = useMachineStore();
+  const { odpOrders, getScheduledOrders } = useOrderStore();
   const { selectedWorkCenter, isLoading, isInitialized, showAlert } = useUIStore();
   const { scheduleTask, unscheduleTask, scheduleTaskFromSlot, rescheduleTaskToSlot, validateSlotAvailability } = useSchedulerStore();
   const { init, cleanup } = useMainStore();
@@ -28,6 +29,7 @@ function SchedulerPage() {
   const [departmentFilter, setDepartmentFilter] = useState([]);
   const [machineTypeFilter, setMachineTypeFilter] = useState([]);
   const [machineNameFilter, setMachineNameFilter] = useState([]);
+  const [taskLookup, setTaskLookup] = useState('');
 
   // Initialize store on mount
   useEffect(() => {
@@ -144,6 +146,38 @@ function SchedulerPage() {
     setMachineTypeFilter([]);
     setMachineNameFilter([]);
   }, []);
+
+  const handleTaskLookup = useCallback(() => {
+    if (!taskLookup.trim()) return;
+    
+    // Find the task in scheduled orders
+    const task = odpOrders.find(t => t.odp_number === taskLookup.trim() && t.status === 'SCHEDULED');
+    if (!task) {
+      showAlert('Lavoro non trovato o non programmato', 'warning');
+      return;
+    }
+    
+    // Find the machine
+    const machine = machines.find(m => m.id === task.scheduled_machine_id);
+    if (!machine) {
+      showAlert('Macchina non trovata per questo lavoro', 'warning');
+      return;
+    }
+    
+    // Set machine filters to show only this machine
+    setMachineNameFilter([machine.machine_name]);
+    setWorkCenterFilter([machine.work_center]);
+    setDepartmentFilter([machine.department]);
+    setMachineTypeFilter([machine.machine_type]);
+    
+    // Navigate to the start date of the task
+    if (task.scheduled_start_time) {
+      setCurrentDate(new Date(task.scheduled_start_time));
+    }
+    
+    setTaskLookup('');
+    showAlert(`Lavoro trovato su ${machine.machine_name}`, 'success');
+  }, [taskLookup, odpOrders, machines, showAlert]);
 
   // Debounce ref to prevent rapid drag operations
   const dragTimeoutRef = useRef(null);
@@ -328,6 +362,49 @@ function SchedulerPage() {
         <Suspense fallback={<LoadingFallback />}>
           <TaskPool />
         </Suspense>
+
+        {/* Task Lookup Section */}
+        <div className="section-controls">
+          <h2 className="section-title">Ricerca Lavoro</h2>
+          <div className="task-lookup">
+            <div className="task-lookup-input-container">
+              <input
+                type="text"
+                placeholder="Inserisci numero ODP per cercare..."
+                value={taskLookup}
+                onChange={(e) => setTaskLookup(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleTaskLookup()}
+                className="task-lookup-input"
+              />
+              {taskLookup && (
+                <div className="task-lookup-dropdown">
+                  {odpOrders
+                    .filter(order => 
+                      order.status === 'SCHEDULED' && 
+                      order.odp_number.toLowerCase().includes(taskLookup.toLowerCase())
+                    )
+                    .slice(0, 5)
+                    .map(order => (
+                      <div 
+                        key={order.id} 
+                        className="task-lookup-option"
+                        onClick={() => {
+                          setTaskLookup(order.odp_number);
+                          handleTaskLookup();
+                        }}
+                      >
+                        <span className="task-lookup-odp">{order.odp_number}</span>
+                        <span className="task-lookup-product">{order.product_name || 'Prodotto non specificato'}</span>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+            <button onClick={handleTaskLookup} className="nav-btn today">
+              Cerca
+            </button>
+          </div>
+        </div>
 
         {/* Production Schedule Controls Section */}
         <div className="section-controls">
