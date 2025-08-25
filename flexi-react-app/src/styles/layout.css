@@ -108,12 +108,7 @@ main {
     line-height: 1;
 }
 
-.sticky-header-subtitle {
-    margin: 4px 0 0 0;
-    font-size: 13px;
-    color: var(--text-white);
-    font-weight: 400;
-}
+
 
 .sidebar-logo {
     padding: var(--spacing-lg) var(--spacing-lg);

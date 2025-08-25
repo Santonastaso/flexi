@@ -64,10 +64,12 @@ function MachineCalendarPage() {
 
   return (
     <div className="content-section">
-      <StickyHeader
-        title="Calendario Disponibilità Macchina"
-        subtitle={machine.machine_name}
-      />
+      <StickyHeader title="Calendario Disponibilità Macchina" />
+      
+      {/* Machine Name Display */}
+      <div className="machine-name-display">
+        <h3 className="machine-name-title">{machine.machine_name}</h3>
+      </div>
       
       <CalendarViewControls
         currentDate={currentDate}
