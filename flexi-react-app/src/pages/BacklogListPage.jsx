@@ -86,12 +86,24 @@ function BacklogListPage() {
     { 
       header: 'Inizio Programmato', 
       accessorKey: 'scheduled_start_time',
-      cell: info => info.getValue() ? new Date(info.getValue()).toLocaleDateString() : 'Non programmato'
+      cell: info => info.getValue() ? new Date(info.getValue()).toLocaleString('it-IT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) : 'Non programmato'
     },
     { 
       header: 'Fine Programmata', 
       accessorKey: 'scheduled_end_time',
-      cell: info => info.getValue() ? new Date(info.getValue()).toLocaleDateString() : 'Non programmato'
+      cell: info => info.getValue() ? new Date(info.getValue()).toLocaleString('it-IT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) : 'Non programmato'
     },
     
     // Codici Cliente
