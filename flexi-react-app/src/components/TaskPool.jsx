@@ -41,6 +41,7 @@ const DraggableTask = React.memo(({ task }) => {
           className="task-btn info-btn" 
           title={`Codice Articolo: ${task.article_code || 'Non specificato'}
 Codice Articolo Esterno: ${task.external_article_code || 'Non specificato'}
+Nome Cliente: ${task.nome_cliente || 'Non specificato'}
 Data Consegna: ${task.delivery_date ? new Date(task.delivery_date).toLocaleDateString() : 'Non impostata'}
 Quantità: ${task.quantity || 'Non specificata'}
 ${task.scheduled_start_time ? `Inizio Programmato: ${new Date(task.scheduled_start_time).toLocaleString()}` : 'Non programmato'}

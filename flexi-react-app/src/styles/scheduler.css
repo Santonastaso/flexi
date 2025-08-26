@@ -230,6 +230,31 @@
     text-transform: uppercase;
 }
 
+/* ===== TASK LOOKUP GRID ===== */
+.task-lookup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+}
+
+.task-lookup-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.task-lookup-item .task-lookup-input-container {
+    flex: 1;
+}
+
+.task-lookup-item .nav-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+    min-width: 100px;
+}
+
 /* ===== CALENDAR SECTIONS ===== */
 .calendar-container,
 .calendar-section,

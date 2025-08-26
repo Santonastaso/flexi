@@ -166,6 +166,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                     className="event-btn info-btn" 
                     title={`Codice Articolo: ${event.article_code || 'Non specificato'}
 Codice Articolo Esterno: ${event.external_article_code || 'Non specificato'}
+Nome Cliente: ${event.nome_cliente || 'Non specificato'}
 Data Consegna: ${event.delivery_date ? new Date(event.delivery_date).toLocaleDateString() : 'Non impostata'}
 Quantità: ${event.quantity || 'Non specificata'}
 ${event.scheduled_start_time ? `Inizio Programmato: ${new Date(event.scheduled_start_time).toLocaleString()}` : 'Non programmato'}
