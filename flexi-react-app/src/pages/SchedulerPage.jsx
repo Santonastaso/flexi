@@ -19,7 +19,7 @@ function SchedulerPage() {
   // Select state and actions from Zustand store
   const { machines } = useMachineStore();
   const { odpOrders, getOdpOrdersByWorkCenter, getScheduledOrders } = useOrderStore();
-  const { selectedWorkCenter, isLoading, isInitialized, showAlert } = useUIStore();
+  const { selectedWorkCenter, isLoading, isInitialized, showAlert, isEditMode, toggleEditMode, showConflictDialog } = useUIStore();
   const { scheduleTask, unscheduleTask, scheduleTaskFromSlot, rescheduleTaskToSlot, validateSlotAvailability } = useSchedulerStore();
   const { init, cleanup } = useMainStore();
 
@@ -333,6 +333,9 @@ function SchedulerPage() {
             const result = await scheduleTaskFromSlot(task.id, machine, currentDate, hour, minute);
             if (result?.error) {
               showAlert(result.error, 'error');
+            } else if (result?.conflict) {
+              // Show conflict resolution dialog
+              showConflictDialog(result);
             }
           }
 
@@ -356,6 +359,9 @@ function SchedulerPage() {
             const result = await rescheduleTaskToSlot(eventItem.id, machine, currentDate, hour, minute);
             if (result?.error) {
               showAlert(result.error, 'error');
+            } else if (result?.conflict) {
+              // Show conflict resolution dialog
+              showConflictDialog(result);
             }
           }
 
@@ -373,7 +379,7 @@ function SchedulerPage() {
     } finally {
       isDragOperationRef.current = false;
     }
-  }, [currentDate, scheduleTaskFromSlot, rescheduleTaskToSlot, unscheduleTask, showAlert]);
+  }, [currentDate, scheduleTaskFromSlot, rescheduleTaskToSlot, unscheduleTask, showAlert, showConflictDialog]);
 
   // Show loading state during initial load
   if (isLoading) {
@@ -394,7 +400,7 @@ function SchedulerPage() {
 
   return (
     <DndContext onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-      <div className="content-section">
+      <div className={`content-section ${isEditMode ? 'edit-mode' : ''}`}>
         <StickyHeader title="Scheduler Produzione" />
         
         <Suspense fallback={<LoadingFallback />}>
@@ -545,6 +551,20 @@ function SchedulerPage() {
 
             {/* Action Buttons */}
             <div className="actions-section">
+              <button
+                className={`nav-btn ${isEditMode ? 'edit-mode-active' : ''}`}
+                onClick={toggleEditMode}
+                title={isEditMode ? "Disabilita modalità modifica" : "Abilita modalità modifica"}
+                style={{
+                  backgroundColor: isEditMode ? '#dc3545' : '#007bff',
+                  color: 'white',
+                  border: isEditMode ? '2px solid #bd2130' : '2px solid #0056b3',
+                  fontWeight: 'bold'
+                }}
+              >
+                {isEditMode ? 'Disabilita Modalità Modifica' : 'Abilita Modalità Modifica'}
+              </button>
+              
               <button
                 className="nav-btn today"
                 onClick={clearFilters}

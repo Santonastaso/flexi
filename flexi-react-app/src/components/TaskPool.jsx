@@ -5,7 +5,8 @@ import { useErrorHandler } from '../hooks';
 
 // Individual Draggable Task Component - optimized
 const DraggableTask = React.memo(({ task }) => {
-  const [isLocked, setIsLocked] = useState(true); // Tasks start locked by default
+  // Get global edit mode state and conflict dialog
+  const { isEditMode, conflictDialog } = useUIStore();
   
   // Get the update function from the store
   const { updateOdpOrder } = useOrderStore();
@@ -16,20 +17,17 @@ const DraggableTask = React.memo(({ task }) => {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: `task-${task.id}`,
     data: { task, type: 'task' },
-    disabled: isLocked, // Disable dragging when locked
+    disabled: !isEditMode, // Disable dragging when not in edit mode
   });
 
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
-  const handleLockClick = (e) => {
-    e.stopPropagation(); // Prevent drag from starting
-    setIsLocked(!isLocked);
-  };
+
 
   return (
-    <div ref={setNodeRef} style={style} className="task-item">
+    <div ref={setNodeRef} style={style} className={`task-item ${!isEditMode ? 'non-draggable' : ''} ${conflictDialog.isOpen && conflictDialog.details?.draggedTask?.id === task.id ? 'conflict-pending' : ''}`}>
       <div className="task-content">
         <span className="task-label">{task.odp_number}</span>
         <span className="task-time">
@@ -53,25 +51,10 @@ ${task.scheduled_end_time ? `Fine Programmata: ${new Date(task.scheduled_end_tim
           </svg>
         </button>
         
-        {/* Lock/Unlock Button */}
-        <button 
-          className={`task-btn lock-btn ${isLocked ? 'locked' : 'unlocked'}`}
-          onClick={handleLockClick}
-          title={isLocked ? "Sblocca per abilitare il trascinamento" : "Blocca per disabilitare il trascinamento"}
-        >
-          {isLocked ? (
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/>
-            </svg>
-          ) : (
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm6-9h-1V6c0-2.76-2.24-5-5-5-2.28 0-4.27 1.54-4.84 3.75-.14.54.18 1.08.72 1.22.53.14 1.08-.18 1.22-.72C9.44 6.06 10.72 5 12 5c1.66 0 3 1.34 3 3v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/>
-            </svg>
-          )}
-        </button>
+
         
-        {/* Drag Handle - only active when unlocked */}
-        {!isLocked && (
+        {/* Drag Handle - only active when in edit mode */}
+        {isEditMode && (
           <div 
             className="drag-handle" 
             {...listeners} 

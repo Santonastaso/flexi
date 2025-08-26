@@ -17,13 +17,14 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './auth/ProtectedRoute';
 import Alert from './components/Alert';
 import ConfirmDialog from './components/ConfirmDialog';
-import { useUIStore, useMainStore } from './store';
+import { useUIStore, useMainStore, useSchedulerStore } from './store';
 import { useAuth } from './auth/AuthContext';
 
 // This component creates the main layout with the sidebar
 const AppLayout = () => {
-  const { alert, hideAlert, confirmDialog, hideConfirmDialog } = useUIStore();
+  const { alert, hideAlert, confirmDialog, hideConfirmDialog, conflictDialog, hideConflictDialog } = useUIStore();
   const { cleanup } = useMainStore();
+  const { resolveConflictByShunting } = useSchedulerStore();
   
   // Cleanup store when app unmounts
   useEffect(() => {
@@ -56,6 +57,47 @@ const AppLayout = () => {
         }}
         onCancel={hideConfirmDialog}
         type={confirmDialog.type}
+      />
+      {/* Conflict Resolution Dialog */}
+      <ConfirmDialog 
+        isOpen={conflictDialog.isOpen}
+        title="Risoluzione Conflitto"
+        message={conflictDialog.details ? 
+          `Il lavoro "${conflictDialog.details.draggedTask?.odp_number}" si sovrappone con "${conflictDialog.details.conflictingTask?.odp_number}". Come vuoi procedere?` : 
+          ''
+        }
+        type="warning"
+        customButtons={[
+          {
+            text: 'Annulla',
+            variant: 'secondary',
+            onClick: hideConflictDialog
+          },
+          {
+            text: 'Sposta a Sinistra ←',
+            variant: 'primary',
+            onClick: async () => {
+              if (conflictDialog.details) {
+                const result = await resolveConflictByShunting(conflictDialog.details, 'left');
+                if (result.error) {
+                  useUIStore.getState().showAlert(result.error, 'error');
+                }
+              }
+            }
+          },
+          {
+            text: 'Sposta a Destra →',
+            variant: 'primary',
+            onClick: async () => {
+              if (conflictDialog.details) {
+                const result = await resolveConflictByShunting(conflictDialog.details, 'right');
+                if (result.error) {
+                  useUIStore.getState().showAlert(result.error, 'error');
+                }
+              }
+            }
+          }
+        ]}
       />
     </div>
   );

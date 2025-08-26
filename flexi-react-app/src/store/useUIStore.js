@@ -6,6 +6,7 @@ export const useUIStore = create((set, get) => ({
   isLoading: false,
   isInitialized: false,
   selectedWorkCenter: WORK_CENTERS.BOTH,
+  isEditMode: false, // Global edit mode state
   
   // Alert state
   alert: {
@@ -22,13 +23,21 @@ export const useUIStore = create((set, get) => ({
     onConfirm: null,
     type: 'danger'
   },
+  
+  // Conflict resolution dialog state
+  conflictDialog: {
+    isOpen: false,
+    details: null
+  },
 
   // Selectors
   getLoadingState: () => get().isLoading,
   getInitializationState: () => get().isInitialized,
   getSelectedWorkCenter: () => get().selectedWorkCenter,
+  getEditMode: () => get().isEditMode,
   getAlert: () => get().alert,
   getConfirmDialog: () => get().confirmDialog,
+  getConflictDialog: () => get().conflictDialog,
 
   // Actions
   setLoading: (loading) => set({ isLoading: loading }),
@@ -36,6 +45,10 @@ export const useUIStore = create((set, get) => ({
   setInitialized: (initialized) => set({ isInitialized: initialized }),
   
   setSelectedWorkCenter: (workCenter) => set({ selectedWorkCenter: workCenter }),
+  
+  toggleEditMode: () => set((state) => ({ isEditMode: !state.isEditMode })),
+  
+  setEditMode: (enabled) => set({ isEditMode: enabled }),
 
   // Alert actions
   showAlert: (message, type = 'info') => set({
@@ -54,12 +67,23 @@ export const useUIStore = create((set, get) => ({
   hideConfirmDialog: () => set({
     confirmDialog: { isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' }
   }),
+  
+  // Conflict dialog actions
+  showConflictDialog: (details) => set({
+    conflictDialog: { isOpen: true, details }
+  }),
+  
+  hideConflictDialog: () => set({
+    conflictDialog: { isOpen: false, details: null }
+  }),
 
   reset: () => set({
     isLoading: false,
     isInitialized: false,
     selectedWorkCenter: WORK_CENTERS.BOTH,
+    isEditMode: false,
     alert: { message: '', type: 'info', isVisible: false },
-    confirmDialog: { isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' }
+    confirmDialog: { isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' },
+    conflictDialog: { isOpen: false, details: null }
   }),
 }));

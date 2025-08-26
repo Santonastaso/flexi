@@ -8,7 +8,8 @@ const ConfirmDialog = ({
   onCancel, 
   confirmText = 'Elimina', 
   cancelText = 'Annulla',
-  type = 'danger'
+  type = 'danger',
+  customButtons = null // New prop for custom button configurations
 }) => {
   if (!isOpen) return null;
 
@@ -30,18 +31,34 @@ const ConfirmDialog = ({
           <p className="confirm-dialog__message">{message}</p>
         </div>
         <div className="confirm-dialog__footer">
-          <button 
-            onClick={onCancel} 
-            className="confirm-dialog__button confirm-dialog__button--secondary"
-          >
-            {cancelText}
-          </button>
-          <button 
-            onClick={onConfirm} 
-            className="confirm-dialog__button confirm-dialog__button--primary"
-          >
-            {confirmText}
-          </button>
+          {customButtons ? (
+            // Render custom buttons if provided
+            customButtons.map((button, index) => (
+              <button 
+                key={index}
+                onClick={button.onClick} 
+                className={`confirm-dialog__button confirm-dialog__button--${button.variant || 'secondary'}`}
+              >
+                {button.text}
+              </button>
+            ))
+          ) : (
+            // Default buttons
+            <>
+              <button 
+                onClick={onCancel} 
+                className="confirm-dialog__button confirm-dialog__button--secondary"
+              >
+                {cancelText}
+              </button>
+              <button 
+                onClick={onConfirm} 
+                className="confirm-dialog__button confirm-dialog__button--primary"
+              >
+                {confirmText}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

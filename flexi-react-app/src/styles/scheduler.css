@@ -8,6 +8,56 @@
     transform: none !important;
 }
 
+/* ===== EDIT MODE STYLES ===== */
+.content-section.edit-mode .calendar-grid-container {
+    border: 2px solid #3498db;
+    box-shadow: 0 0 10px rgba(52, 152, 219, 0.2);
+    transition: all 0.3s ease;
+}
+
+.scheduled-event.non-draggable,
+.task-item.non-draggable {
+    cursor: default !important;
+}
+
+.scheduled-event.non-draggable:hover,
+.task-item.non-draggable:hover {
+    transform: none !important;
+}
+
+/* ===== CONFLICT RESOLUTION STYLES ===== */
+.scheduled-event.conflict-pending,
+.task-item.conflict-pending {
+    animation: conflictPulse 1.5s ease-in-out infinite;
+    border: 2px solid #f39c12 !important;
+    box-shadow: 0 0 20px rgba(243, 156, 18, 0.6) !important;
+    opacity: 0.8;
+}
+
+@keyframes conflictPulse {
+    0%, 100% { 
+        transform: scale(1); 
+        box-shadow: 0 0 20px rgba(243, 156, 18, 0.6);
+    }
+    50% { 
+        transform: scale(1.02); 
+        box-shadow: 0 0 30px rgba(243, 156, 18, 0.8);
+    }
+}
+
+.scheduled-event.conflict-target {
+    border: 2px solid #e74c3c !important;
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.5) !important;
+}
+
+/* Dialog overlay with slight blur effect */
+.content-section:has(~ .confirm-dialog--warning) .calendar-grid-container {
+    filter: blur(1px);
+    opacity: 0.9;
+    pointer-events: none;
+    transition: all 0.3s ease;
+}
+
 .task-item.dragging,
 .scheduled-event.dragging {
     visibility: hidden !important;
