@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { useOrderStore, useSchedulerStore } from '../store';
 import {
@@ -25,6 +26,7 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
 // A scheduled event that can be dragged to be rescheduled or unscheduled
 const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
     const [isLocked, setIsLocked] = useState(true); // Events start locked by default
+    const navigate = useNavigate();
     
     // Note: updateOdpOrder and handleAsync are available if needed for future features
 
@@ -174,6 +176,20 @@ ${event.scheduled_end_time ? `Fine Programmata: ${new Date(event.scheduled_end_t
                 >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                    </svg>
+                </button>
+
+                {/* Edit Button */}
+                <button 
+                    className="event-btn edit-btn"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/backlog/${event.id}/edit`);
+                    }}
+                    title="Modifica e ricalcola"
+                >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                     </svg>
                 </button>
                 

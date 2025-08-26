@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { useOrderStore, useUIStore } from '../store';
+import { useOrderStore, useUIStore, useSchedulerStore } from '../store';
 import { useProductionCalculations } from '../hooks/useProductionCalculations';
 import { usePhaseSearch } from '../hooks/usePhaseSearch';
 import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES, SEAL_SIDES, PRODUCT_TYPES } from '../constants';
@@ -8,7 +8,8 @@ import { useErrorHandler } from '../hooks';
 
 const BacklogForm = ({ onSuccess, orderToEdit }) => {
   const { addOdpOrder, updateOdpOrder } = useOrderStore();
-  const { showAlert, selectedWorkCenter } = useUIStore();
+  const { showAlert, selectedWorkCenter, showConflictDialog } = useUIStore();
+  const { scheduleTask } = useSchedulerStore();
   const { calculateProductionMetrics, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
   
   // Use unified error handling
@@ -114,10 +115,31 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
           status: isEditMode ? orderToEdit.status : 'NOT SCHEDULED',
         };
 
+        let updatedOrder = null;
         if (isEditMode) {
-          await updateOdpOrder(orderToEdit.id, orderData);
+          updatedOrder = await updateOdpOrder(orderToEdit.id, orderData);
         } else {
-          await addOdpOrder(orderData);
+          updatedOrder = await addOdpOrder(orderData);
+        }
+
+        // If the order is scheduled, re-validate the schedule with the new duration
+        if (isEditMode && updatedOrder?.scheduled_machine_id && updatedOrder?.scheduled_start_time) {
+          const startDate = new Date(updatedOrder.scheduled_start_time);
+          const durationHours = updatedOrder.time_remaining || updatedOrder.duration || calculationResults.totals.duration || 1;
+          const endDate = new Date(startDate.getTime() + durationHours * 60 * 60 * 1000);
+
+          const scheduleData = {
+            machine: updatedOrder.scheduled_machine_id,
+            start_time: startDate.toISOString(),
+            end_time: endDate.toISOString(),
+          };
+
+          const result = await scheduleTask(updatedOrder.id, scheduleData);
+          if (result?.conflict) {
+            showConflictDialog(result);
+          } else if (result?.error) {
+            showAlert(result.error, 'error');
+          }
         }
 
         // Call success callback to refresh the list if provided
