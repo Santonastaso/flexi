@@ -10,7 +10,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   const { addOdpOrder, updateOdpOrder } = useOrderStore();
   const { showAlert, selectedWorkCenter, showConflictDialog } = useUIStore();
   const { scheduleTask } = useSchedulerStore();
-  const { calculateProductionMetrics, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
+  const { calculateProductionMetrics, validatePhaseParameters, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
   
   // Use unified error handling
   const { handleAsync } = useErrorHandler('BacklogForm');
@@ -180,6 +180,14 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       ...editablePhaseParams
     };
     
+    // Validate phase parameters first
+    const validation = validatePhaseParameters(phaseForCalculation);
+    if (!validation.isValid) {
+      showAlert(validation.error, 'error');
+      setCalculationResults(null);
+      return;
+    }
+    
     const results = calculateProductionMetrics(phaseForCalculation, getValues('quantity'), getValues('bag_step'));
     
     if (!results) {
@@ -203,6 +211,17 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         {errors[fieldName].message}
       </span>
     ) : null;
+  };
+
+  // Helper function to get input value for phase parameters
+  const getPhaseParamValue = (paramName) => {
+    const editableValue = editablePhaseParams[paramName];
+    const originalValue = selectedPhase[paramName];
+    
+    if (editableValue !== null && editableValue !== undefined) {
+      return editableValue;
+    }
+    return originalValue || '';
   };
 
   return (
@@ -510,7 +529,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                     <input 
                       type="number" 
                       id="v_stampa"
-                      value={editablePhaseParams.v_stampa || selectedPhase.v_stampa || ''} 
+                      value={getPhaseParamValue('v_stampa')} 
                       onChange={(e) => handlePhaseParamChange('v_stampa', e.target.value)}
                       placeholder="Velocità Stampa"
                       min="0"
@@ -522,7 +541,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                     <input 
                       type="number" 
                       id="t_setup_stampa"
-                      value={editablePhaseParams.t_setup_stampa || selectedPhase.t_setup_stampa || ''} 
+                      value={getPhaseParamValue('t_setup_stampa')} 
                       onChange={(e) => handlePhaseParamChange('t_setup_stampa', e.target.value)}
                       placeholder="Tempo Setup"
                       min="0"
@@ -535,7 +554,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                     <input 
                       type="number" 
                       id="costo_h_stampa"
-                      value={editablePhaseParams.costo_h_stampa || selectedPhase.costo_h_stampa || ''} 
+                      value={getPhaseParamValue('costo_h_stampa')} 
                       onChange={(e) => handlePhaseParamChange('costo_h_stampa', e.target.value)}
                       placeholder="Costo Orario"
                       min="0"
@@ -551,7 +570,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                     <input 
                       type="number" 
                       id="v_conf"
-                      value={editablePhaseParams.v_conf || selectedPhase.v_conf || ''} 
+                      value={getPhaseParamValue('v_conf')} 
                       onChange={(e) => handlePhaseParamChange('v_conf', e.target.value)}
                       placeholder="Velocità Confezionamento"
                       min="0"
@@ -563,7 +582,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                     <input 
                       type="number" 
                       id="t_setup_conf"
-                      value={editablePhaseParams.t_setup_conf || selectedPhase.t_setup_conf || ''} 
+                      value={getPhaseParamValue('t_setup_conf')} 
                       onChange={(e) => handlePhaseParamChange('t_setup_conf', e.target.value)}
                       placeholder="Tempo Setup"
                       min="0"
@@ -576,7 +595,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                     <input 
                       type="number" 
                       id="costo_h_conf"
-                      value={editablePhaseParams.costo_h_conf || selectedPhase.costo_h_conf || ''} 
+                      value={getPhaseParamValue('costo_h_conf')} 
                       onChange={(e) => handlePhaseParamChange('costo_h_conf', e.target.value)}
                       placeholder="Costo Orario"
                       min="0"

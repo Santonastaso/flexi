@@ -35,7 +35,9 @@ export const usePhaseSearch = (department, workCenter) => {
   }, []);
 
   const handlePhaseParamChange = useCallback((field, value) => {
-    setEditablePhaseParams(prev => ({ ...prev, [field]: value }));
+    // Convert empty string to null, otherwise convert to number
+    const numericValue = value === '' ? null : parseFloat(value);
+    setEditablePhaseParams(prev => ({ ...prev, [field]: numericValue }));
   }, []);
 
   const handlePhaseSelect = useCallback((phase, setValue, clearErrors) => {
@@ -49,12 +51,12 @@ export const usePhaseSearch = (department, workCenter) => {
     
     // Initialize editable phase parameters with current phase values
     setEditablePhaseParams({
-      v_stampa: phase.v_stampa || '',
-      t_setup_stampa: phase.t_setup_stampa || '',
-      costo_h_stampa: phase.costo_h_stampa || '',
-      v_conf: phase.v_conf || '',
-      t_setup_conf: phase.t_setup_conf || '',
-      costo_h_conf: phase.costo_h_conf || '',
+      v_stampa: phase.v_stampa || null,
+      t_setup_stampa: phase.t_setup_stampa || null,
+      costo_h_stampa: phase.costo_h_stampa || null,
+      v_conf: phase.v_conf || null,
+      t_setup_conf: phase.t_setup_conf || null,
+      costo_h_conf: phase.costo_h_conf || null,
     });
   }, []);
 

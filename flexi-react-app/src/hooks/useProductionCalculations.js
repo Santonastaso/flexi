@@ -7,6 +7,33 @@ import { useCallback } from 'react';
 export const useProductionCalculations = () => {
   
   /**
+   * Validate phase parameters for calculation
+   */
+  const validatePhaseParameters = useCallback((phase) => {
+    if (!phase || !phase.department) {
+      return { isValid: false, error: 'Invalid phase data' };
+    }
+
+    const { department } = phase;
+    
+    if (department === 'STAMPA') {
+      const vStampa = parseFloat(phase.v_stampa);
+      if (isNaN(vStampa) || vStampa <= 0) {
+        return { isValid: false, error: 'Velocità di stampa non valida. Inserisci un valore maggiore di zero.' };
+      }
+    } else if (department === 'CONFEZIONAMENTO') {
+      const vConf = parseFloat(phase.v_conf);
+      if (isNaN(vConf) || vConf <= 0) {
+        return { isValid: false, error: 'Velocità di confezionamento non valida. Inserisci un valore maggiore di zero.' };
+      }
+    } else {
+      return { isValid: false, error: 'Reparto non riconosciuto' };
+    }
+    
+    return { isValid: true };
+  }, []);
+
+  /**
    * Calculate production metrics for a given phase and quantity
    */
   const calculateProductionMetrics = useCallback((phase, quantity, bagStep) => {
@@ -14,15 +41,30 @@ export const useProductionCalculations = () => {
       return null;
     }
 
+    // Validate phase parameters first
+    const validation = validatePhaseParameters(phase);
+    if (!validation.isValid) {
+      return null;
+    }
+
     try {
       const { department } = phase;
       
       if (department === 'STAMPA') {
+        // Validate required parameters for printing
+        const vStampa = parseFloat(phase.v_stampa);
+        const tSetupStampa = parseFloat(phase.t_setup_stampa) || 0;
+        const costoHStampa = parseFloat(phase.costo_h_stampa) || 0;
+        
+        if (isNaN(vStampa) || vStampa <= 0) {
+          return null; // Invalid print speed
+        }
+        
         // Printing calculations
-        const printTime = quantity / (phase.v_stampa || 1);
-        const setupTime = phase.t_setup_stampa || 0;
+        const printTime = quantity / vStampa;
+        const setupTime = tSetupStampa;
         const totalTime = printTime + setupTime;
-        const totalCost = totalTime * (phase.costo_h_stampa || 0);
+        const totalCost = totalTime * costoHStampa;
         
         return {
           totals: {
@@ -30,16 +72,25 @@ export const useProductionCalculations = () => {
             cost: totalCost
           },
           breakdown: {
-            print: { time: printTime, cost: printTime * (phase.costo_h_stampa || 0) },
-            setup: { time: setupTime, cost: setupTime * (phase.costo_h_stampa || 0) }
+            print: { time: printTime, cost: printTime * costoHStampa },
+            setup: { time: setupTime, cost: setupTime * costoHStampa }
           }
         };
       } else if (department === 'CONFEZIONAMENTO') {
+        // Validate required parameters for packaging
+        const vConf = parseFloat(phase.v_conf);
+        const tSetupConf = parseFloat(phase.t_setup_conf) || 0;
+        const costoHConf = parseFloat(phase.costo_h_conf) || 0;
+        
+        if (isNaN(vConf) || vConf <= 0) {
+          return null; // Invalid packaging speed
+        }
+        
         // Packaging calculations
-        const packageTime = quantity / (phase.v_conf || 1);
-        const setupTime = phase.t_setup_conf || 0;
+        const packageTime = quantity / vConf;
+        const setupTime = tSetupConf;
         const totalTime = packageTime + setupTime;
-        const totalCost = totalTime * (phase.costo_h_conf || 0);
+        const totalCost = totalTime * costoHConf;
         
         return {
           totals: {
@@ -47,8 +98,8 @@ export const useProductionCalculations = () => {
             cost: totalCost
           },
           breakdown: {
-            package: { time: packageTime, cost: packageTime * (phase.costo_h_conf || 0) },
-            setup: { time: setupTime, cost: setupTime * (phase.costo_h_conf || 0) }
+            package: { time: packageTime, cost: packageTime * costoHConf },
+            setup: { time: setupTime, cost: setupTime * costoHConf }
           }
         };
       }
@@ -57,7 +108,7 @@ export const useProductionCalculations = () => {
     } catch (error) {
       return null;
     }
-  }, []);
+  }, [validatePhaseParameters]);
 
   /**
    * Auto-determine work center based on article code
@@ -136,6 +187,7 @@ export const useProductionCalculations = () => {
 
   return {
     calculateProductionMetrics,
+    validatePhaseParameters,
     autoDetermineWorkCenter,
     autoDetermineDepartment,
     getValidMachineTypes,
