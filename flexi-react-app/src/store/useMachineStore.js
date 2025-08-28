@@ -3,6 +3,7 @@ import { apiService } from '../services';
 import { handleApiError, logError, createErrorHandler } from '../utils/errorUtils';
 import { WORK_CENTERS } from '../constants';
 import { useUIStore } from './useUIStore';
+import { generateCalendarForYear } from '../utils/calendarPopulationUtils';
 
 // Generic CRUD helper functions with centralized error handling
 const createMachineCrudActions = (set, get) => {
@@ -19,7 +20,20 @@ const createMachineCrudActions = (set, get) => {
 
         const added = await apiService.addMachine(newMachine);
         set(state => ({ machines: [...state.machines, added] }));
-        useUIStore.getState().showAlert(`Machine "${newMachine?.machine_name || 'Unknown'}" added successfully`, 'success');
+
+        // --- NEW LOGIC: Automatically populate the new machine's calendar ---
+        try {
+            const currentYear = new Date().getFullYear();
+            const records = generateCalendarForYear([added], currentYear);
+            if (records.length > 0) {
+                await apiService.bulkUpsertMachineAvailability(records);
+            }
+            useUIStore.getState().showAlert(`Machine "${added?.machine_name || 'Unknown'}" added and calendar set successfully`, 'success');
+        } catch (calendarError) {
+            useUIStore.getState().showAlert(`Machine added, but failed to set calendar: ${calendarError.message}`, 'warning');
+        }
+        // --- END NEW LOGIC ---
+
         return added;
       } catch (error) {
         const appError = errorHandler(error);

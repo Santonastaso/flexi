@@ -345,6 +345,19 @@ class ApiService {
     }
   }
 
+  async bulkUpsertMachineAvailability(records) {
+    try {
+      const { error } = await supabase
+        .from('machine_availability')
+        .upsert(records, { onConflict: 'machine_id,date' });
+
+      if (error) throw error;
+      return { success: true };
+    } catch (error) {
+      throw new Error(`Failed to bulk set machine availability: ${handleSupabaseError(error)}`);
+    }
+  }
+
   // ===== REAL-TIME SUBSCRIPTIONS =====
   
   setupRealtimeSubscriptions(onOdpOrdersChange, onMachinesChange, onPhasesChange) {
