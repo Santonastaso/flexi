@@ -6,8 +6,12 @@ import {
   toDateString,
   getUTCStartOfDay,
   getUTCEndOfDay,
-  isSameUTCDate
+  isSameUTCDate,
+  getStartOfWeek,
+  getStartOfDay,
+  getEndOfDay
 } from '../utils/dateUtils';
+import * as dateFns from 'date-fns';
 
 
 // A single 15-minute time slot on the calendar that can receive a dropped task
@@ -27,7 +31,7 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
 const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
     const [isLocked, setIsLocked] = useState(true); // Events start locked by default
     const navigate = useNavigate();
-    const { getSplitTaskInfo } = useSchedulerStore();
+    const { getSplitTaskInfo, splitTasksInfo } = useSchedulerStore();
     
     // Note: updateOdpOrder and handleAsync are available if needed for future features
 
@@ -40,8 +44,8 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
     // Calculate segments for split tasks or regular positioning for normal tasks
     const eventSegments = useMemo(() => {
         const segmentInfo = getSplitTaskInfo(event.id);
-        const currentDayStart = getUTCStartOfDay(currentDate);
-        const currentDayEnd = getUTCEndOfDay(currentDate);
+        const currentDayStart = getStartOfDay(currentDate);
+        const currentDayEnd = getEndOfDay(currentDate);
         
         if (segmentInfo && segmentInfo.wasSplit) {
             // Handle split tasks - render only segments that appear on current day
@@ -61,7 +65,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                     let segmentLeft, segmentWidth;
                     
                     if (segmentStartsOnCurrentDay && segmentEndsOnCurrentDay) {
-                        // Segment starts and ends on current day - use UTC to get absolute times
+                        // Segment starts and ends on current day - use UTC time
                         const startHour = segmentStart.getUTCHours();
                         const startMinute = segmentStart.getUTCMinutes();
                         const endHour = segmentEnd.getUTCHours();
@@ -73,7 +77,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                         segmentLeft = startSlot * 20;
                         segmentWidth = (endSlot - startSlot) * 20;
                     } else if (segmentStartsOnCurrentDay) {
-                        // Segment starts on current day but continues to next day - use UTC
+                        // Segment starts on current day but continues to next day - use UTC time
                         const startHour = segmentStart.getUTCHours();
                         const startMinute = segmentStart.getUTCMinutes();
                         const startSlot = startHour * 4 + Math.floor(startMinute / 15);
@@ -81,7 +85,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                         segmentLeft = startSlot * 20;
                         segmentWidth = (96 - startSlot) * 20; // 96 = 24 * 4 slots per day
                     } else if (segmentEndsOnCurrentDay) {
-                        // Segment ends on current day but started on previous day - use UTC
+                        // Segment ends on current day but started on previous day - use UTC time
                         const endHour = segmentEnd.getUTCHours();
                         const endMinute = segmentEnd.getUTCMinutes();
                         const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
@@ -143,7 +147,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
 
             return [{ left: baseLeft, width: baseWidth, start: eventStartTime, end: calculatedEndTime }];
         }
-    }, [event.scheduled_start_time, event.time_remaining, event.duration, currentDate, getSplitTaskInfo, event.id]);
+    }, [event.scheduled_start_time, event.time_remaining, event.duration, currentDate, getSplitTaskInfo, event.id, splitTasksInfo]);
 
     // Calculate sizing based on segments
     const totalWidth = eventSegments ? eventSegments.reduce((sum, seg) => sum + seg.width, 0) : 0;
@@ -217,9 +221,7 @@ Quantità: ${event.quantity || 'Non specificata'}
 ${event.scheduled_start_time ? `Inizio Programmato: ${new Date(event.scheduled_start_time).toISOString().replace('T', ' ').replace('.000Z', '')}` : 'Non programmato'}
 ${event.scheduled_end_time ? `Fine Programmata: ${new Date(event.scheduled_end_time).toISOString().replace('T', ' ').replace('.000Z', '')}` : 'Non programmato'}`}
                 >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
-                    </svg>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>i</span>
                 </button>
 
                 {/* Edit Button */}
@@ -278,11 +280,9 @@ ${event.scheduled_end_time ? `Fine Programmata: ${new Date(event.scheduled_end_t
                         }}
                         title="Annulla programmazione e riporta al pool"
                     >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M19 13H5v-2h14v2z"/>
-                        </svg>
+                        <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'white' }}>×</span>
                     </button>
-                        )}
+                )}
                         </div>
                     )}
                 </div>
@@ -340,8 +340,112 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
   );
 });
 
+// Weekly Gantt View Component - reuses machine calendar weekly structure
+const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) => {
+  const navigate = useNavigate();
+  
+  // Generate week dates
+  const weekDates = useMemo(() => {
+    const startOfWeek = getStartOfWeek(currentDate);
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
+      dates.push(day);
+    }
+    return dates;
+  }, [currentDate]);
+
+  // Get tasks for each machine and day
+  const getTasksForMachineAndDay = useCallback((machineId, dateStr) => {
+    return scheduledTasks.filter(task => 
+      task.scheduled_machine_id === machineId && 
+      task.scheduled_start_time && 
+      toDateString(new Date(task.scheduled_start_time)) === dateStr
+    );
+  }, [scheduledTasks]);
+
+  // Handle task click to show details
+  const handleTaskClick = useCallback((task) => {
+    // Navigate to the task edit page
+    navigate(`/backlog/${task.id}/edit`);
+  }, [navigate]);
+
+  // Get total tasks count for a day
+  const getDayTaskCount = useCallback((machineId, dateStr) => {
+    return getTasksForMachineAndDay(machineId, dateStr).length;
+  }, [getTasksForMachineAndDay]);
+
+  return (
+    <div className="weekly-gantt-container">
+      <div className="weekly-gantt-header">
+        <div className="machine-label-header">Macchine</div>
+        {weekDates.map(day => (
+          <div key={day.toISOString()} className="day-header-cell">
+            <div className="day-name">{day.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+            <div className="day-date">{day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+          </div>
+        ))}
+      </div>
+      
+      <div className="weekly-gantt-body">
+        {machines.map(machine => (
+          <div key={machine.id} className="machine-week-row">
+            <div className="machine-label">
+              <div className="machine-name">{machine.machine_name}</div>
+              <div className="machine-city">{machine.work_center}</div>
+            </div>
+            
+            {weekDates.map(day => {
+              const dateStr = toDateString(day);
+              const dayTasks = getTasksForMachineAndDay(machine.id, dateStr);
+              const taskCount = getDayTaskCount(machine.id, dateStr);
+              const isToday = day.toDateString() === new Date().toDateString();
+              
+              return (
+                <div 
+                  key={`${machine.id}-${dateStr}`} 
+                  className={`day-cell ${isToday ? 'today' : ''} ${taskCount > 0 ? 'has-tasks' : ''}`}
+                >
+                  {dayTasks.length > 0 ? (
+                    <div className="day-tasks">
+                      <div className="day-task-count">{taskCount} task{taskCount !== 1 ? 's' : ''}</div>
+                      {dayTasks.slice(0, 3).map(task => (
+                        <div 
+                          key={task.id} 
+                          className="day-task-item"
+                          onClick={() => handleTaskClick(task)}
+                          title={`${task.odp_number} - ${task.product_name || 'Prodotto non specificato'} - ${task.time_remaining ? Number(task.time_remaining).toFixed(1) : (task.duration || 1).toFixed(1)}h`}
+                        >
+                          <span className="task-odp">{task.odp_number}</span>
+                          <span className="task-duration">
+                            {task.time_remaining ? Number(task.time_remaining).toFixed(1) : (task.duration || 1).toFixed(1)}h
+                          </span>
+                        </div>
+                      ))}
+                      {dayTasks.length > 3 && (
+                        <div className="more-tasks-indicator">
+                          +{dayTasks.length - 3} more
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="empty-day">-</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+});
+
 // The main Gantt Chart component - heavily optimized for performance
 const GanttChart = React.memo(({ machines, currentDate }) => {
+  const [currentView, setCurrentView] = useState('Daily'); // Add view state
+  
   const { odpOrders: tasks } = useOrderStore();
   const scheduledTasks = useMemo(() =>
     tasks.filter(task => task.status === 'SCHEDULED'),
@@ -350,19 +454,33 @@ const GanttChart = React.memo(({ machines, currentDate }) => {
 
   const { loadMachineAvailabilityForDate, machineAvailability } = useSchedulerStore();
 
+  // Use the exact same date that's displayed in the banner - no conversion needed
   const dateStr = useMemo(() => toDateString(currentDate), [currentDate]);
 
+  // Debug logging
+  console.log('GanttChart render:', { 
+    machinesCount: machines?.length, 
+    machines, 
+    currentDate: currentDate.toISOString(),
+    dateStr,
+    scheduledTasksCount: scheduledTasks.length 
+  });
+
   useEffect(() => {
-    loadMachineAvailabilityForDate(dateStr);
+    if (currentView === 'Daily') {
+      loadMachineAvailabilityForDate(dateStr);
+    }
     
     // Cleanup function for component unmount
     return () => {
       // No specific cleanup needed for this effect, but good practice to have
     };
-  }, [dateStr, loadMachineAvailabilityForDate]);
+  }, [dateStr, loadMachineAvailabilityForDate, currentView]);
 
   // Optimize unavailable hours processing with early returns
   const unavailableByMachine = useMemo(() => {
+    if (currentView !== 'Daily') return {};
+    
     const dayData = machineAvailability[dateStr];
     if (!Array.isArray(dayData) || dayData.length === 0) return {};
 
@@ -376,7 +494,7 @@ const GanttChart = React.memo(({ machines, currentDate }) => {
     }
 
     return map;
-  }, [machineAvailability, dateStr]);
+  }, [machineAvailability, dateStr, currentView]);
 
   // Memoize the time header with optimized rendering
   const timeHeader = useMemo(() =>
@@ -394,6 +512,7 @@ const GanttChart = React.memo(({ machines, currentDate }) => {
 
   // Early return for empty state
   if (!machines || machines.length === 0) {
+    console.log('GanttChart: No machines available, showing empty state');
     return (
       <div className="calendar-section">
         <div className="calendar-grid-container">
@@ -408,27 +527,47 @@ const GanttChart = React.memo(({ machines, currentDate }) => {
 
   return (
     <div className="calendar-section">
+      {/* View Selector */}
+      <div className="gantt-view-selector">
+        <select 
+          value={currentView} 
+          onChange={(e) => setCurrentView(e.target.value)}
+          className="view-selector"
+        >
+          <option value="Daily">Vista Giornaliera</option>
+          <option value="Weekly">Vista Settimanale</option>
+        </select>
+      </div>
+      
       <div className="calendar-grid-container">
-        <div className="calendar-grid">
-          <div className="calendar-header-row">
-            <div className="machine-label-header">Macchine</div>
-            <div className="time-header">
-              {timeHeader}
+        {currentView === 'Daily' ? (
+          <div className="calendar-grid">
+            <div className="calendar-header-row">
+              <div className="machine-label-header">Macchine</div>
+              <div className="time-header">
+                {timeHeader}
+              </div>
+            </div>
+            <div className="calendar-body">
+              {/* Render only visible machines - can be optimized further with virtualization */}
+              {machines.map(machine => (
+                <MachineRow
+                  key={machine.id}
+                  machine={machine}
+                  scheduledEvents={scheduledTasks}
+                  currentDate={currentDate}
+                  unavailableByMachine={unavailableByMachine}
+                />
+              ))}
             </div>
           </div>
-          <div className="calendar-body">
-            {/* Render only visible machines - can be optimized further with virtualization */}
-            {machines.map(machine => (
-              <MachineRow
-                key={machine.id}
-                machine={machine}
-                scheduledEvents={scheduledTasks}
-                currentDate={currentDate}
-                unavailableByMachine={unavailableByMachine}
-              />
-            ))}
-          </div>
-        </div>
+        ) : (
+          <WeeklyGanttView 
+            machines={machines}
+            currentDate={currentDate}
+            scheduledTasks={scheduledTasks}
+          />
+        )}
       </div>
     </div>
   );

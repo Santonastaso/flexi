@@ -411,101 +411,14 @@
   }
 }
 
-/* ===== BUTTON STYLES ===== */
-
-/* Unified Button Style - All buttons use the same design */
-.btn,
-.btn-primary,
-.btn-secondary,
-.btn-danger,
-.btn-success,
-.btn-sm,
-.btn-lg,
-.btn-icon {
-    background: var(--sap-primary);
-    color: var(--text-white);
-    border: 1px solid var(--sap-secondary);
-    padding: 8px 12px;
-    border-radius: var(--border-radius);
-    font-size: 13px;
-    font-weight: 400;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
-}
-
-.btn:hover,
-.btn-primary:hover,
-.btn-secondary:hover,
-.btn-danger:hover,
-.btn-success:hover,
-.btn-sm:hover,
-.btn-lg:hover,
-.btn-icon:hover {
-    background: var(--sap-accent);
-    color: var(--text-white);
-    border-color: var(--sap-accent);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-}
-
-.btn:active,
-.btn-primary:active,
-.btn-secondary:active,
-.btn-danger:active,
-.btn-success:active,
-.btn-sm:active,
-.btn-lg:active,
-.btn-icon:active {
-    transform: translateY(0);
-    box-shadow: var(--shadow-sm);
-}
-
-/* Button Sizes - Only affects padding, not colors */
-.btn-sm {
-    padding: 6px 10px;
-    font-size: 11px;
-}
-
-.btn-lg {
-    padding: 10px 16px;
-    font-size: 14px;
-}
-
-/* Button States */
-.btn:disabled,
-.btn-primary:disabled,
-.btn-secondary:disabled,
-.btn-danger:disabled,
-.btn-success:disabled,
-.btn-sm:disabled,
-.btn-lg:disabled,
-.btn-icon:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none !important;
-}
-
-/* Icon Buttons */
-.btn-icon {
-    padding: 6px;
-    min-width: 32px;
-    justify-content: center;
-}
-
-/* Pagination Buttons */
+/* ===== PAGINATION BUTTONS ===== */
 .pagination-btn {
     background: var(--sap-primary);
     color: var(--text-white);
     border: 1px solid var(--sap-secondary);
     padding: 6px 10px;
     border-radius: var(--border-radius);
-    transition: all 0.2s ease;
+    transition: var(--transition-fast);
     font-size: 13px;
 }
 
@@ -523,47 +436,9 @@
     border-color: var(--sap-accent);
 }
 
-/* Form Submit Buttons */
-input[type="submit"],
+/* Form Submit Buttons - inherit from base button styles */
 button[type="submit"] {
-    background: var(--sap-primary);
-    color: var(--text-white);
-    border: 1px solid var(--sap-secondary);
-    padding: 8px 12px;
-    border-radius: var(--border-radius);
-    font-size: 13px;
-    font-weight: 400;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
-    text-decoration: none;
-}
-
-input[type="submit"]:hover,
-button[type="submit"]:hover {
-    background: var(--sap-accent);
-    color: var(--text-white);
-    border-color: var(--sap-accent);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-}
-
-/* Override any existing button classes */
-button,
-.button,
-[class*="btn"] {
-    background: var(--sap-primary) !important;
-    color: var(--text-white) !important;
-    border: 1px solid var(--sap-secondary) !important;
-    text-decoration: none !important;
-}
-
-button:hover,
-.button:hover,
-[class*="btn"]:hover {
-    background: var(--sap-accent) !important;
-    color: var(--text-white) !important;
-    border-color: var(--sap-accent) !important;
+    /* Inherits from base button styles */
 }
 
 /* ===== FORM STYLES ===== */
@@ -582,23 +457,9 @@ button:hover,
     font-size: 13px;
 }
 
+/* Form inputs inherit from base input styles */
 .form-input {
-    padding: 6px 10px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    font-size: 13px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: var(--sap-accent);
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
-}
-
-.form-input.error {
-    border-color: var(--status-inactive);
-    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.1);
+    /* Inherits from base input styles */
 }
 
 .form-error {

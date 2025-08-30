@@ -292,12 +292,8 @@
 .calendar-section,
 .task-pool-section {
     background: #f0f2f5;
-    border-radius: var(--border-radius);
-    padding: var(--spacing-lg);
-    box-shadow: var(--shadow-sm);
     border: 2px solid #d1d5db;
     margin-bottom: var(--spacing-lg);
-    transition: box-shadow 0.2s ease;
     width: 100%;
     min-width: 100%;
     contain: layout style paint;
@@ -305,6 +301,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    /* Inherits base container styles */
 }
 
 /* Scheduler sections now use the same spacing as forms */
@@ -321,12 +318,6 @@
 .content-section .calendar-section {
     margin-top: 0;
     border-radius: var(--border-radius);
-}
-
-.calendar-container:hover,
-.calendar-section:hover,
-.task-pool-section:hover {
-    box-shadow: var(--shadow-md);
 }
 
 .calendar-section {
@@ -376,37 +367,9 @@
     gap: 12px;
 }
 
+/* Nav buttons inherit from base button styles */
 .nav-btn {
-    background: var(--content-bg);
-    border: 1px solid var(--border-color);
-    color: var(--text-dark);
-    padding: 6px 12px;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    font-weight: 400;
-    transition: all 0.2s ease;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    text-decoration: none;
-}
-
-.nav-btn:hover {
-    background: rgba(0,0,0,0.04);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.nav-btn.today,
-.nav-btn.today-btn {
-    background: var(--sap-primary);
-    color: var(--text-white);
-    border-color: var(--sap-secondary);
-}
-
-.nav-btn.arrow-btn {
-    padding: 6px 10px;
+    /* Inherits from base button styles */
 }
 
 .current-date,
@@ -990,6 +953,233 @@
     font-size: 10px;
 }
 
+/* ===== GANTT VIEW SELECTOR ===== */
+.gantt-view-selector {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+    padding: 0 16px;
+}
+
+.view-selector {
+    background: var(--content-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-dark);
+    padding: 8px 12px;
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    cursor: pointer;
+    min-width: 150px;
+}
+
+.view-selector:focus {
+    outline: none;
+    border-color: var(--sap-accent);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+/* ===== WEEKLY GANTT VIEW ===== */
+.weekly-gantt-container {
+    background: var(--content-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    width: 100%;
+}
+
+.weekly-gantt-header {
+    display: grid;
+    grid-template-columns: 250px repeat(7, 1fr);
+    background: var(--gray-light);
+    border-bottom: 2px solid var(--border-color);
+    width: 100%;
+}
+
+.weekly-gantt-header .machine-label-header {
+    padding: 16px;
+    font-weight: 400;
+    border-right: 2px solid var(--border-color);
+    background: var(--gray-light);
+    color: var(--text-dark);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.weekly-gantt-header .day-header-cell {
+    padding: 16px 8px;
+    text-align: center;
+    font-weight: 400;
+    color: var(--text-dark);
+    border-right: 1px solid var(--border-color);
+    background: var(--gray-light);
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.weekly-gantt-header .day-name {
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.weekly-gantt-header .day-date {
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.weekly-gantt-header .day-header-cell:last-child {
+    border-right: none;
+}
+
+.weekly-gantt-body {
+    width: 100%;
+}
+
+.machine-week-row {
+    display: grid;
+    grid-template-columns: 250px repeat(7, 1fr);
+    border-bottom: 2px solid #d1d5db;
+    min-height: 80px;
+    width: 100%;
+    background: var(--content-bg);
+}
+
+.machine-week-row:last-child {
+    border-bottom: none;
+}
+
+.machine-week-row:nth-child(even) {
+    background: rgba(0,0,0,0.02);
+}
+
+.machine-week-row .machine-label {
+    padding: 16px;
+    border-right: 2px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: var(--content-bg);
+    position: sticky;
+    left: 0;
+    z-index: 15;
+}
+
+.machine-week-row .machine-name {
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--text-dark);
+    margin-bottom: 4px;
+}
+
+.machine-week-row .machine-city {
+    color: var(--text-light);
+    font-size: 12px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.day-cell {
+    padding: 8px;
+    border-right: 1px solid var(--border-color);
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    background: var(--content-bg);
+    transition: background-color 0.2s ease;
+}
+
+.day-cell:last-child {
+    border-right: none;
+}
+
+.day-cell.today {
+    background: rgba(52, 152, 219, 0.1);
+    border-left: 4px solid var(--sap-accent);
+}
+
+.day-cell.has-tasks {
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.day-tasks {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.day-task-count {
+    font-size: 10px;
+    color: var(--text-light);
+    text-align: center;
+    margin-bottom: 4px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.day-task-item {
+    background: var(--sap-primary);
+    color: var(--text-white);
+    padding: 4px 6px;
+    border-radius: var(--border-radius);
+    font-size: 11px;
+    font-weight: 400;
+    border: 1px solid var(--sap-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.day-task-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.day-task-item .task-odp {
+    font-weight: 500;
+    text-align: center;
+}
+
+.day-task-item .task-duration {
+    background: rgba(255,255,255,0.2);
+    padding: 1px 3px;
+    border-radius: 2px;
+    font-size: 10px;
+    text-align: center;
+}
+
+.more-tasks-indicator {
+    font-size: 10px;
+    color: var(--text-light);
+    text-align: center;
+    font-style: italic;
+    padding: 2px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 2px;
+    margin-top: 2px;
+}
+
+.empty-day {
+    color: var(--text-light);
+    font-size: 12px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-style: italic;
+}
+
 /* ===== CALENDAR VIEWS ===== */
 
 /* Month View */
@@ -1319,7 +1509,7 @@
     top: -6px;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--content-bg);
+    background: white;
     border-radius: var(--border-radius);
     padding: 3px 4px;
     z-index: 20;
@@ -1327,6 +1517,7 @@
     gap: 2px;
     margin-top: 0;
     border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .scheduled-event:has(.event-controls.overlay) {
@@ -1356,7 +1547,7 @@
     width: var(--button-size);
     height: var(--button-size);
     border: none;
-    background: var(--content-bg);
+    background: white;
     border-radius: var(--border-radius);
     cursor: pointer;
     display: flex;
@@ -1370,6 +1561,28 @@
     min-height: 16px;
     max-width: 24px;
     max-height: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.info-btn {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.info-btn:hover {
+    background: #e5e7eb;
+    color: #1f2937;
+}
+
+.edit-btn {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.edit-btn:hover {
+    background: #bfdbfe;
+    color: #1e3a8a;
 }
 
 .lock-btn.locked {
@@ -1385,11 +1598,13 @@
 .unschedule-btn {
     background: var(--status-inactive);
     color: white;
+    font-weight: bold;
 }
 
 .unschedule-btn:hover {
     background: var(--status-inactive-dark);
     color: white;
+    transform: scale(1.05);
 }
 
 .move-btn {
@@ -1538,6 +1753,59 @@
     .view-controls {
         flex-direction: column;
         gap: 12px;
+    }
+    
+    /* Weekly Gantt responsive adjustments */
+    .weekly-gantt-header {
+        grid-template-columns: 200px repeat(7, 1fr);
+    }
+    
+    .machine-week-row {
+        grid-template-columns: 200px repeat(7, 1fr);
+    }
+    
+    .weekly-gantt-header .machine-label-header,
+    .machine-week-row .machine-label {
+        min-width: 200px;
+        padding: 12px;
+    }
+    
+    .day-task-item {
+        font-size: 10px;
+        padding: 3px 4px;
+    }
+    
+    .day-task-item .task-duration {
+        font-size: 9px;
+    }
+}
+
+@media (max-width: 480px) {
+    .weekly-gantt-header {
+        grid-template-columns: 150px repeat(7, 1fr);
+    }
+    
+    .machine-week-row {
+        grid-template-columns: 150px repeat(7, 1fr);
+    }
+    
+    .weekly-gantt-header .machine-label-header,
+    .machine-week-row .machine-label {
+        min-width: 150px;
+        padding: 8px;
+    }
+    
+    .machine-week-row .machine-name {
+        font-size: 12px;
+    }
+    
+    .machine-week-row .machine-city {
+        font-size: 10px;
+    }
+    
+    .day-header-cell {
+        font-size: 12px;
+        padding: 12px 4px;
     }
 }
 

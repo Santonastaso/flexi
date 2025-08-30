@@ -194,3 +194,19 @@ export function getCurrentDateString() {
 export function getCurrentDateTimeString() {
   return new Date().toISOString();
 }
+
+/**
+ * Get hours from a date in local time
+ * Uses date-fns for consistent time extraction
+ */
+export function getHours(date) {
+  return dateFns.getHours(date);
+}
+
+/**
+ * Get minutes from a date in local time
+ * Uses date-fns for consistent time extraction
+ */
+export function getMinutes(date) {
+  return dateFns.getMinutes(date);
+}

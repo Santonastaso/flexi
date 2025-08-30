@@ -5,8 +5,8 @@ import App from './App.jsx';
 import { AuthProvider } from './auth/AuthContext';
 import './styles/index.css';
 
-// Get the base path for GitHub Pages
-const basename = import.meta.env.PROD ? '/flexi/' : '';
+// Base path for custom domain deployment
+const basename = '/';
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter basename={basename}>

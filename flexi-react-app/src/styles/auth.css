@@ -70,23 +70,9 @@
 .auth-form input {
     width: 100%;
     padding: 14px 16px;
-    border: 1px solid var(--border-color);
     border-radius: 0;
     font-size: 16px;
-    background: var(--content-bg);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.auth-form input:focus {
-    outline: none;
-    border-color: var(--sap-accent);
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-    background: var(--text-white);
-}
-
-.auth-form input.error {
-  border-color: var(--danger-red);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    /* Inherits from base input styles */
 }
 
 .auth-form input:disabled {
@@ -96,25 +82,12 @@
 
 /* Auth Submit Button */
 .auth-submit {
-  background: var(--sap-primary);
-  color: var(--text-white);
-  border: 1px solid var(--sap-secondary);
   width: 100%;
   padding: 14px 24px;
   font-size: 16px;
-  font-weight: 400;
   border-radius: 0;
   margin-top: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.auth-submit:hover {
-  background: var(--sap-accent);
-  color: var(--text-white);
-  border-color: var(--sap-accent);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  /* Inherits from base button styles */
 }
 
 /* Auth Error */

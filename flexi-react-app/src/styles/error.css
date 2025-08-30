@@ -158,43 +158,22 @@
   margin-bottom: 32px;
 }
 
-/* Common button styles */
+/* Common button styles - inherit from base button styles */
 .error-boundary__button,
 .async-error-boundary__button {
-  background: var(--sap-primary);
-  color: var(--text-white);
-  border: 1px solid var(--sap-secondary);
   padding: 12px 24px;
   border-radius: 0;
   font-size: 14px;
-  font-weight: 400;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
   gap: 8px;
+  /* Inherits from base button styles */
 }
 
-/* Button variants - All use the same unified style */
+/* Button variants - inherit from base button styles */
 .error-boundary__button--primary,
 .error-boundary__button--secondary,
 .async-error-boundary__button--primary,
 .async-error-boundary__button--secondary {
-  background: var(--sap-primary);
-  color: var(--text-white);
-  border: 1px solid var(--sap-secondary);
-}
-
-.error-boundary__button--primary:hover,
-.error-boundary__button--secondary:hover,
-.async-error-boundary__button--primary:hover,
-.async-error-boundary__button--secondary:hover {
-  background: var(--sap-accent);
-  color: var(--text-white);
-  border-color: var(--sap-accent);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  /* Inherits from base button styles */
 }
 
 /* Common footer styles */

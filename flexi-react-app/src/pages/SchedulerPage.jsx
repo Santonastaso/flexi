@@ -23,7 +23,14 @@ function SchedulerPage() {
   const { scheduleTask, unscheduleTask, scheduleTaskFromSlot, rescheduleTaskToSlot, validateSlotAvailability } = useSchedulerStore();
   const { init, cleanup } = useMainStore();
 
-  const [currentDate, setCurrentDate] = useState(new Date());
+  // Initialize with UTC today
+  const [currentDate, setCurrentDate] = useState(() => {
+    const now = new Date();
+    const utcYear = now.getUTCFullYear();
+    const utcMonth = now.getUTCMonth();
+    const utcDay = now.getUTCDate();
+    return new Date(Date.UTC(utcYear, utcMonth, utcDay));
+  });
   const [activeDragItem, setActiveDragItem] = useState(null);
   const [workCenterFilter, setWorkCenterFilter] = useState([]);
   const [departmentFilter, setDepartmentFilter] = useState([]);
@@ -135,24 +142,45 @@ function SchedulerPage() {
   // Memoize navigation functions to prevent unnecessary re-renders
   const navigateDate = useCallback((direction) => {
     setCurrentDate(prevDate => {
-      const newDate = new Date(prevDate);
       if (direction === 'today') {
-        return new Date();
+        // Use UTC today
+        const now = new Date();
+        const utcYear = now.getUTCFullYear();
+        const utcMonth = now.getUTCMonth();
+        const utcDay = now.getUTCDate();
+        return new Date(Date.UTC(utcYear, utcMonth, utcDay));
       } else if (direction === 'prev') {
-        newDate.setDate(newDate.getDate() - 1);
-        return newDate;
+        // Navigate to previous UTC day
+        const newPrevDate = new Date(prevDate);
+        newPrevDate.setUTCDate(newPrevDate.getUTCDate() - 1);
+        return newPrevDate;
       } else if (direction === 'next') {
-        newDate.setDate(newDate.getDate() + 1);
-        return newDate;
+        // Navigate to next UTC day
+        const newNextDate = new Date(prevDate);
+        newNextDate.setUTCDate(newNextDate.getUTCDate() + 1);
+        return newNextDate;
       }
       return prevDate;
     });
   }, []);
 
   const formatDateDisplay = useCallback(() => {
-    const today = new Date();
-    const isToday = currentDate.toDateString() === today.toDateString();
-    return isToday ? 'Oggi' : currentDate.toLocaleDateString('it-IT', { month: 'long', day: 'numeric' });
+    // Use UTC today for comparison
+    const now = new Date();
+    const utcYear = now.getUTCFullYear();
+    const utcMonth = now.getUTCMonth();
+    const utcDay = now.getUTCDate();
+    const utcToday = new Date(Date.UTC(utcYear, utcMonth, utcDay));
+    
+    // currentDate is already UTC, so compare directly
+    const isToday = currentDate.getTime() === utcToday.getTime();
+    
+    if (isToday) {
+      return 'Oggi';
+    } else {
+      // Format the UTC date for display
+      return currentDate.toLocaleDateString('it-IT', { month: 'long', day: 'numeric' });
+    }
   }, [currentDate]);
 
   const clearFilters = useCallback(() => {
@@ -195,7 +223,11 @@ function SchedulerPage() {
     
     // Navigate to the start date of the task
     if (task.scheduled_start_time) {
-      setCurrentDate(new Date(task.scheduled_start_time));
+      const taskDate = new Date(task.scheduled_start_time);
+      const utcYear = taskDate.getUTCFullYear();
+      const utcMonth = taskDate.getUTCMonth();
+      const utcDay = taskDate.getUTCDate();
+      setCurrentDate(new Date(Date.UTC(utcYear, utcMonth, utcDay)));
     }
     
     // Clear the search input after successful lookup
@@ -236,7 +268,11 @@ function SchedulerPage() {
     
     // Navigate to the start date of the task
     if (task.scheduled_start_time) {
-      setCurrentDate(new Date(task.scheduled_start_time));
+      const taskDate = new Date(task.scheduled_start_time);
+      const utcYear = taskDate.getUTCFullYear();
+      const utcMonth = taskDate.getUTCMonth();
+      const utcDay = taskDate.getUTCDate();
+      setCurrentDate(new Date(Date.UTC(utcYear, utcMonth, utcDay)));
     }
     
     // Clear the search input after successful lookup
@@ -277,7 +313,11 @@ function SchedulerPage() {
     
     // Navigate to the start date of the task
     if (task.scheduled_start_time) {
-      setCurrentDate(new Date(task.scheduled_start_time));
+      const taskDate = new Date(task.scheduled_start_time);
+      const utcYear = taskDate.getUTCFullYear();
+      const utcMonth = taskDate.getUTCMonth();
+      const utcDay = taskDate.getUTCDate();
+      setCurrentDate(new Date(Date.UTC(utcYear, utcMonth, utcDay)));
     }
     
     // Clear the search input after successful lookup
@@ -543,7 +583,11 @@ function SchedulerPage() {
                             
                             // Navigate to the start date of the task
                             if (task.scheduled_start_time) {
-                              setCurrentDate(new Date(task.scheduled_start_time));
+                              const taskDate = new Date(task.scheduled_start_time);
+                              const utcYear = taskDate.getUTCFullYear();
+                              const utcMonth = taskDate.getUTCMonth();
+                              const utcDay = taskDate.getUTCDate();
+                              setCurrentDate(new Date(Date.UTC(utcYear, utcMonth, utcDay)));
                             }
                             
                             // Clear the search input
@@ -635,7 +679,11 @@ function SchedulerPage() {
                             
                             // Navigate to the start date of the task
                             if (task.scheduled_start_time) {
-                              setCurrentDate(new Date(task.scheduled_start_time));
+                              const taskDate = new Date(task.scheduled_start_time);
+                              const utcYear = taskDate.getUTCFullYear();
+                              const utcMonth = taskDate.getUTCMonth();
+                              const utcDay = taskDate.getUTCDate();
+                              setCurrentDate(new Date(Date.UTC(utcYear, utcMonth, utcDay)));
                             }
                             
                             // Clear the search input
@@ -727,7 +775,11 @@ function SchedulerPage() {
                             
                             // Navigate to the start date of the task
                             if (task.scheduled_start_time) {
-                              setCurrentDate(new Date(task.scheduled_start_time));
+                              const taskDate = new Date(task.scheduled_start_time);
+                              const utcYear = taskDate.getUTCFullYear();
+                              const utcMonth = taskDate.getUTCMonth();
+                              const utcDay = taskDate.getUTCDate();
+                              setCurrentDate(new Date(Date.UTC(utcYear, utcMonth, utcDay)));
                             }
                             
                             // Clear the search input

@@ -4,23 +4,14 @@
 .form-container {
   max-width: 600px;
   margin: 0 auto;
-  padding: var(--spacing-lg);
   width: 100%;
+  /* Inherits base container styles */
 }
 
 .form-section {
-  background: var(--content-bg);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-large);
-  padding: var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.2s ease;
   margin-top: 0;
-}
-
-.form-section:hover {
-  box-shadow: var(--shadow-md);
+  /* Inherits base container styles */
 }
 
 .section-title {
@@ -78,23 +69,9 @@
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: 10px 14px;
-  border: 2px solid var(--border-color);
-  border-radius: var(--border-radius);
-  font-size: 13px;
-  transition: all 0.2s ease;
-  background: var(--content-bg);
-  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
   height: 42px; /* Fixed height for inputs */
   box-sizing: border-box;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: var(--primary-blue);
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  /* Inherits base input styles */
 }
 
 .form-group input.error,
@@ -380,32 +357,13 @@
   }
 }
 
+/* Form inputs inherit from base input styles */
 .form-input {
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    font-size: 14px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    background: var(--content-bg);
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: var(--sap-accent);
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
-    background: var(--text-white);
-}
-
-.form-input.error {
-    border-color: var(--status-inactive);
-    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.1);
+    /* Inherits from base input styles */
 }
 
 .date-input {
-    padding: 8px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    font-size: 14px;
+    /* Inherits from base input styles */
 }
 
 /* ===== RESPONSIVE GRID ALIGNMENT ===== */
