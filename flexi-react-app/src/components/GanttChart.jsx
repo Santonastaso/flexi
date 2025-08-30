@@ -27,6 +27,7 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
 const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
     const [isLocked, setIsLocked] = useState(true); // Events start locked by default
     const navigate = useNavigate();
+    const { getSplitTaskInfo } = useSchedulerStore();
     
     // Note: updateOdpOrder and handleAsync are available if needed for future features
 
@@ -36,132 +37,174 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
         disabled: isLocked, // Disable dragging when locked
     });
 
-    // Memoize expensive calculations - optimized for performance
-    const eventPosition = useMemo(() => {
-        // Cache date parsing to avoid repeated operations
-        const eventStartTime = new Date(event.scheduled_start_time);
-        // Calculate end time based on start time + time_remaining instead of stored scheduled_end_time
-        const timeRemaining = event.time_remaining || event.duration || 1;
-        const calculatedEndTime = new Date(eventStartTime.getTime() + (timeRemaining * 60 * 60 * 1000)); // Convert hours to milliseconds
-        
-        // Check if this event should be visible on the current day
+    // Calculate segments for split tasks or regular positioning for normal tasks
+    const eventSegments = useMemo(() => {
+        const segmentInfo = getSplitTaskInfo(event.id);
         const currentDayStart = getStartOfDay(currentDate);
         const currentDayEnd = getEndOfDay(currentDate);
-
-        const eventStartsOnCurrentDay = isSameDate(eventStartTime, currentDate);
-        const eventEndsOnCurrentDay = isSameDate(calculatedEndTime, currentDate);
-        const eventSpansCurrentDay = eventStartTime < currentDayEnd && calculatedEndTime > currentDayStart;
-
-        if (!eventStartsOnCurrentDay && !eventEndsOnCurrentDay && !eventSpansCurrentDay) {
-            return null;
-        }
-
-        // Calculate positioning for the event on the current day
-        let baseLeft, baseWidth;
-
-        if (eventStartsOnCurrentDay) {
-            const startHour = eventStartTime.getHours();
-            const startMinute = eventStartTime.getMinutes();
-            const startSlot = startHour * 4 + Math.floor(startMinute / 15);
-            baseLeft = startSlot * 20;
-
-            const hoursRemainingInDay = 24 - startHour;
-            const hoursToShow = Math.min(timeRemaining, hoursRemainingInDay);
-            const slotsToShow = hoursToShow * 4;
-            baseWidth = slotsToShow * 20;
-        } else if (eventEndsOnCurrentDay) {
-            baseLeft = 0;
-            const endHour = calculatedEndTime.getHours();
-            const endMinute = calculatedEndTime.getMinutes();
-            const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
-            baseWidth = endSlot * 20;
+        
+        if (segmentInfo && segmentInfo.wasSplit) {
+            // Handle split tasks - render only segments that appear on current day
+            const visibleSegments = [];
+            
+            for (const segment of segmentInfo.segments) {
+                const segmentStart = new Date(segment.start);
+                const segmentEnd = new Date(segment.end);
+                
+                // Check if this segment is visible on the current day
+                const segmentStartsOnCurrentDay = isSameDate(segmentStart, currentDate);
+                const segmentEndsOnCurrentDay = isSameDate(segmentEnd, currentDate);
+                const segmentSpansCurrentDay = segmentStart < currentDayEnd && segmentEnd > currentDayStart;
+                
+                if (segmentStartsOnCurrentDay || segmentEndsOnCurrentDay || segmentSpansCurrentDay) {
+                    // Calculate positioning for this segment on the current day
+                    let segmentLeft, segmentWidth;
+                    
+                    if (segmentStartsOnCurrentDay && segmentEndsOnCurrentDay) {
+                        // Segment starts and ends on current day - use UTC to get absolute times
+                        const startHour = segmentStart.getUTCHours();
+                        const startMinute = segmentStart.getUTCMinutes();
+                        const endHour = segmentEnd.getUTCHours();
+                        const endMinute = segmentEnd.getUTCMinutes();
+                        
+                        const startSlot = startHour * 4 + Math.floor(startMinute / 15);
+                        const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
+                        
+                        segmentLeft = startSlot * 20;
+                        segmentWidth = (endSlot - startSlot) * 20;
+                    } else if (segmentStartsOnCurrentDay) {
+                        // Segment starts on current day but continues to next day - use UTC
+                        const startHour = segmentStart.getUTCHours();
+                        const startMinute = segmentStart.getUTCMinutes();
+                        const startSlot = startHour * 4 + Math.floor(startMinute / 15);
+                        
+                        segmentLeft = startSlot * 20;
+                        segmentWidth = (96 - startSlot) * 20; // 96 = 24 * 4 slots per day
+                    } else if (segmentEndsOnCurrentDay) {
+                        // Segment ends on current day but started on previous day - use UTC
+                        const endHour = segmentEnd.getUTCHours();
+                        const endMinute = segmentEnd.getUTCMinutes();
+                        const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
+                        
+                        segmentLeft = 0;
+                        segmentWidth = endSlot * 20;
+                    } else {
+                        // Segment spans entire current day
+                        segmentLeft = 0;
+                        segmentWidth = 1920; // 24 * 4 * 20 = 1920px
+                    }
+                    
+                    visibleSegments.push({
+                        left: segmentLeft,
+                        width: segmentWidth,
+                        start: segmentStart,
+                        end: segmentEnd
+                    });
+                }
+            }
+            
+            return visibleSegments.length > 0 ? visibleSegments : null;
         } else {
-            // Full day span - optimize calculation
-            baseLeft = 0;
-            baseWidth = 1920; // 24 * 4 * 20 = 1920px
+            // Handle regular (non-split) tasks - use original logic
+            const eventStartTime = new Date(event.scheduled_start_time);
+            const timeRemaining = event.time_remaining || event.duration || 1;
+            const calculatedEndTime = new Date(eventStartTime.getTime() + (timeRemaining * 60 * 60 * 1000));
+            
+            const eventStartsOnCurrentDay = isSameDate(eventStartTime, currentDate);
+            const eventEndsOnCurrentDay = isSameDate(calculatedEndTime, currentDate);
+            const eventSpansCurrentDay = eventStartTime < currentDayEnd && calculatedEndTime > currentDayStart;
+
+            if (!eventStartsOnCurrentDay && !eventEndsOnCurrentDay && !eventSpansCurrentDay) {
+                return null;
+            }
+
+            let baseLeft, baseWidth;
+
+            if (eventStartsOnCurrentDay) {
+                const startHour = eventStartTime.getUTCHours();
+                const startMinute = eventStartTime.getUTCMinutes();
+                const startSlot = startHour * 4 + Math.floor(startMinute / 15);
+                baseLeft = startSlot * 20;
+
+                const hoursRemainingInDay = 24 - startHour;
+                const hoursToShow = Math.min(timeRemaining, hoursRemainingInDay);
+                const slotsToShow = hoursToShow * 4;
+                baseWidth = slotsToShow * 20;
+            } else if (eventEndsOnCurrentDay) {
+                baseLeft = 0;
+                const endHour = calculatedEndTime.getUTCHours();
+                const endMinute = calculatedEndTime.getUTCMinutes();
+                const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
+                baseWidth = endSlot * 20;
+            } else {
+                baseLeft = 0;
+                baseWidth = 1920;
+            }
+
+            return [{ left: baseLeft, width: baseWidth, start: eventStartTime, end: calculatedEndTime }];
         }
+    }, [event.scheduled_start_time, event.time_remaining, event.duration, currentDate, getSplitTaskInfo, event.id]);
 
-        return { baseLeft, baseWidth, eventSpansCurrentDay, eventStartsOnCurrentDay, eventEndsOnCurrentDay };
-    }, [event.scheduled_start_time, event.time_remaining, event.duration, currentDate]);
-
-    // Simplified sizing logic - CSS will handle responsive behavior
-    const isVerySmallTask = eventPosition?.baseWidth < 60; // Less than 3 time slots (45 minutes)
-    const isSmallTask = eventPosition?.baseWidth < 120; // Less than 6 time slots (1.5 hours)
-    const shouldOverlayButtons = isVerySmallTask && eventPosition?.baseWidth < 80; // Less than 4 time slots (1 hour)
-    const isExtremelyNarrow = eventPosition?.baseWidth < 40; // Less than 2 time slots (30 minutes)
-
-    const style = useMemo(() => {
-        if (!eventPosition) return {};
-        
-        const { baseLeft, baseWidth } = eventPosition;
-        
-        return isDragging ? {
-            position: 'absolute',
-            left: `${baseLeft}px`,
-            width: `${baseWidth}px`,
-            transform: `translate3d(${transform?.x || 0}px, ${transform?.y || 0}px, 0)`,
-            zIndex: 1001,
-            pointerEvents: 'none',
-            // Ultra-light drag state - minimal CSS for maximum performance
-            willChange: 'transform',
-            backfaceVisibility: 'hidden',
-            transition: 'none',
-            boxShadow: 'none',
-            opacity: 0.8,
-            // Remove all visual effects during drag
-            filter: 'none',
-            borderRadius: '4px',
-            padding: '4px 6px',
-            minHeight: '32px',
-        } : {
-            position: 'absolute',
-            left: `${baseLeft}px`,
-            width: `${baseWidth}px`,
-            transform: 'none',
-            zIndex: 10,
-            // Normal state - minimal CSS
-            willChange: 'auto',
-            backfaceVisibility: 'visible',
-            opacity: 1,
-            // Minimal transitions
-            transition: 'opacity 0.1s ease',
-
-        };
-    }, [eventPosition, isDragging, transform, isSmallTask, isVerySmallTask, isExtremelyNarrow]);
+    // Calculate sizing based on segments
+    const totalWidth = eventSegments ? eventSegments.reduce((sum, seg) => sum + seg.width, 0) : 0;
+    const isVerySmallTask = totalWidth < 60; // Less than 3 time slots (45 minutes)
+    const isSmallTask = totalWidth < 120; // Less than 6 time slots (1.5 hours)
+    const shouldOverlayButtons = isVerySmallTask && totalWidth < 80; // Less than 4 time slots (1 hour)
+    const isExtremelyNarrow = totalWidth < 40; // Less than 2 time slots (30 minutes)
 
     const handleLockClick = useCallback((e) => {
         e.stopPropagation(); // Prevent drag from starting
         setIsLocked(!isLocked);
     }, [isLocked]);
 
-    // Early return after ALL hooks have been called
-    if (!eventPosition) return null;
-
-    const { baseLeft, baseWidth, eventSpansCurrentDay, eventStartsOnCurrentDay, eventEndsOnCurrentDay } = eventPosition;
+    // Early return if no segments are visible (AFTER all hooks are called)
+    if (!eventSegments || eventSegments.length === 0) return null;
     
     // Debug logging removed for production
 
     return (
-        <div 
-            ref={setNodeRef} 
-            style={style || {}} 
-            className={`scheduled-event ${isDragging ? 'dragging' : ''} ${eventSpansCurrentDay && !eventStartsOnCurrentDay && !eventEndsOnCurrentDay ? 'cross-day' : ''} ${isVerySmallTask ? 'very-small' : ''} ${isSmallTask ? 'small' : ''} ${isExtremelyNarrow ? 'extremely-narrow' : ''}`}
-        >
-            <div 
-                className={`event-content`}
-                style={{
-                    // Simplify content during drag for better performance
-                    opacity: isDragging ? 0.7 : 1,
-                    transform: isDragging ? 'scale(0.95)' : 'none',
-                }}
-            >
-                <span className="event-label">{event.odp_number}</span>
-            </div>
-            
-            {/* Only render controls when not dragging for maximum performance */}
-            {!isDragging && (
+        <>
+            {eventSegments.map((segment, index) => (
                 <div 
-                    className={`event-controls ${shouldOverlayButtons ? 'overlay' : ''}`}
+                    key={`${event.id}-segment-${index}`}
+                    ref={index === 0 ? setNodeRef : undefined} // Only attach drag ref to first segment
+                    style={{
+                        position: 'absolute',
+                        left: `${segment.left}px`,
+                        width: `${segment.width}px`,
+                        transform: isDragging && index === 0 ? `translate3d(${transform?.x || 0}px, ${transform?.y || 0}px, 0)` : 'none',
+                        zIndex: isDragging ? 1001 : 10,
+                        opacity: isDragging ? 0.8 : 1,
+                        transition: isDragging ? 'none' : 'opacity 0.1s ease',
+                        pointerEvents: isDragging ? 'none' : 'auto',
+                    }}
+                    className={`scheduled-event ${isDragging ? 'dragging' : ''} ${isVerySmallTask ? 'very-small' : ''} ${isSmallTask ? 'small' : ''} ${isExtremelyNarrow ? 'extremely-narrow' : ''} ${eventSegments.length > 1 ? 'split-segment' : ''}`}
+                    {...(index === 0 ? { ...attributes, ...listeners } : {})} // Only add drag attributes to first segment
+                >
+                    <div 
+                        className={`event-content`}
+                        style={{
+                            opacity: isDragging ? 0.7 : 1,
+                            transform: isDragging ? 'scale(0.95)' : 'none',
+                        }}
+                    >
+                        <span className="event-label">
+                            {event.odp_number}
+                            {index === 0 && (() => {
+                                const segmentInfo = getSplitTaskInfo(event.id);
+                                return segmentInfo && segmentInfo.wasSplit ? (
+                                    <span className="split-indicator" title={`Task split into ${segmentInfo.totalSegments} segments`}>
+                                        ✂️
+                                    </span>
+                                ) : null;
+                            })()}
+                        </span>
+                    </div>
+                    
+                    {/* Only render controls on first segment when not dragging */}
+                    {!isDragging && index === 0 && (
+                        <div 
+                            className={`event-controls ${shouldOverlayButtons ? 'overlay' : ''}`}
                 >
                 {/* Info Button */}
                 <button 
@@ -171,8 +214,8 @@ Codice Articolo Esterno: ${event.external_article_code || 'Non specificato'}
 Nome Cliente: ${event.nome_cliente || 'Non specificato'}
 Data Consegna: ${event.delivery_date ? new Date(event.delivery_date).toLocaleDateString() : 'Non impostata'}
 Quantità: ${event.quantity || 'Non specificata'}
-${event.scheduled_start_time ? `Inizio Programmato: ${new Date(event.scheduled_start_time).toLocaleString()}` : 'Non programmato'}
-${event.scheduled_end_time ? `Fine Programmata: ${new Date(event.scheduled_end_time).toLocaleString()}` : 'Non programmato'}`}
+${event.scheduled_start_time ? `Inizio Programmato: ${new Date(event.scheduled_start_time).toISOString().replace('T', ' ').replace('.000Z', '')}` : 'Non programmato'}
+${event.scheduled_end_time ? `Fine Programmata: ${new Date(event.scheduled_end_time).toISOString().replace('T', ' ').replace('.000Z', '')}` : 'Non programmato'}`}
                 >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
@@ -239,13 +282,12 @@ ${event.scheduled_end_time ? `Fine Programmata: ${new Date(event.scheduled_end_t
                             <path d="M19 13H5v-2h14v2z"/>
                         </svg>
                     </button>
-                )}
-            </div>
-            )}
-            
-            {/* Info Popup */}
-            {/* Removed Info Popup as it's now handled by hover tooltip */}
-        </div>
+                        )}
+                        </div>
+                    )}
+                </div>
+            ))}
+        </>
     );
 });
 

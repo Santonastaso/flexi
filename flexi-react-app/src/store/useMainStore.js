@@ -57,15 +57,20 @@ const cleanupGlobalListeners = () => {
 const handleOdpOrdersChange = (payload, set, get) => {
   const { eventType, newRecord, oldRecord } = payload;
   const { setOdpOrders, getOdpOrders } = useOrderStore.getState();
+  const { updateSplitTaskInfo } = useSchedulerStore.getState();
   
   switch (eventType) {
     case 'INSERT':
       setOdpOrders([...getOdpOrders(), newRecord]);
+      if (newRecord.status === 'SCHEDULED') {
+        updateSplitTaskInfo(newRecord.id, newRecord);
+      }
       break;
     case 'UPDATE':
       setOdpOrders(getOdpOrders().map(order => 
         order.id === newRecord.id ? newRecord : order
       ));
+      updateSplitTaskInfo(newRecord.id, newRecord);
       break;
     case 'DELETE':
       setOdpOrders(getOdpOrders().filter(order => order.id !== oldRecord.id));
@@ -234,6 +239,13 @@ export const useMainStore = create((set, get) => ({
         
         // Initialize empty machine availability
         initializeEmptyMachineAvailability();
+        
+        // Restore split task information from database
+        const { restoreSplitTaskInfo, migrateExistingTasksToSegmentFormat } = useSchedulerStore.getState();
+        restoreSplitTaskInfo();
+        
+        // Migrate existing tasks to new bulletproof segment format
+        await migrateExistingTasksToSegmentFormat();
         
         // Step 4: Setup real-time subscriptions with error handling
         if (!window.realtimeChannel) {

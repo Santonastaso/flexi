@@ -47,8 +47,8 @@ Codice Articolo Esterno: ${task.external_article_code || 'Non specificato'}
 Nome Cliente: ${task.nome_cliente || 'Non specificato'}
 Data Consegna: ${task.delivery_date ? new Date(task.delivery_date).toLocaleDateString() : 'Non impostata'}
 Quantità: ${task.quantity || 'Non specificata'}
-${task.scheduled_start_time ? `Inizio Programmato: ${new Date(task.scheduled_start_time).toLocaleString()}` : 'Non programmato'}
-${task.scheduled_end_time ? `Fine Programmata: ${new Date(task.scheduled_end_time).toLocaleString()}` : 'Non programmato'}`}
+${task.scheduled_start_time ? `Inizio Programmato: ${new Date(task.scheduled_start_time).toISOString().replace('T', ' ').replace('.000Z', '')}` : 'Non programmato'}
+${task.scheduled_end_time ? `Fine Programmata: ${new Date(task.scheduled_end_time).toISOString().replace('T', ' ').replace('.000Z', '')}` : 'Non programmato'}`}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>

@@ -13,8 +13,8 @@ import { MachineAvailabilityManager } from './scheduling/machineAvailability';
 export const useSchedulerStore = create((set, get) => {
   // Initialize helper classes
   const splitTaskManager = new SplitTaskManager(get, set);
+  const schedulingLogic = new SchedulingLogic(get, set, splitTaskManager);
   const machineAvailabilityManager = new MachineAvailabilityManager(get, set);
-  const schedulingLogic = new SchedulingLogic(get, set, splitTaskManager, machineAvailabilityManager);
   const conflictResolution = new ConflictResolution(get, set, schedulingLogic, splitTaskManager);
 
   return {
@@ -38,12 +38,6 @@ export const useSchedulerStore = create((set, get) => {
     updateSplitTaskInfo: splitTaskManager.updateSplitTaskInfo,
     restoreSplitTaskInfo: splitTaskManager.restoreSplitTaskInfo,
     updateTaskWithSplitInfo: splitTaskManager.updateTaskWithSplitInfo,
-    
-    // Bulletproof overlap detection (delegated to SplitTaskManager)
-    getTaskOccupiedSegments: splitTaskManager.getTaskOccupiedSegments,
-    checkTaskOverlap: splitTaskManager.checkTaskOverlap,
-    checkMachineOverlaps: splitTaskManager.checkMachineOverlaps,
-    migrateExistingTasksToSegmentFormat: splitTaskManager.migrateExistingTasksToSegmentFormat,
 
     // Scheduling logic (delegated to SchedulingLogic)
     createAbsoluteDate: schedulingLogic.createAbsoluteDate,
@@ -73,7 +67,9 @@ export const useSchedulerStore = create((set, get) => {
         const startDate = schedulingLogic.createAbsoluteDate(year, month, day, hour, minute);
         const timeRemainingHours = task.time_remaining || task.duration || 1;
         
-        console.log(`📅 Scheduling task at ${year}-${month}-${day} ${hour}:${minute}`);
+        console.log('🎯 ABSOLUTE Drag & Drop Scheduling:');
+        console.log(`  Dropped on: ${year}-${month}-${day} at ${hour}:${minute}`);
+        console.log(`  Absolute start time: ${startDate.toISOString()}`);
 
         // Create schedule data
         const scheduleData = {
@@ -110,7 +106,9 @@ export const useSchedulerStore = create((set, get) => {
         const startDate = schedulingLogic.createAbsoluteDate(year, month, day, hour, minute);
         const timeRemainingHours = eventItem.time_remaining || eventItem.duration || 1;
         
-        console.log(`🔄 Rescheduling task to ${year}-${month}-${day} ${hour}:${minute}`);
+        console.log('🎯 ABSOLUTE Reschedule:');
+        console.log(`  Moved to: ${year}-${month}-${day} at ${hour}:${minute}`);
+        console.log(`  Absolute start time: ${startDate.toISOString()}`);
 
         // Create schedule data
         const scheduleData = {
@@ -139,8 +137,38 @@ export const useSchedulerStore = create((set, get) => {
           return { error: `Work center mismatch: task requires '${task.work_center}' but machine is '${machine.work_center}'` };
         }
 
-        // Use comprehensive scheduling with splitting (includes bulletproof overlap detection)
+        // Check for overlaps with existing scheduled tasks on the same machine
+        const { getOdpOrders } = useOrderStore.getState();
+        const existingTasks = getOdpOrders().filter(o => 
+          o.scheduled_machine_id === eventData.machine && 
+          o.status === 'SCHEDULED' &&
+          o.id !== taskId
+        );
+
         const newStart = new Date(eventData.start_time);
+        const newEnd = new Date(eventData.end_time);
+
+        for (const existingTask of existingTasks) {
+          const existingStart = new Date(existingTask.scheduled_start_time);
+          // Calculate actual end time based on time_remaining instead of stored scheduled_end_time
+          const existingTimeRemaining = existingTask.time_remaining || existingTask.duration || 1;
+          const existingEnd = new Date(existingStart.getTime() + (existingTimeRemaining * 60 * 60 * 1000));
+          
+          // Check if tasks overlap (any overlap is invalid)
+          if (newStart < existingEnd && newEnd > existingStart) {
+            // Instead of returning an error, return a conflict object
+            return { 
+              conflict: true,
+              conflictingTask: existingTask,
+              draggedTask: task,
+              proposedStartTime: eventData.start_time,
+              proposedEndTime: eventData.end_time,
+              machine: machine
+            };
+          }
+        }
+
+        // Use comprehensive scheduling with splitting
         const timeRemainingHours = task.time_remaining || task.duration || 1;
         const schedulingResult = await schedulingLogic.scheduleTaskWithSplitting(
           taskId, 
@@ -151,21 +179,6 @@ export const useSchedulerStore = create((set, get) => {
 
         if (!schedulingResult) {
           return { error: 'No available time slots found for this task' };
-        }
-
-        // BULLETPROOF: Check if scheduling result indicates a conflict
-        if (schedulingResult.conflict) {
-          console.log(`🚨 Scheduling conflict detected during splitting - triggering shunting`);
-          return { 
-            conflict: true,
-            conflictingTask: schedulingResult.conflictingTask,
-            draggedTask: task,
-            proposedStartTime: eventData.start_time,
-            proposedEndTime: eventData.end_time,
-            machine: machine,
-            conflictingSegment: schedulingResult.conflictingSegment,
-            proposedSegments: schedulingResult.proposedSegments
-          };
         }
 
         // Update the event data with the scheduling result
@@ -180,8 +193,10 @@ export const useSchedulerStore = create((set, get) => {
         };
         
         // Call the update method from the order store
+        console.log('🗄️ SENDING TO DATABASE:', updates);
         const { updateOdpOrder } = useOrderStore.getState();
         const result = await updateOdpOrder(taskId, updates);
+        console.log('🗄️ DATABASE RETURNED:', result);
         
         return { success: true };
       } catch (error) {

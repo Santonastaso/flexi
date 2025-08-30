@@ -430,11 +430,8 @@ function SchedulerPage() {
             const task = draggedItem.task;
             const { machine, hour, minute, isUnavailable, hasScheduledTask } = dropZone;
 
-            // Immediate constraint checks (no async)
-            if (isUnavailable) {
-              showAlert('Impossibile pianificare il lavoro su uno slot temporale non disponibile', 'error');
-              return resolve();
-            }
+            // Note: Removed unavailable slot check - tasks can now be split across available slots
+            // The scheduling logic will handle splitting automatically
 
             if (hasScheduledTask) {
               showAlert('Impossibile pianificare il lavoro su uno slot temporale occupato', 'error');
@@ -456,11 +453,8 @@ function SchedulerPage() {
             const eventItem = draggedItem.event;
             const { machine, hour, minute, isUnavailable, hasScheduledTask } = dropZone;
 
-            // Immediate constraint checks
-            if (isUnavailable) {
-              showAlert('Impossibile riprogrammare il lavoro su uno slot temporale non disponibile', 'error');
-              return resolve();
-            }
+            // Note: Removed unavailable slot check - tasks can now be split across available slots
+            // The rescheduling logic will handle splitting automatically
 
             if (hasScheduledTask) {
               showAlert('Impossibile riprogrammare il lavoro su uno slot temporale occupato', 'error');

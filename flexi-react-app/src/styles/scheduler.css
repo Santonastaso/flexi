@@ -1,5 +1,37 @@
 /* ===== STREAMLINED SCHEDULER & CALENDAR STYLES ===== */
 
+/* ===== SPLIT TASK INDICATOR ===== */
+.split-indicator {
+    margin-left: 4px;
+    font-size: 10px;
+    opacity: 0.8;
+    display: inline-block;
+}
+
+.scheduled-event .split-indicator {
+    color: #f39c12;
+}
+
+/* ===== SPLIT TASK SEGMENTS ===== */
+.scheduled-event.split-segment {
+    border: 2px solid #f39c12;
+    box-shadow: 0 2px 4px rgba(243, 156, 18, 0.3);
+}
+
+.scheduled-event.split-segment:first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.scheduled-event.split-segment:last-child {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.scheduled-event.split-segment:not(:first-child):not(:last-child) {
+    border-radius: 0;
+}
+
 /* ===== GLOBAL DRAG & DROP STYLES ===== */
 *[class*="dragging"], *[class*="drag-overlay"] {
     box-shadow: none !important;
