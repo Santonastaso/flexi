@@ -54,7 +54,7 @@ const cleanupGlobalListeners = () => {
 };
 
 // Handle ODP Orders changes
-const handleOdpOrdersChange = (payload, set, get) => {
+const handleOdpOrdersChange = (payload, _set, _get) => {
   const { eventType, newRecord, oldRecord } = payload;
   const { setOdpOrders, getOdpOrders } = useOrderStore.getState();
   const { updateSplitTaskInfo } = useSchedulerStore.getState();
@@ -79,7 +79,7 @@ const handleOdpOrdersChange = (payload, set, get) => {
 };
 
 // Handle Machines changes
-const handleMachinesChange = (payload, set, get) => {
+const handleMachinesChange = (payload, _set, _get) => {
   const { eventType, newRecord, oldRecord } = payload;
   const { setMachines, getMachines } = useMachineStore.getState();
   
@@ -99,7 +99,7 @@ const handleMachinesChange = (payload, set, get) => {
 };
 
 // Handle Phases changes
-const handlePhasesChange = (payload, set, get) => {
+const handlePhasesChange = (payload, _set, _get) => {
   const { eventType, newRecord, oldRecord } = payload;
   const { setPhases, getPhases } = usePhaseStore.getState();
   
@@ -338,7 +338,7 @@ export const useMainStore = create((set, get) => ({
       setOdpOrders(odpOrders || []);
       setPhases(phases || []);
       setLoading(false);
-    } catch (error) {
+    } catch (_error) {
       setLoading(false);
     }
   },
@@ -351,15 +351,15 @@ export const useMainStore = create((set, get) => ({
     
     // Check for duplicate IDs
     const machineIds = getMachines().map(m => m.id);
-    const duplicateMachineIds = machineIds.filter((id, index) => machineIds.indexOf(id) !== index);
+    const _duplicateMachineIds = machineIds.filter((id, index) => machineIds.indexOf(id) !== index);
     // Duplicate machine IDs handled silently
     
     const orderIds = getOdpOrders().map(o => o.id);
-    const duplicateOrderIds = orderIds.filter((id, index) => orderIds.indexOf(id) !== index);
+    const _duplicateOrderIds = orderIds.filter((id, index) => orderIds.indexOf(id) !== index);
     // Duplicate order IDs handled silently
     
     const phaseIds = getPhases().map(p => p.id);
-    const duplicatePhaseIds = phaseIds.filter((id, index) => phaseIds.indexOf(id) !== index);
+    const _duplicatePhaseIds = phaseIds.filter((id, index) => phaseIds.indexOf(id) !== index);
     // Duplicate phase IDs handled silently
   },
 
@@ -403,14 +403,14 @@ export const useMainStore = create((set, get) => ({
     const { getMachines } = useMachineStore.getState();
     const { getOdpOrders } = useOrderStore.getState();
     const { getPhases } = usePhaseStore.getState();
-    const { getMachineAvailability } = useSchedulerStore.getState();
+    // const { getMachineAvailability } = useSchedulerStore.getState();
     const { getLoadingState, getInitializationState } = useUIStore.getState();
     
     return {
       machines: getMachines(),
       odpOrders: getOdpOrders(),
       phases: getPhases(),
-              machineAvailability: getMachineAvailabilityState(),
+      machineAvailability: useSchedulerStore.getState().getMachineAvailabilityState(),
       isLoading: getLoadingState(),
       isInitialized: getInitializationState(),
     };

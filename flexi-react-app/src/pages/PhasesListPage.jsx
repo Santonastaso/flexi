@@ -24,7 +24,7 @@ function PhasesListPage() {
   const { validatePhase } = usePhaseValidation();
   
   // Use unified error handling
-  const { handleCrudError, handleAsync } = useErrorHandler('PhasesListPage');
+  const { handleAsync } = useErrorHandler('PhasesListPage');
 
   // Initialize store on component mount
   useEffect(() => {

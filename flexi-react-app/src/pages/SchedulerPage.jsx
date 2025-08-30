@@ -49,14 +49,12 @@ function SchedulerPage() {
   const filteredOdpOrders = useMemo(() => {
     if (!selectedWorkCenter) return [];
     const filtered = getOdpOrdersByWorkCenter(selectedWorkCenter);
-    console.log(`Filtered ODP orders for work center ${selectedWorkCenter}:`, filtered.map(o => ({ id: o.id, odp_number: o.odp_number, work_center: o.work_center, status: o.status })));
     return filtered;
   }, [selectedWorkCenter, getOdpOrdersByWorkCenter]);
 
   // Get scheduled orders filtered by selected work center
   const scheduledOrders = useMemo(() => {
     const scheduled = filteredOdpOrders.filter(order => order.status === 'SCHEDULED');
-    console.log(`Scheduled orders for work center ${selectedWorkCenter}:`, scheduled.map(o => ({ id: o.id, odp_number: o.odp_number, work_center: o.work_center })));
     return scheduled;
   }, [filteredOdpOrders, selectedWorkCenter]);
 
@@ -167,40 +165,27 @@ function SchedulerPage() {
   const handleTaskLookup = useCallback(() => {
     if (!taskLookup.trim()) return;
     
-    console.log(`=== TASK LOOKUP DEBUG ===`);
-    console.log(`Searching for ODP: "${taskLookup.trim()}"`);
-    console.log(`Current taskLookup state: "${taskLookup}"`);
-    console.log(`Available scheduled orders:`, scheduledOrders.map(o => ({ id: o.id, odp_number: o.odp_number, work_center: o.work_center })));
-    
     // Find the task in scheduled orders with exact match first, then partial match
     let task = scheduledOrders.find(t => t.odp_number === taskLookup.trim());
-    console.log(`Exact match result:`, task ? { id: task.id, odp_number: task.odp_number } : 'No exact match');
     
     // If no exact match, try partial match
     if (!task) {
       task = scheduledOrders.find(t => 
         t.odp_number.toLowerCase().includes(taskLookup.trim().toLowerCase())
       );
-      console.log(`Partial match result:`, task ? { id: task.id, odp_number: task.odp_number } : 'No partial match');
     }
     
     if (!task) {
-      console.log(`No task found for ODP: "${taskLookup.trim()}"`);
       showAlert('Lavoro non trovato o non programmato', 'warning');
       return;
     }
     
-    console.log(`Final selected task:`, { id: task.id, odp_number: task.odp_number, work_center: task.work_center, machine_id: task.scheduled_machine_id });
-    
     // Find the machine
     const machine = machines.find(m => m.id === task.scheduled_machine_id);
     if (!machine) {
-      console.log(`No machine found for task machine ID: ${task.scheduled_machine_id}`);
       showAlert('Macchina non trovata per questo lavoro', 'error');
       return;
     }
-    
-    console.log(`Found machine:`, { id: machine.id, name: machine.machine_name, work_center: machine.work_center });
     
     // Set machine filters to show only this machine
     setMachineNameFilter([machine.machine_name]);
@@ -216,46 +201,32 @@ function SchedulerPage() {
     // Clear the search input after successful lookup
     setTaskLookup('');
     showAlert(`Lavoro "${task.odp_number}" trovato su ${machine.machine_name}`, 'success');
-    console.log(`=== END TASK LOOKUP DEBUG ===`);
   }, [taskLookup, scheduledOrders, machines, showAlert]);
 
   const handleArticleCodeLookup = useCallback(() => {
     if (!articleCodeLookup.trim()) return;
     
-    console.log(`=== ARTICLE CODE LOOKUP DEBUG ===`);
-    console.log(`Searching for Article Code: "${articleCodeLookup.trim()}"`);
-    console.log(`Current articleCodeLookup state: "${articleCodeLookup}"`);
-    console.log(`Available scheduled orders:`, scheduledOrders.map(o => ({ id: o.id, article_code: o.article_code, work_center: o.work_center })));
-    
     // Find the task in scheduled orders with exact match first, then partial match
     let task = scheduledOrders.find(t => t.article_code === articleCodeLookup.trim());
-    console.log(`Exact match result:`, task ? { id: task.id, article_code: task.article_code } : 'No exact match');
     
     // If no exact match, try partial match
     if (!task) {
       task = scheduledOrders.find(t => 
         t.article_code && t.article_code.toLowerCase().includes(articleCodeLookup.trim().toLowerCase())
       );
-      console.log(`Partial match result:`, task ? { id: task.id, article_code: task.article_code } : 'No partial match');
     }
     
     if (!task) {
-      console.log(`No task found for Article Code: "${articleCodeLookup.trim()}"`);
       showAlert('Lavoro non trovato o non programmato', 'warning');
       return;
     }
     
-    console.log(`Final selected task:`, { id: task.id, article_code: task.article_code, work_center: task.work_center, machine_id: task.scheduled_machine_id });
-    
     // Find the machine
     const machine = machines.find(m => m.id === task.scheduled_machine_id);
     if (!machine) {
-      console.log(`No machine found for task machine ID: ${task.scheduled_machine_id}`);
       showAlert('Macchina non trovata per questo lavoro', 'error');
       return;
     }
-    
-    console.log(`Found machine:`, { id: machine.id, name: machine.machine_name, work_center: machine.work_center });
     
     // Set machine filters to show only this machine
     setMachineNameFilter([machine.machine_name]);
@@ -271,46 +242,32 @@ function SchedulerPage() {
     // Clear the search input after successful lookup
     setArticleCodeLookup('');
     showAlert(`Lavoro con codice articolo "${task.article_code}" trovato su ${machine.machine_name}`, 'success');
-    console.log(`=== END ARTICLE CODE LOOKUP DEBUG ===`);
   }, [articleCodeLookup, scheduledOrders, machines, showAlert]);
 
   const handleCustomerNameLookup = useCallback(() => {
     if (!customerNameLookup.trim()) return;
     
-    console.log(`=== CUSTOMER NAME LOOKUP DEBUG ===`);
-    console.log(`Searching for Customer Name: "${customerNameLookup.trim()}"`);
-    console.log(`Current customerNameLookup state: "${customerNameLookup}"`);
-    console.log(`Available scheduled orders:`, scheduledOrders.map(o => ({ id: o.id, nome_cliente: o.nome_cliente, work_center: o.work_center })));
-    
     // Find the task in scheduled orders with exact match first, then partial match
     let task = scheduledOrders.find(t => t.nome_cliente === customerNameLookup.trim());
-    console.log(`Exact match result:`, task ? { id: task.id, nome_cliente: task.nome_cliente } : 'No exact match');
     
     // If no exact match, try partial match
     if (!task) {
       task = scheduledOrders.find(t => 
         t.nome_cliente && t.nome_cliente.toLowerCase().includes(customerNameLookup.trim().toLowerCase())
       );
-      console.log(`Partial match result:`, task ? { id: task.id, nome_cliente: task.nome_cliente } : 'No partial match');
     }
     
     if (!task) {
-      console.log(`No task found for Customer Name: "${customerNameLookup.trim()}"`);
       showAlert('Lavoro non trovato o non programmato', 'warning');
       return;
     }
     
-    console.log(`Final selected task:`, { id: task.id, nome_cliente: task.nome_cliente, work_center: task.work_center, machine_id: task.scheduled_machine_id });
-    
     // Find the machine
     const machine = machines.find(m => m.id === task.scheduled_machine_id);
     if (!machine) {
-      console.log(`No machine found for task machine ID: ${task.scheduled_machine_id}`);
       showAlert('Macchina non trovata per questo lavoro', 'error');
       return;
     }
-    
-    console.log(`Found machine:`, { id: machine.id, name: machine.machine_name, work_center: machine.work_center });
     
     // Set machine filters to show only this machine
     setMachineNameFilter([machine.machine_name]);
@@ -326,7 +283,6 @@ function SchedulerPage() {
     // Clear the search input after successful lookup
     setCustomerNameLookup('');
     showAlert(`Lavoro per cliente "${task.nome_cliente}" trovato su ${machine.machine_name}`, 'success');
-    console.log(`=== END CUSTOMER NAME LOOKUP DEBUG ===`);
   }, [customerNameLookup, scheduledOrders, machines, showAlert]);
 
   // Debounce ref to prevent rapid drag operations
@@ -526,12 +482,10 @@ function SchedulerPage() {
                   value={taskLookup}
                   onChange={(e) => {
                     const value = e.target.value;
-                    console.log(`ODP Search input changed to: "${value}"`);
                     setTaskLookup(value);
                   }}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
-                      console.log(`Enter pressed, current taskLookup: "${taskLookup}"`);
                       handleTaskLookup();
                     }
                   }}
@@ -606,7 +560,6 @@ function SchedulerPage() {
                 )}
               </div>
               <button onClick={() => {
-                console.log(`ODP Search button clicked, current taskLookup: "${taskLookup}"`);
                 handleTaskLookup();
               }} className="nav-btn today">
                 Cerca ODP
@@ -622,12 +575,10 @@ function SchedulerPage() {
                   value={articleCodeLookup}
                   onChange={(e) => {
                     const value = e.target.value;
-                    console.log(`Article Code Search input changed to: "${value}"`);
                     setArticleCodeLookup(value);
                   }}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
-                      console.log(`Enter pressed, current articleCodeLookup: "${articleCodeLookup}"`);
                       handleArticleCodeLookup();
                     }
                   }}
@@ -653,7 +604,6 @@ function SchedulerPage() {
                           key={order.id} 
                           className="task-lookup-option"
                           onClick={() => {
-                            console.log(`Clicked on Article Code option: ${order.article_code} (ID: ${order.id})`);
                             // Perform lookup directly with the selected article code
                             const articleCode = order.article_code;
                             console.log(`Performing lookup for Article Code: ${articleCode}`);
@@ -702,7 +652,6 @@ function SchedulerPage() {
                 )}
               </div>
               <button onClick={() => {
-                console.log(`Article Code Search button clicked, current articleCodeLookup: "${articleCodeLookup}"`);
                 handleArticleCodeLookup();
               }} className="nav-btn today">
                 Cerca Articolo
@@ -718,12 +667,10 @@ function SchedulerPage() {
                   value={customerNameLookup}
                   onChange={(e) => {
                     const value = e.target.value;
-                    console.log(`Customer Name Search input changed to: "${value}"`);
                     setCustomerNameLookup(value);
                   }}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
-                      console.log(`Enter pressed, current customerNameLookup: "${customerNameLookup}"`);
                       handleCustomerNameLookup();
                     }
                   }}
@@ -749,7 +696,6 @@ function SchedulerPage() {
                           key={order.id} 
                           className="task-lookup-option"
                           onClick={() => {
-                            console.log(`Clicked on Customer Name option: ${order.nome_cliente} (ID: ${order.id})`);
                             // Perform lookup directly with the selected customer name
                             const customerName = order.nome_cliente;
                             console.log(`Performing lookup for Customer Name: ${customerName}`);
@@ -798,7 +744,6 @@ function SchedulerPage() {
                 )}
               </div>
               <button onClick={() => {
-                console.log(`Customer Name Search button clicked, current customerNameLookup: "${customerNameLookup}"`);
                 handleCustomerNameLookup();
               }} className="nav-btn today">
                 Cerca Cliente

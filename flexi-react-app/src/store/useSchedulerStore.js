@@ -1,10 +1,8 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
 import { toDateString, addHoursToDate } from '../utils/dateUtils';
-import { handleApiError } from '../utils/errorUtils';
 import { useOrderStore } from './useOrderStore';
 import { useMachineStore } from './useMachineStore';
-import { useUIStore } from './useUIStore';
 import { SplitTaskManager } from './scheduling/splitTaskManager';
 import { SchedulingLogic } from './scheduling/schedulingLogic';
 import { ConflictResolution } from './scheduling/conflictResolution';

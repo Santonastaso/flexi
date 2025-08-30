@@ -60,7 +60,7 @@ export class SplitTaskManager {
         } else {
           this.clearSplitTaskInfo(taskId);
         }
-      } catch (error) {
+      } catch (_error) {
         // If parsing fails, it's not segment info, clear it
         this.clearSplitTaskInfo(taskId);
       }
@@ -83,7 +83,7 @@ export class SplitTaskManager {
             // All scheduled tasks should have segment info now
             splitTasksInfo[order.id] = segmentInfo;
           }
-        } catch (error) {
+        } catch (_error) {
           // If parsing fails, it's not segment info, ignore
         }
       }
@@ -130,7 +130,7 @@ export class SplitTaskManager {
             duration: seg.duration
           }));
         }
-      } catch (error) {
+      } catch (_error) {
         // Parsing failed, fall through to legacy method
       }
     }

@@ -78,11 +78,11 @@ function HomePage() {
       order.status === 'IN PROGRESS' || order.status === 'SCHEDULED'
     ).length;
 
-    // Delayed tasks (past due date and not completed)
+    // Delayed tasks (past delivery_date and not completed)
     const delayedTasks = orders.filter(order => {
-      if (!order.due_date) return false;
-      const dueDate = new Date(order.due_date);
-      return dueDate < now && order.quantity_completed < order.quantity;
+      if (!order.delivery_date) return false;
+      const dueDate = new Date(order.delivery_date);
+      return dueDate < now && (order.quantity_completed || 0) < (order.quantity || 0);
     }).length;
 
     // Total active machines

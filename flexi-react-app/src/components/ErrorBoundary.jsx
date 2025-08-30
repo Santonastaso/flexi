@@ -31,22 +31,22 @@ class ErrorBoundary extends React.Component {
     };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(_error, _errorInfo) {
     // Update state with error information
     this.setState({
-      errorInfo,
+      errorInfo: _errorInfo,
       errorId: this.state.errorId || ErrorBoundary.generateErrorId()
     });
 
     // Use our centralized error logging
     const errorContext = 'ErrorBoundary';
-    logError(error, errorContext);
+    logError(_error, errorContext);
 
     // Log to external service in production (e.g., Sentry, LogRocket)
-    this.logErrorToService(error, errorInfo);
+    this.logErrorToService(_error, _errorInfo);
   }
 
-  logErrorToService(error, errorInfo) {
+  logErrorToService(_error, _errorInfo) {
     // In production, you would send this to an error tracking service
     // For now, we'll just log it to console
     if (import.meta.env.MODE === 'production') {

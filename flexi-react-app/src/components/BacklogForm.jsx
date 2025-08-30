@@ -92,7 +92,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       setEditablePhaseParams({});
       setCalculationResults(null);
     }
-  }, [articleCode, autoDetermineDepartment, autoDetermineWorkCenter, setValue, selectedWorkCenter]);
+  }, [articleCode, autoDetermineDepartment, autoDetermineWorkCenter, setValue, selectedWorkCenter, setPhaseSearch, setSelectedPhase, setEditablePhaseParams]);
 
   // Define onSubmit function before useFormValidation
   const onSubmit = async (data) => {

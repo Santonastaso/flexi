@@ -24,7 +24,7 @@ function MachineryListPage() {
   const { validateMachine } = useMachineValidation();
   
   // Use unified error handling
-  const { handleCrudError, handleAsync } = useErrorHandler('MachineryListPage');
+  const { handleAsync } = useErrorHandler('MachineryListPage');
 
   // Initialize store on component mount
   useEffect(() => {

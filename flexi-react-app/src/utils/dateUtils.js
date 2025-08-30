@@ -85,12 +85,29 @@ export function getEndOfDay(date) {
   return dateFns.endOfDay(date);
 }
 
+// UTC-specific day boundaries for absolute-time rendering
+export function getUTCStartOfDay(date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
+}
+
+export function getUTCEndOfDay(date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
+}
+
 /**
  * Check if two dates are the same day
  * Uses date-fns for reliable comparison
  */
 export function isSameDate(date1, date2) {
   return dateFns.isSameDay(date1, date2);
+}
+
+export function isSameUTCDate(date1, date2) {
+  return (
+    date1.getUTCFullYear() === date2.getUTCFullYear() &&
+    date1.getUTCMonth() === date2.getUTCMonth() &&
+    date1.getUTCDate() === date2.getUTCDate()
+  );
 }
 
 /**

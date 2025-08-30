@@ -7,7 +7,7 @@ import { useMachineStore, useUIStore, useMainStore } from '../store';
 function MachineryFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { machines, getMachineById } = useMachineStore();
+  const { getMachineById } = useMachineStore();
   const { selectedWorkCenter } = useUIStore();
   const { isLoading, isInitialized, init, cleanup } = useMainStore();
 

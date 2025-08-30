@@ -3,7 +3,6 @@ import { useUIStore } from '../store';
 import { 
   handleApiError, 
   logError, 
-  getUserFriendlyMessage, 
   ERROR_TYPES,
   withRetry,
   safeAsync 

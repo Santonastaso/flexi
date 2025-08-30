@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useOrderStore, useUIStore } from '../store';
@@ -10,10 +10,10 @@ const DraggableTask = React.memo(({ task }) => {
   const { isEditMode, conflictDialog } = useUIStore();
   
   // Get the update function from the store
-  const { updateOdpOrder } = useOrderStore();
+  const { updateOdpOrder: _updateOdpOrder } = useOrderStore();
   
   // Use unified error handling
-  const { handleAsync } = useErrorHandler('TaskPool');
+  const { handleAsync: _handleAsync } = useErrorHandler('TaskPool');
 
   const navigate = useNavigate();
 

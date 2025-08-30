@@ -4,9 +4,9 @@ import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { useOrderStore, useSchedulerStore } from '../store';
 import {
   toDateString,
-  getStartOfDay,
-  getEndOfDay,
-  isSameDate
+  getUTCStartOfDay,
+  getUTCEndOfDay,
+  isSameUTCDate
 } from '../utils/dateUtils';
 
 
@@ -40,8 +40,8 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
     // Calculate segments for split tasks or regular positioning for normal tasks
     const eventSegments = useMemo(() => {
         const segmentInfo = getSplitTaskInfo(event.id);
-        const currentDayStart = getStartOfDay(currentDate);
-        const currentDayEnd = getEndOfDay(currentDate);
+        const currentDayStart = getUTCStartOfDay(currentDate);
+        const currentDayEnd = getUTCEndOfDay(currentDate);
         
         if (segmentInfo && segmentInfo.wasSplit) {
             // Handle split tasks - render only segments that appear on current day
@@ -52,8 +52,8 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                 const segmentEnd = new Date(segment.end);
                 
                 // Check if this segment is visible on the current day
-                const segmentStartsOnCurrentDay = isSameDate(segmentStart, currentDate);
-                const segmentEndsOnCurrentDay = isSameDate(segmentEnd, currentDate);
+                const segmentStartsOnCurrentDay = isSameUTCDate(segmentStart, currentDate);
+                const segmentEndsOnCurrentDay = isSameUTCDate(segmentEnd, currentDate);
                 const segmentSpansCurrentDay = segmentStart < currentDayEnd && segmentEnd > currentDayStart;
                 
                 if (segmentStartsOnCurrentDay || segmentEndsOnCurrentDay || segmentSpansCurrentDay) {
@@ -110,8 +110,8 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
             const timeRemaining = event.time_remaining || event.duration || 1;
             const calculatedEndTime = new Date(eventStartTime.getTime() + (timeRemaining * 60 * 60 * 1000));
             
-            const eventStartsOnCurrentDay = isSameDate(eventStartTime, currentDate);
-            const eventEndsOnCurrentDay = isSameDate(calculatedEndTime, currentDate);
+            const eventStartsOnCurrentDay = isSameUTCDate(eventStartTime, currentDate);
+            const eventEndsOnCurrentDay = isSameUTCDate(calculatedEndTime, currentDate);
             const eventSpansCurrentDay = eventStartTime < currentDayEnd && calculatedEndTime > currentDayStart;
 
             if (!eventStartsOnCurrentDay && !eventEndsOnCurrentDay && !eventSpansCurrentDay) {
@@ -367,7 +367,6 @@ const GanttChart = React.memo(({ machines, currentDate }) => {
     if (!Array.isArray(dayData) || dayData.length === 0) return {};
 
     const map = {};
-    const startTime = performance.now();
 
     for (let i = 0; i < dayData.length; i++) {
       const row = dayData[i];
@@ -375,9 +374,6 @@ const GanttChart = React.memo(({ machines, currentDate }) => {
           map[row.machine_id] = new Set(row.unavailable_hours.map(h => h.toString()));
         }
     }
-
-    const endTime = performance.now();
-    // Performance logging removed for production
 
     return map;
   }, [machineAvailability, dateStr]);

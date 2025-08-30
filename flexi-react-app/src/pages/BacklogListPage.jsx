@@ -40,7 +40,7 @@ function BacklogListPage() {
   const { validateOrder } = useOrderValidation();
   
   // Use unified error handling
-  const { handleCrudError, handleAsync } = useErrorHandler('BacklogListPage');
+  const { handleAsync } = useErrorHandler('BacklogListPage');
 
   // Initialize store on component mount
   useEffect(() => {
@@ -101,7 +101,7 @@ function BacklogListPage() {
     
     // Fase e Calcoli
     { header: 'ID Fase', accessorKey: 'fase' },
-    { header: 'Nome Fase', accessorKey: 'phase_name' },
+    { header: 'Nome Fase', accessorKey: '_phase_name' },
     { 
       header: 'Durata (ore)', 
       accessorKey: 'duration', 
@@ -123,13 +123,13 @@ function BacklogListPage() {
     
     // Macchina Programmata
     { header: 'ID Macchina Programmata', accessorKey: 'scheduled_machine_id' },
-    { header: 'Nome Macchina', accessorKey: 'machine_name' },
+    { header: 'Nome Macchina', accessorKey: '_machine_name' },
     
     // Campi Calcolati
-    { header: 'Progresso (%)', accessorKey: 'progress' },
+    { header: 'Progresso (%)', accessorKey: '_progress' },
     { 
       header: 'Tempo Rimanente (ore)', 
-      accessorKey: 'time_remaining', 
+      accessorKey: '_time_remaining', 
       cell: info => {
         const value = info.getValue();
         return typeof value === 'number' ? value.toFixed(1) : value;

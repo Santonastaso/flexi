@@ -257,7 +257,7 @@ export class SchedulingLogic {
   };
 
   // Load machine availability for extended date range
-  loadMachineAvailabilityForExtendedRange = async (startTime, durationHours, machineId) => {
+  loadMachineAvailabilityForExtendedRange = async (startTime, durationHours, _machineId) => {
     const taskStartDate = this.createAbsoluteDate(startTime.getUTCFullYear(), startTime.getUTCMonth() + 1, startTime.getUTCDate());
     const potentialEndTime = new Date(startTime.getTime() + (durationHours * 60 * 60 * 1000));
     const taskEndDate = this.createAbsoluteDate(potentialEndTime.getUTCFullYear(), potentialEndTime.getUTCMonth() + 1, potentialEndTime.getUTCDate());
@@ -277,7 +277,7 @@ export class SchedulingLogic {
   };
 
   // Load machine availability for a backward scheduling window ending at endTime
-  loadMachineAvailabilityForBackwardRange = async (endTime, durationHours, machineId) => {
+  loadMachineAvailabilityForBackwardRange = async (endTime, durationHours, _machineId) => {
     const taskEndDate = this.createAbsoluteDate(endTime.getUTCFullYear(), endTime.getUTCMonth() + 1, endTime.getUTCDate());
     const earliestStart = new Date(endTime.getTime() - (durationHours * 60 * 60 * 1000));
     const taskStartDate = this.createAbsoluteDate(earliestStart.getUTCFullYear(), earliestStart.getUTCMonth() + 1, earliestStart.getUTCDate());
@@ -297,7 +297,7 @@ export class SchedulingLogic {
 
   // BULLETPROOF: Check if segments would overlap with existing tasks
   checkSegmentsForOverlaps = (segments, machineId, excludeTaskId, additionalExcludeIds = []) => {
-    const allExcludeIds = [excludeTaskId, ...additionalExcludeIds].filter(id => id);
+    const _allExcludeIds = [excludeTaskId, ...additionalExcludeIds].filter(id => id);
     
     for (const segment of segments) {
       const overlapResult = this.splitTaskManager.checkMachineOverlaps(

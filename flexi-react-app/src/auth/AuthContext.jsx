@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
           setSession(initialSession);
           setUser(initialSession?.user ?? null);
         }
-      } catch (error) {
+      } catch (_error) {
         setError('Failed to initialize authentication');
       } finally {
         setLoading(false);
@@ -84,9 +84,9 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, user: data.user };
       
-    } catch (error) {
-      setError(error.message);
-      return { success: false, error: error.message };
+    } catch (_error) {
+      setError(_error.message);
+      return { success: false, error: _error.message };
     } finally {
       setLoading(false);
     }
@@ -114,9 +114,9 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, user: data.user };
       
-    } catch (error) {
-      setError(error.message);
-      return { success: false, error: error.message };
+    } catch (_error) {
+      setError(_error.message);
+      return { success: false, error: _error.message };
     } finally {
       setLoading(false);
     }
@@ -138,9 +138,9 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
       
-    } catch (error) {
-      setError(error.message);
-      return { success: false, error: error.message };
+    } catch (_error) {
+      setError(_error.message);
+      return { success: false, error: _error.message };
     } finally {
       setLoading(false);
     }
@@ -164,9 +164,9 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
       
-    } catch (error) {
-      setError(error.message);
-      return { success: false, error: error.message };
+    } catch (_error) {
+      setError(_error.message);
+      return { success: false, error: _error.message };
     } finally {
       setLoading(false);
     }

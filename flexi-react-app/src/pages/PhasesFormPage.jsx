@@ -7,7 +7,7 @@ import { usePhaseStore, useUIStore, useMainStore } from '../store';
 function PhasesFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { phases, getPhaseById } = usePhaseStore();
+  const { getPhaseById } = usePhaseStore();
   const { selectedWorkCenter } = useUIStore();
   const { isLoading, isInitialized, init, cleanup } = useMainStore();
 

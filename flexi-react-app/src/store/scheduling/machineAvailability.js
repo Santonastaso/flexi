@@ -2,7 +2,7 @@ import { apiService } from '../../services';
 import { toDateString, addDaysToDate } from '../../utils/dateUtils';
 import { handleApiError } from '../../utils/errorUtils';
 import { useOrderStore } from '../useOrderStore';
-import { useMachineStore } from '../useMachineStore';
+// import { useMachineStore } from '../useMachineStore';
 import { useUIStore } from '../useUIStore';
 
 /**
@@ -92,8 +92,8 @@ export class MachineAvailabilityManager {
       });
       
       return data;
-    } catch (e) {
-      throw e;
+    } catch (error) {
+      throw error;
     }
   };
 
@@ -149,7 +149,7 @@ export class MachineAvailabilityManager {
       // Test if machine availability table is accessible
       try {
         await apiService.getMachineAvailabilityForDate('test', '2025-01-01');
-      } catch (tableError) {
+      } catch (_tableError) {
         return {};
       }
       
@@ -168,7 +168,7 @@ export class MachineAvailabilityManager {
         current = addDaysToDate(current, 1);
       }
       return result;
-    } catch (e) {
+    } catch (_e) {
       return {};
     }
   };
@@ -226,9 +226,9 @@ export class MachineAvailabilityManager {
       // Show success alert
       useUIStore.getState().showAlert(`Machine availability updated successfully for ${dateStr}`, 'success');
       return true;
-    } catch (error) {
+    } catch (_error) {
       // Use centralized error handling
-      const appError = handleApiError(error, 'Machine Availability');
+      const appError = handleApiError(_error, 'Machine Availability');
       useUIStore.getState().showAlert(appError.message, 'error');
       throw appError;
     }
@@ -365,14 +365,11 @@ export class MachineAvailabilityManager {
 
   // Initialize empty machine availability
   initializeEmptyMachineAvailability = () => {
-    const { machines } = useMachineStore.getState();
+    // const { machines } = useMachineStore.getState();
     const { machineAvailability } = this.get();
     const next = { ...machineAvailability };
-    machines.forEach(machine => {
-      if (!next[machine.id]) {
-        next[machine.id] = {};
-      }
-    });
+    // Ensure structure is keyed by date string, not machine id
+    // We simply keep existing shape and avoid writing machine keys at the root
     this.set({ machineAvailability: next });
   };
 }

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
-import { handleApiError, logError, createErrorHandler } from '../utils/errorUtils';
+import { createErrorHandler } from '../utils/errorUtils';
 import { WORK_CENTERS } from '../constants';
 import { useUIStore } from './useUIStore';
 

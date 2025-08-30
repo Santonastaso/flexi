@@ -64,8 +64,8 @@ export const useMachineValidation = () => {
       return false;
     }
 
-    // Simple shift validation (T1: 6-14, T2: 14-22, T3: 22-6)
-    const currentHour = date.getHours();
+    // Simple shift validation (T1: 6-14, T2: 14-22, T3: 22-6) using UTC to match absolute times
+    const currentHour = date.getUTCHours();
     const hasActiveShift = activeShifts.some(shift => {
       switch (shift) {
         case 'T1': return currentHour >= 6 && currentHour < 14;

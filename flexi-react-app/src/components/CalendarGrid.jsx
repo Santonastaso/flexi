@@ -3,8 +3,7 @@ import { useMachineStore, useOrderStore, useSchedulerStore, useUIStore } from '.
 import {
   toDateString,
   isTaskOverlapping,
-  getStartOfWeek,
-  getEndOfWeek
+  getStartOfWeek
 } from '../utils/dateUtils';
 import { useErrorHandler } from '../hooks';
 
@@ -14,18 +13,13 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
   
   const { machines } = useMachineStore();
   const { odpOrders } = useOrderStore();
-  const { machineAvailability, getMachineAvailability, loadMachineAvailabilityForDateRange, toggleMachineHourAvailability } = useSchedulerStore();
+  const { machineAvailability, loadMachineAvailabilityForDateRange, toggleMachineHourAvailability } = useSchedulerStore();
   const { showAlert } = useUIStore();
   
   // Use unified error handling
-  const { handleAsync } = useErrorHandler('CalendarGrid');
+  const { handleAsync: _handleAsync } = useErrorHandler('CalendarGrid');
   
   const machine = machines.find(m => m.id === machineId);
-  
-  // Early return if machine is not found
-  if (!machine) {
-    return <div className="loading">Loading machine data...</div>;
-  }
 
 
 
@@ -167,7 +161,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
         </div>
         
         <div className="calendar-days-grid">
-          {dates.map((date, index) => {
+          {dates.map((date) => {
             const dateStr = toDateString(date);
             const unavailableHours = getAvailabilityForDate(dateStr);
             const isCurrentMonth = date.getMonth() === currentDate.getMonth();
@@ -314,6 +308,11 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
       </div>
     );
   }, [currentDate, getAvailabilityForDate]);
+
+  // Early return if machine is not found (after all hooks are called)
+  if (!machine) {
+    return <div className="loading">Loading machine data...</div>;
+  }
 
   if (isLoading) {
     return <div className="loading">Loading calendar data...</div>;
