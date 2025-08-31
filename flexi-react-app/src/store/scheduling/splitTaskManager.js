@@ -261,6 +261,13 @@ export class SplitTaskManager {
     const { getOdpOrders } = useOrderStore.getState();
     const allExcludeIds = [excludeTaskId, ...additionalExcludeIds].filter(id => id);
     
+    console.log(`🔧 OVERLAP DEBUG: checkMachineOverlaps called`);
+    console.log(`🔧 OVERLAP DEBUG: New task time range: ${newTaskStart.toISOString()} - ${newTaskEnd.toISOString()}`);
+    console.log(`🔧 OVERLAP DEBUG: Machine ID: ${machineId}`);
+    console.log(`🔧 OVERLAP DEBUG: Exclude task ID: ${excludeTaskId}`);
+    console.log(`🔧 OVERLAP DEBUG: Additional exclude IDs:`, additionalExcludeIds);
+    console.log(`🔧 OVERLAP DEBUG: All exclude IDs:`, allExcludeIds);
+    
     // Filter out tasks that don't have proper scheduling information
     const existingTasks = getOdpOrders().filter(o => 
       o.scheduled_machine_id === machineId && 
@@ -270,6 +277,8 @@ export class SplitTaskManager {
       o.scheduled_end_time && // Must have end time
       o.scheduled_machine_id // Must have machine ID
     );
+
+    console.log(`🔧 OVERLAP DEBUG: Found ${existingTasks.length} existing tasks on machine (after filtering)`);
 
     // Sort tasks by their earliest start time to find the earliest conflict first
     const sortedTasks = existingTasks.sort((a, b) => {
@@ -306,8 +315,16 @@ export class SplitTaskManager {
     }
 
     for (const existingTask of sortedTasks) {
+      console.log(`🔧 OVERLAP DEBUG: Checking against task ${existingTask.odp_number} (ID: ${existingTask.id})`);
+      
       const overlapResult = this.checkTaskOverlap(newTaskStart, newTaskEnd, existingTask);
       if (overlapResult.hasOverlap) {
+        console.error(`🚨 OVERLAP ERROR: Conflict detected with task ${existingTask.odp_number}`);
+        console.error(`🚨 OVERLAP ERROR: Task ID: ${existingTask.id}`);
+        console.error(`🚨 OVERLAP ERROR: New task time range: ${newTaskStart.toISOString()} - ${newTaskEnd.toISOString()}`);
+        console.error(`🚨 OVERLAP ERROR: Existing task segments:`, this.getTaskOccupiedSegments(existingTask));
+        console.error(`🚨 OVERLAP ERROR: Conflicting segment:`, overlapResult.conflictingSegment);
+        
         if (allExcludeIds.length > 0) {
           console.error(`🚨 Conflict detected with task ${existingTask.odp_number} during shunting!`);
           console.error(`   Task ID: ${existingTask.id}, Exclude IDs: ${allExcludeIds.join(', ')}`);
@@ -322,6 +339,7 @@ export class SplitTaskManager {
       }
     }
 
+    console.log(`🔧 OVERLAP DEBUG: ✅ No overlaps detected`);
     return { hasOverlap: false };
   };
 

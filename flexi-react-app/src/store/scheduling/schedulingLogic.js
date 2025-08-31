@@ -299,9 +299,16 @@ export class SchedulingLogic {
   checkSegmentsForOverlaps = (segments, machineId, excludeTaskId, additionalExcludeIds = []) => {
     const _allExcludeIds = [excludeTaskId, ...additionalExcludeIds].filter(id => id);
     
-
+    console.log(`🔧 SCHEDULING DEBUG: checkSegmentsForOverlaps called`);
+    console.log(`🔧 SCHEDULING DEBUG: Machine ID: ${machineId}`);
+    console.log(`🔧 SCHEDULING DEBUG: Exclude task ID: ${excludeTaskId}`);
+    console.log(`🔧 SCHEDULING DEBUG: Additional exclude IDs:`, additionalExcludeIds);
+    console.log(`🔧 SCHEDULING DEBUG: All exclude IDs:`, _allExcludeIds);
+    console.log(`🔧 SCHEDULING DEBUG: Segments to check:`, segments.length);
     
     for (const segment of segments) {
+      console.log(`🔧 SCHEDULING DEBUG: Checking segment: ${segment.start.toISOString()} - ${segment.end.toISOString()}`);
+      
       const overlapResult = this.splitTaskManager.checkMachineOverlaps(
         segment.start, 
         segment.end, 
@@ -311,6 +318,11 @@ export class SchedulingLogic {
       );
       
       if (overlapResult.hasOverlap) {
+        console.error(`🚨 SCHEDULING ERROR: Overlap detected in segment`);
+        console.error(`🚨 SCHEDULING DEBUG: Segment: ${segment.start.toISOString()} - ${segment.end.toISOString()}`);
+        console.error(`🚨 SCHEDULING DEBUG: Conflicting task: ${overlapResult.conflictingTask?.odp_number} (ID: ${overlapResult.conflictingTask?.id})`);
+        console.error(`🚨 SCHEDULING DEBUG: Conflicting segment: ${overlapResult.conflictingSegment?.start?.toISOString()} - ${overlapResult.conflictingSegment?.end?.toISOString()}`);
+        
         return {
           hasOverlap: true,
           conflictingSegment: segment,
@@ -320,6 +332,7 @@ export class SchedulingLogic {
       }
     }
     
+    console.log(`🔧 SCHEDULING DEBUG: ✅ No overlaps detected`);
     return { hasOverlap: false };
   };
 
