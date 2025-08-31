@@ -16,7 +16,7 @@ import * as dateFns from 'date-fns';
 
 
 // A single 15-minute time slot on the calendar that can receive a dropped task
-const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasScheduledTask }) => {
+const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasScheduledTask, dropTargetId, slotId }) => {
   const { setNodeRef } = useDroppable({
     id: `slot-${machine.id}-${hour}-${minute}`,
     data: { machine, hour, minute, type: 'slot', isUnavailable, hasScheduledTask },
@@ -24,8 +24,36 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
 
   // Optimize className construction
   const slotClass = `time-slot${isUnavailable ? ' unavailable' : ''}${hasScheduledTask ? ' has-scheduled-task' : ''}`;
+  const isDropTarget = dropTargetId === slotId;
 
-  return <div ref={setNodeRef} className={slotClass} data-hour={hour} data-minute={minute} data-machine-id={machine.id} />;
+  return (
+    <div 
+      ref={setNodeRef} 
+      className={slotClass} 
+      data-hour={hour} 
+      data-minute={minute} 
+      data-machine-id={machine.id}
+      style={{ position: 'relative' }}
+    >
+      {isDropTarget && (
+        <div 
+          className="drop-indicator"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            border: '3px dashed #007bff',
+            background: 'rgba(0, 123, 255, 0.1)',
+            pointerEvents: 'none',
+            zIndex: 1000,
+            borderRadius: '4px'
+          }}
+        />
+      )}
+    </div>
+  );
 });
 
 // A scheduled event that can be dragged to be rescheduled or unscheduled
@@ -293,7 +321,7 @@ ${event.scheduled_end_time ? `Fine Programmata: ${formatDateTimeUTC(event.schedu
 });
 
 // A single row in the Gantt chart, representing one machine
-const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavailableByMachine }) => {
+const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavailableByMachine, dropTargetId }) => {
   // Memoize scheduled events for this machine - optimize filtering
   const machineScheduledEvents = useMemo(() =>
     scheduledEvents.filter(event => event.scheduled_machine_id === machine.id),
@@ -316,14 +344,17 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
           const minute = (index % 4) * 15;
           const isUnavailable = unavailableHours ? unavailableHours.has(hour.toString()) : false;
 
+          const slotId = `${machine.id}-${hour}-${minute}`;
           return (
             <TimeSlot
-              key={`${machine.id}-${hour}-${minute}`} // Use semantic key based on machine and time
+              key={slotId} // Use semantic key based on machine and time
               machine={machine}
               hour={hour}
               minute={minute}
               isUnavailable={isUnavailable}
               hasScheduledTask={false}
+              dropTargetId={dropTargetId}
+              slotId={slotId}
             />
           );
         })}
@@ -444,7 +475,7 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
 });
 
 // The main Gantt Chart component - heavily optimized for performance
-const GanttChart = React.memo(({ machines, currentDate }) => {
+const GanttChart = React.memo(({ machines, currentDate, dropTargetId }) => {
   const [currentView, setCurrentView] = useState('Daily'); // Add view state
   
   const { odpOrders: tasks } = useOrderStore();
@@ -550,6 +581,7 @@ const GanttChart = React.memo(({ machines, currentDate }) => {
                   scheduledEvents={scheduledTasks}
                   currentDate={currentDate}
                   unavailableByMachine={unavailableByMachine}
+                  dropTargetId={dropTargetId}
                 />
               ))}
             </div>
