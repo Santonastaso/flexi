@@ -343,7 +343,6 @@ export class SchedulingLogic {
         const segmentOverlapResult = this.checkSegmentsForOverlaps(taskSegments, machineId, taskId, additionalExcludeIds);
         
         if (segmentOverlapResult.hasOverlap) {
-  
           // Return conflict info to trigger shunting
           return {
             conflict: true,
@@ -356,17 +355,16 @@ export class SchedulingLogic {
         const firstSegment = taskSegments[0];
         const lastSegment = taskSegments[taskSegments.length - 1];
         
-        // Create segment info
+        // Create segment info and update task description
         const segmentInfo = this.splitTaskManager.createSegmentInfo(taskSegments, durationHours);
-        
-        // Update task with split info
         await this.splitTaskManager.updateTaskWithSplitInfo(taskId, segmentInfo);
         
         return {
           startTime: firstSegment.start,
           endTime: lastSegment.end,
           wasSplit: true,
-          segments: taskSegments
+          segments: taskSegments,
+          originalDuration: durationHours
         };
       }
     } else {
@@ -381,7 +379,6 @@ export class SchedulingLogic {
       const segmentOverlapResult = this.checkSegmentsForOverlaps(singleSegment, machineId, taskId, additionalExcludeIds);
       
       if (segmentOverlapResult.hasOverlap) {
-
         // Return conflict info to trigger shunting
         return {
           conflict: true,
@@ -391,6 +388,7 @@ export class SchedulingLogic {
         };
       }
       
+      // Create segment info and update task description for non-split tasks too
       const segmentInfo = this.splitTaskManager.createSegmentInfo(singleSegment, durationHours);
       await this.splitTaskManager.updateTaskWithSplitInfo(taskId, segmentInfo);
       
@@ -398,11 +396,12 @@ export class SchedulingLogic {
         startTime: startTime,
         endTime: taskEnd,
         wasSplit: false,
-        segments: singleSegment
+        segments: singleSegment,
+        originalDuration: durationHours
       };
     }
     
-    return null;
+    return null; // No available slots found
   };
 
   // Schedule task so that it ENDS at endTime, using backward splitting
@@ -431,6 +430,8 @@ export class SchedulingLogic {
     }
 
     const segmentInfo = this.splitTaskManager.createSegmentInfo(taskSegments, durationHours);
+    
+    // Update task description with segment info
     await this.splitTaskManager.updateTaskWithSplitInfo(taskId, segmentInfo);
 
     const firstSegment = taskSegments[0];
@@ -439,7 +440,8 @@ export class SchedulingLogic {
       startTime: firstSegment.start,
       endTime: lastSegment.end,
       wasSplit: taskSegments.length > 1,
-      segments: taskSegments
+      segments: taskSegments,
+      originalDuration: durationHours
     };
   };
 }

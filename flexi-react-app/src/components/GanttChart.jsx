@@ -70,113 +70,150 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
         disabled: isLocked, // Disable dragging when locked
     });
 
-    // Calculate segments for split tasks or regular positioning for normal tasks
+    // Calculate segments for ALL tasks using description column only
     const eventSegments = useMemo(() => {
         const segmentInfo = getSplitTaskInfo(event.id);
         const currentDayStart = getStartOfDay(currentDate);
         const currentDayEnd = getEndOfDay(currentDate);
         
-        if (segmentInfo && segmentInfo.wasSplit) {
-            // Handle split tasks - render only segments that appear on current day
-            const visibleSegments = [];
-            
-            for (const segment of segmentInfo.segments) {
-                const segmentStart = new Date(segment.start);
-                const segmentEnd = new Date(segment.end);
-                
-                // Check if this segment is visible on the current day
-                const segmentStartsOnCurrentDay = isSameUTCDate(segmentStart, currentDate);
-                const segmentEndsOnCurrentDay = isSameUTCDate(segmentEnd, currentDate);
-                const segmentSpansCurrentDay = segmentStart < currentDayEnd && segmentEnd > currentDayStart;
-                
-                if (segmentStartsOnCurrentDay || segmentEndsOnCurrentDay || segmentSpansCurrentDay) {
-                    // Calculate positioning for this segment on the current day
-                    let segmentLeft, segmentWidth;
-                    
-                    if (segmentStartsOnCurrentDay && segmentEndsOnCurrentDay) {
-                        // Segment starts and ends on current day - use UTC time
-                        const startHour = segmentStart.getUTCHours();
-                        const startMinute = segmentStart.getUTCMinutes();
-                        const endHour = segmentEnd.getUTCHours();
-                        const endMinute = segmentEnd.getUTCMinutes();
-                        
-                        const startSlot = startHour * 4 + Math.floor(startMinute / 15);
-                        const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
-                        
-                        segmentLeft = startSlot * 20;
-                        segmentWidth = (endSlot - startSlot) * 20;
-                    } else if (segmentStartsOnCurrentDay) {
-                        // Segment starts on current day but continues to next day - use UTC time
-                        const startHour = segmentStart.getUTCHours();
-                        const startMinute = segmentStart.getUTCMinutes();
-                        const startSlot = startHour * 4 + Math.floor(startMinute / 15);
-                        
-                        segmentLeft = startSlot * 20;
-                        segmentWidth = (96 - startSlot) * 20; // 96 = 24 * 4 slots per day
-                    } else if (segmentEndsOnCurrentDay) {
-                        // Segment ends on current day but started on previous day - use UTC time
-                        const endHour = segmentEnd.getUTCHours();
-                        const endMinute = segmentEnd.getUTCMinutes();
-                        const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
-                        
-                        segmentLeft = 0;
-                        segmentWidth = endSlot * 20;
-                    } else {
-                        // Segment spans entire current day
-                        segmentLeft = 0;
-                        segmentWidth = 1920; // 24 * 4 * 20 = 1920px
-                    }
-                    
-                    visibleSegments.push({
-                        left: segmentLeft,
-                        width: segmentWidth,
-                        start: segmentStart,
-                        end: segmentEnd
-                    });
-                }
+        // Debug logging
+        console.log(`🔍 Task ${event.odp_number} (${event.id}):`, {
+            hasSegmentInfo: !!segmentInfo,
+            segmentCount: segmentInfo?.segments?.length || 0,
+            wasSplit: segmentInfo?.wasSplit || false,
+            description: event.description?.substring(0, 100) + '...'
+        });
+        
+        // If no segment info exists, create a single segment from the task data
+        if (!segmentInfo || !segmentInfo.segments) {
+            console.warn(`⚠️ No segment info for task ${event.odp_number}, creating fallback`);
+            // This should not happen in the new system, but create a single segment as fallback
+            if (!event.scheduled_start_time) {
+                return null; // No start time, can't render
             }
             
-            return visibleSegments.length > 0 ? visibleSegments : null;
-        } else {
-            // Handle regular (non-split) tasks - use original logic
             const eventStartTime = new Date(event.scheduled_start_time);
             const timeRemaining = event.time_remaining || event.duration || 1;
             const calculatedEndTime = new Date(eventStartTime.getTime() + (timeRemaining * 60 * 60 * 1000));
             
-            const eventStartsOnCurrentDay = isSameUTCDate(eventStartTime, currentDate);
-            const eventEndsOnCurrentDay = isSameUTCDate(calculatedEndTime, currentDate);
-            const eventSpansCurrentDay = eventStartTime < currentDayEnd && calculatedEndTime > currentDayStart;
-
-            if (!eventStartsOnCurrentDay && !eventEndsOnCurrentDay && !eventSpansCurrentDay) {
+            // Create a single segment for this task
+            const singleSegment = {
+                start: eventStartTime,
+                end: calculatedEndTime,
+                duration: timeRemaining
+            };
+            
+            // Check if this segment is visible on current day
+            const segmentStartsOnCurrentDay = isSameUTCDate(singleSegment.start, currentDate);
+            const segmentEndsOnCurrentDay = isSameUTCDate(singleSegment.end, currentDate);
+            const segmentSpansCurrentDay = singleSegment.start < currentDayEnd && singleSegment.end > currentDayStart;
+            
+            if (!segmentStartsOnCurrentDay && !segmentEndsOnCurrentDay && !segmentSpansCurrentDay) {
                 return null;
             }
-
-            let baseLeft, baseWidth;
-
-            if (eventStartsOnCurrentDay) {
-                const startHour = eventStartTime.getUTCHours();
-                const startMinute = eventStartTime.getUTCMinutes();
+            
+            // Calculate positioning for this single segment
+            let segmentLeft, segmentWidth;
+            
+            if (segmentStartsOnCurrentDay && segmentEndsOnCurrentDay) {
+                // Segment starts and ends on current day - use UTC time
+                const startHour = singleSegment.start.getUTCHours();
+                const startMinute = singleSegment.start.getUTCMinutes();
+                const endHour = singleSegment.end.getUTCHours();
+                const endMinute = singleSegment.end.getUTCMinutes();
+                
                 const startSlot = startHour * 4 + Math.floor(startMinute / 15);
-                baseLeft = startSlot * 20;
-
-                const hoursRemainingInDay = 24 - startHour;
-                const hoursToShow = Math.min(timeRemaining, hoursRemainingInDay);
-                const slotsToShow = hoursToShow * 4;
-                baseWidth = slotsToShow * 20;
-            } else if (eventEndsOnCurrentDay) {
-                baseLeft = 0;
-                const endHour = calculatedEndTime.getUTCHours();
-                const endMinute = calculatedEndTime.getUTCMinutes();
                 const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
-                baseWidth = endSlot * 20;
+                
+                segmentLeft = startSlot * 20;
+                segmentWidth = (endSlot - startSlot) * 20;
+            } else if (segmentStartsOnCurrentDay) {
+                // Segment starts on current day but ends later
+                const startHour = singleSegment.start.getUTCHours();
+                const startMinute = singleSegment.start.getUTCMinutes();
+                const startSlot = startHour * 4 + Math.floor(startMinute / 15);
+                
+                segmentLeft = startSlot * 20;
+                segmentWidth = (96 - startSlot) * 20; // Rest of the day
+            } else if (segmentEndsOnCurrentDay) {
+                // Segment starts earlier but ends on current day
+                const endHour = singleSegment.end.getUTCHours();
+                const endMinute = singleSegment.end.getUTCMinutes();
+                const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
+                
+                segmentLeft = 0;
+                segmentWidth = endSlot * 20;
             } else {
-                baseLeft = 0;
-                baseWidth = 1920;
+                // Segment spans the entire current day
+                segmentLeft = 0;
+                segmentWidth = 1920; // Full day width
             }
-
-            return [{ left: baseLeft, width: baseWidth, start: eventStartTime, end: calculatedEndTime }];
+            
+            return [{ left: segmentLeft, width: segmentWidth, start: singleSegment.start, end: singleSegment.end }];
         }
-    }, [event.scheduled_start_time, event.time_remaining, event.duration, currentDate, getSplitTaskInfo, event.id, splitTasksInfo]);
+        
+        // Handle split tasks - render only segments that appear on current day
+        const visibleSegments = [];
+        
+        for (const segment of segmentInfo.segments) {
+            const segmentStart = new Date(segment.start);
+            const segmentEnd = new Date(segment.end);
+            
+            // Check if this segment is visible on the current day
+            const segmentStartsOnCurrentDay = isSameUTCDate(segmentStart, currentDate);
+            const segmentEndsOnCurrentDay = isSameUTCDate(segmentEnd, currentDate);
+            const segmentSpansCurrentDay = segmentStart < currentDayEnd && segmentEnd > currentDayStart;
+            
+            if (segmentStartsOnCurrentDay || segmentEndsOnCurrentDay || segmentSpansCurrentDay) {
+                // Calculate positioning for this segment on the current day
+                let segmentLeft, segmentWidth;
+                
+                if (segmentStartsOnCurrentDay && segmentEndsOnCurrentDay) {
+                    // Segment starts and ends on current day - use UTC time
+                    const startHour = segmentStart.getUTCHours();
+                    const startMinute = segmentStart.getUTCMinutes();
+                    const endHour = segmentEnd.getUTCHours();
+                    const endMinute = segmentEnd.getUTCMinutes();
+                    
+                    const startSlot = startHour * 4 + Math.floor(startMinute / 15);
+                    const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
+                    
+                    segmentLeft = startSlot * 20;
+                    segmentWidth = (endSlot - startSlot) * 20;
+                } else if (segmentStartsOnCurrentDay) {
+                    // Segment starts on current day but ends later
+                    const startHour = segmentStart.getUTCHours();
+                    const startMinute = segmentStart.getUTCMinutes();
+                    const startSlot = startHour * 4 + Math.floor(startMinute / 15);
+                    
+                    segmentLeft = startSlot * 20;
+                    segmentWidth = (96 - startSlot) * 20; // Rest of the day
+                } else if (segmentEndsOnCurrentDay) {
+                    // Segment starts earlier but ends on current day
+                    const endHour = segmentEnd.getUTCHours();
+                    const endMinute = segmentEnd.getUTCMinutes();
+                    const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
+                    
+                    segmentLeft = 0;
+                    segmentWidth = endSlot * 20;
+                } else {
+                    // Segment spans the entire current day
+                    segmentLeft = 0;
+                    segmentWidth = 1920; // Full day width
+                }
+                
+                visibleSegments.push({
+                    left: segmentLeft,
+                    width: segmentWidth,
+                    start: segmentStart,
+                    end: segmentEnd
+                });
+            }
+        }
+        
+        console.log(`✅ Task ${event.odp_number}: ${visibleSegments.length} visible segments`);
+        return visibleSegments.length > 0 ? visibleSegments : null;
+    }, [event.id, currentDate, getSplitTaskInfo, splitTasksInfo]);
 
     // Calculate sizing based on segments
     const totalWidth = eventSegments ? eventSegments.reduce((sum, seg) => sum + seg.width, 0) : 0;

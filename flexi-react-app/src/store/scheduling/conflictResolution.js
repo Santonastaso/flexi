@@ -343,4 +343,48 @@ export class ConflictResolution {
       return { error: appError.message };
     }
   };
+
+  // Find the next task that conflicts with the given task
+  findNextConflict = (task, machineId, excludeTaskIds) => {
+    const { getOdpOrders } = useOrderStore.getState();
+    const otherTasks = getOdpOrders().filter(o => 
+      o.scheduled_machine_id === machineId && 
+      o.status === 'SCHEDULED' &&
+      !excludeTaskIds.includes(o.id)
+    );
+    
+    // Get the segments of the current task
+    const taskSegments = this.splitTaskManager.getTaskOccupiedSegments(task);
+    if (taskSegments.length === 0) return null;
+    
+    // Find the earliest conflict by comparing actual overlap times
+    let earliestConflict = null;
+    let earliestConflictTime = null;
+    
+    for (const otherTask of otherTasks) {
+      const otherSegments = this.splitTaskManager.getTaskOccupiedSegments(otherTask);
+      
+      for (const taskSegment of taskSegments) {
+        for (const otherSegment of otherSegments) {
+          if (this.doTimeRangesOverlap(taskSegment.start, taskSegment.end, otherSegment.start, otherSegment.end)) {
+            // The conflict time is the earlier of the two segment starts
+            const conflictTime = taskSegment.start < otherSegment.start ? taskSegment.start : otherSegment.start;
+            
+            if (!earliestConflict || conflictTime < earliestConflictTime) {
+              earliestConflict = otherTask;
+              earliestConflictTime = conflictTime;
+            }
+          }
+        }
+      }
+    }
+    
+    console.log(`🔍 Found earliest conflict: ${earliestConflict?.odp_number} at ${earliestConflictTime?.toISOString()}`);
+    return earliestConflict;
+  };
+
+  // Helper function to check if two time ranges overlap
+  doTimeRangesOverlap = (start1, end1, start2, end2) => {
+    return start1 < end2 && start2 < end1;
+  };
 }

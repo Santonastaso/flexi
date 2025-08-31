@@ -17,9 +17,32 @@ export class SplitTaskManager {
     }));
   };
 
-  // Get split task info from memory
+  // Get split task info from memory with fallback to database
   getSplitTaskInfo = (taskId) => {
-    return this.get().splitTasksInfo[taskId];
+    // First try to get from memory
+    const memoryInfo = this.get().splitTasksInfo[taskId];
+    if (memoryInfo && memoryInfo.segments) {
+      return memoryInfo;
+    }
+    
+    // Fallback: try to get from database via order store
+    const { getOdpOrderById } = useOrderStore.getState();
+    const task = getOdpOrderById(taskId);
+    
+    if (task && task.description && task.status === 'SCHEDULED') {
+      try {
+        const segmentInfo = JSON.parse(task.description);
+        if (segmentInfo.segments && Array.isArray(segmentInfo.segments)) {
+          // Store in memory for future access
+          this.setSplitTaskInfo(taskId, segmentInfo);
+          return segmentInfo;
+        }
+      } catch (_error) {
+        console.warn(`Failed to parse segment info for task ${taskId}:`, _error);
+      }
+    }
+    
+    return null;
   };
 
   // Clear split task info from memory
@@ -75,6 +98,8 @@ export class SplitTaskManager {
     const orders = getOdpOrders();
     
     const splitTasksInfo = {};
+    let loadedCount = 0;
+    
     orders.forEach(order => {
       if (order.description && order.status === 'SCHEDULED') {
         try {
@@ -82,15 +107,17 @@ export class SplitTaskManager {
           if (segmentInfo.segments && Array.isArray(segmentInfo.segments)) {
             // All scheduled tasks should have segment info now
             splitTasksInfo[order.id] = segmentInfo;
+            loadedCount++;
           }
         } catch (_error) {
           // If parsing fails, it's not segment info, ignore
+          console.warn(`Failed to parse segment info for task ${order.odp_number}:`, _error);
         }
       }
     });
     
     this.set({ splitTasksInfo });
-    
+    console.log(`✅ Restored split task info for ${loadedCount} tasks`);
   };
 
   // Create segment info object
@@ -187,12 +214,33 @@ export class SplitTaskManager {
       !allExcludeIds.includes(o.id)
     );
 
+    // Sort tasks by their earliest start time to find the earliest conflict first
+    const sortedTasks = existingTasks.sort((a, b) => {
+      const aSegments = this.getTaskOccupiedSegments(a);
+      const bSegments = this.getTaskOccupiedSegments(b);
+      
+      const aStart = aSegments.length > 0 ? aSegments[0].start : new Date(a.scheduled_start_time);
+      const bStart = bSegments.length > 0 ? bSegments[0].start : new Date(b.scheduled_start_time);
+      
+      return aStart.getTime() - bStart.getTime();
+    });
 
+    // Debug logging for shunting conflicts
+    if (allExcludeIds.length > 0) {
+      console.log(`🔍 Checking overlaps for machine ${machineId}, excluding:`, allExcludeIds);
+      console.log(`📋 Tasks not excluded (sorted by start time):`, sortedTasks.map(t => ({ 
+        id: t.id, 
+        odp: t.odp_number,
+        start: this.getTaskOccupiedSegments(t)[0]?.start?.toISOString() || t.scheduled_start_time
+      })));
+    }
 
-    for (const existingTask of existingTasks) {
+    for (const existingTask of sortedTasks) {
       const overlapResult = this.checkTaskOverlap(newTaskStart, newTaskEnd, existingTask);
       if (overlapResult.hasOverlap) {
-
+        if (allExcludeIds.length > 0) {
+          console.error(`🚨 Conflict detected with task ${existingTask.odp_number} during shunting!`);
+        }
         return {
           hasOverlap: true,
           conflictingTask: existingTask,
@@ -201,25 +249,39 @@ export class SplitTaskManager {
       }
     }
 
-
     return { hasOverlap: false };
   };
 
-  // MIGRATION: Convert existing tasks to new segment format
+  // Migrate existing tasks to segment format (for backward compatibility)
   migrateExistingTasksToSegmentFormat = async () => {
-    const { getOdpOrders, updateOdpOrder } = useOrderStore.getState();
-    const scheduledTasks = getOdpOrders().filter(o => 
-      o.status === 'SCHEDULED' && 
-      o.scheduled_start_time &&
-      (!o.description || o.description.trim() === '')
-    );
-
-
-
-    for (const task of scheduledTasks) {
-      try {
-        const startTime = new Date(task.scheduled_start_time);
-        const durationHours = task.time_remaining || task.duration || 1;
+    const { getOdpOrders } = useOrderStore.getState();
+    const orders = getOdpOrders();
+    
+    for (const order of orders) {
+      if (order.status === 'SCHEDULED' && order.scheduled_start_time) {
+        // Check if task already has proper segment info
+        const existingSegmentInfo = this.getSplitTaskInfo(order.id);
+        if (existingSegmentInfo && existingSegmentInfo.segments) {
+          continue; // Already migrated
+        }
+        
+        // Check if description has valid segment info
+        if (order.description) {
+          try {
+            const parsedDescription = JSON.parse(order.description);
+            if (parsedDescription.segments && Array.isArray(parsedDescription.segments)) {
+              // Valid segment info exists, just store in memory
+              this.setSplitTaskInfo(order.id, parsedDescription);
+              continue;
+            }
+          } catch (_error) {
+            // Invalid JSON, will create new segment info
+          }
+        }
+        
+        // Create single segment for this task
+        const startTime = new Date(order.scheduled_start_time);
+        const durationHours = order.time_remaining || order.duration || 1;
         const endTime = new Date(startTime.getTime() + (durationHours * 60 * 60 * 1000));
         
         const singleSegment = [{
@@ -229,17 +291,34 @@ export class SplitTaskManager {
         }];
         
         const segmentInfo = this.createSegmentInfo(singleSegment, durationHours);
-        const segmentInfoJson = JSON.stringify(segmentInfo);
-        
-        await updateOdpOrder(task.id, { description: segmentInfoJson });
-        this.setSplitTaskInfo(task.id, segmentInfo);
-        
-
-      } catch (error) {
-        console.error(`❌ Failed to migrate task ${task.odp_number}:`, error);
+        await this.updateTaskWithSplitInfo(order.id, segmentInfo);
       }
     }
+  };
 
-
+  // Utility method to verify all scheduled tasks have segment info
+  verifyAllTasksHaveSegmentInfo = () => {
+    const { getOdpOrders } = useOrderStore.getState();
+    const orders = getOdpOrders();
+    const scheduledTasks = orders.filter(o => o.status === 'SCHEDULED');
+    
+    const tasksWithoutSegments = [];
+    
+    for (const task of scheduledTasks) {
+      const segmentInfo = this.getSplitTaskInfo(task.id);
+      if (!segmentInfo || !segmentInfo.segments) {
+        tasksWithoutSegments.push({
+          id: task.id,
+          odp_number: task.odp_number,
+          description: task.description
+        });
+      }
+    }
+    
+    return {
+      totalScheduledTasks: scheduledTasks.length,
+      tasksWithSegments: scheduledTasks.length - tasksWithoutSegments.length,
+      tasksWithoutSegments: tasksWithoutSegments
+    };
   };
 }

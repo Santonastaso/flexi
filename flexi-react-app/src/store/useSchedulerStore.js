@@ -42,6 +42,7 @@ export const useSchedulerStore = create((set, get) => {
     checkTaskOverlap: splitTaskManager.checkTaskOverlap,
     checkMachineOverlaps: splitTaskManager.checkMachineOverlaps,
     migrateExistingTasksToSegmentFormat: splitTaskManager.migrateExistingTasksToSegmentFormat,
+    verifyAllTasksHaveSegmentInfo: splitTaskManager.verifyAllTasksHaveSegmentInfo,
 
     // Scheduling logic (delegated to SchedulingLogic)
     createAbsoluteDate: schedulingLogic.createAbsoluteDate,
@@ -171,16 +172,39 @@ export const useSchedulerStore = create((set, get) => {
         eventData.start_time = schedulingResult.startTime.toISOString();
         eventData.end_time = schedulingResult.endTime.toISOString();
 
+        // Prepare updates including split task information
         const updates = {
           scheduled_machine_id: eventData.machine,
           scheduled_start_time: eventData.start_time,
           scheduled_end_time: eventData.end_time,
           status: 'SCHEDULED',
         };
+
+        // ALWAYS create segment information in description, even for non-split tasks
+        if (schedulingResult.segments) {
+          const segmentInfo = {
+            segments: schedulingResult.segments,
+            totalSegments: schedulingResult.segments.length,
+            originalDuration: schedulingResult.originalDuration || (task.time_remaining || task.duration || 1),
+            wasSplit: schedulingResult.wasSplit || false
+          };
+          updates.description = JSON.stringify(segmentInfo);
+        }
         
         // Call the update method from the order store
         const { updateOdpOrder } = useOrderStore.getState();
         const result = await updateOdpOrder(taskId, updates);
+        
+        // Also update the split task info in memory for immediate access
+        if (schedulingResult.segments) {
+          const segmentInfo = {
+            segments: schedulingResult.segments,
+            totalSegments: schedulingResult.segments.length,
+            originalDuration: schedulingResult.originalDuration || (task.time_remaining || task.duration || 1),
+            wasSplit: schedulingResult.wasSplit || false
+          };
+          splitTaskManager.setSplitTaskInfo(taskId, segmentInfo);
+        }
         
         return { success: true };
       } catch (error) {
