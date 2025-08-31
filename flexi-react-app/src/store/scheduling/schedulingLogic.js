@@ -299,6 +299,8 @@ export class SchedulingLogic {
   checkSegmentsForOverlaps = (segments, machineId, excludeTaskId, additionalExcludeIds = []) => {
     const _allExcludeIds = [excludeTaskId, ...additionalExcludeIds].filter(id => id);
     
+
+    
     for (const segment of segments) {
       const overlapResult = this.splitTaskManager.checkMachineOverlaps(
         segment.start, 
@@ -357,7 +359,7 @@ export class SchedulingLogic {
         
         // Create segment info and update task description
         const segmentInfo = this.splitTaskManager.createSegmentInfo(taskSegments, durationHours);
-        await this.splitTaskManager.updateTaskWithSplitInfo(taskId, segmentInfo);
+        await this.splitTaskManager.updateTaskWithSplitInfo(taskId, segmentInfo, firstSegment.start, lastSegment.end, machineId);
         
         return {
           startTime: firstSegment.start,
@@ -390,7 +392,7 @@ export class SchedulingLogic {
       
       // Create segment info and update task description for non-split tasks too
       const segmentInfo = this.splitTaskManager.createSegmentInfo(singleSegment, durationHours);
-      await this.splitTaskManager.updateTaskWithSplitInfo(taskId, segmentInfo);
+      await this.splitTaskManager.updateTaskWithSplitInfo(taskId, segmentInfo, startTime, taskEnd, machineId);
       
       return {
         startTime: startTime,
@@ -432,10 +434,9 @@ export class SchedulingLogic {
     const segmentInfo = this.splitTaskManager.createSegmentInfo(taskSegments, durationHours);
     
     // Update task description with segment info
-    await this.splitTaskManager.updateTaskWithSplitInfo(taskId, segmentInfo);
-
     const firstSegment = taskSegments[0];
     const lastSegment = taskSegments[taskSegments.length - 1];
+    await this.splitTaskManager.updateTaskWithSplitInfo(taskId, segmentInfo, firstSegment.start, lastSegment.end, machineId);
     return {
       startTime: firstSegment.start,
       endTime: lastSegment.end,

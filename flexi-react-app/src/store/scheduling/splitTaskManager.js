@@ -55,14 +55,67 @@ export class SplitTaskManager {
   };
 
   // Update task with segment info and sync with database (ALL TASKS NOW HAVE SEGMENTS)
-  updateTaskWithSplitInfo = async (taskId, segmentInfo) => {
+  updateTaskWithSplitInfo = async (taskId, segmentInfo, startTime = null, endTime = null, machineId = null) => {
+    console.log(`💾 DATABASE UPDATE: Starting updateTaskWithSplitInfo for task ${taskId}`);
+    console.log(`💾 DATABASE UPDATE: Segment info:`, segmentInfo);
+    console.log(`💾 DATABASE UPDATE: Start time: ${startTime?.toISOString()}`);
+    console.log(`💾 DATABASE UPDATE: End time: ${endTime?.toISOString()}`);
+    console.log(`💾 DATABASE UPDATE: Machine ID: ${machineId}`);
+    
     const { updateOdpOrder } = useOrderStore.getState();
     
     if (segmentInfo) {
       // Store segment info in memory and database (for both split and non-split tasks)
       this.setSplitTaskInfo(taskId, segmentInfo);
       const segmentInfoJson = JSON.stringify(segmentInfo);
-      const updatedTask = await updateOdpOrder(taskId, { description: segmentInfoJson });
+      
+      // Prepare update object - ensure all scheduling fields are updated together to satisfy constraint
+      const updateData = { 
+        description: segmentInfoJson,
+        status: 'SCHEDULED'
+      };
+      
+      if (startTime) updateData.scheduled_start_time = startTime.toISOString();
+      if (endTime) updateData.scheduled_end_time = endTime.toISOString();
+      if (machineId) updateData.scheduled_machine_id = machineId;
+      
+      console.log(`💾 DATABASE UPDATE: Initial update data:`, updateData);
+      
+      // Ensure we have all required scheduling fields or none of them
+      if (updateData.scheduled_start_time && updateData.scheduled_end_time && updateData.scheduled_machine_id) {
+        // All scheduling fields are present - this is valid
+        console.log(`💾 DATABASE UPDATE: ✅ All scheduling fields present - valid state`);
+      } else if (!updateData.scheduled_start_time && !updateData.scheduled_end_time && !updateData.scheduled_machine_id) {
+        // No scheduling fields are present - this is also valid
+        console.log(`💾 DATABASE UPDATE: ✅ No scheduling fields present - valid state`);
+        delete updateData.scheduled_start_time;
+        delete updateData.scheduled_end_time;
+        delete updateData.scheduled_machine_id;
+        updateData.status = 'NOT SCHEDULED';
+      } else {
+        // Partial scheduling fields - this violates the constraint, so we need to get the current task state
+        console.log(`💾 DATABASE UPDATE: ⚠️ Partial scheduling fields - need to get current task state`);
+        const { getOdpOrderById } = useOrderStore.getState();
+        const currentTask = getOdpOrderById(taskId);
+        
+        if (currentTask) {
+          console.log(`💾 DATABASE UPDATE: Current task state:`, {
+            scheduled_start_time: currentTask.scheduled_start_time,
+            scheduled_end_time: currentTask.scheduled_end_time,
+            scheduled_machine_id: currentTask.scheduled_machine_id
+          });
+          // Use existing values for missing fields to maintain constraint
+          if (!updateData.scheduled_start_time) updateData.scheduled_start_time = currentTask.scheduled_start_time;
+          if (!updateData.scheduled_end_time) updateData.scheduled_end_time = currentTask.scheduled_end_time;
+          if (!updateData.scheduled_machine_id) updateData.scheduled_machine_id = currentTask.scheduled_machine_id;
+        }
+      }
+      
+      console.log(`💾 DATABASE UPDATE: Final update data:`, updateData);
+      
+      console.log(`💾 DATABASE UPDATE: Calling updateOdpOrder with data:`, updateData);
+      const updatedTask = await updateOdpOrder(taskId, updateData);
+      console.log(`💾 DATABASE UPDATE: ✅ Successfully updated task ${taskId}`);
       this.updateSplitTaskInfo(taskId, updatedTask);
     } else {
       // This should rarely happen now, but keep for safety
@@ -208,10 +261,14 @@ export class SplitTaskManager {
     const { getOdpOrders } = useOrderStore.getState();
     const allExcludeIds = [excludeTaskId, ...additionalExcludeIds].filter(id => id);
     
+    // Filter out tasks that don't have proper scheduling information
     const existingTasks = getOdpOrders().filter(o => 
       o.scheduled_machine_id === machineId && 
       o.status === 'SCHEDULED' &&
-      !allExcludeIds.includes(o.id)
+      !allExcludeIds.includes(o.id) &&
+      o.scheduled_start_time && // Must have start time
+      o.scheduled_end_time && // Must have end time
+      o.scheduled_machine_id // Must have machine ID
     );
 
     // Sort tasks by their earliest start time to find the earliest conflict first
@@ -231,7 +288,20 @@ export class SplitTaskManager {
       console.log(`📋 Tasks not excluded (sorted by start time):`, sortedTasks.map(t => ({ 
         id: t.id, 
         odp: t.odp_number,
-        start: this.getTaskOccupiedSegments(t)[0]?.start?.toISOString() || t.scheduled_start_time
+        start: this.getTaskOccupiedSegments(t)[0]?.start?.toISOString() || t.scheduled_start_time,
+        segments: this.getTaskOccupiedSegments(t).length
+      })));
+      console.log(`📋 ALL tasks on machine:`, getOdpOrders().filter(o => 
+        o.scheduled_machine_id === machineId && 
+        o.status === 'SCHEDULED'
+      ).map(t => ({ 
+        id: t.id, 
+        odp: t.odp_number,
+        segments: this.getTaskOccupiedSegments(t).length,
+        start: t.scheduled_start_time,
+        end: t.scheduled_end_time,
+        machine: t.scheduled_machine_id,
+        hasCompleteScheduling: !!(t.scheduled_start_time && t.scheduled_end_time && t.scheduled_machine_id)
       })));
     }
 
@@ -240,6 +310,9 @@ export class SplitTaskManager {
       if (overlapResult.hasOverlap) {
         if (allExcludeIds.length > 0) {
           console.error(`🚨 Conflict detected with task ${existingTask.odp_number} during shunting!`);
+          console.error(`   Task ID: ${existingTask.id}, Exclude IDs: ${allExcludeIds.join(', ')}`);
+          console.error(`   New task time range: ${newTaskStart.toISOString()} - ${newTaskEnd.toISOString()}`);
+          console.error(`   Existing task segments:`, this.getTaskOccupiedSegments(existingTask));
         }
         return {
           hasOverlap: true,
