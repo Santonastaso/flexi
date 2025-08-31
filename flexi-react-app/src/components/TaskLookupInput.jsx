@@ -50,17 +50,23 @@ const TaskLookupInput = ({
         />
         {value && (
           <div className="task-lookup-dropdown">
-            {filteredSuggestions.map(order => (
-              <div 
-                key={order.id} 
-                className="task-lookup-option"
-                onClick={() => onDropdownSelect(order, field, fieldLabel, order[field])}
-              >
-                <span className="task-lookup-odp">{order[field]}</span>
-                <span className="task-lookup-product">{order.product_name || 'Prodotto non specificato'}</span>
-                <span className="task-lookup-workcenter">({order.work_center})</span>
+            {filteredSuggestions.length > 0 ? (
+              filteredSuggestions.map(order => (
+                <div 
+                  key={order.id} 
+                  className="task-lookup-option"
+                  onClick={() => onDropdownSelect(order, field, fieldLabel, order[field])}
+                >
+                  <span className="task-lookup-odp">{order[field]}</span>
+                  <span className="task-lookup-product">{order.product_name || 'Prodotto non specificato'}</span>
+                  <span className="task-lookup-workcenter">({order.work_center})</span>
+                </div>
+              ))
+            ) : (
+              <div className="task-lookup-option no-results">
+                <span>Nessun risultato trovato</span>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
