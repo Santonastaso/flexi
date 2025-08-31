@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../services/supabase/client';
 import { WORK_CENTERS } from '../constants';
+import { AppError, ERROR_TYPES } from '../utils/errorUtils';
 
 // Create the authentication context
 const AuthContext = createContext();
@@ -29,7 +30,8 @@ export const AuthProvider = ({ children }) => {
           setUser(initialSession?.user ?? null);
         }
       } catch (_error) {
-        setError('Failed to initialize authentication');
+        const appError = new AppError('Failed to initialize authentication', ERROR_TYPES.AUTHENTICATION_ERROR, 401, _error, 'AuthContext.getInitialSession');
+        setError(appError.message);
       } finally {
         setLoading(false);
       }
@@ -85,8 +87,9 @@ export const AuthProvider = ({ children }) => {
       return { success: true, user: data.user };
       
     } catch (_error) {
-      setError(_error.message);
-      return { success: false, error: _error.message };
+      const appError = _error instanceof AppError ? _error : new AppError(_error.message, ERROR_TYPES.AUTHENTICATION_ERROR, 401, _error, 'AuthContext.signIn');
+      setError(appError.message);
+      return { success: false, error: appError.message };
     } finally {
       setLoading(false);
     }

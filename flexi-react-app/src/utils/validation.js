@@ -393,7 +393,7 @@ export const isValidDepartment = (department) => {
  * Check if value is a valid machine status
  */
 export const isValidMachineStatus = (status) => {
-  const validStatuses = ['ACTIVE', 'INACTIVE', 'MAINTENANCE'];
+  const validStatuses = ['ACTIVE', 'INACTIVE'];
   return validStatuses.includes(status);
 };
 
@@ -401,7 +401,7 @@ export const isValidMachineStatus = (status) => {
  * Check if value is a valid product type
  */
 export const isValidProductType = (productType) => {
-  const validTypes = ['crema', 'liquido', 'polveri'];
+  const validTypes = ['CREMA', 'LIQUIDO', 'POLVERI'];
   return validTypes.includes(productType);
 };
 

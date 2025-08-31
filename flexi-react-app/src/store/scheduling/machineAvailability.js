@@ -1,8 +1,7 @@
 import { apiService } from '../../services';
 import { toDateString, addDaysToDate } from '../../utils/dateUtils';
-import { handleApiError } from '../../utils/errorUtils';
+import { handleApiError, AppError, ERROR_TYPES } from '../../utils/errorUtils';
 import { useOrderStore } from '../useOrderStore';
-// import { useMachineStore } from '../useMachineStore';
 import { useUIStore } from '../useUIStore';
 
 /**
@@ -207,7 +206,7 @@ export class MachineAvailabilityManager {
             const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
             
             if (hourStart < taskEnd && hourEnd > taskStart) {
-              throw new Error(`Cannot set machine unavailable during scheduled task: ${task.odp_number}`);
+              throw new AppError(`Cannot set machine unavailable during scheduled task: ${task.odp_number}`, ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, null, 'MachineAvailabilityManager.setMachineUnavailability');
             }
           }
         }

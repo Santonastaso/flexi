@@ -7,18 +7,21 @@ import * as dateFns from 'date-fns';
 
 /**
  * Convert a Date object to a date string in YYYY-MM-DD format
- * Uses date-fns for consistent formatting
+ * Uses UTC to avoid timezone issues
  */
 export function toDateString(date) {
-  return dateFns.format(date, 'yyyy-MM-dd');
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**
  * Create a date string from year, month, and day
- * Uses date-fns for reliable date construction
+ * Uses UTC for reliable date construction
  */
 export function createDateString(year, month, day) {
-  const date = new Date(year, month - 1, day); // month is 0-indexed in Date constructor
+  const date = new Date(Date.UTC(year, month - 1, day)); // month is 0-indexed in Date constructor
   return toDateString(date);
 }
 
@@ -55,18 +58,43 @@ export function isTaskOverlapping(task, dateStr, hour) {
 
 /**
  * Get the start of week for a given date
- * Uses date-fns for reliable week calculation
+ * Uses UTC to avoid timezone issues
  */
 export function getStartOfWeek(date) {
-  return dateFns.startOfWeek(date, { weekStartsOn: 0 }); // Sunday = 0
+  // Get the day of week (0 = Sunday, 1 = Monday, etc.)
+  const dayOfWeek = date.getUTCDay();
+  
+  // Calculate days to subtract to get to Sunday (start of week)
+  const daysToSubtract = dayOfWeek;
+  
+  // Create a new date object for the start of the week
+  const startOfWeek = new Date(Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate() - daysToSubtract,
+    0, 0, 0, 0
+  ));
+  
+  return startOfWeek;
 }
 
 /**
  * Get the end of week for a given date
- * Uses date-fns for reliable week calculation
+ * Uses UTC to avoid timezone issues
  */
 export function getEndOfWeek(date) {
-  return dateFns.endOfWeek(date, { weekStartsOn: 0 }); // Sunday = 0
+  // Get the start of week first
+  const startOfWeek = getStartOfWeek(date);
+  
+  // Add 6 days to get to Saturday (end of week)
+  const endOfWeek = new Date(Date.UTC(
+    startOfWeek.getUTCFullYear(),
+    startOfWeek.getUTCMonth(),
+    startOfWeek.getUTCDate() + 6,
+    23, 59, 59, 999
+  ));
+  
+  return endOfWeek;
 }
 
 /**
@@ -210,3 +238,58 @@ export function getHours(date) {
 export function getMinutes(date) {
   return dateFns.getMinutes(date);
 }
+
+/**
+ * Format date to YYYY-MM-DD format in UTC
+ * @param {Date|string} date - Date to format
+ * @returns {string} Formatted date string
+ */
+export const formatDateUTC = (date) => {
+  if (!date) return 'N/A';
+  const dateObj = new Date(date);
+  return dateObj.toISOString().split('T')[0];
+};
+
+/**
+ * Format date to DD/MM format in UTC
+ * @param {Date|string} date - Date to format
+ * @returns {string} Formatted date string
+ */
+export const formatDateShortUTC = (date) => {
+  if (!date) return 'N/A';
+  const dateObj = new Date(date);
+  return `${String(dateObj.getUTCDate()).padStart(2, '0')}/${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}`;
+};
+
+/**
+ * Format date to YYYY-MM format in UTC
+ * @param {Date|string} date - Date to format
+ * @returns {string} Formatted date string
+ */
+export const formatDateMonthUTC = (date) => {
+  if (!date) return 'N/A';
+  const dateObj = new Date(date);
+  return `${dateObj.getUTCFullYear()}-${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}`;
+};
+
+/**
+ * Format date to YYYY-MM-DD HH:MM format in UTC
+ * @param {Date|string} date - Date to format
+ * @returns {string} Formatted date string
+ */
+export const formatDateTimeUTC = (date) => {
+  if (!date) return 'N/A';
+  const dateObj = new Date(date);
+  return dateObj.toISOString().replace('T', ' ').replace('.000Z', '');
+};
+
+/**
+ * Format date range to YYYY-MM-DD - YYYY-MM-DD format in UTC
+ * @param {Date|string} startDate - Start date
+ * @param {Date|string} endDate - End date
+ * @returns {string} Formatted date range string
+ */
+export const formatDateRangeUTC = (startDate, endDate) => {
+  if (!startDate || !endDate) return 'N/A';
+  return `${formatDateUTC(startDate)} - ${formatDateUTC(endDate)}`;
+};

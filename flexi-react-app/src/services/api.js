@@ -1,5 +1,5 @@
 import { supabase, handleSupabaseError } from './supabase/client';
-import { safeAsync, handleApiError } from '../utils/errorUtils';
+import { safeAsync, handleApiError, AppError, ERROR_TYPES } from '../utils/errorUtils';
 import { toDateString, addDaysToDate } from '../utils/dateUtils';
 import { AppConfig } from './config';
 
@@ -20,12 +20,15 @@ class ApiService {
         .limit(1);
         
       if (error) {
-        throw new Error(`API initialization failed: ${error.message}`);
+        throw new AppError(`API initialization failed: ${error.message}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.init');
       }
       
       return true;
     } catch (error) {
-      throw error;
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(`API initialization failed: ${error.message}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.init');
     }
   }
 
@@ -54,7 +57,7 @@ class ApiService {
       if (error) throw error;
       return data;
     } catch (error) {
-      throw new Error(`Failed to add machine: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to add machine: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.addMachine');
     }
   }
 
@@ -70,7 +73,7 @@ class ApiService {
       if (error) throw error;
       return data;
     } catch (error) {
-      throw new Error(`Failed to update machine: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to update machine: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.updateMachine');
     }
   }
 
@@ -84,7 +87,7 @@ class ApiService {
       if (error) throw error;
       return true;
     } catch (error) {
-      throw new Error(`Failed to remove machine: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to remove machine: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.removeMachine');
     }
   }
 
@@ -100,7 +103,7 @@ class ApiService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      throw new Error(`Failed to fetch ODP orders: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to fetch ODP orders: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.getOdpOrders');
     }
   }
 
@@ -115,7 +118,7 @@ class ApiService {
       if (error) throw error;
       return data;
     } catch (error) {
-      throw new Error(`Failed to add ODP order: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to add ODP order: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.addOdpOrder');
     }
   }
 
@@ -131,7 +134,7 @@ class ApiService {
       if (error) throw error;
       return data;
     } catch (error) {
-      throw new Error(`Failed to update ODP order: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to update ODP order: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.updateOdpOrder');
     }
   }
 
@@ -145,7 +148,7 @@ class ApiService {
       if (error) throw error;
       return true;
     } catch (error) {
-      throw new Error(`Failed to remove ODP order: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to remove ODP order: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.removeOdpOrder');
     }
   }
 
@@ -161,7 +164,7 @@ class ApiService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      throw new Error(`Failed to fetch phases: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to fetch phases: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.getPhases');
     }
   }
 
@@ -176,7 +179,7 @@ class ApiService {
       if (error) throw error;
       return data;
     } catch (error) {
-      throw new Error(`Failed to add phase: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to add phase: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.addPhase');
     }
   }
 
@@ -192,7 +195,7 @@ class ApiService {
       if (error) throw error;
       return data;
     } catch (error) {
-      throw new Error(`Failed to update phase: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to update phase: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.updatePhase');
     }
   }
 
@@ -206,7 +209,7 @@ class ApiService {
       if (error) throw error;
       return true;
     } catch (error) {
-      throw new Error(`Failed to remove phase: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to remove phase: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.removePhase');
     }
   }
 
@@ -225,7 +228,7 @@ class ApiService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      throw new Error(`Failed to fetch machine availability for date range: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to fetch machine availability for date range: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.getMachineAvailabilityForDateRange');
     }
   }
 
@@ -241,7 +244,7 @@ class ApiService {
       if (error) throw error;
       return data || null;
     } catch (error) {
-      throw new Error(`Failed to fetch machine availability: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to fetch machine availability: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.getMachineAvailabilityForDate');
     }
   }
 
@@ -269,7 +272,7 @@ class ApiService {
       if (error) throw error;
       return data;
     } catch (error) {
-      throw new Error(`Failed to set machine availability: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to set machine availability: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.setMachineAvailability');
     }
   }
 
@@ -283,7 +286,7 @@ class ApiService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      throw new Error(`Failed to fetch machine availability for all machines: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to fetch machine availability for all machines: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.getMachineAvailabilityForDateAllMachines');
     }
   }
 
@@ -297,7 +300,7 @@ class ApiService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      throw new Error(`Failed to fetch events by date: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to fetch events by date: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.getEventsByDate');
     }
   }
 
@@ -341,7 +344,7 @@ class ApiService {
       
       return results;
     } catch (error) {
-      throw new Error(`Failed to set unavailable hours for range: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to set unavailable hours for range: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.setUnavailableHoursForRange');
     }
   }
 
@@ -354,7 +357,7 @@ class ApiService {
       if (error) throw error;
       return { success: true };
     } catch (error) {
-      throw new Error(`Failed to bulk set machine availability: ${handleSupabaseError(error)}`);
+      throw new AppError(`Failed to bulk set machine availability: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.bulkUpsertMachineAvailability');
     }
   }
 

@@ -6,6 +6,7 @@ import StickyHeader from '../components/StickyHeader';
 import { useOrderStore, useUIStore, useMainStore, useMachineStore, usePhaseStore } from '../store';
 import { useOrderValidation, useErrorHandler } from '../hooks';
 import { WORK_CENTERS } from '../constants';
+import { formatDateUTC } from '../utils/dateUtils';
 
 function BacklogListPage() {
   // Use Zustand store to select state and actions
@@ -32,7 +33,10 @@ function BacklogListPage() {
         : 'Non programmato',
       phase_name: order.fase 
         ? phases.find(p => p.id === order.fase)?.name || 'Fase non trovata'
-        : 'Fase non assegnata'
+        : 'Fase non assegnata',
+      // Ensure progress and time_remaining have fallback values
+      progress: order.progress || 0,
+      time_remaining: order.time_remaining || order.duration || 0
     }));
   }, [odpOrders, selectedWorkCenter, machines, phases]);
 
@@ -81,7 +85,7 @@ function BacklogListPage() {
     { 
       header: 'Data Consegna', 
       accessorKey: 'delivery_date',
-      cell: info => info.getValue() ? new Date(info.getValue()).toLocaleDateString() : 'Non impostata'
+      cell: info => formatDateUTC(info.getValue()) || 'Non impostata'
     },
     { 
       header: 'Inizio Programmato', 
@@ -101,7 +105,7 @@ function BacklogListPage() {
     
     // Fase e Calcoli
     { header: 'ID Fase', accessorKey: 'fase' },
-    { header: 'Nome Fase', accessorKey: '_phase_name' },
+    { header: 'Nome Fase', accessorKey: 'phase_name' },
     { 
       header: 'Durata (ore)', 
       accessorKey: 'duration', 
@@ -118,18 +122,24 @@ function BacklogListPage() {
         return typeof value === 'number' ? value.toFixed(1) : value;
       }
     },
-    { header: 'Priorità', accessorKey: 'priority' },
     { header: 'Stato', accessorKey: 'status' },
     
     // Macchina Programmata
     { header: 'ID Macchina Programmata', accessorKey: 'scheduled_machine_id' },
-    { header: 'Nome Macchina', accessorKey: '_machine_name' },
+    { header: 'Nome Macchina', accessorKey: 'machine_name' },
     
     // Campi Calcolati
-    { header: 'Progresso (%)', accessorKey: '_progress' },
+    { 
+      header: 'Progresso (%)', 
+      accessorKey: 'progress',
+      cell: info => {
+        const value = info.getValue();
+        return typeof value === 'number' ? `${value}%` : value;
+      }
+    },
     { 
       header: 'Tempo Rimanente (ore)', 
-      accessorKey: '_time_remaining', 
+      accessorKey: 'time_remaining', 
       cell: info => {
         const value = info.getValue();
         return typeof value === 'number' ? value.toFixed(1) : value;
@@ -140,12 +150,12 @@ function BacklogListPage() {
     { 
       header: 'Creato il', 
       accessorKey: 'created_at',
-      cell: info => new Date(info.getValue()).toLocaleDateString()
+      cell: info => formatDateUTC(info.getValue())
     },
     { 
       header: 'Aggiornato il', 
       accessorKey: 'updated_at',
-      cell: info => new Date(info.getValue()).toLocaleDateString()
+      cell: info => formatDateUTC(info.getValue())
     },
 
   ], []);

@@ -90,7 +90,7 @@ export class SplitTaskManager {
     });
     
     this.set({ splitTasksInfo });
-    console.log(`🔄 Restored ${Object.keys(splitTasksInfo).length} split tasks from database`);
+    
   };
 
   // Create segment info object
@@ -160,13 +160,11 @@ export class SplitTaskManager {
   checkTaskOverlap = (newTaskStart, newTaskEnd, existingTask) => {
     const existingSegments = this.getTaskOccupiedSegments(existingTask);
     
-    console.log(`🔍 Checking ${existingTask.odp_number} segments:`, existingSegments.map(s => 
-      `${s.start.toISOString()} - ${s.end.toISOString()}`
-    ));
+
     
     for (const segment of existingSegments) {
       if (this.doTimeRangesOverlap(newTaskStart, newTaskEnd, segment.start, segment.end)) {
-        console.log(`🚨 SEGMENT OVERLAP: ${newTaskStart.toISOString()}-${newTaskEnd.toISOString()} vs ${segment.start.toISOString()}-${segment.end.toISOString()}`);
+
         return {
           hasOverlap: true,
           conflictingSegment: segment,
@@ -189,14 +187,12 @@ export class SplitTaskManager {
       !allExcludeIds.includes(o.id)
     );
 
-    console.log(`🔍 Checking overlaps: ${newTaskStart.toISOString()} - ${newTaskEnd.toISOString()}`);
-    console.log(`🔍 Excluding tasks:`, allExcludeIds);
-    console.log(`🔍 Checking against ${existingTasks.length} tasks:`, existingTasks.map(t => t.odp_number));
+
 
     for (const existingTask of existingTasks) {
       const overlapResult = this.checkTaskOverlap(newTaskStart, newTaskEnd, existingTask);
       if (overlapResult.hasOverlap) {
-        console.log(`🚨 OVERLAP FOUND with ${existingTask.odp_number}:`, overlapResult.conflictingSegment);
+
         return {
           hasOverlap: true,
           conflictingTask: existingTask,
@@ -205,7 +201,7 @@ export class SplitTaskManager {
       }
     }
 
-    console.log(`✅ No overlaps found`);
+
     return { hasOverlap: false };
   };
 
@@ -218,7 +214,7 @@ export class SplitTaskManager {
       (!o.description || o.description.trim() === '')
     );
 
-    console.log(`🔄 Migrating ${scheduledTasks.length} existing tasks to segment format`);
+
 
     for (const task of scheduledTasks) {
       try {
@@ -238,12 +234,12 @@ export class SplitTaskManager {
         await updateOdpOrder(task.id, { description: segmentInfoJson });
         this.setSplitTaskInfo(task.id, segmentInfo);
         
-        console.log(`✅ Migrated task ${task.odp_number} to segment format`);
+
       } catch (error) {
         console.error(`❌ Failed to migrate task ${task.odp_number}:`, error);
       }
     }
 
-    console.log(`🎉 Migration complete: ${scheduledTasks.length} tasks converted to segment format`);
+
   };
 }

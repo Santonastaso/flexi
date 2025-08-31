@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
-import { createErrorHandler } from '../utils/errorUtils';
+import { createErrorHandler, AppError, ERROR_TYPES } from '../utils/errorUtils';
 import { WORK_CENTERS } from '../constants';
 import { useUIStore } from './useUIStore';
 
@@ -14,7 +14,7 @@ const createPhaseCrudActions = (set, get) => {
         // Validate work center (skip validation if BOTH is selected)
         const { selectedWorkCenter } = useUIStore.getState();
         if (selectedWorkCenter && selectedWorkCenter !== WORK_CENTERS.BOTH && newPhase.work_center && newPhase.work_center !== selectedWorkCenter) {
-          throw new Error(`Cannot add Phase with different work center. Selected: ${selectedWorkCenter}, Item: ${newPhase.work_center}`);
+          throw new AppError(`Cannot add Phase with different work center. Selected: ${selectedWorkCenter}, Item: ${newPhase.work_center}`, ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, null, 'PhaseStore.addPhase');
         }
 
         const added = await apiService.addPhase(newPhase);

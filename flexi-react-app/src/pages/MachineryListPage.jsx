@@ -6,6 +6,7 @@ import StickyHeader from '../components/StickyHeader';
 import { useMachineStore, useUIStore, useMainStore } from '../store';
 import { useMachineValidation, useErrorHandler } from '../hooks';
 import { WORK_CENTERS } from '../constants';
+import { formatDateUTC } from '../utils/dateUtils';
 
 function MachineryListPage() {
   // Use Zustand store to select state and actions
@@ -66,12 +67,12 @@ function MachineryListPage() {
     { 
       header: 'Creato il', 
       accessorKey: 'created_at',
-      cell: info => new Date(info.getValue()).toLocaleDateString()
+      cell: info => formatDateUTC(info.getValue())
     },
     { 
       header: 'Aggiornato il', 
       accessorKey: 'updated_at',
-      cell: info => new Date(info.getValue()).toLocaleDateString()
+      cell: info => formatDateUTC(info.getValue())
     },
     // Calendar
     {

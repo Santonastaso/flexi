@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
-import { createErrorHandler } from '../utils/errorUtils';
+import { createErrorHandler, AppError, ERROR_TYPES } from '../utils/errorUtils';
 import { WORK_CENTERS } from '../constants';
 import { useUIStore } from './useUIStore';
 
@@ -14,7 +14,7 @@ const createOrderCrudActions = (set, get) => {
         // Validate work center (skip validation if BOTH is selected)
         const { selectedWorkCenter } = useUIStore.getState();
         if (selectedWorkCenter && selectedWorkCenter !== WORK_CENTERS.BOTH && newOrder.work_center && newOrder.work_center !== selectedWorkCenter) {
-          throw new Error(`Cannot add ODP Order with different work center. Selected: ${selectedWorkCenter}, Item: ${newOrder.work_center}`);
+          throw new AppError(`Cannot add ODP Order with different work center. Selected: ${selectedWorkCenter}, Item: ${newOrder.work_center}`, ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, null, 'OrderStore.addOdpOrder');
         }
 
         const added = await apiService.addOdpOrder(newOrder);

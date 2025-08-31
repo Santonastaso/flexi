@@ -26,7 +26,7 @@ export class SchedulingLogic {
       let currentStart = new Date(startTime);
       let remainingDuration = durationHours;
       
-      console.log(`✂️ Splitting ${durationHours}h task around ${unavailableSlots.length} unavailable slots`);
+
       
       // First, check if we're starting inside an unavailable slot and move past it
       // Keep checking until we find an available position (in case of consecutive unavailable slots)
@@ -105,7 +105,7 @@ export class SchedulingLogic {
             duration: remainingDuration
           });
           
-          console.log(`✅ Final segment created: ${currentStart.toISOString()} - ${segmentEnd.toISOString()} (${remainingDuration}h)`);
+  
           remainingDuration = 0;
         }
         
@@ -116,7 +116,7 @@ export class SchedulingLogic {
         }
       }
       
-      console.log(`✅ Created ${segments.length} segments for task`);
+
       
       return segments;
     } catch (error) {
@@ -343,7 +343,7 @@ export class SchedulingLogic {
         const segmentOverlapResult = this.checkSegmentsForOverlaps(taskSegments, machineId, taskId, additionalExcludeIds);
         
         if (segmentOverlapResult.hasOverlap) {
-          console.log(`🚨 Split segments would overlap with task ${segmentOverlapResult.conflictingTask.odp_number}`);
+  
           // Return conflict info to trigger shunting
           return {
             conflict: true,
@@ -381,7 +381,7 @@ export class SchedulingLogic {
       const segmentOverlapResult = this.checkSegmentsForOverlaps(singleSegment, machineId, taskId, additionalExcludeIds);
       
       if (segmentOverlapResult.hasOverlap) {
-        console.log(`🚨 Non-split task would overlap with task ${segmentOverlapResult.conflictingTask.odp_number}`);
+
         // Return conflict info to trigger shunting
         return {
           conflict: true,

@@ -81,8 +81,7 @@ function EditableCell({
     if (columnId === 'status') {
       return [
         { value: MACHINE_STATUSES.ACTIVE, label: MACHINE_STATUSES.ACTIVE },
-        { value: MACHINE_STATUSES.INACTIVE, label: MACHINE_STATUSES.INACTIVE },
-        { value: MACHINE_STATUSES.MAINTENANCE, label: MACHINE_STATUSES.MAINTENANCE }
+        { value: MACHINE_STATUSES.INACTIVE, label: MACHINE_STATUSES.INACTIVE }
       ];
     }
     

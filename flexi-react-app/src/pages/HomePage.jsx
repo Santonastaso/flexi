@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { useMachineStore, useOrderStore, useUIStore, useMainStore } from '../store';
+import { formatDateShortUTC } from '../utils/dateUtils';
 import { MACHINE_STATUSES } from '../constants';
 import StickyHeader from '../components/StickyHeader';
 import { Line, Pie } from 'react-chartjs-2';
@@ -198,10 +199,10 @@ function HomePage() {
     const last7Days = sortedDates.slice(-7);
 
     return {
-      labels: last7Days.map(date => {
-        const d = new Date(date);
-        return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
-      }),
+              labels: last7Days.map(date => {
+          const d = new Date(date);
+          return formatDateShortUTC(d);
+        }),
       datasets: [
         {
           label: 'Lavori Iniziati',

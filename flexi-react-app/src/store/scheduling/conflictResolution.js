@@ -1,6 +1,7 @@
 import { useOrderStore } from '../useOrderStore';
 import { useUIStore } from '../useUIStore';
-// import { toDateString } from '../../utils/dateUtils';
+import { AppError, ERROR_TYPES } from '../../utils/errorUtils';
+
 
 /**
  * Conflict Resolution
@@ -77,7 +78,7 @@ export class ConflictResolution {
     } else if (schedulingResult && schedulingResult.conflict) {
       // Conflict detected during shunting - this shouldn't happen in a properly designed shunt
       console.error(`🚨 Conflict during shunting for task ${task.odp_number}:`, schedulingResult);
-      throw new Error(`Cannot shunt task ${task.odp_number}: would create new conflicts`);
+              throw new AppError(`Cannot shunt task ${task.odp_number}: would create new conflicts`, ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, null, 'ConflictResolution.scheduleTaskWithSplittingForShunt');
     }
 
     // Fallback: schedule without splitting (shouldn't reach here in normal operation)
@@ -120,7 +121,7 @@ export class ConflictResolution {
   // Resolve conflict by shunting tasks in the chosen direction
   resolveConflictByShunting = async (conflictDetails, direction) => {
     try {
-      console.log(`🔄 Shunting ${conflictDetails.draggedTask?.odp_number} ${direction} from ${conflictDetails.conflictingTask?.odp_number}`);
+  
       
       const { conflictingTask, draggedTask, proposedStartTime, machine } = conflictDetails;
       const { updateOdpOrder } = useOrderStore.getState();
@@ -220,7 +221,7 @@ export class ConflictResolution {
         return { error: 'Non c\'è spazio sufficiente per spostare i lavori' };
       }
       
-      console.log(`📋 Moving ${affectedTasks.length} tasks ${direction}`);
+      
       
       // Calculate new positions for affected tasks with comprehensive splitting
       const updates = [];
@@ -233,8 +234,7 @@ export class ConflictResolution {
         const proposedStart = new Date(proposedStartTime);
         const excludeForDragged = [...affectedTasks.map(t => t.id), draggedTask.id];
         
-        console.log(`🔄 Scheduling dragged task ${draggedTask.odp_number} at ${proposedStart.toISOString()} (RIGHT first)`);
-        console.log(`🔄 Excluding affected + dragged:`, excludeForDragged);
+
         
         draggedSchedulingResult = await this.scheduleTaskWithSplittingForShuntExcluding(
           draggedTask,
@@ -250,8 +250,7 @@ export class ConflictResolution {
           // We place them sequentially in this loop, so they won't collide with each other
           const excludeTaskIds = [...affectedTasks.map(t => t.id), draggedTask.id];
           
-          console.log(`🔄 Shunting task ${task.odp_number} to ${currentStartTime.toISOString()}`);
-          console.log(`🔄 Excluding affected + dragged:`, excludeTaskIds);
+
           
           // Use comprehensive splitting logic for shunted tasks
           const schedulingResult = await this.scheduleTaskWithSplittingForShuntExcluding(
@@ -289,11 +288,7 @@ export class ConflictResolution {
             excludeTaskIds
           );
           
-          console.log(`✅ Task ${task.odp_number} scheduled (LEFT):`, {
-            start: schedulingResult.startTime.toISOString(),
-            end: schedulingResult.endTime.toISOString(),
-            wasSplit: schedulingResult.wasSplit
-          });
+
           
           updates.push({
             id: task.id,
@@ -311,8 +306,7 @@ export class ConflictResolution {
         const proposedStart = new Date(proposedStartTime);
         const excludeTaskIds = [...affectedTasks.map(t => t.id), draggedTask.id];
         
-        console.log(`🔄 Scheduling dragged task ${draggedTask.odp_number} at ${proposedStart.toISOString()}`);
-        console.log(`🔄 Excluding all affected tasks:`, excludeTaskIds);
+
         
         draggedSchedulingResult = await this.scheduleTaskWithSplittingForShuntExcluding(
           draggedTask, 
@@ -322,11 +316,7 @@ export class ConflictResolution {
         );
       }
       
-      console.log(`✅ Dragged task ${draggedTask.odp_number} scheduled:`, {
-        start: draggedSchedulingResult.startTime.toISOString(),
-        end: draggedSchedulingResult.endTime.toISOString(),
-        wasSplit: draggedSchedulingResult.wasSplit
-      });
+      
       
       updates.push({
         id: draggedTask.id,
@@ -341,7 +331,7 @@ export class ConflictResolution {
         await updateOdpOrder(update.id, update);
       }
       
-      console.log(`✅ Shunting complete: ${updates.length} tasks updated`);
+
       
       // Hide the conflict dialog
       useUIStore.getState().hideConflictDialog();
@@ -349,8 +339,8 @@ export class ConflictResolution {
       
       return { success: true };
     } catch (error) {
-      console.error('Error in resolveConflictByShunting:', error);
-      return { error: error.message || 'Errore durante la riprogrammazione' };
+      const appError = error instanceof AppError ? error : new AppError(error.message || 'Errore durante la riprogrammazione', ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, error, 'ConflictResolution.resolveConflictByShunting');
+      return { error: appError.message };
     }
   };
 }

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
-import { createErrorHandler } from '../utils/errorUtils';
+import { createErrorHandler, AppError, ERROR_TYPES } from '../utils/errorUtils';
 import { WORK_CENTERS } from '../constants';
 import { useUIStore } from './useUIStore';
 import { generateCalendarForYear } from '../utils/calendarPopulationUtils';
@@ -15,7 +15,7 @@ const createMachineCrudActions = (set, get) => {
         // Validate work center (skip validation if BOTH is selected)
         const { selectedWorkCenter } = useUIStore.getState();
         if (selectedWorkCenter && selectedWorkCenter !== WORK_CENTERS.BOTH && newMachine.work_center && newMachine.work_center !== selectedWorkCenter) {
-          throw new Error(`Cannot add Machine with different work center. Selected: ${selectedWorkCenter}, Item: ${newMachine.work_center}`);
+          throw new AppError(`Cannot add Machine with different work center. Selected: ${selectedWorkCenter}, Item: ${newMachine.work_center}`, ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, null, 'MachineStore.addMachine');
         }
 
         const added = await apiService.addMachine(newMachine);

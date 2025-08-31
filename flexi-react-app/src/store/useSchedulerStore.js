@@ -71,7 +71,7 @@ export const useSchedulerStore = create((set, get) => {
         const startDate = schedulingLogic.createAbsoluteDate(year, month, day, hour, minute);
         const timeRemainingHours = task.time_remaining || task.duration || 1;
         
-        console.log(`📅 Scheduling task at ${year}-${month}-${day} ${hour}:${minute}`);
+
 
         // Create schedule data
         const scheduleData = {
@@ -83,7 +83,8 @@ export const useSchedulerStore = create((set, get) => {
         // Use existing scheduleTask method with all validations
         return await get().scheduleTask(taskId, scheduleData);
       } catch (error) {
-        return { error: 'An error occurred during scheduling' };
+        const appError = handleApiError(error, 'SchedulerStore.scheduleTaskFromSlot');
+        return { error: appError.message };
       }
     },
 
@@ -108,7 +109,7 @@ export const useSchedulerStore = create((set, get) => {
         const startDate = schedulingLogic.createAbsoluteDate(year, month, day, hour, minute);
         const timeRemainingHours = eventItem.time_remaining || eventItem.duration || 1;
         
-        console.log(`🔄 Rescheduling task to ${year}-${month}-${day} ${hour}:${minute}`);
+
 
         // Create schedule data
         const scheduleData = {
@@ -120,7 +121,8 @@ export const useSchedulerStore = create((set, get) => {
         // Use existing scheduleTask method with all validations
         return await get().scheduleTask(eventId, scheduleData);
       } catch (error) {
-        return { error: 'An error occurred during rescheduling' };
+        const appError = handleApiError(error, 'SchedulerStore.rescheduleTaskToSlot');
+        return { error: appError.message };
       }
     },
 
@@ -153,7 +155,6 @@ export const useSchedulerStore = create((set, get) => {
 
         // BULLETPROOF: Check if scheduling result indicates a conflict
         if (schedulingResult.conflict) {
-          console.log(`🚨 Scheduling conflict detected during splitting - triggering shunting`);
           return { 
             conflict: true,
             conflictingTask: schedulingResult.conflictingTask,
@@ -183,8 +184,8 @@ export const useSchedulerStore = create((set, get) => {
         
         return { success: true };
       } catch (error) {
-        console.error('Error in scheduleTask:', error);
-        return { error: `Scheduling failed: ${error.message}` };
+        const appError = handleApiError(error, 'SchedulerStore.scheduleTask');
+        return { error: appError.message };
       }
     },
 
@@ -256,7 +257,8 @@ export const useSchedulerStore = create((set, get) => {
 
         return { success: true };
       } catch (error) {
-        return { error: 'Error validating slot availability' };
+        const appError = handleApiError(error, 'SchedulerStore.validateSlotAvailability');
+        return { error: appError.message };
       }
     },
 

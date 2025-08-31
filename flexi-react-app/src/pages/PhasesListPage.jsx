@@ -6,6 +6,7 @@ import StickyHeader from '../components/StickyHeader';
 import { usePhaseStore, useUIStore, useMainStore } from '../store';
 import { usePhaseValidation, useErrorHandler } from '../hooks';
 import { WORK_CENTERS } from '../constants';
+import { formatDateUTC } from '../utils/dateUtils';
 
 function PhasesListPage() {
   // Use Zustand store to select state and actions
@@ -58,12 +59,12 @@ function PhasesListPage() {
     { 
       header: 'Creato il', 
       accessorKey: 'created_at',
-      cell: info => new Date(info.getValue()).toLocaleDateString()
+      cell: info => formatDateUTC(info.getValue())
     },
     { 
       header: 'Aggiornato il', 
       accessorKey: 'updated_at',
-      cell: info => new Date(info.getValue()).toLocaleDateString()
+      cell: info => formatDateUTC(info.getValue())
     },
 
   ], []);

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { useOrderStore, useSchedulerStore } from '../store';
+import { formatDateUTC, formatDateTimeUTC } from '../utils/dateUtils';
 import {
   toDateString,
   getUTCStartOfDay,
@@ -216,10 +217,10 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                     title={`Codice Articolo: ${event.article_code || 'Non specificato'}
 Codice Articolo Esterno: ${event.external_article_code || 'Non specificato'}
 Nome Cliente: ${event.nome_cliente || 'Non specificato'}
-Data Consegna: ${event.delivery_date ? new Date(event.delivery_date).toLocaleDateString() : 'Non impostata'}
+Data Consegna: ${formatDateUTC(event.delivery_date) || 'Non impostata'}
 Quantità: ${event.quantity || 'Non specificata'}
-${event.scheduled_start_time ? `Inizio Programmato: ${new Date(event.scheduled_start_time).toISOString().replace('T', ' ').replace('.000Z', '')}` : 'Non programmato'}
-${event.scheduled_end_time ? `Fine Programmata: ${new Date(event.scheduled_end_time).toISOString().replace('T', ' ').replace('.000Z', '')}` : 'Non programmato'}`}
+${event.scheduled_start_time ? `Inizio Programmato: ${formatDateTimeUTC(event.scheduled_start_time)}` : 'Non programmato'}
+${event.scheduled_end_time ? `Fine Programmata: ${formatDateTimeUTC(event.scheduled_end_time)}` : 'Non programmato'}`}
                 >
                     <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>i</span>
                 </button>
@@ -382,8 +383,8 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
         <div className="machine-label-header">Macchine</div>
         {weekDates.map(day => (
           <div key={day.toISOString()} className="day-header-cell">
-            <div className="day-name">{day.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-            <div className="day-date">{day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+            <div className="day-name">{formatDateUTC(day)}</div>
+<div className="day-date">{formatDateUTC(day)}</div>
           </div>
         ))}
       </div>
@@ -457,14 +458,7 @@ const GanttChart = React.memo(({ machines, currentDate }) => {
   // Use the exact same date that's displayed in the banner - no conversion needed
   const dateStr = useMemo(() => toDateString(currentDate), [currentDate]);
 
-  // Debug logging
-  console.log('GanttChart render:', { 
-    machinesCount: machines?.length, 
-    machines, 
-    currentDate: currentDate.toISOString(),
-    dateStr,
-    scheduledTasksCount: scheduledTasks.length 
-  });
+
 
   useEffect(() => {
     if (currentView === 'Daily') {
@@ -512,7 +506,6 @@ const GanttChart = React.memo(({ machines, currentDate }) => {
 
   // Early return for empty state
   if (!machines || machines.length === 0) {
-    console.log('GanttChart: No machines available, showing empty state');
     return (
       <div className="calendar-section">
         <div className="calendar-grid-container">

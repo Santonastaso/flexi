@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense, lazy } from 'react';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import { useOrderStore, useMachineStore, useUIStore, useSchedulerStore, useMainStore } from '../store';
+import { formatDateUTC } from '../utils/dateUtils';
 
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
 import SearchableDropdown from '../components/SearchableDropdown';
@@ -179,7 +180,7 @@ function SchedulerPage() {
       return 'Oggi';
     } else {
       // Format the UTC date for display
-      return currentDate.toLocaleDateString('it-IT', { month: 'long', day: 'numeric' });
+      return formatDateUTC(currentDate);
     }
   }, [currentDate]);
 
@@ -551,29 +552,28 @@ function SchedulerPage() {
                           key={order.id} 
                           className="task-lookup-option"
                           onClick={() => {
-                            console.log(`Clicked on ODP option: ${order.odp_number} (ID: ${order.id})`);
+                    
                             // Perform lookup directly with the selected ODP number
                             const odpNumber = order.odp_number;
-                            console.log(`Performing lookup for ODP: ${odpNumber}`);
+                    
                             
                             // Find the task directly
                             const task = scheduledOrders.find(t => t.odp_number === odpNumber);
                             if (!task) {
-                              console.log(`Task not found for ODP: ${odpNumber}`);
+                      
                               return;
                             }
                             
-                            console.log(`Found task:`, { id: task.id, odp_number: task.odp_number, work_center: task.work_center });
+                    
                             
                             // Find the machine
                             const machine = machines.find(m => m.id === task.scheduled_machine_id);
                             if (!machine) {
-                              console.log(`No machine found for task machine ID: ${task.scheduled_machine_id}`);
                               showAlert('Macchina non trovata per questo lavoro', 'error');
                               return;
                             }
                             
-                            console.log(`Found machine:`, { id: machine.id, name: machine.machine_name, work_center: machine.work_center });
+
                             
                             // Set machine filters to show only this machine
                             setMachineNameFilter([machine.machine_name]);
@@ -650,26 +650,24 @@ function SchedulerPage() {
                           onClick={() => {
                             // Perform lookup directly with the selected article code
                             const articleCode = order.article_code;
-                            console.log(`Performing lookup for Article Code: ${articleCode}`);
+
                             
                             // Find the task directly
                             const task = scheduledOrders.find(t => t.article_code === articleCode);
                             if (!task) {
-                              console.log(`Task not found for Article Code: ${articleCode}`);
                               return;
                             }
                             
-                            console.log(`Found task:`, { id: task.id, article_code: task.article_code, work_center: task.work_center });
+
                             
                             // Find the machine
                             const machine = machines.find(m => m.id === task.scheduled_machine_id);
                             if (!machine) {
-                              console.log(`No machine found for task machine ID: ${task.scheduled_machine_id}`);
                               showAlert('Macchina non trovata per questo lavoro', 'error');
                               return;
                             }
                             
-                            console.log(`Found machine:`, { id: machine.id, name: machine.machine_name, work_center: machine.work_center });
+
                             
                             // Set machine filters to show only this machine
                             setMachineNameFilter([machine.machine_name]);
@@ -746,16 +744,15 @@ function SchedulerPage() {
                           onClick={() => {
                             // Perform lookup directly with the selected customer name
                             const customerName = order.nome_cliente;
-                            console.log(`Performing lookup for Customer Name: ${customerName}`);
+
                             
                             // Find the task directly
                             const task = scheduledOrders.find(t => t.nome_cliente === customerName);
                             if (!task) {
-                              console.log(`Task not found for Customer Name: ${customerName}`);
                               return;
                             }
                             
-                            console.log(`Found task:`, { id: task.id, nome_cliente: task.nome_cliente, work_center: task.work_center });
+
                             
                             // Find the machine
                             const machine = machines.find(m => m.id === task.scheduled_machine_id);
@@ -765,7 +762,7 @@ function SchedulerPage() {
                               return;
                             }
                             
-                            console.log(`Found machine:`, { id: machine.id, name: machine.machine_name, work_center: machine.work_center });
+
                             
                             // Set machine filters to show only this machine
                             setMachineNameFilter([machine.machine_name]);

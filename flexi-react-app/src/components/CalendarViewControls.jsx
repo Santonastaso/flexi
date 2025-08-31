@@ -1,5 +1,5 @@
 import React from 'react';
-import { getStartOfWeek, getEndOfWeek, addDaysToDate } from '../utils/dateUtils';
+import { getStartOfWeek, getEndOfWeek, addDaysToDate, formatDateMonthUTC, formatDateRangeUTC } from '../utils/dateUtils';
 
 function CalendarViewControls({ currentDate, currentView, onDateChange, onViewChange }) {
   const goToToday = () => {
@@ -36,13 +36,13 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
 
   const getCurrentPeriodLabel = () => {
     if (currentView === 'Month') {
-      return currentDate.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+      return formatDateMonthUTC(currentDate);
     } else if (currentView === 'Week') {
       const startOfWeek = getStartOfWeek(currentDate);
       const endOfWeek = getEndOfWeek(currentDate);
-      return `${startOfWeek.toLocaleDateString('it-IT', { month: 'short', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('it-IT', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      return formatDateRangeUTC(startOfWeek, endOfWeek);
     } else if (currentView === 'Year') {
-      return currentDate.getFullYear().toString();
+      return currentDate.getUTCFullYear().toString();
     }
     return '';
   };

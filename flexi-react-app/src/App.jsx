@@ -18,7 +18,7 @@ import ProtectedRoute from './auth/ProtectedRoute';
 import Alert from './components/Alert';
 import ConfirmDialog from './components/ConfirmDialog';
 import { useUIStore, useMainStore, useSchedulerStore } from './store';
-// import { useAuth } from './auth/AuthContext';
+
 
 // This component creates the main layout with the sidebar
 const AppLayout = () => {

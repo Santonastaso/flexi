@@ -19,15 +19,14 @@ export const WORK_CENTERS = {
 // ===== MACHINE STATUSES =====
 export const MACHINE_STATUSES = {
   ACTIVE: 'ACTIVE',
-  INACTIVE: 'INACTIVE',
-  MAINTENANCE: 'MAINTENANCE'
+  INACTIVE: 'INACTIVE'
 };
 
 // ===== PRODUCT TYPES =====
 export const PRODUCT_TYPES = {
-  CREMA: 'crema',
-  LIQUIDO: 'liquido',
-  POLVERI: 'polveri'
+  CREMA: 'CREMA',
+  LIQUIDO: 'LIQUIDO',
+  POLVERI: 'POLVERI'
 };
 
 // ===== SHIFT TYPES =====
