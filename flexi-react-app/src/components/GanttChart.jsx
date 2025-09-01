@@ -339,10 +339,22 @@ ${event.scheduled_end_time ? `Fine Programmata: ${formatDateTimeUTC(event.schedu
                 {!isLocked && (
                     <button 
                         className="event-btn unschedule-btn"
-                        onClick={(e) => {
+                        onClick={async (e) => {
                             e.stopPropagation();
-                            // Call the unschedule function from the store
-                            useSchedulerStore.getState().unscheduleTask(event.id);
+                            e.preventDefault();
+                            try {
+                                await useSchedulerStore.getState().unscheduleTask(event.id);
+                            } catch (error) {
+                                console.error('Error unscheduling task:', error);
+                            }
+                        }}
+                        onMouseDown={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                        }}
+                        onPointerDown={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
                         }}
                         title="Annulla programmazione e riporta al pool"
                     >

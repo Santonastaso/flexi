@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
 import { toDateString, addHoursToDate } from '../utils/dateUtils';
+import { handleApiError } from '../utils/errorUtils';
 import { useOrderStore } from './useOrderStore';
 import { useMachineStore } from './useMachineStore';
 import { SplitTaskManager } from './scheduling/splitTaskManager';
@@ -214,19 +215,30 @@ export const useSchedulerStore = create((set, get) => {
     },
 
     unscheduleTask: async (taskId) => {
-      const updates = {
-        scheduled_machine_id: null,
-        scheduled_start_time: null,
-        scheduled_end_time: null,
-        status: 'NOT SCHEDULED',
-      };
-      
-      // Clear split task info when unscheduling
-      await splitTaskManager.updateTaskWithSplitInfo(taskId, null);
-      
-      // Call the update method from the order store
-      const { updateOdpOrder } = useOrderStore.getState();
-      await updateOdpOrder(taskId, updates);
+      try {
+        const updates = {
+          scheduled_machine_id: null,
+          scheduled_start_time: null,
+          scheduled_end_time: null,
+          status: 'NOT SCHEDULED',
+        };
+        
+        // Clear split task info when unscheduling
+        await splitTaskManager.updateTaskWithSplitInfo(taskId, null);
+        
+        // Call the update method from the order store
+        const { updateOdpOrder } = useOrderStore.getState();
+        const result = await updateOdpOrder(taskId, updates);
+        
+        if (result?.error) {
+          return { error: result.error };
+        }
+        
+        return { success: true };
+      } catch (error) {
+        const appError = handleApiError(error, 'SchedulerStore.unscheduleTask');
+        return { error: appError.message };
+      }
     },
 
     // Machine availability methods (delegated to MachineAvailabilityManager)
