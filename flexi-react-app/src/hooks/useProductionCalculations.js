@@ -50,21 +50,24 @@ export const useProductionCalculations = () => {
     try {
       const { department } = phase;
       
-      if (department === 'STAMPA') {
-        // Validate required parameters for printing
-        const vStampa = parseFloat(phase.v_stampa);
-        const tSetupStampa = parseFloat(phase.t_setup_stampa) || 0;
-        const costoHStampa = parseFloat(phase.costo_h_stampa) || 0;
-        
-        if (isNaN(vStampa) || vStampa <= 0) {
-          return null; // Invalid print speed
-        }
-        
-        // Printing calculations
-        const printTime = quantity / vStampa;
-        const setupTime = tSetupStampa;
-        const totalTime = printTime + setupTime;
-        const totalCost = totalTime * costoHStampa;
+          if (department === 'STAMPA') {
+      // Validate required parameters for printing
+      const vStampa = parseFloat(phase.v_stampa);
+      const tSetupStampa = parseFloat(phase.t_setup_stampa) || 0;
+      const costoHStampa = parseFloat(phase.costo_h_stampa) || 0;
+      
+      if (isNaN(vStampa) || vStampa <= 0) {
+        return null; // Invalid print speed
+      }
+      
+      // Printing calculations - new formula
+      // Calcolo metri lineari da stampare
+      const mtDaStampare = (bagStep * quantity) / 1000;
+      // Calcolo tempo stampa netto
+      const tempoStampa = mtDaStampare / vStampa;
+      // Calcolo tempo totale stampa
+      const totalTime = tempoStampa + tSetupStampa;
+      const totalCost = totalTime * costoHStampa;
         
         return {
           totals: {
@@ -72,8 +75,8 @@ export const useProductionCalculations = () => {
             cost: totalCost
           },
           breakdown: {
-            print: { time: printTime, cost: printTime * costoHStampa },
-            setup: { time: setupTime, cost: setupTime * costoHStampa }
+            print: { time: tempoStampa, cost: tempoStampa * costoHStampa },
+            setup: { time: tSetupStampa, cost: tSetupStampa * costoHStampa }
           }
         };
       } else if (department === 'CONFEZIONAMENTO') {

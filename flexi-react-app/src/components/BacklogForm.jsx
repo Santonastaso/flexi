@@ -11,7 +11,7 @@ import { useErrorHandler } from '../hooks';
 const validateRequiredStrings = (data, fields) => {
   const errors = [];
   fields.forEach(({ field, name }) => {
-    if (!data[field]?.trim()) errors.push(`${name} is required`);
+    if (!data[field]?.trim()) errors.push(`${name} è obbligatorio`);
   });
   return errors;
 };
@@ -21,9 +21,9 @@ const validateNumericFields = (data, fields) => {
   fields.forEach(({ field, name }) => {
     const value = data[field];
     if (value === '' || value === null || value === undefined) {
-      errors.push(`${name} is required`);
+      errors.push(`${name} è obbligatorio`);
     } else if (parseFloat(value) < 0) {
-      errors.push(`${name} cannot be negative`);
+      errors.push(`${name} non può essere negativo`);
     }
   });
   return errors;
@@ -43,7 +43,7 @@ const validateEnumValues = (data, enums) => {
   const errors = [];
   enums.forEach(({ field, name, validValues }) => {
     if (data[field] && !validValues.includes(data[field])) {
-      errors.push(`Invalid value for ${name}`);
+      errors.push(`Valore non valido per ${name}`);
     }
   });
   return errors;
@@ -52,39 +52,39 @@ const validateEnumValues = (data, enums) => {
 // --- Constants for Validation Configuration ---
 
 const REQUIRED_STRINGS = [
-  { field: 'odp_number', name: 'ODP Number' },
-  { field: 'article_code', name: 'Article Code' },
-  { field: 'production_lot', name: 'External Article Code' },
-  { field: 'work_center', name: 'Work Center' },
-  { field: 'department', name: 'Department' },
-  { field: 'fase', name: 'Phase' },
-  { field: 'product_type', name: 'Product Type' },
-  { field: 'delivery_date', name: 'Delivery Date' },
-  { field: 'nome_cliente', name: 'Customer Name' },
-  { field: 'internal_customer_code', name: 'FLEXI Lot' },
-  { field: 'external_customer_code', name: 'Customer Lot' },
-  { field: 'customer_order_ref', name: 'Customer Ref' },
+  { field: 'odp_number', name: 'Numero ODP' },
+  { field: 'article_code', name: 'Codice Articolo' },
+  { field: 'production_lot', name: 'Codice Articolo Esterno' },
+  { field: 'work_center', name: 'Centro di Lavoro' },
+  { field: 'department', name: 'Reparto' },
+  { field: 'fase', name: 'Fase' },
+  { field: 'product_type', name: 'Tipo Prodotto' },
+  { field: 'delivery_date', name: 'Data di Consegna' },
+  { field: 'nome_cliente', name: 'Nome Cliente' },
+  { field: 'internal_customer_code', name: 'Lotto FLEXI' },
+  { field: 'external_customer_code', name: 'Lotto Cliente' },
+  { field: 'customer_order_ref', name: 'Riferimento Cliente' },
 ];
 
 const REQUIRED_NUMERICS = [
-  { field: 'bag_height', name: 'Bag Height' },
-  { field: 'bag_width', name: 'Bag Width' },
-  { field: 'bag_step', name: 'Bag Step' },
-  { field: 'quantity', name: 'Quantity' },
-  { field: 'quantity_per_box', name: 'Quantity per Box' },
-  { field: 'quantity_completed', name: 'Quantity Completed' },
+  { field: 'bag_height', name: 'Altezza Busta' },
+  { field: 'bag_width', name: 'Larghezza Busta' },
+  { field: 'bag_step', name: 'Passo Busta' },
+  { field: 'quantity', name: 'Quantità' },
+  { field: 'quantity_per_box', name: 'Quantità per Scatola' },
+  { field: 'quantity_completed', name: 'Quantità Completata' },
 ];
 
 const LOGICAL_CONDITIONS = [
-    { fieldA: 'bag_step', fieldB: 'bag_width', message: 'Bag Step cannot be greater than Bag Width' },
-    { fieldA: 'quantity_completed', fieldB: 'quantity', message: 'Quantity Completed cannot exceed total Quantity' },
+    { fieldA: 'bag_step', fieldB: 'bag_width', message: 'Il Passo Busta non può essere maggiore della Larghezza Busta' },
+    { fieldA: 'quantity_completed', fieldB: 'quantity', message: 'La Quantità Completata non può superare la Quantità totale' },
 ];
 
 const ENUM_VALIDATIONS = [
-    { field: 'product_type', name: 'Product Type', validValues: Object.values(PRODUCT_TYPES) },
-    { field: 'seal_sides', name: 'Seal Sides', validValues: Object.values(SEAL_SIDES) },
-    { field: 'department', name: 'Department', validValues: Object.values(DEPARTMENT_TYPES) },
-    { field: 'work_center', name: 'Work Center', validValues: [WORK_CENTERS.ZANICA, WORK_CENTERS.BUSTO_GAROLFO] },
+    { field: 'product_type', name: 'Tipo Prodotto', validValues: Object.values(PRODUCT_TYPES) },
+    { field: 'seal_sides', name: 'Lati Sigillatura', validValues: Object.values(SEAL_SIDES) },
+    { field: 'department', name: 'Reparto', validValues: Object.values(DEPARTMENT_TYPES) },
+    { field: 'work_center', name: 'Centro di Lavoro', validValues: [WORK_CENTERS.ZANICA, WORK_CENTERS.BUSTO_GAROLFO] },
 ];
 
 const BacklogForm = ({ onSuccess, orderToEdit }) => {
@@ -159,7 +159,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     ];
 
     if (validationErrors.length > 0) {
-      showAlert(`Validation errors:\n${validationErrors.join('\n')}`, 'error');
+      showAlert(`Errori di validazione:\n${validationErrors.join('\n')}`, 'error');
       return;
     }
     
@@ -183,7 +183,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
 
       if (onSuccess) onSuccess();
       resetFormAndPhaseState();
-    }, { context: isEditMode ? 'Update Order' : 'Add Order', fallbackMessage: isEditMode ? 'Aggiornamento ordine fallito' : 'Aggiunta ordine fallita' });
+    }, { context: isEditMode ? 'Aggiorna Ordine' : 'Aggiungi Ordine', fallbackMessage: isEditMode ? 'Aggiornamento ordine fallito' : 'Aggiunta ordine fallita' });
   };
 
   const handleCalculate = () => {
@@ -213,14 +213,14 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     if (!selectedPhase) return [];
     return selectedPhase.department === DEPARTMENT_TYPES.PRINTING
       ? [
-          { name: 'v_stampa', label: 'Print Speed:', unit: 'mt/h' },
-          { name: 't_setup_stampa', label: 'Print Setup:', unit: 'h' },
-          { name: 'costo_h_stampa', label: 'Print Cost:', unit: '€/h' },
+          { name: 'v_stampa', label: 'Velocità Stampa:', unit: 'mt/h' },
+          { name: 't_setup_stampa', label: 'Setup Stampa:', unit: 'h' },
+          { name: 'costo_h_stampa', label: 'Costo Stampa:', unit: '€/h' },
         ]
       : [
-          { name: 'v_conf', label: 'Packaging Speed:', unit: 'pz/h' },
-          { name: 't_setup_conf', label: 'Packaging Setup:', unit: 'h' },
-          { name: 'costo_h_conf', label: 'Packaging Cost:', unit: '€/h' },
+          { name: 'v_conf', label: 'Velocità Confezionamento:', unit: 'pz/h' },
+          { name: 't_setup_conf', label: 'Setup Confezionamento:', unit: 'h' },
+          { name: 'costo_h_conf', label: 'Costo Confezionamento:', unit: '€/h' },
         ];
   };
 
@@ -232,11 +232,11 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
           <h3 className="section-title">Identificazione</h3>
           <div className="form-grid form-grid--3-cols">
              {/* ODP, Article Code, Lot... */}
-            <div className="form-group"><label htmlFor="odp_number">ODP Number *</label><input type="text" id="odp_number" {...register('odp_number')} /></div>
-            <div className="form-group"><label htmlFor="article_code">Article Code *</label><input type="text" id="article_code" {...register('article_code')} /></div>
-            <div className="form-group"><label htmlFor="production_lot">External Article Code *</label><input type="text" id="production_lot" {...register('production_lot')} /></div>
-            <div className="form-group"><label htmlFor="work_center">Work Center *</label> {selectedWorkCenter === WORK_CENTERS.BOTH ? (<select {...register('work_center')} id="work_center"><option value="">Seleziona</option><option value={WORK_CENTERS.ZANICA}>ZANICA</option><option value={WORK_CENTERS.BUSTO_GAROLFO}>BUSTO GAROLFO</option></select>) : (<><input type="text" id="work_center" value={selectedWorkCenter} disabled className="disabled-input" /><small>Centro di lavoro pre-impostato.</small></>)}</div>
-            <div className="form-group"><label htmlFor="nome_cliente">Customer Name *</label><input type="text" id="nome_cliente" {...register('nome_cliente')} /></div>
+            <div className="form-group"><label htmlFor="odp_number">Numero ODP *</label><input type="text" id="odp_number" {...register('odp_number')} /></div>
+            <div className="form-group"><label htmlFor="article_code">Codice Articolo *</label><input type="text" id="article_code" {...register('article_code')} /></div>
+            <div className="form-group"><label htmlFor="production_lot">Codice Articolo Esterno *</label><input type="text" id="production_lot" {...register('production_lot')} /></div>
+            <div className="form-group"><label htmlFor="work_center">Centro di Lavoro *</label> {selectedWorkCenter === WORK_CENTERS.BOTH ? (<select {...register('work_center')} id="work_center"><option value="">Seleziona</option><option value={WORK_CENTERS.ZANICA}>ZANICA</option><option value={WORK_CENTERS.BUSTO_GAROLFO}>BUSTO GAROLFO</option></select>) : (<><input type="text" id="work_center" value={selectedWorkCenter} disabled className="disabled-input" /><small>Centro di lavoro pre-impostato.</small></>)}</div>
+            <div className="form-group"><label htmlFor="nome_cliente">Nome Cliente *</label><input type="text" id="nome_cliente" {...register('nome_cliente')} /></div>
           </div>
         </div>
 
@@ -244,14 +244,14 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         <div className="form-section">
           <h3 className="section-title">Specifiche Tecniche</h3>
           <div className="form-grid form-grid--4-cols">
-            <div className="form-group"><label htmlFor="bag_height">Bag Height (mm) *</label><input type="number" id="bag_height" {...register('bag_height')} /></div>
-            <div className="form-group"><label htmlFor="bag_width">Bag Width (mm) *</label><input type="number" id="bag_width" {...register('bag_width')} /></div>
-            <div className="form-group"><label htmlFor="bag_step">Bag Step (mm) *</label><input type="number" id="bag_step" {...register('bag_step')} /></div>
-            <div className="form-group"><label htmlFor="seal_sides">Seal Sides *</label><select id="seal_sides" {...register('seal_sides')}><option value={SEAL_SIDES.THREE}>3 sides</option><option value={SEAL_SIDES.FOUR}>4 sides</option></select></div>
-            <div className="form-group"><label htmlFor="product_type">Product Type *</label><select id="product_type" {...register('product_type')}><option value="">Seleziona</option><option value={PRODUCT_TYPES.CREMA}>CREMA</option><option value={PRODUCT_TYPES.LIQUIDO}>LIQUIDO</option><option value={PRODUCT_TYPES.POLVERI}>POLVERI</option></select></div>
-            <div className="form-group"><label htmlFor="quantity">Quantity *</label><input type="number" id="quantity" {...register('quantity')} /></div>
-            <div className="form-group"><label htmlFor="quantity_per_box">Qty per Box *</label><input type="number" id="quantity_per_box" {...register('quantity_per_box')} /></div>
-            <div className="form-group"><label htmlFor="quantity_completed">Qty Completed *</label><input type="number" id="quantity_completed" {...register('quantity_completed')} /></div>
+            <div className="form-group"><label htmlFor="bag_height">Altezza Busta (mm) *</label><input type="number" id="bag_height" {...register('bag_height')} /></div>
+            <div className="form-group"><label htmlFor="bag_width">Larghezza Busta (mm) *</label><input type="number" id="bag_width" {...register('bag_width')} /></div>
+            <div className="form-group"><label htmlFor="bag_step">Passo Busta (mm) *</label><input type="number" id="bag_step" {...register('bag_step')} /></div>
+            <div className="form-group"><label htmlFor="seal_sides">Lati Sigillatura *</label><select id="seal_sides" {...register('seal_sides')}><option value={SEAL_SIDES.THREE}>3 lati</option><option value={SEAL_SIDES.FOUR}>4 lati</option></select></div>
+            <div className="form-group"><label htmlFor="product_type">Tipo Prodotto *</label><select id="product_type" {...register('product_type')}><option value="">Seleziona</option><option value={PRODUCT_TYPES.CREMA}>CREMA</option><option value={PRODUCT_TYPES.LIQUIDO}>LIQUIDO</option><option value={PRODUCT_TYPES.POLVERI}>POLVERI</option></select></div>
+            <div className="form-group"><label htmlFor="quantity">Quantità *</label><input type="number" id="quantity" {...register('quantity')} /></div>
+            <div className="form-group"><label htmlFor="quantity_per_box">Q.tà per Scatola *</label><input type="number" id="quantity_per_box" {...register('quantity_per_box')} /></div>
+            <div className="form-group"><label htmlFor="quantity_completed">Q.tà Completata *</label><input type="number" id="quantity_completed" {...register('quantity_completed')} /></div>
           </div>
         </div>
         
@@ -259,9 +259,9 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         <div className="form-section">
             <h3 className="section-title">Dati Commerciali</h3>
             <div className="form-grid form-grid--3-cols">
-                <div className="form-group"><label htmlFor="internal_customer_code">FLEXI Lot *</label><input type="text" id="internal_customer_code" {...register('internal_customer_code')} /></div>
-                <div className="form-group"><label htmlFor="external_customer_code">Customer Lot *</label><input type="text" id="external_customer_code" {...register('external_customer_code')} /></div>
-                <div className="form-group"><label htmlFor="customer_order_ref">Customer Ref *</label><input type="text" id="customer_order_ref" {...register('customer_order_ref')} /></div>
+                <div className="form-group"><label htmlFor="internal_customer_code">Lotto FLEXI *</label><input type="text" id="internal_customer_code" {...register('internal_customer_code')} /></div>
+                <div className="form-group"><label htmlFor="external_customer_code">Lotto Cliente *</label><input type="text" id="external_customer_code" {...register('external_customer_code')} /></div>
+                <div className="form-group"><label htmlFor="customer_order_ref">Riferimento Cliente *</label><input type="text" id="customer_order_ref" {...register('customer_order_ref')} /></div>
             </div>
         </div>
 
@@ -269,9 +269,9 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         <div className="form-section">
           <h3 className="section-title">Dati Lavorazione & Pianificazione</h3>
           <div className="form-grid form-grid--3-cols">
-            <div className="form-group"><label htmlFor="department">Department *</label><input type="text" id="department" {...register('department')} readOnly className="disabled-input" /></div>
-            <div className="form-group"><label htmlFor="phase_search">Search Production Phase *</label><div className="searchable-dropdown"><input type="text" id="phase_search" value={phaseSearch} onChange={(e) => setPhaseSearch(e.target.value)} onFocus={() => setIsDropdownVisible(true)} onBlur={handleBlur} /><input type="hidden" {...register('fase')} />{isDropdownVisible && filteredPhases.length > 0 && (<div className="dropdown-options">{filteredPhases.map(phase => (<div key={phase.id} className="dropdown-option" onMouseDown={() => { handlePhaseSelect(phase, setValue, clearErrors); setCalculationResults(null);}}><span className="phase-name">{phase.name}</span><span className="phase-description">{phase.contenuto_fase}</span></div>))}</div>)}</div></div>
-            <div className="form-group"><label htmlFor="delivery_date">Delivery Date *</label><input type="datetime-local" id="delivery_date" {...register('delivery_date')} /></div>
+            <div className="form-group"><label htmlFor="department">Reparto *</label><input type="text" id="department" {...register('department')} readOnly className="disabled-input" /></div>
+            <div className="form-group"><label htmlFor="phase_search">Cerca Fase di Produzione *</label><div className="searchable-dropdown"><input type="text" id="phase_search" value={phaseSearch} onChange={(e) => setPhaseSearch(e.target.value)} onFocus={() => setIsDropdownVisible(true)} onBlur={handleBlur} /><input type="hidden" {...register('fase')} />{isDropdownVisible && filteredPhases.length > 0 && (<div className="dropdown-options">{filteredPhases.map(phase => (<div key={phase.id} className="dropdown-option" onMouseDown={() => { handlePhaseSelect(phase, setValue, clearErrors); setCalculationResults(null);}}><span className="phase-name">{phase.name}</span><span className="phase-description">{phase.contenuto_fase}</span></div>))}</div>)}</div></div>
+            <div className="form-group"><label htmlFor="delivery_date">Data di Consegna *</label><input type="datetime-local" id="delivery_date" {...register('delivery_date')} /></div>
           </div>
         </div>
 
