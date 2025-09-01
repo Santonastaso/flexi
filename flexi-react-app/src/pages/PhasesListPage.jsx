@@ -41,7 +41,6 @@ function PhasesListPage() {
 
   const columns = useMemo(() => [
     // Identificazione
-    { header: 'ID Fase', accessorKey: 'id' },
     { header: 'Nome Fase', accessorKey: 'name', cell: EditableCell },
     { header: 'Centro di Lavoro', accessorKey: 'work_center' },
     { header: 'Reparto', accessorKey: 'department' },
@@ -55,18 +54,6 @@ function PhasesListPage() {
     { header: 'Costo H Conf', accessorKey: 'costo_h_conf', cell: EditableCell },
     // Contenuto
     { header: 'Contenuto Fase', accessorKey: 'contenuto_fase', cell: EditableCell },
-    // Additional
-    { 
-      header: 'Creato il', 
-      accessorKey: 'created_at',
-      cell: info => formatDateUTC(info.getValue())
-    },
-    { 
-      header: 'Aggiornato il', 
-      accessorKey: 'updated_at',
-      cell: info => formatDateUTC(info.getValue())
-    },
-
   ], []);
 
   const handleSavePhase = async (updatedPhase) => {

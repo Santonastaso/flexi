@@ -89,15 +89,17 @@ function HomePage() {
     // Total active machines
     const activeMachines = machines.filter(m => m.status === MACHINE_STATUSES.ACTIVE).length;
 
-    // Tasks per day (start date) for the last 30 days
+    // Tasks per day (start date) for the last 7 days and next 7 days (14 days total)
     const tasksPerDay = {};
-    const thirtyDaysAgo = new Date(now);
-    thirtyDaysAgo.setDate(now.getDate() - 30);
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(now.getDate() - 7);
+    const sevenDaysFromNow = new Date(now);
+    sevenDaysFromNow.setDate(now.getDate() + 7);
     
     orders.forEach(order => {
       if (order.scheduled_start_time) {
         const startDate = new Date(order.scheduled_start_time);
-        if (startDate >= thirtyDaysAgo) {
+        if (startDate >= sevenDaysAgo && startDate <= sevenDaysFromNow) {
           const dateStr = startDate.toISOString().split('T')[0];
           tasksPerDay[dateStr] = (tasksPerDay[dateStr] || 0) + 1;
         }
@@ -195,18 +197,26 @@ function HomePage() {
   const tasksPerDayChartData = useMemo(() => {
     if (!metrics.tasksPerDay) return null;
 
-    const sortedDates = Object.keys(metrics.tasksPerDay).sort();
-    const last7Days = sortedDates.slice(-7);
+    // Generate all 14 days (7 days ago to 7 days from now)
+    const allDates = [];
+    const now = new Date();
+    
+    for (let i = -7; i <= 7; i++) {
+      const date = new Date(now);
+      date.setDate(now.getDate() + i);
+      const dateStr = date.toISOString().split('T')[0];
+      allDates.push(dateStr);
+    }
 
     return {
-              labels: last7Days.map(date => {
-          const d = new Date(date);
-          return formatDateShortUTC(d);
-        }),
+      labels: allDates.map(date => {
+        const d = new Date(date);
+        return formatDateShortUTC(d);
+      }),
       datasets: [
         {
           label: 'Lavori Iniziati',
-          data: last7Days.map(date => metrics.tasksPerDay[date] || 0),
+          data: allDates.map(date => metrics.tasksPerDay[date] || 0),
           borderColor: 'rgb(59, 130, 246)',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
           tension: 0.4,
@@ -394,7 +404,7 @@ function HomePage() {
       <div className="charts-container">
         {/* Tasks per Day Line Chart */}
         <div className="chart-section line-chart-section">
-          <h3>Lavori Iniziati per Giorno (Ultimi 7 Giorni)</h3>
+          <h3>Lavori Iniziati per Giorno (Ultimi 7 Giorni + Prossimi 7 Giorni)</h3>
           <div className="chart-container">
             {tasksPerDayChartData && (
               <Line data={tasksPerDayChartData} options={lineChartOptions} height={300} />

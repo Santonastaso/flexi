@@ -66,7 +66,6 @@ function BacklogListPage() {
     { header: 'Centro di Lavoro', accessorKey: 'work_center' },
     { header: 'Reparto', accessorKey: 'department' },
     { header: 'Nome Cliente', accessorKey: 'nome_cliente', cell: EditableCell },
-    { header: 'Descrizione', accessorKey: 'description', cell: EditableCell },
     
     // Specifiche Busta
     { header: 'Altezza Busta (mm)', accessorKey: 'bag_height', cell: EditableCell },
@@ -104,7 +103,6 @@ function BacklogListPage() {
     { header: 'Riferimento Ordine Cliente', accessorKey: 'customer_order_ref', cell: EditableCell },
     
     // Fase e Calcoli
-    { header: 'ID Fase', accessorKey: 'fase' },
     { header: 'Nome Fase', accessorKey: 'phase_name' },
     { 
       header: 'Durata (ore)', 
@@ -125,7 +123,6 @@ function BacklogListPage() {
     { header: 'Stato', accessorKey: 'status' },
     
     // Macchina Programmata
-    { header: 'ID Macchina Programmata', accessorKey: 'scheduled_machine_id' },
     { header: 'Nome Macchina', accessorKey: 'machine_name' },
     
     // Campi Calcolati
@@ -145,19 +142,6 @@ function BacklogListPage() {
         return typeof value === 'number' ? value.toFixed(1) : value;
       }
     },
-    
-    // Timestamps
-    { 
-      header: 'Creato il', 
-      accessorKey: 'created_at',
-      cell: info => formatDateUTC(info.getValue())
-    },
-    { 
-      header: 'Aggiornato il', 
-      accessorKey: 'updated_at',
-      cell: info => formatDateUTC(info.getValue())
-    },
-
   ], []);
 
   const handleSaveOrder = async (updatedOrder) => {

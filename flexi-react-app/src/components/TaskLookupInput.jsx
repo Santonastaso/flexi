@@ -58,7 +58,23 @@ const TaskLookupInput = ({
                   onClick={() => onDropdownSelect(order, field, fieldLabel, order[field])}
                 >
                   <span className="task-lookup-odp">{order[field]}</span>
-                  <span className="task-lookup-product">{order.product_name || 'Prodotto non specificato'}</span>
+                  <span className="task-lookup-product">
+                    {field === 'odp_number' && (
+                      <>
+                        <div>{order.article_code || 'Codice articolo FLEXI'}</div>
+                      </>
+                    )}
+                    {field === 'article_code' && (
+                      <>
+                        <div>{order.odp_number || 'Numero ODP'}</div>
+                      </>
+                    )}
+                    {field === 'nome_cliente' && (
+                      <>
+                        <div>{order.article_code || 'Codice articolo FLEXI'}</div>
+                      </>
+                    )}
+                  </span>
                   <span className="task-lookup-workcenter">({order.work_center})</span>
                 </div>
               ))

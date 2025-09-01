@@ -41,8 +41,6 @@ function MachineryListPage() {
 
   const columns = useMemo(() => [
     // Identificazione
-    { header: 'ID Macchina', accessorKey: 'id' },
-    { header: 'Tipo Macchina', accessorKey: 'machine_type' },
     { header: 'Nome Macchina', accessorKey: 'machine_name', cell: EditableCell },
     { header: 'Centro di Lavoro', accessorKey: 'work_center' },
     { header: 'Reparto', accessorKey: 'department' },
@@ -62,17 +60,6 @@ function MachineryListPage() {
       header: 'Turni Attivi', 
       accessorKey: 'active_shifts',
       cell: info => Array.isArray(info.getValue()) ? info.getValue().join(', ') : ''
-    },
-    // Additional
-    { 
-      header: 'Creato il', 
-      accessorKey: 'created_at',
-      cell: info => formatDateUTC(info.getValue())
-    },
-    { 
-      header: 'Aggiornato il', 
-      accessorKey: 'updated_at',
-      cell: info => formatDateUTC(info.getValue())
     },
     // Calendar
     {

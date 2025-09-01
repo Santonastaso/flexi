@@ -5,7 +5,8 @@
     background: #ffffff;
     border-radius: var(--border-radius-large);
     border: 1px solid var(--border-color);
-    overflow-x: auto;
+    overflow: auto;
+    max-height: 70vh;
     box-shadow: var(--shadow-sm);
 }
 
@@ -135,7 +136,8 @@ tr.editing td {
     border: 1px solid var(--border-light);
     border-radius: 0;
     box-shadow: var(--shadow-sm);
-    overflow: hidden;
+    overflow: auto;
+    max-height: 70vh;
     margin-top: var(--spacing-sm);
     margin-bottom: var(--spacing-lg);
 }
@@ -207,6 +209,10 @@ tr.editing td {
     font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--gray-light);
 }
 
 .data-table td {

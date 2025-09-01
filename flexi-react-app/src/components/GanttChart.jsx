@@ -496,7 +496,7 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
                           key={task.id} 
                           className="day-task-item"
                           onClick={() => handleTaskClick(task)}
-                          title={`${task.odp_number} - ${task.product_name || 'Prodotto non specificato'} - ${task.time_remaining ? Number(task.time_remaining).toFixed(1) : (task.duration || 1).toFixed(1)}h`}
+                          title={`${task.odp_number} - ${task.article_code || 'Codice articolo FLEXI'} - ${task.time_remaining ? Number(task.time_remaining).toFixed(1) : (task.duration || 1).toFixed(1)}h`}
                         >
                           <span className="task-odp">{task.odp_number}</span>
                           <span className="task-duration">
