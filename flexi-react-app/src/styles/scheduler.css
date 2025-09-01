@@ -722,7 +722,7 @@
     box-sizing: border-box;
     font-size: 14px;
     font-weight: 400;
-    background: var(--content-bg);
+    background: transparent;
 }
 
 /* ===== CALENDAR BODY ===== */
@@ -1434,6 +1434,291 @@
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* ===== CALENDAR GRID STYLES (Machine Calendar) ===== */
+.calendar-month-grid {
+    background: var(--content-bg);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.calendar-week-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: var(--gray-light);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.week-day-header {
+    padding: 16px 8px;
+    text-align: center;
+    font-weight: 500;
+    color: var(--text-dark);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-right: 1px solid var(--border-color);
+}
+
+.week-day-header:last-child {
+    border-right: none;
+}
+
+.calendar-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: var(--content-bg);
+}
+
+.calendar-day {
+    min-height: 120px;
+    padding: 8px;
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    position: relative;
+    background: var(--content-bg);
+    transition: background-color 0.2s ease;
+}
+
+.calendar-day:nth-child(7n) {
+    border-right: none;
+}
+
+.calendar-day:hover {
+    background: rgba(52, 152, 219, 0.05);
+}
+
+.calendar-day.empty {
+    background: rgba(0, 0, 0, 0.02);
+    cursor: default;
+}
+
+.calendar-day.other-month {
+    background: rgba(0, 0, 0, 0.02);
+    color: var(--text-light);
+}
+
+.calendar-day.today {
+    background: rgba(52, 152, 219, 0.1);
+    border-left: 4px solid var(--sap-accent);
+}
+
+.calendar-day.unavailable {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.calendar-day.partially-unavailable {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.calendar-day.has-scheduled-tasks {
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.day-number {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-dark);
+    display: block;
+    margin-bottom: 8px;
+}
+
+.availability-indicator {
+    font-size: 11px;
+    color: var(--text-light);
+    background: rgba(0, 0, 0, 0.05);
+    padding: 2px 6px;
+    border-radius: 10px;
+    display: inline-block;
+    margin-bottom: 4px;
+}
+
+.scheduled-tasks-indicator {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+/* ===== WEEK VIEW STYLES ===== */
+.calendar-week-grid {
+    background: var(--content-bg);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.time-column-header {
+    display: grid;
+    grid-template-columns: 80px repeat(7, 1fr);
+    background: var(--gray-light);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.time-header-cell {
+    padding: 16px 8px;
+    text-align: center;
+    font-weight: 500;
+    color: var(--text-dark);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-right: 1px solid var(--border-color);
+}
+
+.day-header-cell {
+    padding: 16px 8px;
+    text-align: center;
+    font-weight: 500;
+    color: var(--text-dark);
+    font-size: 14px;
+    border-right: 1px solid var(--border-color);
+}
+
+.time-column-header .day-header-cell:last-child {
+    border-right: none;
+}
+
+.time-row {
+    display: grid;
+    grid-template-columns: 80px repeat(7, 1fr);
+    border-bottom: 1px solid var(--border-color);
+    min-height: 60px;
+}
+
+.time-row:last-child {
+    border-bottom: none;
+}
+
+.time-label {
+    padding: 8px;
+    text-align: center;
+    font-weight: 500;
+    color: var(--text-dark);
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.02);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.time-slot {
+    border-right: 1px solid var(--border-color);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60px;
+    width: 100%;
+    height: 100%;
+}
+
+.time-slot:last-child {
+    border-right: none;
+}
+
+.time-slot:hover {
+    background: rgba(52, 152, 219, 0.05);
+    transform: scale(1.02);
+}
+
+.time-slot.unavailable {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.time-slot.has-scheduled-task {
+    background: rgba(107, 114, 128, 0.3);
+    color: var(--gray-medium);
+    cursor: not-allowed;
+}
+
+.time-slot.updating {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    cursor: wait;
+    animation: updatingPulse 1.5s ease-in-out infinite;
+}
+
+.time-slot-content {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* ===== YEAR VIEW STYLES ===== */
+.calendar-year-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    background: var(--content-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+}
+
+.month-mini-calendar {
+    background: var(--content-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 16px;
+    text-align: center;
+}
+
+.month-mini-calendar h4 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mini-month-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.mini-day-header {
+    padding: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mini-day {
+    padding: 4px;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-dark);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.mini-day:hover {
+    background: rgba(52, 152, 219, 0.1);
+}
+
+.mini-day.empty {
+    background: transparent;
+    cursor: default;
+}
+
+.mini-day.unavailable {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger-red);
+    font-weight: 500;
 }
 
 .dropdown-options {
