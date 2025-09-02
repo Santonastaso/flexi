@@ -92,6 +92,7 @@ export const FORM_FIELDS = {
   QUANTITY_PER_BOX: 'quantity_per_box',
   QUANTITY_COMPLETED: 'quantity_completed',
   DELIVERY_DATE: 'delivery_date',
+  USER_NOTES: 'user_notes',
   
   // Off-time fields
   START_DATE: 'startDate',

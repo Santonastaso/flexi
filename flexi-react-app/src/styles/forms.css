@@ -40,6 +40,10 @@
   grid-template-columns: repeat(4, 1fr);
 }
 
+.form-grid--1-col {
+  grid-template-columns: 1fr;
+}
+
 /* Form Groups */
 .form-group {
   display: flex;

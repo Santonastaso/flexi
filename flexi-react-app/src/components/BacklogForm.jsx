@@ -115,6 +115,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     internal_customer_code: orderToEdit?.internal_customer_code || '', 
     external_customer_code: orderToEdit?.external_customer_code || '',
     customer_order_ref: orderToEdit?.customer_order_ref || '', 
+    user_notes: orderToEdit?.user_notes || '',
     department: orderToEdit?.department || '', 
     fase: orderToEdit?.fase || '',
   }), [selectedWorkCenter, orderToEdit]);
@@ -262,6 +263,9 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 <div className="form-group"><label htmlFor="internal_customer_code">Lotto FLEXI *</label><input type="text" id="internal_customer_code" {...register('internal_customer_code')} /></div>
                 <div className="form-group"><label htmlFor="external_customer_code">Lotto Cliente *</label><input type="text" id="external_customer_code" {...register('external_customer_code')} /></div>
                 <div className="form-group"><label htmlFor="customer_order_ref">Riferimento Cliente *</label><input type="text" id="customer_order_ref" {...register('customer_order_ref')} /></div>
+            </div>
+            <div className="form-grid form-grid--1-col">
+                <div className="form-group"><label htmlFor="user_notes">Note Libere</label><textarea id="user_notes" {...register('user_notes')} rows="3" placeholder="Inserisci note libere per l'ordine..." /></div>
             </div>
         </div>
 

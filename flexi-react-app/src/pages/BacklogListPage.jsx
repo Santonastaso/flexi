@@ -101,6 +101,7 @@ function BacklogListPage() {
     { header: 'Codice Cliente Interno', accessorKey: 'internal_customer_code', cell: EditableCell },
     { header: 'Codice Cliente Esterno', accessorKey: 'external_customer_code', cell: EditableCell },
     { header: 'Riferimento Ordine Cliente', accessorKey: 'customer_order_ref', cell: EditableCell },
+    { header: 'Note Libere', accessorKey: 'user_notes', cell: EditableCell },
     
     // Fase e Calcoli
     { header: 'Nome Fase', accessorKey: 'phase_name' },
