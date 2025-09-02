@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
-import { useOrderStore, useUIStore, useSchedulerStore } from '../store';
+import { useOrderStore, useUIStore, useSchedulerStore, usePhaseStore } from '../store';
 import { useProductionCalculations } from '../hooks/useProductionCalculations';
 import { usePhaseSearch } from '../hooks/usePhaseSearch';
 import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES, SEAL_SIDES, PRODUCT_TYPES } from '../constants';
@@ -103,7 +103,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     production_lot: orderToEdit?.production_lot || '', 
     work_center: orderToEdit?.work_center || (selectedWorkCenter === WORK_CENTERS.BOTH ? '' : selectedWorkCenter),
     nome_cliente: orderToEdit?.nome_cliente || '', 
-    delivery_date: orderToEdit?.delivery_date || '', 
+    delivery_date: orderToEdit?.delivery_date ? new Date(orderToEdit.delivery_date).toISOString().slice(0, 16) : '', 
     bag_height: orderToEdit?.bag_height || '',
     bag_width: orderToEdit?.bag_width || '', 
     bag_step: orderToEdit?.bag_step || '', 
@@ -150,6 +150,30 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       setCalculationResults(null);
     }
   }, [articleCode, autoDetermineDepartment, autoDetermineWorkCenter, setValue, selectedWorkCenter, setPhaseSearch, setSelectedPhase, setEditablePhaseParams]);
+
+  // Effect to populate phase data when editing an existing order
+  useEffect(() => {
+    if (isEditMode && orderToEdit?.fase) {
+      // Find the phase by ID
+      const { phases } = usePhaseStore.getState();
+      const currentPhase = phases.find(p => p.id === orderToEdit.fase);
+      
+      if (currentPhase) {
+        setSelectedPhase(currentPhase);
+        setPhaseSearch(currentPhase.name);
+        
+        // Initialize editable phase parameters with current phase values
+        setEditablePhaseParams({
+          v_stampa: currentPhase.v_stampa || null,
+          t_setup_stampa: currentPhase.t_setup_stampa || null,
+          costo_h_stampa: currentPhase.costo_h_stampa || null,
+          v_conf: currentPhase.v_conf || null,
+          t_setup_conf: currentPhase.t_setup_conf || null,
+          costo_h_conf: currentPhase.costo_h_conf || null,
+        });
+      }
+    }
+  }, [isEditMode, orderToEdit?.fase, setSelectedPhase, setPhaseSearch, setEditablePhaseParams]);
 
   const onSubmit = async (data) => {
     const validationErrors = [
