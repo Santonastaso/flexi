@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useOrderStore, useUIStore } from '../store';
 import { useErrorHandler } from '../hooks';
-import { formatDateUTC } from '../utils/dateUtils';
+import { formatDateUTC, formatDateTimeUTC } from '../utils/dateUtils';
 
 // Individual Draggable Task Component - optimized
 const DraggableTask = React.memo(({ task }) => {
@@ -43,6 +43,18 @@ const DraggableTask = React.memo(({ task }) => {
         {/* Info Button */}
         <button 
           className="task-btn info-btn" 
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
           title={`Codice Articolo: ${task.article_code || 'Non specificato'}
 Codice Articolo Esterno: ${task.external_article_code || 'Non specificato'}
 Nome Cliente: ${task.nome_cliente || 'Non specificato'}
@@ -59,7 +71,16 @@ ${task.scheduled_end_time ? `Fine Programmata: ${formatDateTimeUTC(task.schedule
           className="task-btn edit-btn"
           onClick={(e) => {
             e.stopPropagation();
+            e.preventDefault();
             navigate(`/backlog/${task.id}/edit`);
+          }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
           }}
           title="Modifica e ricalcola"
         >

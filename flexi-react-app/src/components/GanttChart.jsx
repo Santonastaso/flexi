@@ -5,14 +5,11 @@ import { useOrderStore, useSchedulerStore } from '../store';
 import { formatDateUTC, formatDateTimeUTC } from '../utils/dateUtils';
 import {
   toDateString,
-  getUTCStartOfDay,
-  getUTCEndOfDay,
   isSameUTCDate,
   getStartOfWeek,
   getStartOfDay,
   getEndOfDay
 } from '../utils/dateUtils';
-import * as dateFns from 'date-fns';
 
 
 // A single 15-minute time slot on the calendar that can receive a dropped task
@@ -242,21 +239,15 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                         position: 'absolute',
                         left: `${segment.left}px`,
                         width: `${segment.width}px`,
-                        transform: isDragging && index === 0 ? `translate3d(${transform?.x || 0}px, ${transform?.y || 0}px, 0)` : 'none',
-                        zIndex: isDragging ? 1001 : 10,
-                        opacity: isDragging ? 0.8 : 1,
-                        transition: isDragging ? 'none' : 'opacity 0.1s ease',
-                        pointerEvents: isDragging ? 'none' : 'auto',
+                        zIndex: 10,
+                        opacity: 1,
+                        transition: 'opacity 0.1s ease',
+                        pointerEvents: 'auto',
                     }}
-                    className={`scheduled-event ${isDragging ? 'dragging' : ''} ${isVerySmallTask ? 'very-small' : ''} ${isSmallTask ? 'small' : ''} ${isExtremelyNarrow ? 'extremely-narrow' : ''} ${eventSegments.length > 1 ? 'split-segment' : ''}`}
-                    {...(index === 0 ? { ...attributes, ...listeners } : {})} // Only add drag attributes to first segment
+                    className={`scheduled-event ${isVerySmallTask ? 'very-small' : ''} ${isSmallTask ? 'small' : ''} ${isExtremelyNarrow ? 'extremely-narrow' : ''} ${eventSegments.length > 1 ? 'split-segment' : ''}`}
                 >
                     <div 
                         className={`event-content`}
-                        style={{
-                            opacity: isDragging ? 0.7 : 1,
-                            transform: isDragging ? 'scale(0.95)' : 'none',
-                        }}
                     >
                         <span className="event-label">
                             {event.odp_number}
@@ -271,14 +262,26 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                         </span>
                     </div>
                     
-                    {/* Only render controls on first segment when not dragging */}
-                    {!isDragging && index === 0 && (
+                    {/* Only render controls on first segment */}
+                    {index === 0 && (
                         <div 
                             className={`event-controls ${shouldOverlayButtons ? 'overlay' : ''}`}
                 >
-                {/* Info Button */}
+                {/* Info Button - Always functional */}
                 <button 
                     className="event-btn info-btn" 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }}
+                    onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }}
+                    onPointerDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }}
                     title={`Codice Articolo: ${event.article_code || 'Non specificato'}
 Codice Articolo Esterno: ${event.external_article_code || 'Non specificato'}
 Nome Cliente: ${event.nome_cliente || 'Non specificato'}
@@ -290,12 +293,21 @@ ${event.scheduled_end_time ? `Fine Programmata: ${formatDateTimeUTC(event.schedu
                     <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>i</span>
                 </button>
 
-                {/* Edit Button */}
+                {/* Edit Button - Always functional */}
                 <button 
                     className="event-btn edit-btn"
                     onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         navigate(`/backlog/${event.id}/edit`);
+                    }}
+                    onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }}
+                    onPointerDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
                     }}
                     title="Modifica e ricalcola"
                 >
@@ -327,6 +339,10 @@ ${event.scheduled_end_time ? `Fine Programmata: ${formatDateTimeUTC(event.schedu
                         className="drag-handle" 
                         {...listeners} 
                         {...attributes}
+                        style={{
+                            transform: isDragging ? `translate3d(${transform?.x || 0}px, ${transform?.y || 0}px, 0)` : 'none',
+                            zIndex: isDragging ? 1001 : 20,
+                        }}
                         title="Trascina per riprogrammare"
                     >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
