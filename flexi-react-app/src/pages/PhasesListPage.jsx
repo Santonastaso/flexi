@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 import EditableCell from '../components/EditableCell';
-import StickyHeader from '../components/StickyHeader';
+
 import { usePhaseStore, useUIStore, useMainStore } from '../store';
 import { useValidation, useErrorHandler } from '../hooks';
 import { showValidationError, showError } from '../utils';
@@ -95,18 +95,20 @@ function PhasesListPage() {
   }
 
   if (!selectedWorkCenter) {
-    return <div className="error">Seleziona un centro di lavoro per visualizzare i dati delle fasi.</div>;
+           return <div className="text-center py-4 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati delle fasi.</div>;
   }
 
   return (
-    <div className="content-section">
-      <StickyHeader title="Catalogo Fasi" />
-      <DataTable
-        columns={columns}
-        data={filteredPhases}
-        onSaveRow={handleSavePhase}
-        onDeleteRow={handleDeletePhase}
-      />
+    <div className="p-2 bg-white rounded shadow-sm border min-w-0">
+      
+      <div className="overflow-x-auto">
+        <DataTable
+          columns={columns}
+          data={filteredPhases}
+          onSaveRow={handleSavePhase}
+          onDeleteRow={handleDeletePhase}
+        />
+      </div>
     </div>
   );
 }

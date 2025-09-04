@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 import EditableCell from '../components/EditableCell';
-import StickyHeader from '../components/StickyHeader';
+
 import { useUIStore } from '../store';
 import { useValidation, useErrorHandler, useMachinesByWorkCenter, useUpdateMachine, useRemoveMachine } from '../hooks';
 import { showValidationError, showError } from '../utils';
@@ -24,7 +24,7 @@ function MachineryListPage() {
 
   // Show error if query failed
   if (error) {
-    return <div className="error">Errore nel caricamento delle macchine: {error.message}</div>;
+           return <div className="text-center py-4 text-red-600 text-xs">Errore nel caricamento delle macchine: {error.message}</div>;
   }
 
   const columns = useMemo(() => [
@@ -56,8 +56,7 @@ function MachineryListPage() {
       cell: info => (
         <Link 
           to={`/machinery/${info.getValue()}/calendar`}
-          className="nav-btn today"
-          style={{ textDecoration: 'none' }}
+          className="inline-flex items-center px-2 py-1 border border-gray-300 rounded shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
         >
           Visualizza Calendario
         </Link>
@@ -112,18 +111,20 @@ function MachineryListPage() {
   }
 
   if (!selectedWorkCenter) {
-    return <div className="error">Seleziona un centro di lavoro per visualizzare i dati delle macchine.</div>;
+           return <div className="text-center py-4 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati delle macchine.</div>;
   }
 
   return (
-    <div className="content-section">
-      <StickyHeader title="Catalogo Macchine" />
-      <DataTable
-        columns={columns}
-        data={machines}
-        onSaveRow={handleSaveMachine}
-        onDeleteRow={handleDeleteMachine}
-      />
+    <div className="p-2 bg-white rounded shadow-sm border min-w-0">
+      
+      <div className="overflow-x-auto">
+        <DataTable
+          columns={columns}
+          data={machines}
+          onSaveRow={handleSaveMachine}
+          onDeleteRow={handleDeleteMachine}
+        />
+      </div>
     </div>
   );
 }

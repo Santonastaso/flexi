@@ -213,15 +213,15 @@ function HomePage() {
         const d = new Date(date);
         return format(new Date(d), 'dd/MM');
       }),
-      datasets: [
-        {
-          label: 'Lavori Iniziati',
-          data: allDates.map(date => metrics.tasksPerDay[date] || 0),
-          borderColor: 'rgb(59, 130, 246)',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          tension: 0.4,
-        },
-      ],
+                      datasets: [
+                  {
+                    label: 'Lavori Iniziati',
+                    data: allDates.map(date => metrics.tasksPerDay[date] || 0),
+                    borderColor: 'rgb(30, 58, 138)',
+                    backgroundColor: 'rgba(30, 58, 138, 0.1)',
+                    tension: 0.4,
+                  },
+                ],
     };
   }, [metrics.tasksPerDay]);
 
@@ -232,6 +232,11 @@ function HomePage() {
     plugins: {
       legend: {
         position: 'top',
+        labels: {
+          font: {
+            size: 10
+          }
+        }
       },
       title: {
         display: false,
@@ -242,8 +247,18 @@ function HomePage() {
         beginAtZero: true,
         ticks: {
           stepSize: 1,
+          font: {
+            size: 10
+          }
         },
       },
+      x: {
+        ticks: {
+          font: {
+            size: 10
+          }
+        }
+      }
     },
   };
 
@@ -255,8 +270,11 @@ function HomePage() {
       legend: {
         position: 'bottom',
         labels: {
-          padding: 20,
+          padding: 10,
           usePointStyle: true,
+          font: {
+            size: 10
+          }
         },
       },
     },
@@ -264,97 +282,97 @@ function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="content-section">
-        <div className="loading">Caricamento dashboard...</div>
+      <div className="p-4 bg-white rounded shadow-sm border">
+                     <div className="text-center py-4 text-gray-500 text-xs">Caricamento dashboard...</div>
       </div>
     );
   }
 
   return (
-    <div className="content-section">
+    <div className="p-4 bg-white rounded shadow-sm border">
       {/* Main Title */}
       <StickyHeader title="Dashboard Produzione" />
       
       {/* Key Metrics - Horizontal Layout */}
-      <div className="metrics-grid">
-        <div className="metric-card">
-          <h3>Macchine Totali</h3>
-          <div className="metric-value">{metrics.totalMachines}</div>
-          <div className="metric-subtitle">Attive: {metrics.activeMachines}</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
+        <div className="bg-blue-50 p-2 rounded border border-blue-200">
+          <h3 className="text-xs font-medium text-blue-800 mb-1">Macchine Totali</h3>
+                          <div className="text-xs font-bold text-blue-900">{metrics.totalMachines}</div>
+          <div className="text-xs text-blue-600">Attive: {metrics.activeMachines}</div>
         </div>
         
-        <div className="metric-card">
-          <h3>Ordini Totali</h3>
-          <div className="metric-value">{metrics.totalOrders}</div>
+        <div className="bg-gray-50 p-2 rounded border border-gray-200">
+          <h3 className="text-xs font-medium text-gray-700 mb-1">Ordini Totali</h3>
+                          <div className="text-xs font-bold text-gray-900">{metrics.totalOrders}</div>
         </div>
         
-        <div className="metric-card">
-          <h3>Completati Questa Settimana</h3>
-          <div className="metric-value">{metrics.completedThisWeek}</div>
+        <div className="bg-blue-50 p-2 rounded border border-blue-200">
+          <h3 className="text-xs font-medium text-blue-800 mb-1">Completati Questa Settimana</h3>
+                          <div className="text-xs font-bold text-blue-900">{metrics.completedThisWeek}</div>
         </div>
         
-        <div className="metric-card">
-          <h3>Lavori in Corso</h3>
-          <div className="metric-value">{metrics.tasksInWip}</div>
+        <div className="bg-gray-50 p-2 rounded border border-gray-200">
+          <h3 className="text-xs font-medium text-gray-700 mb-1">Lavori in Corso</h3>
+                          <div className="text-xs font-bold text-gray-900">{metrics.tasksInWip}</div>
         </div>
         
-        <div className="metric-card">
-          <h3>Lavori Ritardati</h3>
-          <div className="metric-value delayed">{metrics.delayedTasks}</div>
+        <div className="bg-red-50 p-2 rounded border border-red-200">
+          <h3 className="text-xs font-medium text-red-800 mb-1">Lavori Ritardati</h3>
+                          <div className="text-xs font-bold text-red-900">{metrics.delayedTasks}</div>
         </div>
       </div>
 
       {/* Weekly Metrics Row */}
-      <div className="weekly-metrics-row">
-        <div className="weekly-metric-card">
-          <h3>Ordini Settimanali</h3>
-          <div className="metric-value">{metrics.weeklyOrdersCount}</div>
-          <div className="metric-subtitle">Questa Settimana</div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div className="bg-gray-50 p-2 rounded border border-gray-200">
+          <h3 className="text-xs font-medium text-gray-700 mb-1">Ordini Settimanali</h3>
+                          <div className="text-xs font-bold text-gray-900">{metrics.weeklyOrdersCount}</div>
+          <div className="text-xs text-gray-600">Questa Settimana</div>
         </div>
         
-        <div className="weekly-metric-card">
-          <h3>Costo Medio</h3>
-          <div className="metric-value">€{metrics.avgWeeklyCost.toFixed(2)}</div>
-          <div className="metric-subtitle">Per Lavoro Questa Settimana</div>
+        <div className="bg-blue-50 p-2 rounded border border-blue-200">
+          <h3 className="text-xs font-medium text-blue-800 mb-1">Costo Medio</h3>
+                          <div className="text-xs font-bold text-blue-900">€{metrics.avgWeeklyCost.toFixed(2)}</div>
+          <div className="text-xs text-blue-600">Per Lavoro Questa Settimana</div>
         </div>
         
-        <div className="metric-card">
-          <h3>Durata Media</h3>
-          <div className="metric-value">{metrics.avgWeeklyDuration.toFixed(1)}h</div>
-          <div className="metric-subtitle">Per Lavoro Questa Settimana</div>
+        <div className="bg-gray-50 p-2 rounded border border-gray-200">
+          <h3 className="text-xs font-medium text-gray-700 mb-1">Durata Media</h3>
+                          <div className="text-xs font-bold text-gray-900">{metrics.avgWeeklyDuration.toFixed(1)}h</div>
+          <div className="text-xs text-gray-600">Per Lavoro Questa Settimana</div>
         </div>
       </div>
 
       {/* Matrix Tables for Cost and Duration by Work Center and Department */}
-      <div className="matrix-tables-container">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* Cost Matrix Table */}
-        <div className="matrix-table-section">
-          <h3>Costo Medio per Centro di Lavoro e Reparto</h3>
-          <div className="matrix-table">
-            <table>
+        <div className="bg-gray-50 p-2 rounded border border-gray-200">
+          <h3 className="text-xs font-semibold text-gray-900 mb-2">Costo Medio per Centro di Lavoro e Reparto</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th></th>
-                  <th>ZANICA</th>
-                  <th>BUSTO GAROLFO</th>
+                <tr className="border-b border-gray-300">
+                  <th className="text-left py-1 px-2 text-xs font-medium text-gray-700"></th>
+                  <th className="text-left py-1 px-2 text-xs font-medium text-gray-700">ZANICA</th>
+                  <th className="text-left py-1 px-2 text-xs font-medium text-gray-700">BUSTO GAROLFO</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className="department-label">STAMPA</td>
-                  <td className="metric-cell">
+                <tr className="border-b border-gray-200">
+                  <td className="py-1 px-2 text-xs font-medium text-gray-700">STAMPA</td>
+                  <td className="py-1 px-2 text-xs text-gray-900">
                     €{metrics.costMatrix?.stampa?.zanica?.toFixed(2) || '0.00'}
                   </td>
-                  <td className="metric-cell">
+                  <td className="py-1 px-2 text-xs text-gray-900">
                     €{metrics.costMatrix?.stampa?.busto_garolfo?.toFixed(2) || '0.00'}
                   </td>
                 </tr>
                 <tr>
-                  <td className="department-label">CONFEZIONAMENTO</td>
-                  <td className="metric-cell">
+                  <td className="py-1 px-2 text-xs font-medium text-gray-700">CONFEZIONAMENTO</td>
+                  <td className="py-1 px-2 text-xs text-gray-900">
                     €{metrics.costMatrix?.confezionamento?.zanica?.toFixed(2) || '0.00'}
                   </td>
-                  <td className="metric-cell">
+                  <td className="py-1 px-2 text-xs text-gray-900">
                     €{metrics.costMatrix?.confezionamento?.busto_garolfo?.toFixed(2) || '0.00'}
                   </td>
                 </tr>
@@ -364,33 +382,33 @@ function HomePage() {
         </div>
 
         {/* Duration Matrix Table */}
-        <div className="matrix-table-section">
-          <h3>Durata Media per Centro di Lavoro e Reparto</h3>
-          <div className="matrix-table">
-            <table>
+        <div className="bg-gray-50 p-2 rounded border border-gray-200">
+          <h3 className="text-xs font-semibold text-gray-900 mb-2">Durata Media per Centro di Lavoro e Reparto</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th></th>
-                  <th>ZANICA</th>
-                  <th>BUSTO GAROLFO</th>
+                <tr className="border-b border-gray-300">
+                  <th className="text-left py-1 px-2 text-xs font-medium text-gray-700"></th>
+                  <th className="text-left py-1 px-2 text-xs font-medium text-gray-700">ZANICA</th>
+                  <th className="text-left py-1 px-2 text-xs font-medium text-gray-700">BUSTO GAROLFO</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className="department-label">STAMPA</td>
-                  <td className="metric-cell">
+                <tr className="border-b border-gray-200">
+                  <td className="py-1 px-2 text-xs font-medium text-gray-700">STAMPA</td>
+                  <td className="py-1 px-2 text-xs text-gray-900">
                     {metrics.durationMatrix?.stampa?.zanica?.toFixed(1) || '0.0'}h
                   </td>
-                  <td className="metric-cell">
+                  <td className="py-1 px-2 text-xs text-gray-900">
                     {metrics.durationMatrix?.stampa?.busto_garolfo?.toFixed(1) || '0.0'}h
                   </td>
                 </tr>
                 <tr>
-                  <td className="department-label">CONFEZIONAMENTO</td>
-                  <td className="metric-cell">
+                  <td className="py-1 px-2 text-xs font-medium text-gray-700">CONFEZIONAMENTO</td>
+                  <td className="py-1 px-2 text-xs text-gray-900">
                     {metrics.durationMatrix?.confezionamento?.zanica?.toFixed(1) || '0.0'}h
                   </td>
-                  <td className="metric-cell">
+                  <td className="py-1 px-2 text-xs text-gray-900">
                     {metrics.durationMatrix?.confezionamento?.busto_garolfo?.toFixed(1) || '0.0'}h
                   </td>
                 </tr>
@@ -401,21 +419,21 @@ function HomePage() {
       </div>
 
       {/* Charts Section */}
-      <div className="charts-container">
+      <div className="space-y-4 mt-4">
         {/* Tasks per Day Line Chart */}
-        <div className="chart-section line-chart-section">
-          <h3>Lavori Iniziati per Giorno (Ultimi 7 Giorni + Prossimi 7 Giorni)</h3>
-          <div className="chart-container">
+        <div className="bg-gray-50 p-3 rounded border border-gray-200">
+          <h3 className="text-xs font-semibold text-gray-900 mb-2">Lavori Iniziati per Giorno (Ultimi 7 Giorni + Prossimi 7 Giorni)</h3>
+          <div className="h-48">
             {tasksPerDayChartData && (
-              <Line data={tasksPerDayChartData} options={lineChartOptions} height={300} />
+              <Line data={tasksPerDayChartData} options={lineChartOptions} height={200} />
             )}
           </div>
         </div>
 
         {/* Machines by Work Center - Pie Charts */}
-        <div className="chart-section pie-charts-section">
-          <h3>Macchine per Centro di Lavoro e Stato</h3>
-          <div className="pie-charts-grid">
+        <div className="bg-gray-50 p-3 rounded border border-gray-200">
+          <h3 className="text-xs font-semibold text-gray-900 mb-2">Macchine per Centro di Lavoro e Stato</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {Object.entries(metrics.machinesByWorkCenter || {}).map(([center, statuses]) => {
               const pieData = {
                 labels: Object.keys(statuses).map(status => 
@@ -425,14 +443,14 @@ function HomePage() {
                   {
                     data: Object.values(statuses),
                     backgroundColor: [
-                      'rgba(34, 197, 94, 0.8)',   // Green for Active
-                      'rgba(239, 68, 68, 0.8)',   // Red for Inactive
-                      'rgba(245, 158, 11, 0.8)',  // Orange for Maintenance
+                      'rgba(30, 58, 138, 0.8)',   // Navy blue for Active
+                      'rgba(107, 114, 128, 0.8)', // Grey for Inactive
+                      'rgba(156, 163, 175, 0.8)', // Light grey for Maintenance
                     ],
                     borderColor: [
-                      'rgba(34, 197, 94, 1)',
-                      'rgba(239, 68, 68, 1)',
-                      'rgba(245, 158, 11, 1)',
+                      'rgba(30, 58, 138, 1)',
+                      'rgba(107, 114, 128, 1)',
+                      'rgba(156, 163, 175, 1)',
                     ],
                     borderWidth: 2,
                   },
@@ -440,20 +458,20 @@ function HomePage() {
               };
 
               return (
-                <div key={center} className="pie-chart-item">
-                  <h4>{center}</h4>
-                  <div className="pie-chart-container">
-                    <Pie data={pieData} options={pieChartOptions} height={200} />
+                <div key={center} className="text-center">
+                  <h4 className="text-xs font-medium text-gray-700 mb-2">{center}</h4>
+                  <div className="h-32">
+                    <Pie data={pieData} options={pieChartOptions} height={150} />
                   </div>
-                  <div className="pie-chart-legend">
+                  <div className="text-xs text-gray-600 mt-2">
                     {Object.entries(statuses).map(([status, count]) => (
-                      <div key={status} className="legend-item">
-                        <span className="legend-color" style={{
-                          backgroundColor: status === 'ACTIVE' ? 'rgba(34, 197, 94, 0.8)' :
-                                         status === 'INACTIVE' ? 'rgba(239, 68, 68, 0.8)' :
-                                         'rgba(245, 158, 11, 0.8)'
+                      <div key={status} className="flex items-center justify-center gap-1 mb-1">
+                        <span className="w-2 h-2 rounded-full" style={{
+                          backgroundColor: status === 'ACTIVE' ? 'rgba(30, 58, 138, 0.8)' :
+                                         status === 'INACTIVE' ? 'rgba(107, 114, 128, 0.8)' :
+                                         'rgba(156, 163, 175, 0.8)'
                         }}></span>
-                        <span className="legend-label">{status}: {count}</span>
+                        <span>{status}: {count}</span>
                       </div>
                     ))}
                   </div>

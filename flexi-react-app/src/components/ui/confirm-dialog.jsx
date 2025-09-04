@@ -6,8 +6,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from './ui/dialog';
-import { Button } from './ui/button';
+} from './dialog';
+import { Button } from './button';
 
 const ConfirmDialog = ({ 
   isOpen, 

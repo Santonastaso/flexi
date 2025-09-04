@@ -11,6 +11,17 @@ import {
   SHIFT_TYPES,
   DEFAULT_VALUES
 } from '../constants';
+import {
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Button,
+  Label,
+} from './ui';
+
 
 function MachineForm({ machineToEdit, onSuccess }) {
   const { selectedWorkCenter } = useUIStore();
@@ -42,17 +53,20 @@ function MachineForm({ machineToEdit, onSuccess }) {
 
   const { getValidMachineTypes } = useProductionCalculations();
 
+  const form = useForm({
+    defaultValues: initialFormData
+  });
+
   const {
     register,
     handleSubmit,
+    control,
     formState: { isSubmitting },
     watch,
     setValue,
     getValues,
     reset
-  } = useForm({
-    defaultValues: initialFormData
-  });
+  } = form;
 
   const department = watch('department');
   const activeShifts = watch('active_shifts') || [];
@@ -106,148 +120,163 @@ function MachineForm({ machineToEdit, onSuccess }) {
   const isLoading = addMachineMutation.isPending || updateMachineMutation.isPending;
 
   return (
-    <div className="content-section">
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        {/* IDENTIFICAZIONE Section */}
-        <div className="form-section">
-          <h3 className="section-title">Identificazione</h3>
-          <div className="form-grid form-grid--4-cols">
-            <div className="form-group">
-              <label htmlFor="department">Department *</label>
-              <select id="department" {...register('department')}>
-                <option value={DEPARTMENT_TYPES.PRINTING}>{DEPARTMENT_TYPES.PRINTING}</option>
-                <option value={DEPARTMENT_TYPES.PACKAGING}>{DEPARTMENT_TYPES.PACKAGING}</option>
-              </select>
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="machine_type">Machine Type *</label>
-              <select id="machine_type" {...register('machine_type')}>
-                <option value="">Seleziona tipo macchina</option>
-                {getValidMachineTypes(department).map(type => 
-                  <option key={type} value={type}>{type}</option>
-                )}
-              </select>
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="machine_name">Machine Name *</label>
-              <input 
-                type="text" 
-                id="machine_name" 
-                {...register('machine_name')}
-                placeholder="Nome descrittivo" 
-              />
-            </div>
-            
-            <div className="form-group">
-                <label htmlFor="work_center">Work Center *</label>
+    <div className="p-2 bg-white rounded-lg shadow-sm border">
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-3">
+          {/* IDENTIFICAZIONE Section */}
+          <div className="space-y-3">
+                           <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Identificazione</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="department">Department *</Label>
+                <Select onValueChange={(value) => setValue('department', value)} defaultValue={getValues('department')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={DEPARTMENT_TYPES.PRINTING}>{DEPARTMENT_TYPES.PRINTING}</SelectItem>
+                    <SelectItem value={DEPARTMENT_TYPES.PACKAGING}>{DEPARTMENT_TYPES.PACKAGING}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="machine_type">Machine Type *</Label>
+                <Select onValueChange={(value) => setValue('machine_type', value)} defaultValue={getValues('machine_type')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona tipo macchina" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getValidMachineTypes(department).map(type => 
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="machine_name">Machine Name *</Label>
+                <Input 
+                  placeholder="Nome descrittivo" 
+                  {...register('machine_name')}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="work_center">Work Center *</Label>
                 {selectedWorkCenter === WORK_CENTERS.BOTH ? (
-                  <select {...register('work_center')} id="work_center">
-                    <option value="">Seleziona un centro di lavoro</option>
-                    <option value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</option>
-                    <option value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</option>
-                  </select>
+                  <Select onValueChange={(value) => setValue('work_center', value)} defaultValue={getValues('work_center')}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleziona un centro di lavoro" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</SelectItem>
+                      <SelectItem value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 ) : (
-                  <input
-                    type="text"
-                    id="work_center"
+                  <Input
                     value={selectedWorkCenter || 'N/A'}
                     disabled
-                    className="disabled-input"
+                    className="bg-gray-50"
                   />
                 )}
                 {selectedWorkCenter !== WORK_CENTERS.BOTH && (
-                    <small>Il centro di lavoro è pre-impostato.</small>
+                  <p className="text-xs text-gray-500">Il centro di lavoro è pre-impostato.</p>
                 )}
-            </div>
-          </div>
-        </div>
-
-        {/* CAPACITÀ TECNICHE Section */}
-        <div className="form-section">
-          <h3 className="section-title">Capacità Tecniche</h3>
-          <div className="form-grid form-grid--4-cols">
-            <div className="form-group">
-              <label htmlFor="min_web_width">Min Web Width (mm) *</label>
-              <input type="number" id="min_web_width" {...register('min_web_width')}/>
-            </div>
-            <div className="form-group">
-              <label htmlFor="max_web_width">Max Web Width (mm) *</label>
-              <input type="number" id="max_web_width" {...register('max_web_width')}/>
-            </div>
-            <div className="form-group">
-              <label htmlFor="min_bag_height">Min Bag Height (mm) *</label>
-              <input type="number" id="min_bag_height" {...register('min_bag_height')}/>
-            </div>
-            <div className="form-group">
-              <label htmlFor="max_bag_height">Max Bag Height (mm) *</label>
-              <input type="number" id="max_bag_height" {...register('max_bag_height')}/>
-            </div>
-          </div>
-        </div>
-
-        {/* PERFORMANCE Section */}
-        <div className="form-section">
-          <h3 className="section-title">Performance</h3>
-          <div className="form-grid form-grid--3-cols">
-            <div className="form-group">
-              <label htmlFor="standard_speed">Standard Speed *</label>
-              <input 
-                type="number" 
-                id="standard_speed" 
-                {...register('standard_speed')}
-                placeholder="pz/h o mt/h" 
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="setup_time_standard">Setup Time Standard (h) *</label>
-              <input type="number" id="setup_time_standard" {...register('setup_time_standard')}/>
-            </div>
-            {department === DEPARTMENT_TYPES.PRINTING && (
-              <div className="form-group">
-                <label htmlFor="changeover_color">Changeover Color (h) *</label>
-                <input type="number" id="changeover_color" {...register('changeover_color')}/>
               </div>
-            )}
-            {department === DEPARTMENT_TYPES.PACKAGING && (
-              <div className="form-group">
-                <label htmlFor="changeover_material">Material Changeover (h) *</label>
-                <input type="number" id="changeover_material" {...register('changeover_material')}/>
-              </div>
-            )}
+            </div>
           </div>
-        </div>
+
+          {/* CAPACITÀ TECNICHE Section */}
+          <div className="space-y-3">
+                           <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Capacità Tecniche</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="min_web_width">Min Web Width (mm) *</Label>
+                <Input type="number" {...register('min_web_width')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="max_web_width">Max Web Width (mm) *</Label>
+                <Input type="number" {...register('max_web_width')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="min_bag_height">Min Bag Height (mm) *</Label>
+                <Input type="number" {...register('min_bag_height')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="max_bag_height">Max Bag Height (mm) *</Label>
+                <Input type="number" {...register('max_bag_height')} />
+              </div>
+            </div>
+          </div>
+
+          {/* PERFORMANCE Section */}
+          <div className="space-y-3">
+                           <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Performance</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="standard_speed">Standard Speed *</Label>
+                <Input 
+                  type="number" 
+                  placeholder="pz/h o mt/h" 
+                  {...register('standard_speed')}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="setup_time_standard">Setup Time Standard (h) *</Label>
+                <Input type="number" {...register('setup_time_standard')} />
+              </div>
+              {department === DEPARTMENT_TYPES.PRINTING && (
+                <div className="space-y-2">
+                  <Label htmlFor="changeover_color">Changeover Color (h) *</Label>
+                  <Input type="number" {...register('changeover_color')} />
+                </div>
+              )}
+              {department === DEPARTMENT_TYPES.PACKAGING && (
+                <div className="space-y-2">
+                  <Label htmlFor="changeover_material">Material Changeover (h) *</Label>
+                  <Input type="number" {...register('changeover_material')} />
+                </div>
+              )}
+            </div>
+          </div>
         
-        {/* DISPONIBILITÀ Section */}
-        <div className="form-section">
-          <h3 className="section-title">Disponibilità</h3>
-          <div className="form-group">
-            <label>Active Shifts</label>
-            <div className="checkbox-group">
-              {[SHIFT_TYPES.T1, SHIFT_TYPES.T2, SHIFT_TYPES.T3].map(shift => (
-                <label key={shift}>
-                  <input 
-                    type="checkbox" 
-                    value={shift} 
-                    checked={activeShifts.includes(shift)} 
-                    onChange={handleShiftChange} 
-                  /> {shift}
-                </label>
-              ))}
+          {/* DISPONIBILITÀ Section */}
+          <div className="space-y-3">
+                           <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Disponibilità</h3>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Active Shifts</Label>
+                <div className="flex flex-wrap gap-3">
+                  {[SHIFT_TYPES.T1, SHIFT_TYPES.T2, SHIFT_TYPES.T3].map(shift => (
+                    <div key={shift} className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        id={shift}
+                        value={shift} 
+                        checked={activeShifts.includes(shift)} 
+                        onChange={handleShiftChange}
+                        className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
+                      />
+                      <Label htmlFor={shift} className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        {shift}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="form-actions" style={{ marginTop: '20px' }}>
-          <button type="submit" className="nav-btn today" disabled={isLoading}>
-            {isLoading 
-              ? (isEditMode ? 'Aggiornamento...' : 'Aggiunta...') 
-              : (isEditMode ? 'Aggiorna Macchina' : 'Aggiungi Macchina')
-            }
-          </button>
-        </div>
-      </form>
+                         <div className="flex justify-end pt-4">
+                 <Button type="submit" size="sm" disabled={isLoading}>
+                   {isLoading
+                     ? (isEditMode ? 'Aggiornamento...' : 'Aggiunta...')
+                     : (isEditMode ? 'Aggiorna Macchina' : 'Aggiungi Macchina')
+                   }
+                 </Button>
+               </div>
+        </form>
     </div>
   );
 }

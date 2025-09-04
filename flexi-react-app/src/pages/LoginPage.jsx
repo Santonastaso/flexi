@@ -4,6 +4,16 @@ import { useAuth } from '../auth/AuthContext';
 import { useUIStore } from '../store';
 import { WORK_CENTERS } from '../constants';
 import { useErrorHandler } from '../hooks';
+import {
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Label,
+} from '../components/ui';
 
 /**
  * LoginPage component for user authentication
@@ -96,25 +106,25 @@ function LoginPage() {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-header">
-          <h1>Bentornato</h1>
-          <p>Accedi al tuo account per continuare</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-4">
+        <div className="text-center">
+          <h1 className="text-xs font-bold text-gray-900">Bentornato</h1>
+                       <p className="mt-2 text-xs text-gray-600">Accedi al tuo account per continuare</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           {/* Email Field */}
-          <div className="form-group">
-            <label htmlFor="email">Indirizzo Email</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="email">Indirizzo Email</Label>
+            <Input
               type="email"
               id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               placeholder="Inserisci la tua email"
-              className={formErrors.email ? 'error' : ''}
+              className={formErrors.email ? 'border-red-500' : ''}
               disabled={isSubmitting}
               autoComplete="email"
             />
@@ -122,16 +132,16 @@ function LoginPage() {
           </div>
 
           {/* Password Field */}
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
               type="password"
               id="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
               placeholder="Inserisci la tua password"
-              className={formErrors.password ? 'error' : ''}
+              className={formErrors.password ? 'border-red-500' : ''}
               disabled={isSubmitting}
               autoComplete="current-password"
             />
@@ -139,70 +149,84 @@ function LoginPage() {
           </div>
 
           {/* Work Center Field */}
-          <div className="form-group">
-            <label htmlFor="workCenter">Centro di Lavoro *</label>
-            <select
-              id="workCenter"
-              name="workCenter"
-              value={formData.workCenter}
-              onChange={handleChange}
-              className={formErrors.workCenter ? 'error' : ''}
-              disabled={isSubmitting}
-            >
-              <option value="">Seleziona un centro di lavoro</option>
-              <option value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</option>
-              <option value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</option>
-              <option value={WORK_CENTERS.BOTH}>{WORK_CENTERS.BOTH}</option>
-            </select>
+          <div className="space-y-2">
+            <Label htmlFor="workCenter">Centro di Lavoro *</Label>
+            <Select onValueChange={(value) => handleChange({ target: { name: 'workCenter', value } })} value={formData.workCenter}>
+              <SelectTrigger className={formErrors.workCenter ? 'border-red-500' : ''}>
+                <SelectValue placeholder="Seleziona un centro di lavoro" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</SelectItem>
+                <SelectItem value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</SelectItem>
+                <SelectItem value={WORK_CENTERS.BOTH}>{WORK_CENTERS.BOTH}</SelectItem>
+              </SelectContent>
+            </Select>
             {getFieldError('workCenter')}
           </div>
 
           {/* Authentication Error */}
           {authError && (
-            <div className="auth-error">
-              <span className="error-icon">●</span>
-              {authError}
+            <div className="bg-red-50 border border-red-200 rounded-md p-2">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <span className="text-red-400">●</span>
+                </div>
+                <div className="ml-3">
+                  <p className="text-xs text-red-800">{authError}</p>
+                </div>
+              </div>
             </div>
           )}
 
           {/* Submit Button */}
-          <button
+          <Button
             type="submit"
-            className="btn btn-primary auth-submit"
+            size="sm"
+            className="w-full"
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Accesso in corso...' : 'Accedi'}
-          </button>
+          </Button>
         </form>
 
         {/* Additional Links */}
-        <div className="auth-links">
-          <Link to="/forgot-password" className="auth-link">
+        <div className="text-center space-y-4">
+                       <Link to="/forgot-password" className="text-xs text-blue-600 hover:text-blue-500">
             Password dimenticata?
           </Link>
-          <div className="auth-divider">
-            <span>Non hai un account?</span>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="px-2 bg-gray-50 text-gray-500">Non hai un account?</span>
+            </div>
           </div>
-          <Link to="/signup" className="btn btn-secondary">
-            Crea Account
+          <Link to="/signup">
+                         <Button variant="outline" size="sm" className="w-full">
+               Crea Account
+             </Button>
           </Link>
         </div>
 
-                  {/* Demo Credentials (for development) */}
-          {import.meta.env.MODE === 'development' && (
-          <div className="auth-demo">
-            <details>
-              <summary>Credenziali Demo (Solo Sviluppo)</summary>
-              <div className="demo-credentials">
-                <p><strong>Email:</strong> demo@example.com</p>
-                <p><strong>Password:</strong> demo123</p>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-secondary"
-                  onClick={() => setFormData({ email: 'demo@example.com', password: 'demo123', workCenter: WORK_CENTERS.ZANICA })}
-                >
+        {/* Demo Credentials (for development) */}
+        {import.meta.env.MODE === 'development' && (
+          <div className="mt-4 p-2 bg-gray-50 rounded-lg">
+            <details className="group">
+              <summary className="cursor-pointer text-xs font-medium text-gray-700 hover:text-gray-900">
+                Credenziali Demo (Solo Sviluppo)
+              </summary>
+              <div className="mt-4 space-y-3">
+                               <p className="text-xs text-gray-600"><strong>Email:</strong> demo@example.com</p>
+               <p className="text-xs text-gray-600"><strong>Password:</strong> demo123</p>
+                                 <Button
+                   type="button"
+                   variant="outline"
+                   size="xs"
+                   onClick={() => setFormData({ email: 'demo@example.com', password: 'demo123', workCenter: WORK_CENTERS.ZANICA })}
+                 >
                   Usa Credenziali Demo
-                </button>
+                </Button>
               </div>
             </details>
           </div>

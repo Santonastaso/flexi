@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useErrorHandler } from '../hooks';
+import {
+  Button,
+  Input,
+  Label,
+} from '../components/ui';
 
 /**
  * SignupPage component for user registration
@@ -109,42 +114,42 @@ function SignupPage() {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-header">
-          <h1>Crea Account</h1>
-          <p>Registrati per iniziare con il tuo account</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-4">
+        <div className="text-center">
+          <h1 className="text-xs font-bold text-gray-900">Crea Account</h1>
+                       <p className="mt-2 text-xs text-gray-600">Registrati per iniziare con il tuo account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           {/* Name Fields */}
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="firstName">Nome</label>
-              <input
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">Nome</Label>
+              <Input
                 type="text"
                 id="firstName"
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
                 placeholder="Inserisci il tuo nome"
-                className={formErrors.firstName ? 'error' : ''}
+                className={formErrors.firstName ? 'border-red-500' : ''}
                 disabled={isSubmitting}
                 autoComplete="given-name"
               />
               {getFieldError('firstName')}
             </div>
 
-            <div className="form-group">
-              <label htmlFor="lastName">Cognome</label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Cognome</Label>
+              <Input
                 type="text"
                 id="lastName"
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
                 placeholder="Inserisci il tuo cognome"
-                className={formErrors.lastName ? 'error' : ''}
+                className={formErrors.lastName ? 'border-red-500' : ''}
                 disabled={isSubmitting}
                 autoComplete="family-name"
               />
@@ -153,16 +158,16 @@ function SignupPage() {
           </div>
 
           {/* Email Field */}
-          <div className="form-group">
-            <label htmlFor="email">Indirizzo Email</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="email">Indirizzo Email</Label>
+            <Input
               type="email"
               id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               placeholder="Inserisci la tua email"
-              className={formErrors.email ? 'error' : ''}
+              className={formErrors.email ? 'border-red-500' : ''}
               disabled={isSubmitting}
               autoComplete="email"
             />
@@ -170,33 +175,33 @@ function SignupPage() {
           </div>
 
           {/* Password Fields */}
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
-              <input
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
                 type="password"
                 id="password"
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Crea una password"
-                className={formErrors.password ? 'error' : ''}
+                className={formErrors.password ? 'border-red-500' : ''}
                 disabled={isSubmitting}
                 autoComplete="new-password"
               />
               {getFieldError('password')}
             </div>
 
-            <div className="form-group">
-              <label htmlFor="confirmPassword">Conferma Password</label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Conferma Password</Label>
+              <Input
                 type="password"
                 id="confirmPassword"
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 placeholder="Conferma la tua password"
-                className={formErrors.confirmPassword ? 'error' : ''}
+                className={formErrors.confirmPassword ? 'border-red-500' : ''}
                 disabled={isSubmitting}
                 autoComplete="new-password"
               />
@@ -206,29 +211,43 @@ function SignupPage() {
 
           {/* Authentication Error */}
           {authError && (
-            <div className="auth-error">
-              <span className="error-icon">●</span>
-              {authError}
+            <div className="bg-red-50 border border-red-200 rounded-md p-2">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <span className="text-red-400">●</span>
+                </div>
+                <div className="ml-3">
+                  <p className="text-xs text-red-800">{authError}</p>
+                </div>
+              </div>
             </div>
           )}
 
           {/* Submit Button */}
-          <button
+          <Button
             type="submit"
-            className="btn btn-primary auth-submit"
+            size="sm"
+            className="w-full"
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Creazione Account...' : 'Crea Account'}
-          </button>
+          </Button>
         </form>
 
         {/* Additional Links */}
-        <div className="auth-links">
-          <div className="auth-divider">
-            <span>Hai già un account?</span>
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="px-2 bg-gray-50 text-gray-500">Hai già un account?</span>
+            </div>
           </div>
-          <Link to="/login" className="btn btn-secondary">
-            Accedi
+          <Link to="/login">
+                         <Button variant="outline" size="sm" className="w-full">
+               Accedi
+             </Button>
           </Link>
         </div>
       </div>

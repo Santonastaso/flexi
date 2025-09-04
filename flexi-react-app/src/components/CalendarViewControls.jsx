@@ -48,10 +48,10 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
   };
 
   return (
-    <div className="calendar-controls-container">
-      <div className="calendar-navigation">
+    <div className="flex flex-col sm:flex-row justify-between items-center mb-3 p-2 bg-gray-50 rounded-lg border">
+      <div className="flex items-center space-x-2 mb-4 sm:mb-0">
         <button 
-          className="nav-btn today"
+          className="inline-flex items-center px-2 py-1 border border-gray-300 rounded shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
           onClick={goToPrevious}
           aria-label="Previous"
         >
@@ -59,14 +59,14 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
         </button>
         
         <button 
-          className="nav-btn today"
+          className="inline-flex items-center px-2 py-1 border border-gray-300 rounded shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
           onClick={goToToday}
         >
           Oggi
         </button>
         
         <button 
-          className="nav-btn today"
+          className="inline-flex items-center px-2 py-1 border border-gray-300 rounded shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
           onClick={goToNext}
           aria-label="Next"
         >
@@ -74,12 +74,13 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
         </button>
       </div>
       
-      <div className="calendar-view-selector">
-        <h3>{getCurrentPeriodLabel()}</h3>
+      <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                     <h3 className="text-xs font-semibold text-gray-900">{getCurrentPeriodLabel()}</h3>
         
         <select 
           value={currentView} 
           onChange={(e) => onViewChange(e.target.value)}
+          className="px-2 py-1 border border-gray-300 rounded shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="Month">Mese</option>
           <option value="Week">Settimana</option>

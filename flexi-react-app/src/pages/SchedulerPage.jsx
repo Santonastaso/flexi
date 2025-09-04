@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
 import SearchableDropdown from '../components/SearchableDropdown';
-import StickyHeader from '../components/StickyHeader';
+
 import TaskLookupInput from '../components/TaskLookupInput';
 
 // Lazy load heavy components to improve initial load time
@@ -65,7 +65,7 @@ const downloadGanttAsHTML = (ganttElementSelector, dateDisplay) => {
         </style>
       </head>
       <body>
-        <div style="text-align: center; margin-bottom: 20px; font-size: 16px; font-weight: bold;">
+        <div style="text-align: center; margin-bottom: 20px; font-size: 12px; font-weight: bold;">
           Grafico Gantt - ${dateDisplay}
         </div>
         <div class="calendar-section">
@@ -485,16 +485,16 @@ function SchedulerPage() {
   // Show loading state during initial load
   if (isLoading) {
     return (
-      <div className="content-section">
-        <div className="loading">Caricamento Scheduler Produzione...</div>
+      <div className="p-2 bg-white rounded shadow-sm border">
+        <div className="text-center py-4 text-gray-500 text-xs">Caricamento Scheduler Produzione...</div>
       </div>
     );
   }
 
   if (!selectedWorkCenter) {
     return (
-      <div className="content-section">
-        <div className="error">Seleziona un centro di lavoro per visualizzare i dati dello scheduler.</div>
+      <div className="p-2 bg-white rounded shadow-sm border">
+        <div className="text-center py-4 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati dello scheduler.</div>
       </div>
     );
   }
@@ -502,48 +502,81 @@ function SchedulerPage() {
   return (
     <DndContext onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
       <div className={`content-section ${isEditMode ? 'edit-mode' : ''}`}>
-        <StickyHeader title="Scheduler Produzione" />
+
         
-        <Suspense fallback={<LoadingFallback />}>
-          <TaskPool />
-        </Suspense>
+        {/* Task Pool Section */}
+        <div className="task-pool-section">
+          <Suspense fallback={<LoadingFallback />}>
+            <TaskPool />
+          </Suspense>
+        </div>
 
         {/* Task Lookup Section */}
         <div className="section-controls">
           <h2 className="section-title">Ricerca Lavoro</h2>
           <div className="task-lookup-grid">
-                        <TaskLookupInput
-              placeholder="Inserisci numero ODP per cercare..."
-              value={taskLookup}
-              onChange={(e) => setTaskLookup(e.target.value)}
-              onLookup={() => handleLookup(taskLookup, 'odp_number', 'ODP')}
-              suggestions={scheduledOrders}
-              field="odp_number"
-              fieldLabel="ODP"
-              onDropdownSelect={executeLookupFromDropdown}
-            />
+            <div className="task-lookup-item">
+              <div className="task-lookup-input-container">
+                <TaskLookupInput
+                  placeholder="Inserisci numero ODP per cercare..."
+                  value={taskLookup}
+                  onChange={(e) => setTaskLookup(e.target.value)}
+                  onLookup={() => handleLookup(taskLookup, 'odp_number', 'ODP')}
+                  suggestions={scheduledOrders}
+                  field="odp_number"
+                  fieldLabel="ODP"
+                  onDropdownSelect={executeLookupFromDropdown}
+                />
+              </div>
+              <button
+                className="nav-btn"
+                onClick={() => handleLookup(taskLookup, 'odp_number', 'ODP')}
+              >
+                Cerca ODP
+              </button>
+            </div>
             
-            <TaskLookupInput
-              placeholder="Inserisci codice articolo per cercare..."
-              value={articleCodeLookup}
-              onChange={(e) => setArticleCodeLookup(e.target.value)}
-              onLookup={() => handleLookup(articleCodeLookup, 'article_code', 'codice articolo')}
-              suggestions={scheduledOrders}
-              field="article_code"
-              fieldLabel="Articolo"
-              onDropdownSelect={executeLookupFromDropdown}
-            />
+            <div className="task-lookup-item">
+              <div className="task-lookup-input-container">
+                <TaskLookupInput
+                  placeholder="Inserisci codice articolo per cercare..."
+                  value={articleCodeLookup}
+                  onChange={(e) => setArticleCodeLookup(e.target.value)}
+                  onLookup={() => handleLookup(articleCodeLookup, 'article_code', 'codice articolo')}
+                  suggestions={scheduledOrders}
+                  field="article_code"
+                  fieldLabel="Articolo"
+                  onDropdownSelect={executeLookupFromDropdown}
+                />
+              </div>
+              <button
+                className="nav-btn"
+                onClick={() => handleLookup(articleCodeLookup, 'article_code', 'codice articolo')}
+              >
+                Cerca Articolo
+              </button>
+            </div>
             
-            <TaskLookupInput
-              placeholder="Inserisci nome cliente per cercare..."
-              value={customerNameLookup}
-              onChange={(e) => setCustomerNameLookup(e.target.value)}
-              onLookup={() => handleLookup(customerNameLookup, 'nome_cliente', 'cliente')}
-              suggestions={scheduledOrders}
-              field="nome_cliente"
-              fieldLabel="Cliente"
-              onDropdownSelect={executeLookupFromDropdown}
-            />
+            <div className="task-lookup-item">
+              <div className="task-lookup-input-container">
+                <TaskLookupInput
+                  placeholder="Inserisci nome cliente per cercare..."
+                  value={customerNameLookup}
+                  onChange={(e) => setCustomerNameLookup(e.target.value)}
+                  onLookup={() => handleLookup(customerNameLookup, 'nome_cliente', 'cliente')}
+                  suggestions={scheduledOrders}
+                  field="nome_cliente"
+                  fieldLabel="Cliente"
+                  onDropdownSelect={executeLookupFromDropdown}
+                />
+              </div>
+              <button
+                className="nav-btn"
+                onClick={() => handleLookup(customerNameLookup, 'nome_cliente', 'cliente')}
+              >
+                Cerca Cliente
+              </button>
+            </div>
           </div>
         </div>
 
@@ -593,21 +626,15 @@ function SchedulerPage() {
             {/* Action Buttons */}
             <div className="actions-section">
               <button
-                className={`nav-btn ${isEditMode ? 'edit-mode-active' : ''}`}
+                className={`nav-btn ${isEditMode ? 'danger' : 'primary'}`}
                 onClick={toggleEditMode}
                 title={isEditMode ? "Disabilita modalità modifica" : "Abilita modalità modifica"}
-                style={{
-                  backgroundColor: isEditMode ? '#dc3545' : '#007bff',
-                  color: 'white',
-                  border: isEditMode ? '2px solid #bd2130' : '2px solid #0056b3',
-                  fontWeight: 'bold'
-                }}
               >
                 {isEditMode ? 'Disabilita Modalità Modifica' : 'Abilita Modalità Modifica'}
               </button>
               
               <button
-                className="nav-btn today"
+                className="nav-btn secondary"
                 onClick={clearFilters}
                 title="Clear all filters"
               >
@@ -617,20 +644,20 @@ function SchedulerPage() {
               {/* Calendar Navigation */}
               <div className="calendar-navigation">
                 <button
-                  className="nav-btn today"
+                  className="nav-btn secondary"
                   onClick={() => navigateDate('today')}
                 >
                   Oggi
                 </button>
                 <button
-                  className="nav-btn"
+                  className="nav-btn secondary"
                   onClick={() => navigateDate('prev')}
                 >
                   &lt;
                 </button>
                 <span className="current-date">{formatDateDisplay()}</span>
                 <button
-                  className="nav-btn"
+                  className="nav-btn secondary"
                   onClick={() => navigateDate('next')}
                 >
                   &gt;
@@ -639,7 +666,7 @@ function SchedulerPage() {
 
               {/* PDF Download Button */}
               <button
-                className="nav-btn today"
+                className="nav-btn secondary"
                 onClick={() => downloadGanttAsHTML('.calendar-section .calendar-grid', formatDateDisplay())}
                 title="Download exact Gantt chart as HTML file"
               >
@@ -649,9 +676,12 @@ function SchedulerPage() {
           </div>
         </div>
 
-        <Suspense fallback={<LoadingFallback />}>
-          <GanttChart machines={filteredMachines} currentDate={currentDate} dropTargetId={dropTargetId} />
-        </Suspense>
+        {/* Gantt Chart Section */}
+        <div className="calendar-section">
+          <Suspense fallback={<LoadingFallback />}>
+            <GanttChart machines={filteredMachines} currentDate={currentDate} dropTargetId={dropTargetId} />
+          </Suspense>
+        </div>
       </div>
 
       <DragOverlay>

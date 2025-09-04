@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 import EditableCell from '../components/EditableCell';
-import StickyHeader from '../components/StickyHeader';
+
 import { useUIStore } from '../store';
 import { useValidation, useErrorHandler, useOrders, useMachines, usePhases, useUpdateOrder, useRemoveOrder } from '../hooks';
 import { showValidationError } from '../utils';
@@ -27,7 +27,7 @@ function BacklogListPage() {
 
   // Show error if query failed
   if (ordersError) {
-    return <div className="error">Errore nel caricamento degli ordini: {ordersError.message}</div>;
+           return <div className="text-center py-4 text-red-600 text-xs">Errore nel caricamento degli ordini: {ordersError.message}</div>;
   }
 
   // Filter orders by work center and join with machine and phase data
@@ -193,18 +193,20 @@ function BacklogListPage() {
   }
 
   if (!selectedWorkCenter) {
-    return <div className="error">Seleziona un centro di lavoro per visualizzare i dati del backlog.</div>;
+           return <div className="text-center py-4 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati del backlog.</div>;
   }
 
   return (
-    <div className="content-section">
-      <StickyHeader title="Backlog Produzione" />
-      <DataTable
-        columns={columns}
-        data={filteredOrders}
-        onSaveRow={handleSaveOrder}
-        onDeleteRow={handleDeleteOrder}
-      />
+    <div className="p-2 bg-white rounded shadow-sm border min-w-0">
+      
+      <div className="overflow-x-auto">
+        <DataTable
+          columns={columns}
+          data={filteredOrders}
+          onSaveRow={handleSaveOrder}
+          onDeleteRow={handleDeleteOrder}
+        />
+      </div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Input, Label } from './ui';
 
 /**
  * Reusable SearchableDropdown component for filtering options
@@ -88,36 +89,38 @@ function SearchableDropdown({
   };
 
   return (
-    <div className="searchable-dropdown" ref={dropdownRef} style={{ width }}>
-      <label htmlFor={id}>{label}:</label>
-      <input 
-        type="text" 
-        id={id}
-        value={searchValue} 
-        onChange={handleSearchChange} 
-        onFocus={handleInputFocus} 
-        placeholder={searchPlaceholder} 
-      />
+    <div className="relative" ref={dropdownRef} style={{ width }}>
+      <div className="space-y-2">
+        <Label htmlFor={id}>{label}:</Label>
+        <Input 
+          type="text" 
+          id={id}
+          value={searchValue} 
+          onChange={handleSearchChange} 
+          onFocus={handleInputFocus} 
+          placeholder={searchPlaceholder} 
+        />
+      </div>
       {isOpen && options.length > 0 && (
-        <div className="dropdown-options">
+        <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
           {/* "All" option */}
           <div 
-            className={`dropdown-option ${allVisibleSelected ? 'selected' : ''}`}
+            className={`px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 ${allVisibleSelected ? 'bg-blue-50 text-blue-700' : ''}`}
             onMouseDown={handleAllOptionClick}
           >
-            <span className="phase-name">Tutti i {label}</span>
-            <span className="phase-description">Mostra tutti i {label.toLowerCase()}</span>
+            <div className="font-medium">Tutti i {label}</div>
+                           <div className="text-xs text-gray-600">Mostra tutti i {label.toLowerCase()}</div>
           </div>
           
           {/* Individual options */}
           {filteredOptions.map(option => (
             <div 
               key={option} 
-              className={`dropdown-option ${selectedOptions.includes(option) ? 'selected' : ''}`}
+              className={`px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 ${selectedOptions.includes(option) ? 'bg-blue-50 text-blue-700' : ''}`}
               onMouseDown={(e) => handleOptionClick(e, option)}
             >
-              <span className="phase-name">{option}</span>
-              <span className="phase-description">{label}</span>
+              <div className="font-medium">{option}</div>
+                             <div className="text-xs text-gray-600">{label}</div>
             </div>
           ))}
         </div>

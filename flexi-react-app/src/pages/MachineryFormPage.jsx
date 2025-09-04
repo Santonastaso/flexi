@@ -39,23 +39,25 @@ function MachineryFormPage() {
   }
 
   if (isEditMode && !machine) {
-    return <div className="error">Macchina non trovata.</div>;
+           return <div className="text-center py-4 text-red-600 text-xs">Macchina non trovata.</div>;
   }
 
   // Allow access if work center is selected or if BOTH is selected (which allows any work center)
   if (!selectedWorkCenter) {
-    return <div className="error">Seleziona un centro di lavoro per gestire le macchine.</div>;
+           return <div className="text-center py-4 text-red-600 text-xs">Seleziona un centro di lavoro per gestire le macchine.</div>;
   }
 
   return (
-    <div className="content-section">
-      <StickyHeader title={isEditMode ? `Modifica Macchina: ${machine?.machine_name}` : 'Aggiungi Nuova Macchina'} />
+    <div className="p-2 bg-white rounded shadow-sm border">
       {isEditMode && (
-        <div style={{ margin: '8px 24px', display: 'flex', justifyContent: 'flex-end' }}>
-          <Link to={`/machinery/${id}/calendar`} className="nav-btn today">
-            Visualizza Calendario
-          </Link>
-        </div>
+        <>
+          <StickyHeader title={`Modifica Macchina: ${machine?.machine_name}`} />
+          <div className="flex justify-end mb-2">
+                       <Link to={`/machinery/${id}/calendar`} className="inline-flex items-center px-2 py-1 border border-gray-300 rounded shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50">
+              Visualizza Calendario
+            </Link>
+          </div>
+        </>
       )}
       <MachineForm machineToEdit={machine} />
     </div>

@@ -4,6 +4,11 @@ import { useSchedulerStore, useUIStore } from '../store';
 import { format, addDays } from 'date-fns';
 import { DEFAULT_VALUES, VALIDATION_MESSAGES } from '../constants';
 import { useErrorHandler } from '../hooks';
+import {
+  Button,
+  Input,
+  Label,
+} from './ui';
 
 function OffTimeForm({ machineId, currentDate, onSuccess }) {
   const { setMachineUnavailability } = useSchedulerStore();
@@ -102,65 +107,65 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
     ) : null;
   };
 
-  return (
-    <div className="off-time-section">
-      <h3>Imposta Periodo di Non Disponibilità</h3>
-      
-      <form onSubmit={handleSubmit(onSubmit)} className="off-time-form">
-        <div className="form-grid form-grid--4-cols">
-          <div className="form-group">
-            <label htmlFor="startDate">Data Inizio</label>
-            <input
+    return (
+    <div className="p-2 bg-white rounded-lg shadow-sm border">
+                <h3 className="text-xs font-semibold text-gray-900 mb-2">Imposta Periodo di Non Disponibilità</h3>
+        
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="startDate">Data Inizio</Label>
+            <Input
               type="date"
               id="startDate"
               {...register('startDate')}
-              className={`date-input ${errors.startDate ? 'error' : ''}`}
+              className={errors.startDate ? 'border-red-500' : ''}
             />
             {getFieldError('startDate')}
           </div>
           
-          <div className="form-group">
-            <label htmlFor="startTime">Ora Inizio</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="startTime">Ora Inizio</Label>
+            <Input
               type="time"
               id="startTime"
               {...register('startTime')}
-              className={`time-input ${errors.startTime ? 'error' : ''}`}
+              className={errors.startTime ? 'border-red-500' : ''}
             />
             {getFieldError('startTime')}
           </div>
           
-          <div className="form-group">
-            <label htmlFor="endDate">Data Fine</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="endDate">Data Fine</Label>
+            <Input
               type="date"
               id="endDate"
               {...register('endDate')}
-              className={`date-input ${errors.endDate ? 'error' : ''}`}
+              className={errors.endDate ? 'border-red-500' : ''}
             />
             {getFieldError('endDate')}
           </div>
           
-          <div className="form-group">
-            <label htmlFor="endTime">Ora Fine</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="endTime">Ora Fine</Label>
+            <Input
               type="time"
               id="endTime"
               {...register('endTime')}
-              className={`time-input ${errors.endTime ? 'error' : ''}`}
+              className={errors.endTime ? 'border-red-500' : ''}
             />
             {getFieldError('endTime')}
           </div>
         </div>
         
-        <div className="form-actions">
-          <button
+        <div className="flex justify-end pt-4">
+          <Button
             type="submit"
-            className="nav-btn today"
+            size="sm"
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Impostazione...' : 'Imposta Non Disponibilità'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

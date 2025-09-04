@@ -1,13 +1,12 @@
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useUIStore } from '../store';
 
-function SideNav() {
-  const { user, signOut } = useAuth();
+function SideNav({ isOpen = true }) {
+  const { user } = useAuth();
   const { selectedWorkCenter } = useUIStore();
   const location = useLocation();
-  const navigate = useNavigate();
 
   const navLinks = [
     { href: '/', label: 'Home' },
@@ -38,108 +37,89 @@ function SideNav() {
     { href: '/scheduler', label: 'Scheduler' }
   ];
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/login');
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
-  };
+
 
   if (!user) {
     return (
-      <nav className="sidebar">
-        <div className="sidebar-logo">
-          <Link to="/login">
-            <span className="logo-flex">flex</span>
-            <span className="logo-i">i</span>
+      <nav className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col">
+        <div className="p-2 border-b border-gray-200">
+          <Link to="/login" className="text-xs font-bold text-gray-800">
+            <span className="text-blue-600">flex</span>
+            <span className="text-gray-800">i</span>
           </Link>
         </div>
         
-        <div className="sidebar-links">
-          <h3 className="sidebar-section-title">NAVIGATION</h3>
-          <Link to="/login" className="sidebar-link">
-            <span>Accedi</span>
-          </Link>
-          <Link to="/signup" className="sidebar-link">
-            <span>Registrati</span>
-          </Link>
+        <div className="flex-1 p-2">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">NAVIGATION</h3>
+          <div className="space-y-2">
+            <Link to="/login" className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
+              <span>Accedi</span>
+            </Link>
+            <Link to="/signup" className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
+              <span>Registrati</span>
+            </Link>
+          </div>
         </div>
       </nav>
     );
   }
 
   return (
-    <nav className="sidebar">
+    <nav className={`w-48 bg-navy-800 border-r border-navy-700 h-screen flex flex-col flex-shrink-0 sticky left-0 z-30 transition-transform duration-300 ease-in-out ${
+      isOpen ? 'translate-x-0' : '-translate-x-full'
+    }`}>
       {/* Logo */}
-      <div className="sidebar-logo">
-        <Link to="/">
-          <span className="logo-flex">flex</span>
-          <span className="logo-i">i</span>
+              <div className="p-2 border-b border-navy-700">
+        <Link to="/" className="text-xs font-bold text-white">
+          <span className="text-blue-400">flex</span>
+          <span className="text-white">i</span>
         </Link>
       </div>
 
       {/* Navigation */}
-      <div className="sidebar-links">
-        <h3 className="sidebar-section-title">NAVIGATION</h3>
-        {navLinks.map((link) => {
-          const isActive = location.pathname === link.href || 
-            (link.subLinks && link.subLinks.some(subLink => location.pathname === subLink.href));
-          
-          return (
-            <div key={link.href} className="nav-item">
-              <Link
-                to={link.href}
-                className={`sidebar-link ${isActive ? 'active' : ''}`}
-              >
-                <span>{link.label}</span>
-              </Link>
-              {link.subLinks && (
-                <div className="sub-nav">
-                  {link.subLinks.map((subLink) => (
-                    <Link
-                      key={subLink.href}
-                      to={subLink.href}
-                      className={`sub-nav-link ${location.pathname === subLink.href ? 'active' : ''}`}
-                    >
-                      <span>{subLink.label}</span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* User Profile */}
-      <div className="sidebar-user">
-        <div className="user-avatar">
-          {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
-        </div>
-        <div className="user-info">
-          <div className="user-email">{user.email}</div>
-          {selectedWorkCenter && (
-            <div className="work-center-badge">
-              WC: {selectedWorkCenter}
-            </div>
-          )}
-          <div className="realtime-status">
-            <span className="status-indicator offline">
-              OFFLINE
-            </span>
-          </div>
+              <div className="flex-1 p-2">
+        <h3 className="text-xs font-semibold text-navy-200 uppercase tracking-wider mb-3">NAVIGATION</h3>
+        <div className="space-y-1">
+          {navLinks.map((link) => {
+            const isActive = location.pathname === link.href || 
+              (link.subLinks && link.subLinks.some(subLink => location.pathname === subLink.href));
+            
+            return (
+              <div key={link.href} className="space-y-1">
+                <Link
+                  to={link.href}
+                  className={`block px-2 py-1.5 rounded text-xs font-medium ${
+                    isActive 
+                      ? 'bg-navy-600 text-white' 
+                      : 'text-navy-200 hover:bg-navy-700'
+                  }`}
+                >
+                  <span>{link.label}</span>
+                </Link>
+                {link.subLinks && (
+                  <div className="ml-3 space-y-1">
+                    {link.subLinks.map((subLink) => (
+                      <Link
+                        key={subLink.href}
+                        to={subLink.href}
+                        className={`block px-2 py-1 rounded text-xs ${
+                          location.pathname === subLink.href 
+                            ? 'text-blue-400 bg-navy-700' 
+                            : 'text-navy-300 hover:bg-navy-700'
+                        }`}
+                      >
+                        <span>{subLink.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Account */}
-      <div className="sidebar-actions">
-        <h3 className="sidebar-section-title">ACCOUNT</h3>
-        <button onClick={handleSignOut} className="sidebar-action-btn signout-btn">
-          <span>Esci</span>
-        </button>
-      </div>
+
     </nav>
   );
 }

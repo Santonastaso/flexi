@@ -39,16 +39,16 @@ function BacklogFormPage() {
   }
 
   if (isEditMode && !order) {
-    return <div className="error">Ordine non trovato.</div>;
+           return <div className="text-center py-4 text-red-600 text-xs">Ordine non trovato.</div>;
   }
 
   // Allow access if work center is selected or if BOTH is selected (which allows any work center)
   if (!selectedWorkCenter) {
-    return <div className="error">Seleziona un centro di lavoro per gestire gli ordini del backlog.</div>;
+           return <div className="text-center py-4 text-red-600 text-xs">Seleziona un centro di lavoro per gestire gli ordini del backlog.</div>;
   }
 
   return (
-    <div className="content-section">
+    <div className="p-2 bg-white rounded shadow-sm border">
       <StickyHeader title={isEditMode ? `Modifica Ordine: ${order?.odp_number}` : 'Aggiungi Nuovo Ordine'} />
       <BacklogForm onSuccess={undefined} orderToEdit={order} />
     </div>

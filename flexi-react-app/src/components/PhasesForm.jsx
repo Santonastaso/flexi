@@ -8,6 +8,16 @@ import {
   WORK_CENTERS,
   DEFAULT_VALUES
 } from '../constants';
+import {
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Label,
+} from './ui';
 
 
 
@@ -90,91 +100,93 @@ function PhasesForm({ phaseToEdit, onSuccess }) {
   };
 
   return (
-    <div className="content-section">
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        <div className="form-section">
-          <h3 className="section-title">Informazioni Fase</h3>
-          <div className="form-grid form-grid--4-cols">
-            <div className="form-group">
-              <label htmlFor="name">Nome Fase *</label>
-              <input 
+    <div className="p-2 bg-white rounded-lg shadow-sm border">
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-3">
+        <div className="space-y-3">
+                       <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Informazioni Fase</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome Fase *</Label>
+              <Input 
                 type="text" 
                 id="name" 
                 {...register('name')}
                 placeholder="es. Stampa Alta Velocità" 
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="department">Tipo Fase *</label>
-              <select 
-                id="department" 
-                {...register('department')}
-              >
-                <option value={DEPARTMENT_TYPES.PRINTING}>{DEPARTMENT_TYPES.PRINTING}</option>
-                <option value={DEPARTMENT_TYPES.PACKAGING}>{DEPARTMENT_TYPES.PACKAGING}</option>
-              </select>
+            <div className="space-y-2">
+              <Label htmlFor="department">Tipo Fase *</Label>
+              <Select onValueChange={(value) => setValue('department', value)} defaultValue={watch('department')}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleziona tipo fase" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={DEPARTMENT_TYPES.PRINTING}>{DEPARTMENT_TYPES.PRINTING}</SelectItem>
+                  <SelectItem value={DEPARTMENT_TYPES.PACKAGING}>{DEPARTMENT_TYPES.PACKAGING}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="form-group">
-              <label htmlFor="numero_persone">Numero di Persone Richieste *</label>
-              <input 
+            <div className="space-y-2">
+              <Label htmlFor="numero_persone">Numero di Persone Richieste *</Label>
+              <Input 
                 type="number" 
                 id="numero_persone" 
                 {...register('numero_persone')}
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="work_center">Centro di Lavoro *</label>
+            <div className="space-y-2">
+              <Label htmlFor="work_center">Centro di Lavoro *</Label>
               {selectedWorkCenter === WORK_CENTERS.BOTH ? (
-                <select
-                  {...register('work_center')}
-                  id="work_center"
-                >
-                  <option value="">Seleziona un centro di lavoro</option>
-                  <option value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</option>
-                  <option value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</option>
-                </select>
+                <Select onValueChange={(value) => setValue('work_center', value)} defaultValue={watch('work_center')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona un centro di lavoro" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={WORK_CENTERS.ZANICA}>{WORK_CENTERS.ZANICA}</SelectItem>
+                    <SelectItem value={WORK_CENTERS.BUSTO_GAROLFO}>{WORK_CENTERS.BUSTO_GAROLFO}</SelectItem>
+                  </SelectContent>
+                </Select>
               ) : (
-                <input
+                <Input
                   type="text"
                   id="work_center"
                   value={selectedWorkCenter || 'Nessun centro di lavoro selezionato'}
                   disabled
-                  className="disabled-input"
-                  style={{ backgroundColor: '#f5f5f5', color: '#666' }}
+                  className="bg-gray-50"
                 />
               )}
               {selectedWorkCenter !== WORK_CENTERS.BOTH && (
-                <small style={{ color: '#666', fontSize: '12px' }}>
+                                 <p className="text-xs text-gray-500">
                   Il centro di lavoro è impostato in base alla tua selezione di accesso
-                </small>
+                </p>
               )}
             </div>
           </div>
         </div>
 
         {department === DEPARTMENT_TYPES.PRINTING && (
-          <div className="form-section">
-            <h3 className="section-title">Parametri Stampa</h3>
-            <div className="form-grid form-grid--3-cols">
-              <div className="form-group">
-                <label htmlFor="v_stampa">Velocità Stampa (mt/h) *</label>
-                <input 
+          <div className="space-y-3">
+                         <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Parametri Stampa</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="v_stampa">Velocità Stampa (mt/h) *</Label>
+                <Input 
                   type="number" 
                   id="v_stampa" 
                   {...register('v_stampa')}
                 />
               </div>
-              <div className="form-group">
-                <label htmlFor="t_setup_stampa">Tempo Setup (ore) *</label>
-                <input 
+              <div className="space-y-2">
+                <Label htmlFor="t_setup_stampa">Tempo Setup (ore) *</Label>
+                <Input 
                   type="number" 
                   id="t_setup_stampa" 
                   {...register('t_setup_stampa')}
                 />
               </div>
-              <div className="form-group">
-                <label htmlFor="costo_h_stampa">Costo Orario (€/h) *</label>
-                <input 
+              <div className="space-y-2">
+                <Label htmlFor="costo_h_stampa">Costo Orario (€/h) *</Label>
+                <Input 
                   type="number" 
                   id="costo_h_stampa" 
                   {...register('costo_h_stampa')}
@@ -185,28 +197,28 @@ function PhasesForm({ phaseToEdit, onSuccess }) {
         )}
 
         {department === DEPARTMENT_TYPES.PACKAGING && (
-          <div className="form-section">
-            <h3 className="section-title">Parametri Confezionamento</h3>
-            <div className="form-grid form-grid--3-cols">
-              <div className="form-group">
-                <label htmlFor="v_conf">Velocità Confezionamento (pz/h) *</label>
-                <input 
+          <div className="space-y-3">
+                         <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Parametri Confezionamento</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="v_conf">Velocità Confezionamento (pz/h) *</Label>
+                <Input 
                   type="number" 
                   id="v_conf" 
                   {...register('v_conf')}
                 />
               </div>
-              <div className="form-group">
-                <label htmlFor="t_setup_conf">Tempo Setup (ore) *</label>
-                <input 
+              <div className="space-y-2">
+                <Label htmlFor="t_setup_conf">Tempo Setup (ore) *</Label>
+                <Input 
                   type="number" 
                   id="t_setup_conf" 
                   {...register('t_setup_conf')}
                 />
               </div>
-              <div className="form-group">
-                <label htmlFor="costo_h_conf">Costo Orario (€/h) *</label>
-                <input 
+              <div className="space-y-2">
+                <Label htmlFor="costo_h_conf">Costo Orario (€/h) *</Label>
+                <Input 
                   type="number" 
                   id="costo_h_conf" 
                   {...register('costo_h_conf')}
@@ -215,31 +227,32 @@ function PhasesForm({ phaseToEdit, onSuccess }) {
             </div>
           </div>
         )}
-
-        <div className="form-section">
-          <h3 className="section-title">Descrizione Fase</h3>
-          <div className="form-group">
-            <label htmlFor="contenuto_fase">Descrizione Contenuto Fase *</label>
+  
+          <div className="space-y-3">
+                       <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Descrizione Fase</h3>
+          <div className="space-y-2">
+            <Label htmlFor="contenuto_fase">Descrizione Contenuto Fase *</Label>
             <textarea 
               id="contenuto_fase" 
               {...register('contenuto_fase')}
               rows="3"
               placeholder="Descrivi il contenuto della fase e i requisiti..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </div>
 
-        <div className="form-actions" style={{ marginTop: '20px' }}>
-          <button 
+        <div className="flex justify-end pt-4">
+          <Button 
             type="submit" 
-            className="nav-btn today" 
+            size="sm"
             disabled={isSubmitting}
           >
             {isSubmitting 
               ? (isEditMode ? 'Aggiornamento Fase...' : 'Aggiunta Fase...') 
               : (isEditMode ? 'Aggiorna Fase' : 'Aggiungi Fase')
             }
-          </button>
+          </Button>
         </div>
       </form>
     </div>

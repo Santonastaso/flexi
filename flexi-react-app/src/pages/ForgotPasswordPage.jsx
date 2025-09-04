@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useErrorHandler } from '../hooks';
+import {
+  Button,
+  Input,
+  Label,
+} from '../components/ui';
 
 /**
  * ForgotPasswordPage component for password reset
@@ -54,21 +59,29 @@ function ForgotPasswordPage() {
 
   if (isSuccess) {
     return (
-      <div className="auth-page">
-        <div className="auth-container">
-          <div className="auth-header">
-            <h1>Controlla la Tua Email</h1>
-            <p>Abbiamo inviato un link per il reset della password a {email}</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-4">
+          <div className="text-center">
+            <h1 className="text-xs font-bold text-gray-900">Controlla la Tua Email</h1>
+                         <p className="mt-2 text-xs text-gray-600">Abbiamo inviato un link per il reset della password a {email}</p>
           </div>
           
-          <div className="auth-success">
-            <div className="success-icon">✅</div>
-            <p>Se non vedi l'email, controlla la cartella spam.</p>
+                        <div className="bg-green-50 border border-green-200 rounded-md p-2">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <span className="text-green-400 text-xs">✅</span>
+              </div>
+              <div className="ml-3">
+                <p className="text-xs text-green-800">Se non vedi l'email, controlla la cartella spam.</p>
+              </div>
+            </div>
           </div>
           
-          <div className="auth-links">
-            <Link to="/login" className="btn btn-primary">
-              Torna all'Accesso
+          <div className="text-center">
+            <Link to="/login">
+                             <Button size="sm" className="w-full">
+                 Torna all'Accesso
+               </Button>
             </Link>
           </div>
         </div>
@@ -77,17 +90,17 @@ function ForgotPasswordPage() {
   }
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-header">
-          <h1>Reset Password</h1>
-          <p>Inserisci la tua email per ricevere un link per il reset della password</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-4">
+        <div className="text-center">
+          <h1 className="text-xs font-bold text-gray-900">Reset Password</h1>
+                       <p className="mt-2 text-xs text-gray-600">Inserisci la tua email per ricevere un link per il reset della password</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label htmlFor="email">Indirizzo Email</label>
-            <input
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Indirizzo Email</Label>
+            <Input
               type="email"
               id="email"
               name="email"
@@ -100,23 +113,30 @@ function ForgotPasswordPage() {
           </div>
 
           {error && (
-            <div className="auth-error">
-              <span className="error-icon">●</span>
-              {error}
+            <div className="bg-red-50 border border-red-200 rounded-md p-2">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <span className="text-red-400">●</span>
+                </div>
+                <div className="ml-3">
+                  <p className="text-xs text-red-800">{error}</p>
+                </div>
+              </div>
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
-            className="btn btn-primary auth-submit"
+            size="sm"
+            className="w-full"
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Invio...' : 'Invia Link di Reset'}
-          </button>
+          </Button>
         </form>
 
-        <div className="auth-links">
-          <Link to="/login" className="auth-link">
+        <div className="text-center">
+                       <Link to="/login" className="text-xs text-blue-600 hover:text-blue-500">
             Torna all'Accesso
           </Link>
         </div>

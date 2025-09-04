@@ -7,6 +7,7 @@ export const useUIStore = create((set, get) => ({
   isInitialized: false,
   selectedWorkCenter: WORK_CENTERS.BOTH,
   isEditMode: false, // Global edit mode state
+  isSidebarOpen: true, // Sidebar visibility state
   
 
   
@@ -30,6 +31,7 @@ export const useUIStore = create((set, get) => ({
   getInitializationState: () => get().isInitialized,
   getSelectedWorkCenter: () => get().selectedWorkCenter,
   getEditMode: () => get().isEditMode,
+  getSidebarOpen: () => get().isSidebarOpen,
   getConfirmDialog: () => get().confirmDialog,
   getConflictDialog: () => get().conflictDialog,
 
@@ -43,6 +45,10 @@ export const useUIStore = create((set, get) => ({
   toggleEditMode: () => set((state) => ({ isEditMode: !state.isEditMode })),
   
   setEditMode: (enabled) => set({ isEditMode: enabled }),
+  
+  toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+  
+  setSidebarOpen: (open) => set({ isSidebarOpen: open }),
 
 
 
@@ -69,6 +75,7 @@ export const useUIStore = create((set, get) => ({
     isInitialized: false,
     selectedWorkCenter: WORK_CENTERS.BOTH,
     isEditMode: false,
+    isSidebarOpen: true,
     confirmDialog: { isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' },
     conflictDialog: { isOpen: false, details: null }
   }),

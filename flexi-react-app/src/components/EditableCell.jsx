@@ -126,7 +126,7 @@ function EditableCell({
           <select
             defaultValue={initialValue}
             onChange={handleInputChange}
-            style={{ width: '100%', padding: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
+            style={{ width: '100%', padding: '2px 4px', border: '1px solid #ccc', borderRadius: '3px', fontSize: '11px' }}
           >
             {selectOptions.map(option => (
               <option key={option.value} value={option.value}>
@@ -152,7 +152,7 @@ function EditableCell({
             min={min}
             max={max}
             step={step || decimalStep}
-            style={{ width: '100%', padding: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
+            style={{ width: '100%', padding: '2px 4px', border: '1px solid #ccc', borderRadius: '3px', fontSize: '11px' }}
           />
         );
       }
@@ -166,7 +166,7 @@ function EditableCell({
             min={min || 0}
             max={max}
             step={1}
-            style={{ width: '100%', padding: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
+            style={{ width: '100%', padding: '2px 4px', border: '1px solid #ccc', borderRadius: '3px', fontSize: '11px' }}
           />
         );
         
@@ -176,7 +176,7 @@ function EditableCell({
             type="text" 
             defaultValue={initialValue} 
             onChange={handleInputChange} 
-            style={{ width: '100%', padding: '4px', border: '1px solid #ccc', borderRadius: '4px' }}
+            style={{ width: '100%', padding: '2px 4px', border: '1px solid #ccc', borderRadius: '3px', fontSize: '11px' }}
           />
         );
     }
