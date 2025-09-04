@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useUIStore } from '../store';
 
-function SideNav({ isOpen = true }) {
+function SideNav() {
   const { user } = useAuth();
   const { selectedWorkCenter } = useUIStore();
   const location = useLocation();
@@ -37,13 +37,11 @@ function SideNav({ isOpen = true }) {
     { href: '/scheduler', label: 'Scheduler' }
   ];
 
-
-
   if (!user) {
     return (
       <nav className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col">
-        <div className="p-1 border-b border-gray-200">
-          <Link to="/login" className="text-[10px] font-bold text-gray-800">
+        <div className="p-3 border-b border-gray-200">
+          <Link to="/login" className="text-[30px] font-bold text-gray-800">
             <span className="text-navy-800">flex</span>
             <span className="text-gray-800">i</span>
           </Link>
@@ -65,19 +63,17 @@ function SideNav({ isOpen = true }) {
   }
 
   return (
-    <nav className={`w-48 bg-navy-800 border-r border-navy-700 h-screen flex flex-col flex-shrink-0 sticky left-0 z-30 transition-transform duration-300 ease-in-out ${
-      isOpen ? 'translate-x-0' : '-translate-x-full'
-    }`}>
+    <nav className="w-48 bg-navy-800 border-r border-navy-700 h-screen flex flex-col flex-shrink-0 sticky left-0 z-30">
       {/* Logo */}
-              <div className="p-1 border-b border-navy-700">
-        <Link to="/" className="text-[10px] font-bold text-white">
+      <div className="p-3 border-b border-navy-700">
+        <Link to="/" className="text-[30px] font-bold text-white">
           <span className="text-navy-200">flex</span>
           <span className="text-white">i</span>
         </Link>
       </div>
 
       {/* Navigation */}
-              <div className="flex-1 p-1">
+      <div className="flex-1 p-1">
         <h3 className="text-[10px] font-semibold text-navy-200 uppercase tracking-wider mb-3">NAVIGATION</h3>
         <div className="space-y-1">
           {navLinks.map((link) => {
@@ -118,8 +114,6 @@ function SideNav({ isOpen = true }) {
           })}
         </div>
       </div>
-
-
     </nav>
   );
 }

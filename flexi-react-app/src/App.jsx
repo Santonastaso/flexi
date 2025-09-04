@@ -23,7 +23,7 @@ import { useAuth } from './auth/AuthContext';
 
 // This component creates the main layout with the sidebar
 const AppLayout = () => {
-  const { confirmDialog, hideConfirmDialog, conflictDialog, hideConflictDialog, isSidebarOpen, toggleSidebar } = useUIStore();
+  const { confirmDialog, hideConfirmDialog, conflictDialog, hideConflictDialog } = useUIStore();
   const { cleanup } = useMainStore();
   const { resolveConflictByShunting } = useSchedulerStore();
   const { user, signOut } = useAuth();
@@ -37,27 +37,12 @@ const AppLayout = () => {
   
   return (
     <div className="flex h-screen bg-gray-200 overflow-hidden">
-      <SideNav isOpen={isSidebarOpen} />
-      {/* Backdrop overlay for mobile */}
-      {!isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
-          onClick={toggleSidebar}
-        />
-      )}
+      <SideNav />
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header Bar */}
         <header className="sticky top-0 z-20 bg-navy-800 border-b border-navy-700 px-2 py-3 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <button 
-                onClick={toggleSidebar}
-                className="p-1 rounded-md hover:bg-navy-700 transition-colors"
-              >
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
               <h1 className="text-[10px] font-semibold text-white">Flexi React App</h1>
             </div>
             <div className="flex items-center space-x-4">

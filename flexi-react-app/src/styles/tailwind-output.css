@@ -670,8 +670,8 @@
   background: var(--content-bg);
   contain: layout;
   position: relative;
-  width: 2170px;
-  min-width: 2170px;
+  width: 1690px;
+  min-width: 1690px;
 }
 
 .calendar-grid-container .empty-state {
@@ -684,8 +684,8 @@
   display: flex;
   background: var(--gray-light);
   border-bottom: 2px solid var(--border-color);
-  width: 2170px;
-  min-width: 2170px;
+  width: 1690px;
+  min-width: 1690px;
   flex-shrink: 0;
   position: sticky;
   top: 0;
@@ -748,8 +748,8 @@
 
 .time-header {
   display: grid;
-  grid-template-columns: repeat(96, 15px);
-  min-width: 1440px;
+  grid-template-columns: repeat(64, 15px);
+  min-width: 960px;
   flex-shrink: 0;
 }
 
@@ -870,7 +870,7 @@
 
 .calendar-body {
   width: 100%;
-  min-width: 1620px;
+  min-width: 1140px;
   position: relative;
   flex: 1;
   overflow: visible;
@@ -881,7 +881,7 @@
   border-bottom: 2px solid #d1d5db;
   min-height: 25px;
   width: 100%;
-  min-width: 1620px;
+  min-width: 1140px;
   background: var(--content-bg);
   flex-shrink: 0;
 }
@@ -897,9 +897,9 @@
 .machine-slots {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(96, 15px);
+  grid-template-columns: repeat(64, 15px);
   position: relative;
-  min-width: 1440px;
+  min-width: 960px;
   flex-shrink: 0;
   overflow: visible;
   width: 100%;

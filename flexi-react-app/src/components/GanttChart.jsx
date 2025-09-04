@@ -105,39 +105,45 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
             // Calculate positioning for this single segment
             let segmentLeft, segmentWidth;
             
-            if (segmentStartsOnCurrentDay && segmentEndsOnCurrentDay) {
-                // Segment starts and ends on current day - use UTC time
-                const startHour = singleSegment.start.getUTCHours();
-                const startMinute = singleSegment.start.getUTCMinutes();
-                const endHour = singleSegment.end.getUTCHours();
-                const endMinute = singleSegment.end.getUTCMinutes();
-                
-                const startSlot = startHour * 4 + Math.floor(startMinute / 15);
-                const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
-                
-                segmentLeft = startSlot * 15;
-                segmentWidth = (endSlot - startSlot) * 15;
-            } else if (segmentStartsOnCurrentDay) {
-                // Segment starts on current day but ends later
-                const startHour = singleSegment.start.getUTCHours();
-                const startMinute = singleSegment.start.getUTCMinutes();
-                const startSlot = startHour * 4 + Math.floor(startMinute / 15);
-                
-                segmentLeft = startSlot * 15;
-                segmentWidth = (96 - startSlot) * 15; // Rest of the day
-            } else if (segmentEndsOnCurrentDay) {
-                // Segment starts earlier but ends on current day
-                const endHour = singleSegment.end.getUTCHours();
-                const endMinute = singleSegment.end.getUTCMinutes();
-                const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
-                
-                segmentLeft = 0;
-                segmentWidth = endSlot * 15;
-            } else {
-                // Segment spans the entire current day
-                segmentLeft = 0;
-                segmentWidth = 1440; // Full day width
-            }
+                            if (segmentStartsOnCurrentDay && segmentEndsOnCurrentDay) {
+                    // Segment starts and ends on current day - use UTC time
+                    const startHour = singleSegment.start.getUTCHours();
+                    const startMinute = singleSegment.start.getUTCMinutes();
+                    const endHour = singleSegment.end.getUTCHours();
+                    const endMinute = singleSegment.end.getUTCMinutes();
+                    
+                    // Adjust for 6 AM start time
+                    const adjustedStartHour = Math.max(6, startHour);
+                    const adjustedEndHour = Math.min(22, endHour);
+                    
+                    const startSlot = (adjustedStartHour - 6) * 4 + Math.floor(startMinute / 15);
+                    const endSlot = (adjustedEndHour - 6) * 4 + Math.ceil(endMinute / 15);
+                    
+                    segmentLeft = startSlot * 15;
+                    segmentWidth = (endSlot - startSlot) * 15;
+                } else if (segmentStartsOnCurrentDay) {
+                    // Segment starts on current day but ends later
+                    const startHour = singleSegment.start.getUTCHours();
+                    const startMinute = singleSegment.start.getUTCMinutes();
+                    const adjustedStartHour = Math.max(6, startHour);
+                    const startSlot = (adjustedStartHour - 6) * 4 + Math.floor(startMinute / 15);
+                    
+                    segmentLeft = startSlot * 15;
+                    segmentWidth = (64 - startSlot) * 15; // Rest of the day (64 slots from 6 AM to 10 PM)
+                } else if (segmentEndsOnCurrentDay) {
+                    // Segment starts earlier but ends on current day
+                    const endHour = singleSegment.end.getUTCHours();
+                    const endMinute = singleSegment.end.getUTCMinutes();
+                    const adjustedEndHour = Math.min(22, endHour);
+                    const endSlot = (adjustedEndHour - 6) * 4 + Math.ceil(endMinute / 15);
+                    
+                    segmentLeft = 0;
+                    segmentWidth = endSlot * 15;
+                } else {
+                    // Segment spans the entire current day
+                    segmentLeft = 0;
+                    segmentWidth = 960; // Full day width (64 slots * 15px)
+                }
             
             return [{ left: segmentLeft, width: segmentWidth, start: singleSegment.start, end: singleSegment.end }];
         }
@@ -165,8 +171,12 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                     const endHour = segmentEnd.getUTCHours();
                     const endMinute = segmentEnd.getUTCMinutes();
                     
-                    const startSlot = startHour * 4 + Math.floor(startMinute / 15);
-                    const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
+                    // Adjust for 6 AM start time
+                    const adjustedStartHour = Math.max(6, startHour);
+                    const adjustedEndHour = Math.min(22, endHour);
+                    
+                    const startSlot = (adjustedStartHour - 6) * 4 + Math.floor(startMinute / 15);
+                    const endSlot = (adjustedEndHour - 6) * 4 + Math.ceil(endMinute / 15);
                     
                     segmentLeft = startSlot * 15;
                     segmentWidth = (endSlot - startSlot) * 15;
@@ -174,22 +184,24 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                     // Segment starts on current day but ends later
                     const startHour = segmentStart.getUTCHours();
                     const startMinute = segmentStart.getUTCMinutes();
-                    const startSlot = startHour * 4 + Math.floor(startMinute / 15);
+                    const adjustedStartHour = Math.max(6, startHour);
+                    const startSlot = (adjustedStartHour - 6) * 4 + Math.floor(startMinute / 15);
                     
                     segmentLeft = startSlot * 15;
-                    segmentWidth = (96 - startSlot) * 15; // Rest of the day
+                    segmentWidth = (64 - startSlot) * 15; // Rest of the day (64 slots from 6 AM to 10 PM)
                 } else if (segmentEndsOnCurrentDay) {
                     // Segment starts earlier but ends on current day
                     const endHour = segmentEnd.getUTCHours();
                     const endMinute = segmentEnd.getUTCMinutes();
-                    const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
+                    const adjustedEndHour = Math.min(22, endHour);
+                    const endSlot = (adjustedEndHour - 6) * 4 + Math.ceil(endMinute / 15);
                     
                     segmentLeft = 0;
                     segmentWidth = endSlot * 15;
                 } else {
                     // Segment spans the entire current day
                     segmentLeft = 0;
-                    segmentWidth = 1440; // Full day width
+                    segmentWidth = 960; // Full day width (64 slots * 15px)
                 }
                 
                 visibleSegments.push({
@@ -396,9 +408,9 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
         <div className="machine-city">{machine.work_center}</div>
       </div>
       <div className="machine-slots">
-        {/* Render time slots in a more efficient way - use a single loop */}
-        {Array.from({ length: 96 }, (_, index) => {
-          const hour = Math.floor(index / 4);
+        {/* Render time slots from 6:00 AM to 10:00 PM (16 hours = 64 slots) */}
+        {Array.from({ length: 64 }, (_, index) => {
+          const hour = Math.floor(index / 4) + 6; // Start from 6 AM
           const minute = (index % 4) * 15;
           const isUnavailable = unavailableHours ? unavailableHours.has(hour.toString()) : false;
 
@@ -579,17 +591,20 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId }) => {
     return map;
   }, [machineAvailability, dateStr, currentView]);
 
-  // Memoize the time header with optimized rendering
+  // Memoize the time header with optimized rendering - show only 6:00 AM to 10:00 PM
   const timeHeader = useMemo(() =>
-    Array.from({ length: 24 }, (_, hour) => (
-      <div
-        key={hour}
-        className="time-slot-header hour-header"
-        style={{ gridColumn: `${hour * 4 + 1} / span 4` }}
-      >
-        {hour.toString().padStart(2, '0')}
-      </div>
-    )),
+    Array.from({ length: 16 }, (_, hourIndex) => {
+      const hour = hourIndex + 6; // Start from 6 AM
+      return (
+        <div
+          key={hour}
+          className="time-slot-header hour-header"
+          style={{ gridColumn: `${hourIndex * 4 + 1} / span 4` }}
+        >
+          {hour.toString().padStart(2, '0')}
+        </div>
+      );
+    }),
     []
   );
 
