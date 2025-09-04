@@ -4,14 +4,15 @@ import DataTable from '../components/DataTable';
 import EditableCell from '../components/EditableCell';
 import StickyHeader from '../components/StickyHeader';
 import { useMachineStore, useUIStore, useMainStore } from '../store';
-import { useMachineValidation, useErrorHandler } from '../hooks';
+import { useValidation, useErrorHandler } from '../hooks';
+import { showValidationError, showError } from '../utils';
 import { WORK_CENTERS } from '../constants';
 
 
 function MachineryListPage() {
   // Use Zustand store to select state and actions
   const { machines, updateMachine, removeMachine } = useMachineStore();
-  const { selectedWorkCenter, isLoading, isInitialized, showAlert, showConfirmDialog } = useUIStore();
+  const { selectedWorkCenter, isLoading, isInitialized, showConfirmDialog } = useUIStore();
   const { init, cleanup } = useMainStore();
 
   // Filter machines by work center
@@ -21,8 +22,8 @@ function MachineryListPage() {
     return machines.filter(machine => machine.work_center === selectedWorkCenter);
   }, [machines, selectedWorkCenter]);
 
-  // Use modern validation hook
-  const { validateMachine } = useMachineValidation();
+  // Use unified validation hook
+  const { validateMachine } = useValidation();
   
   // Use unified error handling
   const { handleAsync } = useErrorHandler('MachineryListPage');
@@ -78,19 +79,20 @@ function MachineryListPage() {
   ], []);
 
   const handleSaveMachine = async (updatedMachine) => {
-    // Use the new validation hook
-    const validationErrors = validateMachine(updatedMachine);
+    // Use the unified validation hook
+    const validation = validateMachine(updatedMachine);
     
-    if (validationErrors.length > 0) {
-      // Show validation errors in the store alert
-      showAlert(`Errori di validazione:\n${validationErrors.join('\n')}`, 'error');
+    if (!validation.isValid) {
+      showValidationError(Object.values(validation.errors));
       return;
     }
     
-    await handleAsync(
-      () => updateMachine(updatedMachine.id, updatedMachine),
-      { context: 'Aggiorna Macchina', fallbackMessage: 'Aggiornamento macchina fallito' }
-    );
+    try {
+      await updateMachine(updatedMachine.id, updatedMachine);
+    } catch (error) {
+      // Show specific error message from the store
+      showError(error.message);
+    }
   };
 
   const handleDeleteMachine = async (machineToDelete) => {
@@ -98,10 +100,12 @@ function MachineryListPage() {
       'Elimina Macchina',
       `Sei sicuro di voler eliminare "${machineToDelete.machine_name}"? Questa azione non può essere annullata.`,
       async () => {
-        await handleAsync(
-          () => removeMachine(machineToDelete.id),
-          { context: 'Elimina Macchina', fallbackMessage: 'Eliminazione macchina fallita' }
-        );
+        try {
+          await removeMachine(machineToDelete.id);
+        } catch (error) {
+          // Show specific error message from the store
+          showError(error.message);
+        }
       },
       'danger'
     );

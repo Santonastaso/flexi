@@ -3,6 +3,7 @@ import { apiService } from '../services';
 import { createErrorHandler, AppError, ERROR_TYPES } from '../utils/errorUtils';
 import { WORK_CENTERS } from '../constants';
 import { useUIStore } from './useUIStore';
+import { showSuccess } from '../utils';
 
 // Generic CRUD helper functions with centralized error handling
 const createOrderCrudActions = (set, get) => {
@@ -19,11 +20,11 @@ const createOrderCrudActions = (set, get) => {
 
         const added = await apiService.addOdpOrder(newOrder);
         set(state => ({ odpOrders: [...state.odpOrders, added] }));
-        useUIStore.getState().showAlert(`ODP Order "${newOrder?.odp_number || 'Unknown'}" added successfully`, 'success');
+        showSuccess(`ODP Order "${newOrder?.odp_number || 'Unknown'}" added successfully`);
         return added;
       } catch (error) {
         const appError = errorHandler(error);
-        useUIStore.getState().showAlert(appError.message, 'error');
+        // Don't show alert here - let the component handle error display
         throw appError;
       }
     },
@@ -37,11 +38,11 @@ const createOrderCrudActions = (set, get) => {
             order.id === id ? { ...order, ...updated } : order
           ),
         }));
-        useUIStore.getState().showAlert(`ODP Order "${oldOrder?.odp_number || 'Unknown'}" updated successfully`, 'success');
+        showSuccess(`ODP Order "${oldOrder?.odp_number || 'Unknown'}" updated successfully`);
         return updated;
       } catch (error) {
         const appError = errorHandler(error);
-        useUIStore.getState().showAlert(appError.message, 'error');
+        // Don't show alert here - let the component handle error display
         throw appError;
       }
     },
@@ -53,11 +54,11 @@ const createOrderCrudActions = (set, get) => {
         set(state => ({
           odpOrders: state.odpOrders.filter(order => order.id !== id)
         }));
-        useUIStore.getState().showAlert(`ODP Order "${order?.odp_number || 'Unknown'}" deleted successfully`, 'success');
+        showSuccess(`ODP Order "${order?.odp_number || 'Unknown'}" deleted successfully`);
         return true;
       } catch (error) {
         const appError = errorHandler(error);
-        useUIStore.getState().showAlert(appError.message, 'error');
+        // Don't show alert here - let the component handle error display
         throw appError;
       }
     },

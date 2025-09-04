@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, Outlet, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import SideNav from './components/SideNav';
 import MachineryListPage from './pages/MachineryListPage';
 import MachineryFormPage from './pages/MachineryFormPage';
@@ -15,14 +16,13 @@ import SignupPage from './pages/SignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './auth/ProtectedRoute';
-import Alert from './components/Alert';
 import ConfirmDialog from './components/ConfirmDialog';
 import { useUIStore, useMainStore, useSchedulerStore } from './store';
 
 
 // This component creates the main layout with the sidebar
 const AppLayout = () => {
-  const { alert, hideAlert, confirmDialog, hideConfirmDialog, conflictDialog, hideConflictDialog } = useUIStore();
+  const { confirmDialog, hideConfirmDialog, conflictDialog, hideConflictDialog } = useUIStore();
   const { cleanup } = useMainStore();
   const { resolveConflictByShunting } = useSchedulerStore();
   
@@ -41,11 +41,11 @@ const AppLayout = () => {
           <Outlet />
         </main>
       </div>
-      <Alert 
-        message={alert.message}
-        type={alert.type}
-        isVisible={alert.isVisible}
-        onClose={hideAlert}
+      <Toaster 
+        position="top-right"
+        richColors
+        closeButton
+        duration={4000}
       />
       <ConfirmDialog 
         isOpen={confirmDialog.isOpen}
@@ -80,7 +80,8 @@ const AppLayout = () => {
               if (conflictDialog.details) {
                 const result = await resolveConflictByShunting(conflictDialog.details, 'left');
                 if (result.error) {
-                  useUIStore.getState().showAlert(result.error, 'error');
+                  const { showError } = await import('./utils/toast');
+                  showError(result.error);
                 }
               }
             }
@@ -92,7 +93,8 @@ const AppLayout = () => {
               if (conflictDialog.details) {
                 const result = await resolveConflictByShunting(conflictDialog.details, 'right');
                 if (result.error) {
-                  useUIStore.getState().showAlert(result.error, 'error');
+                  const { showError } = await import('./utils/toast');
+                  showError(result.error);
                 }
               }
             }

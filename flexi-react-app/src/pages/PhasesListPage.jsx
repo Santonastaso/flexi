@@ -4,14 +4,15 @@ import DataTable from '../components/DataTable';
 import EditableCell from '../components/EditableCell';
 import StickyHeader from '../components/StickyHeader';
 import { usePhaseStore, useUIStore, useMainStore } from '../store';
-import { usePhaseValidation, useErrorHandler } from '../hooks';
+import { useValidation, useErrorHandler } from '../hooks';
+import { showValidationError, showError } from '../utils';
 import { WORK_CENTERS } from '../constants';
 
 
 function PhasesListPage() {
   // Use Zustand store to select state and actions
   const { phases, updatePhase, removePhase } = usePhaseStore();
-  const { selectedWorkCenter, isLoading, isInitialized, showAlert, showConfirmDialog } = useUIStore();
+  const { selectedWorkCenter, isLoading, isInitialized, showConfirmDialog } = useUIStore();
   const { init, cleanup } = useMainStore();
 
   // Filter phases by work center
@@ -21,8 +22,8 @@ function PhasesListPage() {
     return phases.filter(phase => phase.work_center === selectedWorkCenter);
   }, [phases, selectedWorkCenter]);
 
-  // Use modern validation hook
-  const { validatePhase } = usePhaseValidation();
+  // Use unified validation hook
+  const { validatePhase } = useValidation();
   
   // Use unified error handling
   const { handleAsync } = useErrorHandler('PhasesListPage');
@@ -57,19 +58,20 @@ function PhasesListPage() {
   ], []);
 
   const handleSavePhase = async (updatedPhase) => {
-    // Use the new validation hook
-    const validationErrors = validatePhase(updatedPhase);
+    // Use the unified validation hook
+    const validation = validatePhase(updatedPhase);
     
-    if (validationErrors.length > 0) {
-      // Show validation errors in the store alert
-      showAlert(`Errori di validazione:\n${validationErrors.join('\n')}`, 'error');
+    if (!validation.isValid) {
+      showValidationError(Object.values(validation.errors));
       return;
     }
     
-    await handleAsync(
-      () => updatePhase(updatedPhase.id, updatedPhase),
-      { context: 'Aggiorna Fase', fallbackMessage: 'Aggiornamento fase fallito' }
-    );
+    try {
+      await updatePhase(updatedPhase.id, updatedPhase);
+    } catch (error) {
+      // Show specific error message from the store
+      showError(error.message);
+    }
   };
 
   const handleDeletePhase = async (phaseToDelete) => {
@@ -77,10 +79,12 @@ function PhasesListPage() {
       'Elimina Fase',
       `Sei sicuro di voler eliminare "${phaseToDelete.name}"? Questa azione non può essere annullata.`,
       async () => {
-        await handleAsync(
-          () => removePhase(phaseToDelete.id),
-          { context: 'Elimina Fase', fallbackMessage: 'Eliminazione fase fallita' }
-        );
+        try {
+          await removePhase(phaseToDelete.id);
+        } catch (error) {
+          // Show specific error message from the store
+          showError(error.message);
+        }
       },
       'danger'
     );

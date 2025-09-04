@@ -3,6 +3,7 @@ import { apiService } from '../services';
 import { createErrorHandler, AppError, ERROR_TYPES } from '../utils/errorUtils';
 import { WORK_CENTERS } from '../constants';
 import { useUIStore } from './useUIStore';
+import { showSuccess } from '../utils';
 
 // Generic CRUD helper functions with centralized error handling
 const createPhaseCrudActions = (set, get) => {
@@ -19,11 +20,11 @@ const createPhaseCrudActions = (set, get) => {
 
         const added = await apiService.addPhase(newPhase);
         set(state => ({ phases: [...state.phases, added] }));
-        useUIStore.getState().showAlert(`Phase "${newPhase?.name || 'Unknown'}" added successfully`, 'success');
+        showSuccess(`Phase "${newPhase?.name || 'Unknown'}" added successfully`);
         return added;
       } catch (error) {
         const appError = errorHandler(error);
-        useUIStore.getState().showAlert(appError.message, 'error');
+        // Don't show alert here - let the component handle error display
         throw appError;
       }
     },
@@ -37,11 +38,11 @@ const createPhaseCrudActions = (set, get) => {
             phase.id === id ? { ...phase, ...updated } : phase
           ),
         }));
-        useUIStore.getState().showAlert(`Phase "${oldPhase?.name || 'Unknown'}" updated successfully`, 'success');
+        showSuccess(`Phase "${oldPhase?.name || 'Unknown'}" updated successfully`);
         return updated;
       } catch (error) {
         const appError = errorHandler(error);
-        useUIStore.getState().showAlert(appError.message, 'error');
+        // Don't show alert here - let the component handle error display
         throw appError;
       }
     },
@@ -53,11 +54,11 @@ const createPhaseCrudActions = (set, get) => {
         set(state => ({
           phases: state.phases.filter(phase => phase.id !== id)
         }));
-        useUIStore.getState().showAlert(`Phase "${phase?.name || 'Unknown'}" deleted successfully`, 'success');
+        showSuccess(`Phase "${phase?.name || 'Unknown'}" deleted successfully`);
         return true;
       } catch (error) {
         const appError = errorHandler(error);
-        useUIStore.getState().showAlert(appError.message, 'error');
+        // Don't show alert here - let the component handle error display
         throw appError;
       }
     },

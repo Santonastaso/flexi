@@ -4,6 +4,7 @@ import { createErrorHandler, AppError, ERROR_TYPES } from '../utils/errorUtils';
 import { WORK_CENTERS } from '../constants';
 import { useUIStore } from './useUIStore';
 import { generateCalendarForYear } from '../utils/calendarPopulationUtils';
+import { showSuccess, showWarning } from '../utils';
 
 // Generic CRUD helper functions with centralized error handling
 const createMachineCrudActions = (set, get) => {
@@ -28,16 +29,16 @@ const createMachineCrudActions = (set, get) => {
             if (records.length > 0) {
                 await apiService.bulkUpsertMachineAvailability(records);
             }
-            useUIStore.getState().showAlert(`Machine "${added?.machine_name || 'Unknown'}" added and calendar set successfully`, 'success');
+            showSuccess(`Machine "${added?.machine_name || 'Unknown'}" added and calendar set successfully`);
         } catch (calendarError) {
-            useUIStore.getState().showAlert(`Machine added, but failed to set calendar: ${calendarError.message}`, 'warning');
+            showWarning(`Machine added, but failed to set calendar: ${calendarError.message}`);
         }
         // --- END NEW LOGIC ---
 
         return added;
       } catch (error) {
         const appError = errorHandler(error);
-        useUIStore.getState().showAlert(appError.message, 'error');
+        // Don't show alert here - let the component handle error display
         throw appError;
       }
     },
@@ -51,11 +52,11 @@ const createMachineCrudActions = (set, get) => {
             machine.id === id ? { ...machine, ...updated } : machine
           ),
         }));
-        useUIStore.getState().showAlert(`Machine "${oldMachine?.machine_name || 'Unknown'}" updated successfully`, 'success');
+        showSuccess(`Machine "${oldMachine?.machine_name || 'Unknown'}" updated successfully`);
         return updated;
       } catch (error) {
         const appError = errorHandler(error);
-        useUIStore.getState().showAlert(appError.message, 'error');
+        // Don't show alert here - let the component handle error display
         throw appError;
       }
     },
@@ -67,11 +68,11 @@ const createMachineCrudActions = (set, get) => {
         set(state => ({
           machines: state.machines.filter(machine => machine.id !== id)
         }));
-        useUIStore.getState().showAlert(`Machine "${machine?.machine_name || 'Unknown'}" deleted successfully`, 'success');
+        showSuccess(`Machine "${machine?.machine_name || 'Unknown'}" deleted successfully`);
         return true;
       } catch (error) {
         const appError = errorHandler(error);
-        useUIStore.getState().showAlert(appError.message, 'error');
+        // Don't show alert here - let the component handle error display
         throw appError;
       }
     },

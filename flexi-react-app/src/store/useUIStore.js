@@ -8,12 +8,7 @@ export const useUIStore = create((set, get) => ({
   selectedWorkCenter: WORK_CENTERS.BOTH,
   isEditMode: false, // Global edit mode state
   
-  // Alert state
-  alert: {
-    message: '',
-    type: 'info',
-    isVisible: false
-  },
+
   
   // Confirmation dialog state
   confirmDialog: {
@@ -35,7 +30,6 @@ export const useUIStore = create((set, get) => ({
   getInitializationState: () => get().isInitialized,
   getSelectedWorkCenter: () => get().selectedWorkCenter,
   getEditMode: () => get().isEditMode,
-  getAlert: () => get().alert,
   getConfirmDialog: () => get().confirmDialog,
   getConflictDialog: () => get().conflictDialog,
 
@@ -50,14 +44,7 @@ export const useUIStore = create((set, get) => ({
   
   setEditMode: (enabled) => set({ isEditMode: enabled }),
 
-  // Alert actions
-  showAlert: (message, type = 'info') => set({
-    alert: { message, type, isVisible: true }
-  }),
-  
-  hideAlert: () => set({
-    alert: { message: '', type: 'info', isVisible: false }
-  }),
+
 
   // Confirmation dialog actions
   showConfirmDialog: (title, message, onConfirm, type = 'danger') => set({
@@ -82,7 +69,6 @@ export const useUIStore = create((set, get) => ({
     isInitialized: false,
     selectedWorkCenter: WORK_CENTERS.BOTH,
     isEditMode: false,
-    alert: { message: '', type: 'info', isVisible: false },
     confirmDialog: { isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' },
     conflictDialog: { isOpen: false, details: null }
   }),

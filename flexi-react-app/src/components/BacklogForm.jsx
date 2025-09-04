@@ -1,98 +1,23 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { useOrderStore, useUIStore, useSchedulerStore, usePhaseStore } from '../store';
-import { useProductionCalculations } from '../hooks/useProductionCalculations';
+import { useProductionCalculations, useValidation } from '../hooks';
 import { usePhaseSearch } from '../hooks/usePhaseSearch';
+import { showValidationError, showSuccess, showWarning } from '../utils';
 import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES, SEAL_SIDES, PRODUCT_TYPES } from '../constants';
 import { useErrorHandler } from '../hooks';
 
-// --- Reusable Helper Functions for Validation ---
 
-const validateRequiredStrings = (data, fields) => {
-  const errors = [];
-  fields.forEach(({ field, name }) => {
-    if (!data[field]?.trim()) errors.push(`${name} è obbligatorio`);
-  });
-  return errors;
-};
 
-const validateNumericFields = (data, fields) => {
-  const errors = [];
-  fields.forEach(({ field, name }) => {
-    const value = data[field];
-    if (value === '' || value === null || value === undefined) {
-      errors.push(`${name} è obbligatorio`);
-    } else if (parseFloat(value) < 0) {
-      errors.push(`${name} non può essere negativo`);
-    }
-  });
-  return errors;
-};
 
-const validateLogicalConditions = (data, conditions) => {
-  const errors = [];
-  conditions.forEach(({ fieldA, fieldB, message }) => {
-    if (data[fieldA] && data[fieldB] && parseFloat(data[fieldA]) > parseFloat(data[fieldB])) {
-      errors.push(message);
-    }
-  });
-  return errors;
-};
-
-const validateEnumValues = (data, enums) => {
-  const errors = [];
-  enums.forEach(({ field, name, validValues }) => {
-    if (data[field] && !validValues.includes(data[field])) {
-      errors.push(`Valore non valido per ${name}`);
-    }
-  });
-  return errors;
-};
-
-// --- Constants for Validation Configuration ---
-
-const REQUIRED_STRINGS = [
-  { field: 'odp_number', name: 'Numero ODP' },
-  { field: 'article_code', name: 'Codice Articolo' },
-  { field: 'production_lot', name: 'Codice Articolo Esterno' },
-  { field: 'work_center', name: 'Centro di Lavoro' },
-  { field: 'department', name: 'Reparto' },
-  { field: 'fase', name: 'Fase' },
-  { field: 'product_type', name: 'Tipo Prodotto' },
-  { field: 'delivery_date', name: 'Data di Consegna' },
-  { field: 'nome_cliente', name: 'Nome Cliente' },
-  { field: 'internal_customer_code', name: 'Lotto FLEXI' },
-  { field: 'external_customer_code', name: 'Lotto Cliente' },
-  { field: 'customer_order_ref', name: 'Riferimento Cliente' },
-];
-
-const REQUIRED_NUMERICS = [
-  { field: 'bag_height', name: 'Altezza Busta' },
-  { field: 'bag_width', name: 'Larghezza Busta' },
-  { field: 'bag_step', name: 'Passo Busta' },
-  { field: 'quantity', name: 'Quantità' },
-  { field: 'quantity_per_box', name: 'Quantità per Scatola' },
-  { field: 'quantity_completed', name: 'Quantità Completata' },
-];
-
-const LOGICAL_CONDITIONS = [
-    { fieldA: 'bag_step', fieldB: 'bag_width', message: 'Il Passo Busta non può essere maggiore della Larghezza Busta' },
-    { fieldA: 'quantity_completed', fieldB: 'quantity', message: 'La Quantità Completata non può superare la Quantità totale' },
-];
-
-const ENUM_VALIDATIONS = [
-    { field: 'product_type', name: 'Tipo Prodotto', validValues: Object.values(PRODUCT_TYPES) },
-    { field: 'seal_sides', name: 'Lati Sigillatura', validValues: Object.values(SEAL_SIDES) },
-    { field: 'department', name: 'Reparto', validValues: Object.values(DEPARTMENT_TYPES) },
-    { field: 'work_center', name: 'Centro di Lavoro', validValues: [WORK_CENTERS.ZANICA, WORK_CENTERS.BUSTO_GAROLFO] },
-];
 
 const BacklogForm = ({ onSuccess, orderToEdit }) => {
   const { addOdpOrder, updateOdpOrder } = useOrderStore();
-  const { showAlert, selectedWorkCenter, showConflictDialog } = useUIStore();
+  const { selectedWorkCenter, showConflictDialog } = useUIStore();
   const { scheduleTask } = useSchedulerStore();
   const { calculateProductionMetrics, validatePhaseParameters, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
   const { handleAsync } = useErrorHandler('BacklogForm');
+  const { validateOrder } = useValidation();
   
   const [calculationResults, setCalculationResults] = useState(null);
   const isEditMode = Boolean(orderToEdit);
@@ -176,20 +101,15 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   }, [isEditMode, orderToEdit?.fase, setSelectedPhase, setPhaseSearch, setEditablePhaseParams]);
 
   const onSubmit = async (data) => {
-    const validationErrors = [
-      ...validateRequiredStrings(data, REQUIRED_STRINGS),
-      ...validateNumericFields(data, REQUIRED_NUMERICS),
-      ...validateLogicalConditions(data, LOGICAL_CONDITIONS),
-      ...validateEnumValues(data, ENUM_VALIDATIONS),
-    ];
-
-    if (validationErrors.length > 0) {
-      showAlert(`Errori di validazione:\n${validationErrors.join('\n')}`, 'error');
+    const validation = validateOrder(data);
+    
+    if (!validation.isValid) {
+      showValidationError(Object.values(validation.errors));
       return;
     }
     
     if (!calculationResults?.totals || typeof calculationResults.totals.duration !== 'number' || typeof calculationResults.totals.cost !== 'number') {
-      showAlert("Calcola le metriche di produzione valide prima di procedere.", 'warning');
+      showWarning("Calcola le metriche di produzione valide prima di procedere.");
       return;
     }
 
@@ -203,29 +123,30 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         const endDate = new Date(startDate.getTime() + durationHours * 3600000);
         const result = await scheduleTask(updatedOrder.id, { machine: updatedOrder.scheduled_machine_id, start_time: startDate.toISOString(), end_time: endDate.toISOString() });
         if (result?.conflict) showConflictDialog(result);
-        else if (result?.error) showAlert(result.error, 'error');
+        else if (result?.error) showError(result.error);
       }
 
       if (onSuccess) onSuccess();
       resetFormAndPhaseState();
+      showSuccess(isEditMode ? 'Ordine aggiornato con successo' : 'Ordine aggiunto con successo');
     }, { context: isEditMode ? 'Aggiorna Ordine' : 'Aggiungi Ordine', fallbackMessage: isEditMode ? 'Aggiornamento ordine fallito' : 'Aggiunta ordine fallita' });
   };
 
   const handleCalculate = () => {
     if (!selectedPhase || !getValues('quantity') || !getValues('bag_step')) {
-      showAlert("Seleziona una fase e inserisci Quantità e Passo Busta per calcolare.", 'warning');
+      showWarning("Seleziona una fase e inserisci Quantità e Passo Busta per calcolare.");
       return;
     }
     const phaseForCalculation = { ...selectedPhase, ...editablePhaseParams };
     const validation = validatePhaseParameters(phaseForCalculation);
     if (!validation.isValid) {
-      showAlert(validation.error, 'error');
+              showError(validation.error);
       setCalculationResults(null);
       return;
     }
     const results = calculateProductionMetrics(phaseForCalculation, getValues('quantity'), getValues('bag_step'));
     if (!results || typeof results.totals?.duration !== 'number' || typeof results.totals?.cost !== 'number') {
-      showAlert("Errore nel calcolo. Verifica i parametri della fase.", 'error');
+      showError("Errore nel calcolo. Verifica i parametri della fase.");
       setCalculationResults(null);
       return;
     }

@@ -4,14 +4,15 @@ import DataTable from '../components/DataTable';
 import EditableCell from '../components/EditableCell';
 import StickyHeader from '../components/StickyHeader';
 import { useOrderStore, useUIStore, useMainStore, useMachineStore, usePhaseStore } from '../store';
-import { useOrderValidation, useErrorHandler } from '../hooks';
+import { useValidation, useErrorHandler } from '../hooks';
+import { showValidationError, showError } from '../utils';
 import { WORK_CENTERS } from '../constants';
 import { format } from 'date-fns';
 
 function BacklogListPage() {
   // Use Zustand store to select state and actions
   const { odpOrders, updateOdpOrder, removeOdpOrder } = useOrderStore();
-  const { selectedWorkCenter, isLoading, isInitialized, showAlert, showConfirmDialog } = useUIStore();
+  const { selectedWorkCenter, isLoading, isInitialized, showConfirmDialog } = useUIStore();
   const { init, cleanup } = useMainStore();
   const { machines } = useMachineStore();
   const { phases } = usePhaseStore();
@@ -40,8 +41,8 @@ function BacklogListPage() {
     }));
   }, [odpOrders, selectedWorkCenter, machines, phases]);
 
-  // Use modern validation hook
-  const { validateOrder } = useOrderValidation();
+  // Use unified validation hook
+  const { validateOrder } = useValidation();
   
   // Use unified error handling
   const { handleAsync } = useErrorHandler('BacklogListPage');
@@ -146,22 +147,23 @@ function BacklogListPage() {
   ], []);
 
   const handleSaveOrder = async (updatedOrder) => {
-    // Use the new validation hook
-    const validationErrors = validateOrder(updatedOrder);
+    // Use the unified validation hook
+    const validation = validateOrder(updatedOrder);
     
-    if (validationErrors.length > 0) {
-      // Show validation errors in the store alert
-      showAlert(`Errori di validazione:\n${validationErrors.join('\n')}`, 'error');
+    if (!validation.isValid) {
+      showValidationError(Object.values(validation.errors));
       return;
     }
     
     // Filter out computed fields that shouldn't be sent to the API
     const { machine_name, phase_name, progress, time_remaining, ...orderDataToUpdate } = updatedOrder;
     
-    await handleAsync(
-      () => updateOdpOrder(updatedOrder.id, orderDataToUpdate),
-      { context: 'Aggiorna Ordine', fallbackMessage: 'Aggiornamento ordine fallito' }
-    );
+    try {
+      await updateOdpOrder(updatedOrder.id, orderDataToUpdate);
+    } catch (error) {
+      // Show specific error message from the store
+      showError(error.message);
+    }
   };
 
   const handleDeleteOrder = async (orderToDelete) => {
@@ -169,10 +171,12 @@ function BacklogListPage() {
       'Elimina Ordine',
       `Sei sicuro di voler eliminare "${orderToDelete.odp_number}"? Questa azione non può essere annullata.`,
       async () => {
-        await handleAsync(
-          () => removeOdpOrder(orderToDelete.id),
-          { context: 'Elimina Ordine', fallbackMessage: 'Eliminazione ordine fallita' }
-        );
+        try {
+          await removeOdpOrder(orderToDelete.id);
+        } catch (error) {
+          // Show specific error message from the store
+          showError(error.message);
+        }
       },
       'danger'
     );

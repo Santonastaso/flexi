@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMachineStore, useUIStore } from '../store';
-import { useProductionCalculations } from '../hooks';
+import { useProductionCalculations, useValidation } from '../hooks';
 import { useErrorHandler } from '../hooks';
+import { showValidationError, showSuccess } from '../utils';
 import {
   DEPARTMENT_TYPES,
   WORK_CENTERS,
@@ -11,73 +12,13 @@ import {
   DEFAULT_VALUES
 } from '../constants';
 
-// --- Reusable Helper Functions ---
 
-// Validates that string fields are present and not just whitespace.
-const validateRequiredStrings = (data, fields) => {
-  const errors = [];
-  fields.forEach(({ field, name }) => {
-    if (!data[field]?.trim()) {
-      errors.push(`${name} is required`);
-    }
-  });
-  return errors;
-};
-
-// Validates that numeric fields are present and not negative.
-const validateNumericFields = (data, fields) => {
-  const errors = [];
-  fields.forEach(({ field, name }) => {
-    const value = data[field];
-    if (value === '' || value === null || value === undefined) {
-      errors.push(`${name} is required`);
-    } else if (Number(value) < 0) {
-      errors.push(`${name} cannot be negative`);
-    }
-  });
-  return errors;
-};
-
-// Validates that a 'min' value is not greater than a 'max' value.
-const validateMinMaxPairs = (data, pairs) => {
-  const errors = [];
-  pairs.forEach(({ min, max, name }) => {
-    if (Number(data[min]) > Number(data[max])) {
-      errors.push(`Min ${name} cannot exceed Max ${name}`);
-    }
-  });
-  return errors;
-};
-
-
-// --- Constants for Validation ---
-// Defined outside the component for better performance.
-
-const REQUIRED_STRING_FIELDS = [
-  { field: 'machine_name', name: 'Machine Name' },
-  { field: 'machine_type', name: 'Machine Type' },
-  { field: 'work_center', name: 'Work Center' },
-  { field: 'department', name: 'Department' },
-];
-
-const REQUIRED_NUMERIC_FIELDS = [
-  { field: 'min_web_width', name: 'Min Web Width' },
-  { field: 'max_web_width', name: 'Max Web Width' },
-  { field: 'min_bag_height', name: 'Min Bag Height' },
-  { field: 'max_bag_height', name: 'Max Bag Height' },
-  { field: 'standard_speed', name: 'Standard Speed' },
-  { field: 'setup_time_standard', name: 'Setup Time' },
-];
-
-const MIN_MAX_PAIRS = [
-    { min: 'min_web_width', max: 'max_web_width', name: 'Web Width' },
-    { min: 'min_bag_height', max: 'max_bag_height', name: 'Bag Height' },
-];
 
 function MachineForm({ machineToEdit, onSuccess }) {
-  const { selectedWorkCenter, showAlert } = useUIStore();
+  const { selectedWorkCenter } = useUIStore();
   const { addMachine, updateMachine } = useMachineStore();
   const { handleAsync } = useErrorHandler('MachineForm');
+  const { validateMachine } = useValidation();
   
   const isEditMode = Boolean(machineToEdit);
   
@@ -134,23 +75,11 @@ function MachineForm({ machineToEdit, onSuccess }) {
   };
 
   const onSubmit = async (data) => {
-    // --- Streamlined Validation Logic ---
-    let validationErrors = [
-      ...validateRequiredStrings(data, REQUIRED_STRING_FIELDS),
-      ...validateNumericFields(data, REQUIRED_NUMERIC_FIELDS),
-      ...validateMinMaxPairs(data, MIN_MAX_PAIRS),
-    ];
+    // --- Validation Logic ---
+    const validation = validateMachine(data);
     
-    // Department-specific required fields
-    if (data.department === DEPARTMENT_TYPES.PRINTING) {
-      validationErrors.push(...validateNumericFields(data, [{ field: 'changeover_color', name: 'Changeover Color' }]));
-    }
-    if (data.department === DEPARTMENT_TYPES.PACKAGING) {
-      validationErrors.push(...validateNumericFields(data, [{ field: 'changeover_material', name: 'Material Changeover' }]));
-    }
-    
-    if (validationErrors.length > 0) {
-      showAlert(`Validation errors:\n${validationErrors.join('\n')}`, 'error');
+    if (!validation.isValid) {
+      showValidationError(Object.values(validation.errors));
       return;
     }
     
@@ -164,6 +93,7 @@ function MachineForm({ machineToEdit, onSuccess }) {
         }
         if (onSuccess) onSuccess();
         reset(initialFormData);
+        showSuccess(isEditMode ? 'Macchina aggiornata con successo' : 'Macchina aggiunta con successo');
       },
       { 
         context: isEditMode ? 'Update Machine' : 'Add Machine', 

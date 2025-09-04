@@ -1,46 +1,21 @@
 import React, { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { usePhaseStore, useUIStore } from '../store';
-import { useErrorHandler } from '../hooks';
+import { useErrorHandler, useValidation } from '../hooks';
+import { showValidationError, showSuccess } from '../utils';
 import {
   DEPARTMENT_TYPES,
   WORK_CENTERS,
   DEFAULT_VALUES
 } from '../constants';
 
-// --- Reusable Helper Function ---
-// This function contains the logic that was previously duplicated.
-const validateNumericFields = (data, fieldsToValidate) => {
-  const errors = [];
-  fieldsToValidate.forEach(({ field, name }) => {
-    const value = data[field];
-    if (value === '' || value === null || value === undefined) {
-      errors.push(`${name} is required`);
-    } else if (Number(value) < 0) {
-      errors.push(`${name} cannot be negative`);
-    }
-  });
-  return errors;
-};
 
-// --- Constants for Validation ---
-// Defined outside the component so they are not re-created on every render.
-const PRINTING_FIELDS = [
-  { field: 'v_stampa', name: 'V Stampa' },
-  { field: 't_setup_stampa', name: 'T Setup Stampa' },
-  { field: 'costo_h_stampa', name: 'Costo H Stampa' }
-];
-
-const PACKAGING_FIELDS = [
-  { field: 'v_conf', name: 'V Conf' },
-  { field: 't_setup_conf', name: 'T Setup Conf' },
-  { field: 'costo_h_conf', name: 'Costo H Conf' }
-];
 
 function PhasesForm({ phaseToEdit, onSuccess }) {
-  const { selectedWorkCenter, showAlert } = useUIStore();
+  const { selectedWorkCenter } = useUIStore();
   const { addPhase, updatePhase } = usePhaseStore();
   const { handleAsync } = useErrorHandler('PhasesForm');
+  const { validatePhase } = useValidation();
   
   const isEditMode = Boolean(phaseToEdit);
   
@@ -80,23 +55,12 @@ function PhasesForm({ phaseToEdit, onSuccess }) {
   }, [department, setValue]);
 
   const onSubmit = async (data) => {
-    // --- Streamlined Validation Logic ---
-    let validationErrors = [];
+    // --- Validation Logic ---
+    const validation = validatePhase(data);
     
-    // Required fields
-    if (!data.name?.trim()) validationErrors.push('Nome Fase is required');
-    if (!data.department?.trim()) validationErrors.push('Department is required');
-    if (!data.work_center?.trim()) validationErrors.push('Work Center is required');
-    if (!data.numero_persone || data.numero_persone < 1) validationErrors.push('Numero Persone must be at least 1');
-    if (!data.contenuto_fase?.trim()) validationErrors.push('Contenuto Fase is required');
-    
-    // Use the helper for department-specific validation
-    if (data.department === DEPARTMENT_TYPES.PRINTING) {
-      validationErrors.push(...validateNumericFields(data, PRINTING_FIELDS));
-    }
-    
-    if (data.department === DEPARTMENT_TYPES.PACKAGING) {
-      validationErrors.push(...validateNumericFields(data, PACKAGING_FIELDS));
+    if (!validation.isValid) {
+      showValidationError(Object.values(validation.errors));
+      return;
     }
     
     if (validationErrors.length > 0) {
@@ -116,6 +80,7 @@ function PhasesForm({ phaseToEdit, onSuccess }) {
           onSuccess();
         }
         reset(initialFormData);
+        showSuccess(isEditMode ? 'Fase aggiornata con successo' : 'Fase aggiunta con successo');
       },
       { 
         context: isEditMode ? 'Update Phase' : 'Add Phase', 
