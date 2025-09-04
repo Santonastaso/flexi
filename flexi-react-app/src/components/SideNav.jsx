@@ -42,20 +42,20 @@ function SideNav({ isOpen = true }) {
   if (!user) {
     return (
       <nav className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col">
-        <div className="p-2 border-b border-gray-200">
-          <Link to="/login" className="text-xs font-bold text-gray-800">
-            <span className="text-blue-600">flex</span>
+        <div className="p-1 border-b border-gray-200">
+          <Link to="/login" className="text-[10px] font-bold text-gray-800">
+            <span className="text-navy-800">flex</span>
             <span className="text-gray-800">i</span>
           </Link>
         </div>
         
-        <div className="flex-1 p-2">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">NAVIGATION</h3>
+        <div className="flex-1 p-1">
+          <h3 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">NAVIGATION</h3>
           <div className="space-y-2">
-            <Link to="/login" className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
+            <Link to="/login" className="block px-3 py-1 text-gray-700 hover:bg-gray-100 rounded-md">
               <span>Accedi</span>
             </Link>
-            <Link to="/signup" className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">
+            <Link to="/signup" className="block px-3 py-1 text-gray-700 hover:bg-gray-100 rounded-md">
               <span>Registrati</span>
             </Link>
           </div>
@@ -69,16 +69,16 @@ function SideNav({ isOpen = true }) {
       isOpen ? 'translate-x-0' : '-translate-x-full'
     }`}>
       {/* Logo */}
-              <div className="p-2 border-b border-navy-700">
-        <Link to="/" className="text-xs font-bold text-white">
-          <span className="text-blue-400">flex</span>
+              <div className="p-1 border-b border-navy-700">
+        <Link to="/" className="text-[10px] font-bold text-white">
+          <span className="text-navy-200">flex</span>
           <span className="text-white">i</span>
         </Link>
       </div>
 
       {/* Navigation */}
-              <div className="flex-1 p-2">
-        <h3 className="text-xs font-semibold text-navy-200 uppercase tracking-wider mb-3">NAVIGATION</h3>
+              <div className="flex-1 p-1">
+        <h3 className="text-[10px] font-semibold text-navy-200 uppercase tracking-wider mb-3">NAVIGATION</h3>
         <div className="space-y-1">
           {navLinks.map((link) => {
             const isActive = location.pathname === link.href || 
@@ -88,7 +88,7 @@ function SideNav({ isOpen = true }) {
               <div key={link.href} className="space-y-1">
                 <Link
                   to={link.href}
-                  className={`block px-2 py-1.5 rounded text-xs font-medium ${
+                  className={`block px-1 py-1.5 rounded text-[10px] font-medium ${
                     isActive 
                       ? 'bg-navy-600 text-white' 
                       : 'text-navy-200 hover:bg-navy-700'
@@ -102,9 +102,9 @@ function SideNav({ isOpen = true }) {
                       <Link
                         key={subLink.href}
                         to={subLink.href}
-                        className={`block px-2 py-1 rounded text-xs ${
+                        className={`block px-1 py-1 rounded text-[10px] ${
                           location.pathname === subLink.href 
-                            ? 'text-blue-400 bg-navy-700' 
+                            ? 'text-navy-200 bg-navy-700' 
                             : 'text-navy-300 hover:bg-navy-700'
                         }`}
                       >

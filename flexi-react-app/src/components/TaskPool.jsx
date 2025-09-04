@@ -58,8 +58,8 @@ Codice Articolo Esterno: ${task.external_article_code || 'Non specificato'}
 Nome Cliente: ${task.nome_cliente || 'Non specificato'}
         Data Consegna: ${task.delivery_date ? format(new Date(task.delivery_date), 'yyyy-MM-dd') : 'Non impostata'}
 Quantità: ${task.quantity || 'Non specificata'}
-        ${task.scheduled_start_time ? `Inizio Programmato: ${format(new Date(task.scheduled_start_time), 'yyyy-MM-dd HH:mm')}` : 'Non programmato'}
-        ${task.scheduled_end_time ? `Fine Programmata: ${format(new Date(task.scheduled_end_time), 'yyyy-MM-dd HH:mm')}` : 'Non programmato'}`}
+        ${task.scheduled_start_time ? `Inizio Programmato: ${task.scheduled_start_time.replace('+00:00', '')}` : 'Non programmato'}
+        ${task.scheduled_end_time ? `Fine Programmata: ${task.scheduled_end_time.replace('+00:00', '')}` : 'Non programmato'}`}
         >
           <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#374151' }}>i</span>
         </button>
@@ -135,15 +135,6 @@ function TaskPool() {
     <div className="task-pool-section">
       <div className="section-controls">
         <h2 className="section-title">Pool Lavori</h2>
-        <p className="text-xs text-gray-600 mb-3">Trascina i lavori da qui per programmarli, o trascina gli eventi programmati qui per annullarli.</p>
-        <div className="task-pool-info">
-          <span className="total-hours">{totalHours.toFixed(1)}h</span>
-          <button className="edit-pool-btn" title="Modifica pool lavori">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-            </svg>
-          </button>
-        </div>
       </div>
       
       <div ref={setNodeRef} id="task_pool" className="task-pool-grid">

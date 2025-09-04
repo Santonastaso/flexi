@@ -41,7 +41,7 @@
 
 /* ===== EDIT MODE STYLES ===== */
 .content-section.edit-mode .calendar-grid-container {
-    border: 2px solid #3498db;
+    border: 2px solid #1e293b;
     box-shadow: 0 0 10px rgba(52, 152, 219, 0.2);
     transition: all 0.3s ease;
 }
@@ -119,13 +119,13 @@
 .section-controls {
     background: var(--content-bg);
     border-radius: var(--border-radius);
-    padding: var(--spacing-lg);
+    padding: 4px;
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-light);
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: 6px;
     transition: box-shadow 0.2s ease;
     width: 100%;
-    margin-top: var(--spacing-sm);
+    margin-top: 8px;
 }
 
 .section-controls:hover {
@@ -133,30 +133,30 @@
 }
 
 .section-title {
-    font-size: 16px;
+    font-size: 10px;
     font-weight: 400;
     color: var(--text-dark);
-    margin-bottom: 20px;
+    margin-bottom: 4px;
     margin-top: 0;
 }
 
 .controls-grid {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 6px;
 }
 
 .filters-section {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 6px;
     align-items: flex-end;
 }
 
 .actions-section {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 6px;
     align-items: center;
     justify-content: space-between;
 }
@@ -165,14 +165,14 @@
 .machine-name-display {
     background: var(--content-bg);
     border-radius: var(--border-radius);
-    padding: var(--spacing-md) var(--spacing-lg);
-    margin-bottom: var(--spacing-md);
+    padding: 4px 12px;
+    margin-bottom: 4px;
     border: 1px solid var(--border-light);
     box-shadow: var(--shadow-sm);
 }
 
 .machine-name-title {
-    font-size: 18px;
+    font-size: 10px;
     font-weight: 500;
     color: var(--text-dark);
     margin: 0;
@@ -182,7 +182,7 @@
 /* ===== TASK LOOKUP ===== */
 .task-lookup {
     display: flex;
-    gap: 12px;
+    gap: 6px;
     align-items: center;
 }
 
@@ -193,10 +193,10 @@
 
 .task-lookup-input {
     width: 100%;
-    padding: 8px 12px;
+    padding: 6px 10px;
     border: 1px solid var(--border-light);
     border-radius: var(--border-radius);
-    font-size: 14px;
+    font-size: 10px;
     background: var(--content-bg);
     color: var(--text-dark);
 }
@@ -223,7 +223,7 @@
 }
 
 .task-lookup-option {
-    padding: 8px 12px;
+    padding: 6px 10px;
     cursor: pointer;
     border-bottom: 1px solid var(--border-light);
     transition: background-color 0.2s;
@@ -241,19 +241,19 @@
     display: block;
     font-weight: 500;
     color: var(--text-dark);
-    font-size: 14px;
+    font-size: 10px;
 }
 
 .task-lookup-product {
     display: block;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-muted);
     margin-top: 2px;
 }
 
 .task-lookup-workcenter {
     display: block;
-    font-size: 11px;
+    font-size: 10px;
     color: var(--sap-accent);
     font-weight: 500;
     margin-top: 2px;
@@ -264,14 +264,14 @@
 .task-lookup-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 12px;
+    gap: 4px;
     align-items: start;
 }
 
 .task-lookup-item {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .task-lookup-item .task-lookup-input-container {
@@ -279,10 +279,10 @@
 }
 
 .task-lookup-item .nav-btn {
-    padding: 8px 12px;
-    font-size: 12px;
+    padding: 6px 10px;
+    font-size: 10px;
     white-space: nowrap;
-    min-width: 100px;
+    min-width: 80px;
 }
 
 /* ===== CALENDAR SECTIONS ===== */
@@ -319,19 +319,19 @@
 
 .task-pool-section p {
     color: var(--text-light);
-    font-size: 14px;
-    margin-bottom: 16px;
+    font-size: 10px;
+    margin-bottom: 6px;
 }
 
 /* ===== TASK POOL GRID (CONSOLIDATED) ===== */
 .task-pool-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 8px;
+    gap: 6px;
     width: 100%;
     min-width: 100%;
     flex: 1;
-    padding: 16px;
+    padding: 6px;
     margin: 0;
     background: #e8eaed;
     border-radius: 6px;
@@ -348,16 +348,16 @@
 .task-pool-info {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
+    gap: 4px;
+    margin-bottom: 6px;
 }
 
 .total-hours {
-    font-size: 18px;
+    font-size: 10px;
     font-weight: 600;
     color: var(--text-dark);
     background: rgba(52, 152, 219, 0.1);
-    padding: 8px 12px;
+    padding: 6px 10px;
     border-radius: var(--border-radius);
     border: 1px solid rgba(52, 152, 219, 0.2);
 }
@@ -366,7 +366,7 @@
     background: var(--content-bg);
     border: 1px solid var(--border-light);
     border-radius: var(--border-radius);
-    padding: 8px;
+    padding: 4px;
     cursor: pointer;
     color: var(--text-dark);
     transition: all 0.2s ease;
@@ -385,17 +385,17 @@
 .nav-btn {
     display: inline-flex;
     align-items: center;
-    padding: 8px 16px;
+    padding: 6px 12px;
     border: 1px solid var(--border-light);
     border-radius: var(--border-radius);
-    font-size: 14px;
+    font-size: 10px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
     text-decoration: none;
     background: var(--content-bg);
     color: var(--text-dark);
-    min-width: 100px;
+    min-width: 80px;
     justify-content: center;
 }
 
@@ -451,12 +451,12 @@
 .calendar-navigation {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 4px;
 }
 
 .current-date,
 .current-period {
-    font-size: 14px;
+    font-size: 10px;
     font-weight: 400;
     color: var(--text-dark);
     margin: 0;
@@ -499,7 +499,7 @@
     font-weight: 400;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     min-width: 120px;
     justify-content: space-between;
     text-decoration: none;
@@ -524,7 +524,7 @@
 }
 
 .view-option {
-    padding: 12px 16px;
+    padding: 6px 16px;
     cursor: pointer;
     transition: background-color 0.2s ease;
     border-bottom: 1px solid var(--border-color);
@@ -564,11 +564,11 @@
 .input-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
 }
 
 .input-group label {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 400;
     color: var(--text-dark);
 }
@@ -577,7 +577,7 @@
     padding: 10px 12px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    font-size: 14px;
+    font-size: 12px;
     transition: border-color 0.2s ease;
 }
 
@@ -591,12 +591,12 @@
     background: var(--primary-blue);
     color: white;
     border: none;
-    padding: 12px 24px;
+    padding: 6px 24px;
     border-radius: var(--border-radius);
     font-weight: 400;
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .set-off-time-btn:hover {
@@ -607,9 +607,9 @@
 
 .off-time-status {
     margin-bottom: 15px;
-    padding: 12px;
+    padding: 6px;
     border-radius: var(--border-radius);
-    font-size: 14px;
+    font-size: 12px;
     line-height: 1.4;
 }
 
@@ -665,14 +665,15 @@
 
 /* ===== MACHINE LABEL STYLES (CONSOLIDATED) ===== */
 .machine-label-header {
-    min-width: 250px;
-    padding: 16px;
+    width: 180px;
+    min-width: 180px;
+    padding: 4px;
     font-weight: 400;
     border-right: 2px solid var(--border-color);
     flex-shrink: 0;
     background: var(--gray-light);
     color: var(--text-dark);
-    font-size: 14px;
+    font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     position: sticky;
@@ -682,8 +683,9 @@
 }
 
 .machine-label {
-    min-width: 250px;
-    padding: 16px;
+    width: 180px;
+    min-width: 180px;
+    padding: 2px;
     border-right: 2px solid var(--border-color);
     display: flex;
     flex-direction: column;
@@ -698,14 +700,14 @@
 
 .machine-name {
     font-weight: 400;
-    font-size: 14px;
+    font-size: 10px;
     color: var(--text-dark);
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .machine-city {
     color: var(--text-light);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -714,14 +716,14 @@
 /* ===== TIME SLOT STYLES (CONSOLIDATED) ===== */
 .time-header {
     display: grid;
-    grid-template-columns: repeat(96, 20px);
-    min-width: 1920px;
+    grid-template-columns: repeat(96, 15px);
+    min-width: 1440px;
     flex-shrink: 0;
 }
 
 .time-slot-header {
-    width: 20px;
-    min-width: 20px;
+    width: 15px;
+    min-width: 15px;
     text-align: center;
     font-weight: 400;
     color: var(--text-light);
@@ -729,15 +731,15 @@
     border-right: 1px solid rgba(0, 0, 0, 0.2);
     border-left: 1px solid rgba(0, 0, 0, 0.1);
     flex-shrink: 0;
-    padding: 4px 2px;
+    padding: 1px 1px;
     background: var(--gray-light);
 }
 
 .time-slot-header.hour-header {
     grid-column: span 4;
-    width: 80px;
-    min-width: 80px;
-    font-size: 12px;
+    width: 60px;
+    min-width: 60px;
+    font-size: 11px;
     color: var(--text-dark);
     background: rgba(0,0,0,0.02);
     border-right: 2px solid rgba(0, 0, 0, 0.3);
@@ -746,8 +748,8 @@
 
 /* Base time slot styles */
 .time-slot {
-    width: 20px;
-    min-width: 20px;
+    width: 15px;
+    min-width: 15px;
     border-right: 1px solid rgba(0, 0, 0, 0.2);
     border-left: 1px solid rgba(0, 0, 0, 0.1);
     position: relative;
@@ -755,12 +757,12 @@
     cursor: pointer;
     flex-shrink: 0;
     background: var(--content-bg);
-    padding: 8px;
+    padding: 1px;
     display: flex;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    min-height: 60px;
+    min-height: 30px;
 }
 
 .time-slot:nth-child(4n+1) {
@@ -819,9 +821,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 60px;
+    min-height: 25px;
     box-sizing: border-box;
-    font-size: 14px;
+    font-size: 10px;
     font-weight: 400;
     background: transparent;
 }
@@ -829,7 +831,7 @@
 /* ===== CALENDAR BODY ===== */
 .calendar-body {
     width: 100%;
-    min-width: 2170px;
+    min-width: 1620px;
     position: relative;
     flex: 1;
     overflow: visible;
@@ -838,9 +840,9 @@
 .machine-row {
     display: flex;
     border-bottom: 2px solid #d1d5db;
-    min-height: 80px;
+    min-height: 25px;
     width: 100%;
-    min-width: 2170px;
+    min-width: 1620px;
     background: var(--content-bg);
     flex-shrink: 0;
 }
@@ -856,9 +858,9 @@
 .machine-slots {
     flex: 1;
     display: grid;
-    grid-template-columns: repeat(96, 20px);
+    grid-template-columns: repeat(96, 15px);
     position: relative;
-    min-width: 1920px;
+    min-width: 1440px;
     flex-shrink: 0;
     overflow: visible;
     width: 100%;
@@ -867,15 +869,15 @@
 /* ===== SCHEDULED EVENTS (CONSOLIDATED) ===== */
 .scheduled-event {
     position: absolute;
-    top: 8px;
-    bottom: 8px;
+    top: 1px;
+    bottom: 1px;
     left: 0;
     background: var(--sap-primary);
     color: var(--text-white);
     border: 1px solid var(--sap-secondary);
     border-radius: var(--border-radius);
-    padding: 6px 8px;
-    font-size: 12px;
+    padding: 1px 2px;
+    font-size: 10px;
     font-weight: 400;
     display: flex;
     flex-direction: column;
@@ -889,14 +891,14 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     z-index: 10;
-    min-height: 36px;
+    min-height: 15px;
     will-change: auto;
     transform: none;
     
     /* CSS custom properties for responsive sizing */
-    --button-size: 22px;
-    --button-gap: 5px;
-    --font-size: 13px;
+    --button-size: 10px;
+    --button-gap: 1px;
+    --font-size: 10px;
 }
 
 .scheduled-event:hover {
@@ -941,7 +943,7 @@
 .scheduled-event.small {
     --button-size: 20px;
     --button-gap: 4px;
-    --font-size: 12px;
+    --font-size: 10px;
 }
 
 .scheduled-event.very-small {
@@ -966,7 +968,7 @@
 .task-item {
     background: var(--sap-primary);
     color: var(--text-white);
-    padding: 3px 4px;
+    padding: 1px 2px;
     border-radius: var(--border-radius);
     font-weight: 400;
     user-select: none;
@@ -977,11 +979,11 @@
     border: 1px solid var(--sap-secondary);
     position: relative;
     cursor: grab;
-    min-height: 18px;
+    min-height: 16px;
     font-size: 10px;
     
     /* CSS custom properties for responsive sizing - same as scheduled events */
-    --button-size: 11px;
+    --button-size: 14px;
     --button-gap: 2px;
     --font-size: 10px;
 }
@@ -994,10 +996,10 @@
     color: var(--text-white) !important;
     border: 1px solid var(--sap-secondary) !important;
     border-radius: var(--border-radius) !important;
-    padding: 3px 4px !important;
+    padding: 1px 2px !important;
     font-size: 10px !important;
     font-weight: 400 !important;
-    min-height: 18px !important;
+    min-height: 16px !important;
 }
 
 .task-item.drag-overlay {
@@ -1009,10 +1011,10 @@
     color: var(--text-white) !important;
     border: 1px solid var(--sap-secondary) !important;
     border-radius: var(--border-radius) !important;
-    padding: 3px 4px !important;
+    padding: 1px 2px !important;
     font-size: 10px !important;
     font-weight: 400 !important;
-    min-height: 18px !important;
+    min-height: 16px !important;
     transform: none !important;
 }
 
@@ -1024,9 +1026,9 @@
 
 .task-time {
     background: rgba(255,255,255,0.2);
-    padding: 2px 4px;
+    padding: 1px 3px;
     border-radius: var(--border-radius);
-    font-size: 10px;
+    font-size: 11px;
 }
 
 /* ===== GANTT VIEW SELECTOR ===== */
@@ -1042,9 +1044,9 @@
     background: var(--content-bg);
     border: 1px solid var(--border-color);
     color: var(--text-dark);
-    padding: 8px 12px;
+    padding: 4px 12px;
     border-radius: var(--border-radius);
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
     min-width: 150px;
 }
@@ -1073,13 +1075,13 @@
 }
 
 .weekly-gantt-header .day-header-cell {
-    padding: 16px 8px;
+    padding: 4px 6px;
     text-align: center;
     font-weight: 400;
     color: var(--text-dark);
     border-right: 1px solid var(--border-color);
     background: var(--gray-light);
-    font-size: 14px;
+    font-size: 10px;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -1087,13 +1089,13 @@
 
 .weekly-gantt-header .day-name {
     font-weight: 500;
-    font-size: 12px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .weekly-gantt-header .day-date {
-    font-size: 14px;
+    font-size: 10px;
     font-weight: 400;
 }
 
@@ -1123,7 +1125,7 @@
 }
 
 .day-cell {
-    padding: 8px;
+    padding: 6px;
     border-right: 1px solid var(--border-color);
     min-height: 80px;
     display: flex;
@@ -1154,7 +1156,7 @@
 }
 
 .day-task-count {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--text-light);
     text-align: center;
     margin-bottom: 4px;
@@ -1166,9 +1168,9 @@
 .day-task-item {
     background: var(--sap-primary);
     color: var(--text-white);
-    padding: 4px 6px;
+    padding: 3px 4px;
     border-radius: var(--border-radius);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 400;
     border: 1px solid var(--sap-secondary);
     display: flex;
@@ -1190,14 +1192,14 @@
 
 .day-task-item .task-duration {
     background: rgba(255,255,255,0.2);
-    padding: 1px 3px;
+    padding: 1px 2px;
     border-radius: 2px;
-    font-size: 10px;
+    font-size: 11px;
     text-align: center;
 }
 
 .more-tasks-indicator {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--text-light);
     text-align: center;
     font-style: italic;
@@ -1209,7 +1211,7 @@
 
 .empty-day {
     color: var(--text-light);
-    font-size: 12px;
+    font-size: 11px;
     text-align: center;
     display: flex;
     align-items: center;
@@ -1223,30 +1225,30 @@
     display: flex;
     align-items: center;
     gap: var(--button-gap);
-    margin-top: var(--button-gap);
+    margin-top: 1px;
     justify-content: center;
 }
 
 .event-controls.overlay {
     position: absolute;
-    top: -6px;
+    top: -4px;
     left: 50%;
     transform: translateX(-50%);
     background: white;
     border-radius: var(--border-radius);
-    padding: 3px 4px;
+    padding: 2px 3px;
     z-index: 20;
     flex-direction: row;
-    gap: 2px;
+    gap: 1px;
     margin-top: 0;
     border: 1px solid rgba(0, 0, 0, 0.1);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .scheduled-event:has(.event-controls.overlay) {
-    min-width: 40px;
-    padding: 4px;
-    margin-top: 8px;
+    min-width: 32px;
+    padding: 2px;
+    margin-top: 4px;
     overflow: visible;
 }
 
@@ -1255,12 +1257,12 @@
 }
 
 .scheduled-event:has(.event-controls.overlay) .event-controls.overlay {
-    min-width: 120px;
+    min-width: 80px;
     justify-content: center;
 }
 
 .scheduled-event.extremely-narrow .event-controls.overlay {
-    min-width: 120px;
+    min-width: 80px;
     left: 50%;
     transform: translateX(-50%);
 }
@@ -1279,10 +1281,10 @@
     transition: none;
     flex-shrink: 0;
     color: #374151;
-    min-width: 16px;
-    min-height: 16px;
-    max-width: 24px;
-    max-height: 24px;
+    min-width: 10px;
+    min-height: 10px;
+    max-width: 14px;
+    max-height: 14px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -1298,13 +1300,13 @@
 }
 
 .edit-btn {
-    background: #dbeafe;
-    color: #1e40af;
+      background: #e2e8f0;
+  color: #1e293b;
 }
 
 .edit-btn:hover {
-    background: #bfdbfe;
-    color: #1e3a8a;
+      background: #cbd5e1;
+  color: #1e293b;
 }
 
 .lock-btn.locked {
@@ -1365,14 +1367,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 10px;
     transition: none;
     flex-shrink: 0;
     color: white;
-    min-width: 16px;
-    min-height: 16px;
-    max-width: 24px;
-    max-height: 24px;
+    min-width: 10px;
+    min-height: 10px;
+    max-width: 14px;
+    max-height: 14px;
 }
 
 .drag-handle:active {
@@ -1383,8 +1385,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-    margin-bottom: 6px;
+    gap: 1px;
+    margin-bottom: 1px;
 }
 
 /* ===== LOADING & EMPTY STATES ===== */
@@ -1396,14 +1398,14 @@
     min-height: 400px;
     width: 100%;
     text-align: center;
-    padding: 40px;
+    padding: 20px;
     color: var(--text-light);
-    font-size: 16px;
+    font-size: 10px;
 }
 
 .loading-container {
     text-align: center;
-    padding: 40px;
+    padding: 20px;
 }
 
 .loading-spinner {
@@ -1418,37 +1420,37 @@
 
 .loading-container h3 {
     color: var(--text-dark);
-    margin-bottom: 8px;
-    font-size: 18px;
+    margin-bottom: 4px;
+    font-size: 10px;
 }
 
 .loading-container p {
     color: var(--text-light);
-    font-size: 14px;
+    font-size: 10px;
 }
 
 .empty-state {
     text-align: center;
-    padding: 60px 20px;
+    padding: 30px 20px;
     color: var(--text-light);
 }
 
 .empty-state h3 {
     color: var(--text-dark);
-    margin-bottom: 12px;
-    font-size: 18px;
+    margin-bottom: 6px;
+    font-size: 10px;
 }
 
 .empty-state p {
-    font-size: 14px;
+    font-size: 10px;
     margin: 0;
 }
 
 .error {
     text-align: center;
-    padding: 40px;
+    padding: 20px;
     color: var(--danger-red);
-    font-size: 16px;
+    font-size: 10px;
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
@@ -1474,7 +1476,7 @@
     
     .view-controls {
         flex-direction: column;
-        gap: 12px;
+        gap: 6px;
     }
     
     /* Weekly Gantt responsive adjustments */
@@ -1487,10 +1489,11 @@
     }
     
     .weekly-gantt-header .machine-label-header,
-    .machine-week-row .machine-label {
-        min-width: 200px;
-        padding: 12px;
-    }
+.machine-week-row .machine-label {
+    width: 180px;
+    min-width: 180px;
+    padding: 6px;
+}
     
     .day-task-item {
         font-size: 10px;
@@ -1512,13 +1515,14 @@
     }
     
     .weekly-gantt-header .machine-label-header,
-    .machine-week-row .machine-label {
-        min-width: 150px;
-        padding: 8px;
-    }
+.machine-week-row .machine-label {
+    width: 180px;
+    min-width: 180px;
+    padding: 4px;
+}
     
     .machine-week-row .machine-name {
-        font-size: 12px;
+        font-size: 10px;
     }
     
     .machine-week-row .machine-city {
@@ -1526,8 +1530,8 @@
     }
     
     .day-header-cell {
-        font-size: 12px;
-        padding: 12px 4px;
+        font-size: 10px;
+        padding: 6px 4px;
     }
 }
 
@@ -1553,11 +1557,11 @@
 }
 
 .week-day-header {
-    padding: 16px 8px;
+    padding: 8px 8px;
     text-align: center;
     font-weight: 500;
     color: var(--text-dark);
-    font-size: 14px;
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-right: 1px solid var(--border-color);
@@ -1575,7 +1579,7 @@
 
 .calendar-day {
     min-height: 120px;
-    padding: 8px;
+    padding: 4px;
     border-right: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);
     position: relative;
@@ -1625,7 +1629,7 @@
     font-weight: 500;
     color: var(--text-dark);
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .availability-indicator {
@@ -1642,7 +1646,7 @@
     position: absolute;
     top: 8px;
     right: 8px;
-    font-size: 14px;
+    font-size: 12px;
     opacity: 0.8;
 }
 
@@ -1662,22 +1666,22 @@
 }
 
 .time-header-cell {
-    padding: 16px 8px;
+    padding: 8px 8px;
     text-align: center;
     font-weight: 500;
     color: var(--text-dark);
-    font-size: 14px;
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-right: 1px solid var(--border-color);
 }
 
 .day-header-cell {
-    padding: 16px 8px;
+    padding: 8px 8px;
     text-align: center;
     font-weight: 500;
     color: var(--text-dark);
-    font-size: 14px;
+    font-size: 12px;
     border-right: 1px solid var(--border-color);
 }
 
@@ -1697,11 +1701,11 @@
 }
 
 .time-label {
-    padding: 8px;
+    padding: 4px;
     text-align: center;
     font-weight: 500;
     color: var(--text-dark);
-    font-size: 12px;
+    font-size: 10px;
     background: rgba(0, 0, 0, 0.02);
     border-right: 1px solid var(--border-color);
     display: flex;
@@ -1769,7 +1773,7 @@
     background: var(--content-bg);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    padding: 16px;
+    padding: 8px;
     text-align: center;
 }
 
@@ -1799,7 +1803,7 @@
 
 .mini-day {
     padding: 4px;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 400;
     color: var(--text-dark);
     border-radius: 2px;
@@ -1838,7 +1842,7 @@
 }
 
 .dropdown-option {
-    padding: 12px 16px;
+    padding: 6px 16px;
     cursor: pointer;
     border-bottom: 1px solid var(--border-color);
     transition: background-color 0.2s ease;
@@ -1856,6 +1860,6 @@
     background: var(--content-bg);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    padding: 16px;
+    padding: 8px;
     margin-top: 16px;
 }

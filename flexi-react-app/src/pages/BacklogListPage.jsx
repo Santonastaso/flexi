@@ -27,7 +27,7 @@ function BacklogListPage() {
 
   // Show error if query failed
   if (ordersError) {
-           return <div className="text-center py-4 text-red-600 text-xs">Errore nel caricamento degli ordini: {ordersError.message}</div>;
+           return <div className="text-center py-2 text-red-600 text-[10px]">Errore nel caricamento degli ordini: {ordersError.message}</div>;
   }
 
   // Filter orders by work center and join with machine and phase data
@@ -193,11 +193,11 @@ function BacklogListPage() {
   }
 
   if (!selectedWorkCenter) {
-           return <div className="text-center py-4 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati del backlog.</div>;
+           return <div className="text-center py-2 text-red-600 text-[10px]">Seleziona un centro di lavoro per visualizzare i dati del backlog.</div>;
   }
 
   return (
-    <div className="p-2 bg-white rounded shadow-sm border min-w-0">
+    <div className="p-1 bg-white rounded shadow-sm border min-w-0">
       
       <div className="overflow-x-auto">
         <DataTable

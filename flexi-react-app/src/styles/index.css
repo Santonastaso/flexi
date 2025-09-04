@@ -2,6 +2,9 @@
 /* These are complex enough to keep for now, will migrate later */
 @import './scheduler.css';
 
+/* ===== FULLCALENDAR STYLES ===== */
+@import './fullcalendar.css';
+
 /* ===== TAILWIND CSS ===== */
 @tailwind base;
 @tailwind components;
@@ -34,10 +37,10 @@
     --radius: 0.5rem;
     
     /* Scheduler-specific variables */
-    --sap-primary: #1e3a8a;
-    --sap-secondary: #1e40af;
-    --sap-accent: #3b82f6;
-    --sap-accent-hover: #2563eb;
+    --sap-primary: #1e293b; /* Navy blue */
+    --sap-secondary: #2d3a4b; /* Slightly lighter navy for secondary */
+    --sap-accent: #1e293b; /* Navy blue */
+    --sap-accent-hover: #2d3a4b; /* Slightly lighter navy for hover */
     --content-bg: #ffffff;
     --text-dark: #1f2937;
     --text-light: #6b7280;
@@ -48,8 +51,8 @@
     --gray-light: #f9fafb;
     --gray-medium: #9ca3af;
     --hover-bg: #f3f4f6;
-    --primary-blue: #1e3a8a;
-    --primary-blue-hover: #1e40af;
+    --primary-blue: #1e293b; /* Navy blue */
+    --primary-blue-hover: #2d3a4b; /* Slightly lighter navy for hover */
     --danger-red: #dc2626;
     --danger-red-hover: #b91c1c;
     --success-green: #059669;

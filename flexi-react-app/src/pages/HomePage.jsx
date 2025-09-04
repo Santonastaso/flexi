@@ -282,97 +282,97 @@ function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="p-4 bg-white rounded shadow-sm border">
-                     <div className="text-center py-4 text-gray-500 text-xs">Caricamento dashboard...</div>
+      <div className="p-1 bg-white rounded shadow-sm border">
+                     <div className="text-center py-1 text-gray-500 text-[10px]">Caricamento dashboard...</div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 bg-white rounded shadow-sm border">
+    <div className="p-1 bg-white rounded shadow-sm border">
       {/* Main Title */}
       <StickyHeader title="Dashboard Produzione" />
       
       {/* Key Metrics - Horizontal Layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
-        <div className="bg-blue-50 p-2 rounded border border-blue-200">
-          <h3 className="text-xs font-medium text-blue-800 mb-1">Macchine Totali</h3>
-                          <div className="text-xs font-bold text-blue-900">{metrics.totalMachines}</div>
-          <div className="text-xs text-blue-600">Attive: {metrics.activeMachines}</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 mb-2">
+                <div className="bg-navy-50 p-1 rounded border border-navy-200">
+          <h3 className="text-[10px] font-medium text-navy-800 mb-1">Macchine Totali</h3>
+          <div className="text-[10px] font-bold text-navy-800">{metrics.totalMachines}</div>
+          <div className="text-[10px] text-navy-600">Attive: {metrics.activeMachines}</div>
         </div>
         
-        <div className="bg-gray-50 p-2 rounded border border-gray-200">
-          <h3 className="text-xs font-medium text-gray-700 mb-1">Ordini Totali</h3>
-                          <div className="text-xs font-bold text-gray-900">{metrics.totalOrders}</div>
+        <div className="bg-gray-50 p-1 rounded border border-gray-200">
+          <h3 className="text-[10px] font-medium text-gray-700 mb-1">Ordini Totali</h3>
+                          <div className="text-[10px] font-bold text-gray-900">{metrics.totalOrders}</div>
         </div>
         
-        <div className="bg-blue-50 p-2 rounded border border-blue-200">
-          <h3 className="text-xs font-medium text-blue-800 mb-1">Completati Questa Settimana</h3>
-                          <div className="text-xs font-bold text-blue-900">{metrics.completedThisWeek}</div>
+                <div className="bg-navy-50 p-1 rounded border border-navy-200">
+          <h3 className="text-[10px] font-medium text-navy-800 mb-1">Completati Questa Settimana</h3>
+          <div className="text-[10px] font-bold text-navy-800">{metrics.completedThisWeek}</div>
         </div>
         
-        <div className="bg-gray-50 p-2 rounded border border-gray-200">
-          <h3 className="text-xs font-medium text-gray-700 mb-1">Lavori in Corso</h3>
-                          <div className="text-xs font-bold text-gray-900">{metrics.tasksInWip}</div>
+        <div className="bg-gray-50 p-1 rounded border border-gray-200">
+          <h3 className="text-[10px] font-medium text-gray-700 mb-1">Lavori in Corso</h3>
+                          <div className="text-[10px] font-bold text-gray-900">{metrics.tasksInWip}</div>
         </div>
         
-        <div className="bg-red-50 p-2 rounded border border-red-200">
-          <h3 className="text-xs font-medium text-red-800 mb-1">Lavori Ritardati</h3>
-                          <div className="text-xs font-bold text-red-900">{metrics.delayedTasks}</div>
+        <div className="bg-red-50 p-1 rounded border border-red-200">
+          <h3 className="text-[10px] font-medium text-red-800 mb-1">Lavori Ritardati</h3>
+                          <div className="text-[10px] font-bold text-red-900">{metrics.delayedTasks}</div>
         </div>
       </div>
 
       {/* Weekly Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-        <div className="bg-gray-50 p-2 rounded border border-gray-200">
-          <h3 className="text-xs font-medium text-gray-700 mb-1">Ordini Settimanali</h3>
-                          <div className="text-xs font-bold text-gray-900">{metrics.weeklyOrdersCount}</div>
-          <div className="text-xs text-gray-600">Questa Settimana</div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+        <div className="bg-gray-50 p-1 rounded border border-gray-200">
+          <h3 className="text-[10px] font-medium text-gray-700 mb-1">Ordini Settimanali</h3>
+                          <div className="text-[10px] font-bold text-gray-900">{metrics.weeklyOrdersCount}</div>
+          <div className="text-[10px] text-gray-600">Questa Settimana</div>
         </div>
         
-        <div className="bg-blue-50 p-2 rounded border border-blue-200">
-          <h3 className="text-xs font-medium text-blue-800 mb-1">Costo Medio</h3>
-                          <div className="text-xs font-bold text-blue-900">€{metrics.avgWeeklyCost.toFixed(2)}</div>
-          <div className="text-xs text-blue-600">Per Lavoro Questa Settimana</div>
+                <div className="bg-navy-50 p-1 rounded border border-navy-200">
+          <h3 className="text-[10px] font-medium text-navy-800 mb-1">Costo Medio</h3>
+          <div className="text-[10px] font-bold text-navy-800">€{metrics.avgWeeklyCost.toFixed(2)}</div>
+          <div className="text-[10px] text-navy-600">Per Lavoro Questa Settimana</div>
         </div>
         
-        <div className="bg-gray-50 p-2 rounded border border-gray-200">
-          <h3 className="text-xs font-medium text-gray-700 mb-1">Durata Media</h3>
-                          <div className="text-xs font-bold text-gray-900">{metrics.avgWeeklyDuration.toFixed(1)}h</div>
-          <div className="text-xs text-gray-600">Per Lavoro Questa Settimana</div>
+        <div className="bg-gray-50 p-1 rounded border border-gray-200">
+          <h3 className="text-[10px] font-medium text-gray-700 mb-1">Durata Media</h3>
+                          <div className="text-[10px] font-bold text-gray-900">{metrics.avgWeeklyDuration.toFixed(1)}h</div>
+          <div className="text-[10px] text-gray-600">Per Lavoro Questa Settimana</div>
         </div>
       </div>
 
       {/* Matrix Tables for Cost and Duration by Work Center and Department */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
         {/* Cost Matrix Table */}
-        <div className="bg-gray-50 p-2 rounded border border-gray-200">
-          <h3 className="text-xs font-semibold text-gray-900 mb-2">Costo Medio per Centro di Lavoro e Reparto</h3>
+        <div className="bg-gray-50 p-1 rounded border border-gray-200">
+          <h3 className="text-[10px] font-semibold text-gray-900 mb-1">Costo Medio per Centro di Lavoro e Reparto</h3>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-300">
-                  <th className="text-left py-1 px-2 text-xs font-medium text-gray-700"></th>
-                  <th className="text-left py-1 px-2 text-xs font-medium text-gray-700">ZANICA</th>
-                  <th className="text-left py-1 px-2 text-xs font-medium text-gray-700">BUSTO GAROLFO</th>
+                  <th className="text-left py-1 px-1 text-[10px] font-medium text-gray-700"></th>
+                  <th className="text-left py-1 px-1 text-[10px] font-medium text-gray-700">ZANICA</th>
+                  <th className="text-left py-1 px-1 text-[10px] font-medium text-gray-700">BUSTO GAROLFO</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b border-gray-200">
-                  <td className="py-1 px-2 text-xs font-medium text-gray-700">STAMPA</td>
-                  <td className="py-1 px-2 text-xs text-gray-900">
+                  <td className="py-1 px-1 text-[10px] font-medium text-gray-700">STAMPA</td>
+                  <td className="py-1 px-1 text-[10px] text-gray-900">
                     €{metrics.costMatrix?.stampa?.zanica?.toFixed(2) || '0.00'}
                   </td>
-                  <td className="py-1 px-2 text-xs text-gray-900">
+                  <td className="py-1 px-1 text-[10px] text-gray-900">
                     €{metrics.costMatrix?.stampa?.busto_garolfo?.toFixed(2) || '0.00'}
                   </td>
                 </tr>
                 <tr>
-                  <td className="py-1 px-2 text-xs font-medium text-gray-700">CONFEZIONAMENTO</td>
-                  <td className="py-1 px-2 text-xs text-gray-900">
+                  <td className="py-1 px-1 text-[10px] font-medium text-gray-700">CONFEZIONAMENTO</td>
+                  <td className="py-1 px-1 text-[10px] text-gray-900">
                     €{metrics.costMatrix?.confezionamento?.zanica?.toFixed(2) || '0.00'}
                   </td>
-                  <td className="py-1 px-2 text-xs text-gray-900">
+                  <td className="py-1 px-1 text-[10px] text-gray-900">
                     €{metrics.costMatrix?.confezionamento?.busto_garolfo?.toFixed(2) || '0.00'}
                   </td>
                 </tr>
@@ -382,33 +382,33 @@ function HomePage() {
         </div>
 
         {/* Duration Matrix Table */}
-        <div className="bg-gray-50 p-2 rounded border border-gray-200">
-          <h3 className="text-xs font-semibold text-gray-900 mb-2">Durata Media per Centro di Lavoro e Reparto</h3>
+        <div className="bg-gray-50 p-1 rounded border border-gray-200">
+          <h3 className="text-[10px] font-semibold text-gray-900 mb-1">Durata Media per Centro di Lavoro e Reparto</h3>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-300">
-                  <th className="text-left py-1 px-2 text-xs font-medium text-gray-700"></th>
-                  <th className="text-left py-1 px-2 text-xs font-medium text-gray-700">ZANICA</th>
-                  <th className="text-left py-1 px-2 text-xs font-medium text-gray-700">BUSTO GAROLFO</th>
+                  <th className="text-left py-1 px-1 text-[10px] font-medium text-gray-700"></th>
+                  <th className="text-left py-1 px-1 text-[10px] font-medium text-gray-700">ZANICA</th>
+                  <th className="text-left py-1 px-1 text-[10px] font-medium text-gray-700">BUSTO GAROLFO</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b border-gray-200">
-                  <td className="py-1 px-2 text-xs font-medium text-gray-700">STAMPA</td>
-                  <td className="py-1 px-2 text-xs text-gray-900">
+                  <td className="py-1 px-1 text-[10px] font-medium text-gray-700">STAMPA</td>
+                  <td className="py-1 px-1 text-[10px] text-gray-900">
                     {metrics.durationMatrix?.stampa?.zanica?.toFixed(1) || '0.0'}h
                   </td>
-                  <td className="py-1 px-2 text-xs text-gray-900">
+                  <td className="py-1 px-1 text-[10px] text-gray-900">
                     {metrics.durationMatrix?.stampa?.busto_garolfo?.toFixed(1) || '0.0'}h
                   </td>
                 </tr>
                 <tr>
-                  <td className="py-1 px-2 text-xs font-medium text-gray-700">CONFEZIONAMENTO</td>
-                  <td className="py-1 px-2 text-xs text-gray-900">
+                  <td className="py-1 px-1 text-[10px] font-medium text-gray-700">CONFEZIONAMENTO</td>
+                  <td className="py-1 px-1 text-[10px] text-gray-900">
                     {metrics.durationMatrix?.confezionamento?.zanica?.toFixed(1) || '0.0'}h
                   </td>
-                  <td className="py-1 px-2 text-xs text-gray-900">
+                  <td className="py-1 px-1 text-[10px] text-gray-900">
                     {metrics.durationMatrix?.confezionamento?.busto_garolfo?.toFixed(1) || '0.0'}h
                   </td>
                 </tr>
@@ -422,7 +422,7 @@ function HomePage() {
       <div className="space-y-4 mt-4">
         {/* Tasks per Day Line Chart */}
         <div className="bg-gray-50 p-3 rounded border border-gray-200">
-          <h3 className="text-xs font-semibold text-gray-900 mb-2">Lavori Iniziati per Giorno (Ultimi 7 Giorni + Prossimi 7 Giorni)</h3>
+          <h3 className="text-[10px] font-semibold text-gray-900 mb-1">Lavori Iniziati per Giorno (Ultimi 7 Giorni + Prossimi 7 Giorni)</h3>
           <div className="h-48">
             {tasksPerDayChartData && (
               <Line data={tasksPerDayChartData} options={lineChartOptions} height={200} />
@@ -432,8 +432,8 @@ function HomePage() {
 
         {/* Machines by Work Center - Pie Charts */}
         <div className="bg-gray-50 p-3 rounded border border-gray-200">
-          <h3 className="text-xs font-semibold text-gray-900 mb-2">Macchine per Centro di Lavoro e Stato</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <h3 className="text-[10px] font-semibold text-gray-900 mb-1">Macchine per Centro di Lavoro e Stato</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {Object.entries(metrics.machinesByWorkCenter || {}).map(([center, statuses]) => {
               const pieData = {
                 labels: Object.keys(statuses).map(status => 
@@ -459,11 +459,11 @@ function HomePage() {
 
               return (
                 <div key={center} className="text-center">
-                  <h4 className="text-xs font-medium text-gray-700 mb-2">{center}</h4>
+                  <h4 className="text-[10px] font-medium text-gray-700 mb-1">{center}</h4>
                   <div className="h-32">
                     <Pie data={pieData} options={pieChartOptions} height={150} />
                   </div>
-                  <div className="text-xs text-gray-600 mt-2">
+                  <div className="text-[10px] text-gray-600 mt-2">
                     {Object.entries(statuses).map(([status, count]) => (
                       <div key={status} className="flex items-center justify-center gap-1 mb-1">
                         <span className="w-2 h-2 rounded-full" style={{

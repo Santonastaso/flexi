@@ -106,11 +106,11 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-6 px-2 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-4">
         <div className="text-center">
-          <h1 className="text-xs font-bold text-gray-900">Bentornato</h1>
-                       <p className="mt-2 text-xs text-gray-600">Accedi al tuo account per continuare</p>
+          <h1 className="text-[10px] font-bold text-gray-900">Bentornato</h1>
+                       <p className="mt-2 text-[10px] text-gray-600">Accedi al tuo account per continuare</p>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
@@ -166,13 +166,13 @@ function LoginPage() {
 
           {/* Authentication Error */}
           {authError && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-2">
+            <div className="bg-red-50 border border-red-200 rounded-md p-1">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <span className="text-red-400">●</span>
                 </div>
                 <div className="ml-3">
-                  <p className="text-xs text-red-800">{authError}</p>
+                  <p className="text-[10px] text-red-800">{authError}</p>
                 </div>
               </div>
             </div>
@@ -191,15 +191,15 @@ function LoginPage() {
 
         {/* Additional Links */}
         <div className="text-center space-y-4">
-                       <Link to="/forgot-password" className="text-xs text-blue-600 hover:text-blue-500">
+                       <Link to="/forgot-password" className="text-[10px] text-navy-800 hover:text-navy-600">
             Password dimenticata?
           </Link>
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300" />
             </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="px-2 bg-gray-50 text-gray-500">Non hai un account?</span>
+            <div className="relative flex justify-center text-[10px]">
+              <span className="px-1 bg-gray-50 text-gray-500">Non hai un account?</span>
             </div>
           </div>
           <Link to="/signup">
@@ -211,14 +211,14 @@ function LoginPage() {
 
         {/* Demo Credentials (for development) */}
         {import.meta.env.MODE === 'development' && (
-          <div className="mt-4 p-2 bg-gray-50 rounded-lg">
+          <div className="mt-4 p-1 bg-gray-50 rounded-lg">
             <details className="group">
-              <summary className="cursor-pointer text-xs font-medium text-gray-700 hover:text-gray-900">
+              <summary className="cursor-pointer text-[10px] font-medium text-gray-700 hover:text-gray-900">
                 Credenziali Demo (Solo Sviluppo)
               </summary>
-              <div className="mt-4 space-y-3">
-                               <p className="text-xs text-gray-600"><strong>Email:</strong> demo@example.com</p>
-               <p className="text-xs text-gray-600"><strong>Password:</strong> demo123</p>
+              <div className="mt-4 space-y-2">
+                               <p className="text-[10px] text-gray-600"><strong>Email:</strong> demo@example.com</p>
+               <p className="text-[10px] text-gray-600"><strong>Password:</strong> demo123</p>
                                  <Button
                    type="button"
                    variant="outline"

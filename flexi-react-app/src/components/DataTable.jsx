@@ -47,7 +47,7 @@ function DataTable({ data, columns, onSaveRow, onDeleteRow }) {
       cell: ({ row }) => {
         const isEditing = row.id === editingRowId;
         return (
-          <div className="flex flex-row gap-2 items-center justify-start">
+          <div className="flex flex-row gap-1 items-center justify-start">
             {isEditing ? (
               <>
                 <Button size="xs" onClick={() => handleSave(row)}>
@@ -134,7 +134,7 @@ function DataTable({ data, columns, onSaveRow, onDeleteRow }) {
           {table.getRowModel().rows.map((row) => {
             const rowKey = row.original.id || row.id;
             return (
-              <TableRow key={rowKey} className={editingRowId === row.id ? 'bg-blue-50' : ''}>
+              <TableRow key={rowKey} className={editingRowId === row.id ? 'bg-navy-50' : ''}>
                 {row.getVisibleCells().map((cell, cellIndex) => {
                   const cellKey = `${rowKey}_${cell.column.id}_${cellIndex}`;
                   return (

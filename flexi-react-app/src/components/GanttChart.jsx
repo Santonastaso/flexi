@@ -115,16 +115,16 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                 const startSlot = startHour * 4 + Math.floor(startMinute / 15);
                 const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
                 
-                segmentLeft = startSlot * 20;
-                segmentWidth = (endSlot - startSlot) * 20;
+                segmentLeft = startSlot * 15;
+                segmentWidth = (endSlot - startSlot) * 15;
             } else if (segmentStartsOnCurrentDay) {
                 // Segment starts on current day but ends later
                 const startHour = singleSegment.start.getUTCHours();
                 const startMinute = singleSegment.start.getUTCMinutes();
                 const startSlot = startHour * 4 + Math.floor(startMinute / 15);
                 
-                segmentLeft = startSlot * 20;
-                segmentWidth = (96 - startSlot) * 20; // Rest of the day
+                segmentLeft = startSlot * 15;
+                segmentWidth = (96 - startSlot) * 15; // Rest of the day
             } else if (segmentEndsOnCurrentDay) {
                 // Segment starts earlier but ends on current day
                 const endHour = singleSegment.end.getUTCHours();
@@ -132,11 +132,11 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                 const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
                 
                 segmentLeft = 0;
-                segmentWidth = endSlot * 20;
+                segmentWidth = endSlot * 15;
             } else {
                 // Segment spans the entire current day
                 segmentLeft = 0;
-                segmentWidth = 1920; // Full day width
+                segmentWidth = 1440; // Full day width
             }
             
             return [{ left: segmentLeft, width: segmentWidth, start: singleSegment.start, end: singleSegment.end }];
@@ -168,16 +168,16 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                     const startSlot = startHour * 4 + Math.floor(startMinute / 15);
                     const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
                     
-                    segmentLeft = startSlot * 20;
-                    segmentWidth = (endSlot - startSlot) * 20;
+                    segmentLeft = startSlot * 15;
+                    segmentWidth = (endSlot - startSlot) * 15;
                 } else if (segmentStartsOnCurrentDay) {
                     // Segment starts on current day but ends later
                     const startHour = segmentStart.getUTCHours();
                     const startMinute = segmentStart.getUTCMinutes();
                     const startSlot = startHour * 4 + Math.floor(startMinute / 15);
                     
-                    segmentLeft = startSlot * 20;
-                    segmentWidth = (96 - startSlot) * 20; // Rest of the day
+                    segmentLeft = startSlot * 15;
+                    segmentWidth = (96 - startSlot) * 15; // Rest of the day
                 } else if (segmentEndsOnCurrentDay) {
                     // Segment starts earlier but ends on current day
                     const endHour = segmentEnd.getUTCHours();
@@ -185,11 +185,11 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                     const endSlot = endHour * 4 + Math.ceil(endMinute / 15);
                     
                     segmentLeft = 0;
-                    segmentWidth = endSlot * 20;
+                    segmentWidth = endSlot * 15;
                 } else {
                     // Segment spans the entire current day
                     segmentLeft = 0;
-                    segmentWidth = 1920; // Full day width
+                    segmentWidth = 1440; // Full day width
                 }
                 
                 visibleSegments.push({
@@ -280,8 +280,8 @@ Codice Articolo Esterno: ${event.external_article_code || 'Non specificato'}
 Nome Cliente: ${event.nome_cliente || 'Non specificato'}
         Data Consegna: ${event.delivery_date ? format(new Date(event.delivery_date), 'yyyy-MM-dd') : 'Non impostata'}
 Quantità: ${event.quantity || 'Non specificata'}
-        ${event.scheduled_start_time ? `Inizio Programmato: ${format(new Date(event.scheduled_start_time), 'yyyy-MM-dd HH:mm')}` : 'Non programmato'}
-        ${event.scheduled_end_time ? `Fine Programmata: ${format(new Date(event.scheduled_end_time), 'yyyy-MM-dd HH:mm')}` : 'Non programmato'}`}
+        ${event.scheduled_start_time ? `Inizio Programmato: ${event.scheduled_start_time.replace('+00:00', '')}` : 'Non programmato'}
+        ${event.scheduled_end_time ? `Fine Programmata: ${event.scheduled_end_time.replace('+00:00', '')}` : 'Non programmato'}`}
                 >
                     <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>i</span>
                 </button>

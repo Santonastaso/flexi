@@ -36,7 +36,7 @@ const AppLayout = () => {
   }, [cleanup]);
   
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-200 overflow-hidden">
       <SideNav isOpen={isSidebarOpen} />
       {/* Backdrop overlay for mobile */}
       {!isSidebarOpen && (
@@ -47,26 +47,26 @@ const AppLayout = () => {
       )}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header Bar */}
-        <header className="sticky top-0 z-20 bg-navy-800 border-b border-navy-700 px-4 py-3 flex-shrink-0">
+        <header className="sticky top-0 z-20 bg-navy-800 border-b border-navy-700 px-2 py-3 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button 
                 onClick={toggleSidebar}
-                className="p-2 rounded-md hover:bg-navy-700 transition-colors"
+                className="p-1 rounded-md hover:bg-navy-700 transition-colors"
               >
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              <h1 className="text-xs font-semibold text-white">Flexi React App</h1>
+              <h1 className="text-[10px] font-semibold text-white">Flexi React App</h1>
             </div>
             <div className="flex items-center space-x-4">
               {user && (
                 <>
-                  <span className="text-xs text-navy-200">{user.email}</span>
+                  <span className="text-[10px] text-navy-200">{user.email}</span>
                   <button 
                     onClick={signOut}
-                    className="px-3 py-1.5 text-xs font-medium text-navy-200 hover:text-white hover:bg-navy-700 rounded transition-colors"
+                    className="px-3 py-1.5 text-[10px] font-medium text-navy-200 hover:text-white hover:bg-navy-700 rounded transition-colors"
                   >
                     Sign out
                   </button>

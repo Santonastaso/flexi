@@ -39,16 +39,16 @@ function PhasesFormPage() {
   }
 
   if (isEditMode && !phase) {
-           return <div className="text-center py-4 text-red-600 text-xs">Fase non trovata.</div>;
+           return <div className="text-center py-2 text-red-600 text-[10px]">Fase non trovata.</div>;
   }
 
   // Allow access if work center is selected or if BOTH is selected (which allows any work center)
   if (!selectedWorkCenter) {
-           return <div className="text-center py-4 text-red-600 text-xs">Seleziona un centro di lavoro per gestire le fasi.</div>;
+           return <div className="text-center py-2 text-red-600 text-[10px]">Seleziona un centro di lavoro per gestire le fasi.</div>;
   }
 
   return (
-    <div className="p-2 bg-white rounded shadow-sm border">
+    <div className="p-1 bg-white rounded shadow-sm border">
       {isEditMode && <StickyHeader title={`Modifica Fase: ${phase?.name}`} />}
       <PhasesForm phaseToEdit={phase} />
     </div>

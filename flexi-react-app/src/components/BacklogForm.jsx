@@ -175,12 +175,12 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   const isLoading = addOrderMutation.isPending || updateOrderMutation.isPending;
 
   return (
-    <div className="p-2 bg-white rounded-lg shadow-sm border">
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-3">
+    <div className="p-1 bg-white rounded-lg shadow-sm border">
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-2">
         {/* IDENTIFICAZIONE Section */}
-        <div className="space-y-3">
-                       <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Identificazione</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="space-y-2">
+                       <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Identificazione</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             <div className="space-y-2">
               <Label htmlFor="odp_number">Numero ODP *</Label>
               <Input type="text" id="odp_number" {...register('odp_number')} />
@@ -208,7 +208,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
               ) : (
                 <>
                   <Input type="text" id="work_center" value={selectedWorkCenter} disabled className="bg-gray-50" />
-                  <p className="text-xs text-gray-500">Centro di lavoro pre-impostato.</p>
+                  <p className="text-[10px] text-gray-500">Centro di lavoro pre-impostato.</p>
                 </>
               )}
             </div>
@@ -220,9 +220,9 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         </div>
 
         {/* SPECIFICHE TECNICHE Section */}
-        <div className="space-y-3">
-                       <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Specifiche Tecniche</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="space-y-2">
+                       <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Specifiche Tecniche</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
             <div className="space-y-2">
               <Label htmlFor="bag_height">Altezza Busta (mm) *</Label>
               <Input type="number" id="bag_height" {...register('bag_height')} />
@@ -276,9 +276,9 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         </div>
         
         {/* DATI COMMERCIALI Section */}
-        <div className="space-y-3">
-                       <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Dati Commerciali</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="space-y-2">
+                       <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Dati Commerciali</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             <div className="space-y-2">
               <Label htmlFor="internal_customer_code">Lotto FLEXI *</Label>
               <Input type="text" id="internal_customer_code" {...register('internal_customer_code')} />
@@ -299,15 +299,15 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
               {...register('user_notes')} 
               rows="3" 
               placeholder="Inserisci note libere per l'ordine..." 
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-800 focus:border-transparent"
             />
           </div>
         </div>
 
         {/* DATI LAVORAZIONE & PIANIFICAZIONE Section */}
-        <div className="space-y-3">
-                       <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Dati Lavorazione & Pianificazione</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="space-y-2">
+                       <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Dati Lavorazione & Pianificazione</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             <div className="space-y-2">
               <Label htmlFor="department">Reparto *</Label>
               <Input type="text" id="department" {...register('department')} readOnly className="bg-gray-50" />
@@ -329,14 +329,14 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                     {filteredPhases.map(phase => (
                       <div 
                         key={phase.id} 
-                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        className="px-3 py-1 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                         onMouseDown={() => { 
                           handlePhaseSelect(phase, setValue, clearErrors); 
                           setCalculationResults(null);
                         }}
                       >
                         <div className="font-medium">{phase.name}</div>
-                        <div className="text-xs text-gray-600">{phase.contenuto_fase}</div>
+                        <div className="text-[10px] text-gray-600">{phase.contenuto_fase}</div>
                       </div>
                     ))}
                   </div>
@@ -352,9 +352,9 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
 
         {/* Selected Phase Parameters */}
                   {selectedPhase && (
-            <div className="space-y-3">
-                          <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Parametri Fase Selezionata</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-2">
+                          <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Parametri Fase Selezionata</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
               {getPhaseFields().map(field => (
                 <div className="space-y-2" key={field.name}>
                   <Label htmlFor={field.name}>{field.label}</Label>
@@ -365,7 +365,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                       value={getPhaseParamValue(field.name)} 
                       onChange={(e) => handlePhaseParamChange(field.name, e.target.value)} 
                     />
-                    <span className="text-xs text-gray-500 whitespace-nowrap">{field.unit}</span>
+                    <span className="text-[10px] text-gray-500 whitespace-nowrap">{field.unit}</span>
                   </div>
                 </div>
               ))}
@@ -375,16 +375,16 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
 
         {/* Production Calculation Results */}
                   {calculationResults?.totals && (
-            <div className="space-y-3">
-                          <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Risultati Calcolo Produzione</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+                          <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Risultati Calcolo Produzione</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div className="space-y-2">
                 <Label>Durata Totale (ore):</Label>
-                                 <div className="text-xs font-semibold text-blue-600">{calculationResults.totals.duration.toFixed(2)}</div>
+                                 <div className="text-[10px] font-semibold text-navy-800">{calculationResults.totals.duration.toFixed(2)}</div>
               </div>
               <div className="space-y-2">
                 <Label>Costo Totale (€):</Label>
-                                 <div className="text-xs font-semibold text-green-600">{calculationResults.totals.cost.toFixed(2)}</div>
+                                 <div className="text-[10px] font-semibold text-green-600">{calculationResults.totals.cost.toFixed(2)}</div>
               </div>
             </div>
           </div>

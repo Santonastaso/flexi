@@ -1,12 +1,12 @@
 import React from 'react';
 
 const Table = React.forwardRef(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto" style={{ maxHeight: '70vh' }}>
-    <table
-      ref={ref}
-      className={`w-auto caption-bottom text-xs !text-xs relative ${className}`}
-      {...props}
-    />
+  <div className="relative w-full overflow-auto" style={{ maxHeight: '95vh' }}>
+                      <table
+                    ref={ref}
+                    className={`w-full caption-bottom text-[10px] !text-[10px] relative ${className}`}
+                    {...props}
+                  />
   </div>
 ));
 Table.displayName = "Table";
@@ -36,29 +36,29 @@ const TableRow = React.forwardRef(({ className, ...props }, ref) => (
 TableRow.displayName = "TableRow";
 
 const TableHead = React.forwardRef(({ className, ...props }, ref) => (
-  <th
-    ref={ref}
-    className={`h-8 px-2 text-left align-middle font-medium text-xs !text-xs text-gray-900 bg-gray-50 border-r border-gray-200 whitespace-nowrap ${className}`}
-    {...props}
-  />
+                    <th
+                    ref={ref}
+                    className={`h-6 px-1 text-left align-middle font-medium text-[10px] !text-[10px] text-gray-900 bg-gray-50 border-r border-gray-200 whitespace-nowrap ${className}`}
+                    {...props}
+                  />
 ));
 TableHead.displayName = "TableHead";
 
 const TableCell = React.forwardRef(({ className, ...props }, ref) => (
-  <td
-    ref={ref}
-    className={`p-2 align-middle whitespace-nowrap text-xs !text-xs ${className}`}
-    {...props}
-  />
+                    <td
+                    ref={ref}
+                    className={`p-1 align-middle whitespace-nowrap text-[10px] !text-[10px] border-r border-gray-200 ${className}`}
+                    {...props}
+                  />
 ));
 TableCell.displayName = "TableCell";
 
 const TableCaption = React.forwardRef(({ className, ...props }, ref) => (
-  <caption
-    ref={ref}
-    className={`mt-4 text-xs text-gray-500 ${className}`}
-    {...props}
-  />
+                    <caption
+                    ref={ref}
+                    className={`mt-2 text-[10px] text-gray-500 ${className}`}
+                    {...props}
+                  />
 ));
 TableCaption.displayName = "TableCaption";
 

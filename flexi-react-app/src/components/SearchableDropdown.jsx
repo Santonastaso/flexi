@@ -105,22 +105,22 @@ function SearchableDropdown({
         <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
           {/* "All" option */}
           <div 
-            className={`px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 ${allVisibleSelected ? 'bg-blue-50 text-blue-700' : ''}`}
+                            className={`px-3 py-1 hover:bg-gray-100 cursor-pointer border-b border-gray-100 ${allVisibleSelected ? 'bg-navy-50 text-navy-800' : ''}`}
             onMouseDown={handleAllOptionClick}
           >
             <div className="font-medium">Tutti i {label}</div>
-                           <div className="text-xs text-gray-600">Mostra tutti i {label.toLowerCase()}</div>
+                           <div className="text-[10px] text-gray-600">Mostra tutti i {label.toLowerCase()}</div>
           </div>
           
           {/* Individual options */}
           {filteredOptions.map(option => (
             <div 
               key={option} 
-              className={`px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 ${selectedOptions.includes(option) ? 'bg-blue-50 text-blue-700' : ''}`}
+              className={`px-3 py-1 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 ${selectedOptions.includes(option) ? 'bg-navy-50 text-navy-800' : ''}`}
               onMouseDown={(e) => handleOptionClick(e, option)}
             >
               <div className="font-medium">{option}</div>
-                             <div className="text-xs text-gray-600">{label}</div>
+                             <div className="text-[10px] text-gray-600">{label}</div>
             </div>
           ))}
         </div>

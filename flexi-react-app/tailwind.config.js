@@ -7,12 +7,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Navy Blue and Grey Color Palette
+        // Navy Blue Color Palette
         primary: {
-          DEFAULT: '#1e3a8a', // Navy blue
-          secondary: '#1e40af',
-          accent: '#3b82f6',
-          'accent-hover': '#2563eb',
+          DEFAULT: '#1e293b', // Navy blue (from navbar)
+          secondary: '#2d3a4b',
+          accent: '#1e293b',
+          'accent-hover': '#2d3a4b',
         },
         status: {
           active: '#059669', // Green

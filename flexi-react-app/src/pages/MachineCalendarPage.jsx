@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMachineStore, useUIStore, useMainStore } from '../store';
-import CalendarViewControls from '../components/CalendarViewControls';
 import OffTimeForm from '../components/OffTimeForm';
-import CalendarGrid from '../components/CalendarGrid';
+import FullCalendarGrid from '../components/FullCalendarGrid';
 import StickyHeader from '../components/StickyHeader';
 
 function MachineCalendarPage() {
   const { machineId } = useParams();
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [currentView, setCurrentView] = useState('Month');
   const [refreshKey, setRefreshKey] = useState(0);
   
   // Use modern slice stores instead of legacy useStore
@@ -19,18 +16,20 @@ function MachineCalendarPage() {
   
   const machine = getMachineById(machineId);
   
-  // Debug logging (only once)
+  // Debug logging only in development and only when machine is not found
   const allMachines = useMachineStore.getState().machines;
-  if (!machine) {
-    console.log('MachineCalendarPage Debug:', {
-      machineId,
-      machine,
-      isLoading,
-      isInitialized,
-      machinesCount: allMachines.length,
-      firstFewMachines: allMachines.slice(0, 3).map(m => ({ id: m.id, name: m.machine_name }))
-    });
-  }
+  useEffect(() => {
+    if (!machine && import.meta.env.MODE === 'development') {
+      console.log('MachineCalendarPage Debug:', {
+        machineId,
+        machine,
+        isLoading,
+        isInitialized,
+        machinesCount: allMachines.length,
+        firstFewMachines: allMachines.slice(0, 3).map(m => ({ id: m.id, name: m.machine_name }))
+      });
+    }
+  }, []); // Only run once on mount
 
   useEffect(() => {
     // Only initialize once
@@ -56,8 +55,8 @@ function MachineCalendarPage() {
   // Show loading only if we're actively loading, not if just not initialized
   if (isLoading) {
     return (
-      <div className="p-2 bg-white rounded shadow-sm border">
-        <div className="text-center py-4 text-gray-500 text-xs">
+      <div className="p-1 bg-white rounded shadow-sm border">
+        <div className="text-center py-1 text-gray-500 text-[10px]">
           Caricamento calendario macchina... (Loading: {isLoading.toString()}, Initialized: {isInitialized.toString()})
         </div>
       </div>
@@ -71,62 +70,49 @@ function MachineCalendarPage() {
 
   if (!machine) {
     return (
-      <div className="p-2 bg-white rounded shadow-sm border">
-        <div className="text-center py-4 text-red-600 text-xs">
+      <div className="p-1 bg-white rounded shadow-sm border">
+        <div className="text-center py-1 text-red-600 text-[10px]">
           Macchina non trovata (ID: {machineId}, Initialized: {isInitialized.toString()})
         </div>
       </div>
     );
   }
 
-  const handleDateChange = (newDate) => {
-    setCurrentDate(newDate);
-  };
-
-  const handleViewChange = (newView) => {
-    setCurrentView(newView);
-  };
-
   const handleOffTimeSuccess = () => {
     // Force calendar refresh by updating the key
-    // This will trigger the useEffect in CalendarGrid to reload data
+    // This will trigger the useEffect in FullCalendarGrid to reload data
     setRefreshKey(prev => prev + 1);
   };
 
   return (
-    <div className="p-2 bg-white rounded shadow-sm border">
+    <div className="p-1 bg-white rounded shadow-sm border">
       <StickyHeader title="Calendario Disponibilità Macchina" />
       
       {/* Machine Name Display */}
-      <div className="mb-2">
-        <h3 className="text-xs font-semibold text-gray-900">{machine.machine_name}</h3>
+      <div className="mb-1">
+        <h3 className="text-[10px] font-semibold text-gray-900">{machine.machine_name}</h3>
       </div>
       
-      {/* Debug info */}
-      <div className="mb-2 p-2 bg-gray-100 rounded text-xs">
-        <div>Machine ID: {machine.id}</div>
-        <div>Machine Name: {machine.machine_name}</div>
-        <div>Store Initialized: {isInitialized.toString()}</div>
-        <div>Loading: {isLoading.toString()}</div>
-      </div>
+      {/* Debug info - only in development */}
+      {import.meta.env.MODE === 'development' && (
+        <div className="mb-1 p-1 bg-gray-100 rounded text-[10px]">
+          <div>Machine ID: {machine.id}</div>
+          <div>Machine Name: {machine.machine_name}</div>
+          <div>Store Initialized: {isInitialized.toString()}</div>
+          <div>Loading: {isLoading.toString()}</div>
+        </div>
+      )}
       
-      <CalendarViewControls
-        currentDate={currentDate}
-        currentView={currentView}
-        onDateChange={handleDateChange}
-        onViewChange={handleViewChange}
-      />
+      {/* FullCalendar has its own controls, so we don't need the custom ones */}
       
       <OffTimeForm
         machineId={machine.id}
-        currentDate={currentDate}
+        currentDate={new Date()}
         onSuccess={handleOffTimeSuccess}
       />
       
-      <CalendarGrid
+      <FullCalendarGrid
         machineId={machine.id}
-        currentDate={currentDate}
-        currentView={currentView}
         refreshTrigger={refreshKey}
       />
     </div>

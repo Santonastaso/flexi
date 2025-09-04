@@ -485,16 +485,16 @@ function SchedulerPage() {
   // Show loading state during initial load
   if (isLoading) {
     return (
-      <div className="p-2 bg-white rounded shadow-sm border">
-        <div className="text-center py-4 text-gray-500 text-xs">Caricamento Scheduler Produzione...</div>
+      <div className="p-1 bg-white rounded shadow-sm border">
+        <div className="text-center py-1 text-gray-500 text-[10px]">Caricamento Scheduler Produzione...</div>
       </div>
     );
   }
 
   if (!selectedWorkCenter) {
     return (
-      <div className="p-2 bg-white rounded shadow-sm border">
-        <div className="text-center py-4 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati dello scheduler.</div>
+      <div className="p-1 bg-white rounded shadow-sm border">
+        <div className="text-center py-1 text-red-600 text-[10px]">Seleziona un centro di lavoro per visualizzare i dati dello scheduler.</div>
       </div>
     );
   }
@@ -513,7 +513,7 @@ function SchedulerPage() {
 
         {/* Task Lookup Section */}
         <div className="section-controls">
-          <h2 className="section-title">Ricerca Lavoro</h2>
+          <h2 className="text-[10px] font-semibold text-gray-900 mb-1">Ricerca Lavoro</h2>
           <div className="task-lookup-grid">
             <div className="task-lookup-item">
               <div className="task-lookup-input-container">
@@ -582,7 +582,7 @@ function SchedulerPage() {
 
         {/* Production Schedule Controls Section */}
         <div className="section-controls">
-          <h2 className="section-title">Programma Produzione</h2>
+          <h2 className="text-[10px] font-semibold text-gray-900 mb-1">Programma Produzione</h2>
           <div className="controls-grid">
             {/* Machine Filters */}
             <div className="filters-section">

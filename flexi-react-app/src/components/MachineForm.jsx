@@ -120,12 +120,12 @@ function MachineForm({ machineToEdit, onSuccess }) {
   const isLoading = addMachineMutation.isPending || updateMachineMutation.isPending;
 
   return (
-    <div className="p-2 bg-white rounded-lg shadow-sm border">
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-3">
+    <div className="p-1 bg-white rounded-lg shadow-sm border">
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-2">
           {/* IDENTIFICAZIONE Section */}
-          <div className="space-y-3">
-                           <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Identificazione</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="space-y-2">
+                           <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Identificazione</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
               <div className="space-y-2">
                 <Label htmlFor="department">Department *</Label>
                 <Select onValueChange={(value) => setValue('department', value)} defaultValue={getValues('department')}>
@@ -181,16 +181,16 @@ function MachineForm({ machineToEdit, onSuccess }) {
                   />
                 )}
                 {selectedWorkCenter !== WORK_CENTERS.BOTH && (
-                  <p className="text-xs text-gray-500">Il centro di lavoro è pre-impostato.</p>
+                  <p className="text-[10px] text-gray-500">Il centro di lavoro è pre-impostato.</p>
                 )}
               </div>
             </div>
           </div>
 
           {/* CAPACITÀ TECNICHE Section */}
-          <div className="space-y-3">
-                           <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Capacità Tecniche</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="space-y-2">
+                           <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Capacità Tecniche</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
               <div className="space-y-2">
                 <Label htmlFor="min_web_width">Min Web Width (mm) *</Label>
                 <Input type="number" {...register('min_web_width')} />
@@ -211,9 +211,9 @@ function MachineForm({ machineToEdit, onSuccess }) {
           </div>
 
           {/* PERFORMANCE Section */}
-          <div className="space-y-3">
-                           <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Performance</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="space-y-2">
+                           <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Performance</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
               <div className="space-y-2">
                 <Label htmlFor="standard_speed">Standard Speed *</Label>
                 <Input 
@@ -242,12 +242,12 @@ function MachineForm({ machineToEdit, onSuccess }) {
           </div>
         
           {/* DISPONIBILITÀ Section */}
-          <div className="space-y-3">
-                           <h3 className="text-xs font-semibold text-gray-900 border-b pb-2">Disponibilità</h3>
+          <div className="space-y-2">
+                           <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Disponibilità</h3>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Active Shifts</Label>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2">
                   {[SHIFT_TYPES.T1, SHIFT_TYPES.T2, SHIFT_TYPES.T3].map(shift => (
                     <div key={shift} className="flex items-center space-x-2">
                       <input 
@@ -258,7 +258,7 @@ function MachineForm({ machineToEdit, onSuccess }) {
                         onChange={handleShiftChange}
                         className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
                       />
-                      <Label htmlFor={shift} className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      <Label htmlFor={shift} className="text-[10px] font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                         {shift}
                       </Label>
                     </div>

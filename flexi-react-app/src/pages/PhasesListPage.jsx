@@ -95,11 +95,11 @@ function PhasesListPage() {
   }
 
   if (!selectedWorkCenter) {
-           return <div className="text-center py-4 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati delle fasi.</div>;
+           return <div className="text-center py-2 text-red-600 text-[10px]">Seleziona un centro di lavoro per visualizzare i dati delle fasi.</div>;
   }
 
   return (
-    <div className="p-2 bg-white rounded shadow-sm border min-w-0">
+    <div className="p-1 bg-white rounded shadow-sm border min-w-0">
       
       <div className="overflow-x-auto">
         <DataTable

@@ -297,7 +297,7 @@ export class MachineAvailabilityManager {
       // Load updated availability data for the range
       const updatedData = await this.loadMachineAvailabilityForDateRange(machineId, startDateObj, endDateObj);
       
-      // Update the store in the format that CalendarGrid expects
+      // Update the store in the format that FullCalendar expects
       if (updatedData && Array.isArray(updatedData)) {
         this.set(state => {
           const next = { ...state.machineAvailability };

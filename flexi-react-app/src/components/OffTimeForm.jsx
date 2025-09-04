@@ -108,11 +108,11 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
   };
 
     return (
-    <div className="p-2 bg-white rounded-lg shadow-sm border">
-                <h3 className="text-xs font-semibold text-gray-900 mb-2">Imposta Periodo di Non Disponibilità</h3>
+    <div className="p-1 bg-white rounded-lg shadow-sm border">
+                <h3 className="text-[10px] font-semibold text-gray-900 mb-1">Imposta Periodo di Non Disponibilità</h3>
         
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
           <div className="space-y-2">
             <Label htmlFor="startDate">Data Inizio</Label>
             <Input

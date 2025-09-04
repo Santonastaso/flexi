@@ -70,6 +70,12 @@ export const useUIStore = create((set, get) => ({
     conflictDialog: { isOpen: false, details: null }
   }),
 
+  // Alert actions
+  showAlert: (message, type = 'info') => {
+    // For now, just log to console. In a real app, you'd use a toast library
+    console.log(`[${type.toUpperCase()}] ${message}`);
+  },
+
   reset: () => set({
     isLoading: false,
     isInitialized: false,
