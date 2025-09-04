@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useOrderStore, useUIStore } from '../store';
 import { useErrorHandler } from '../hooks';
-import { formatDateUTC, formatDateTimeUTC } from '../utils/dateUtils';
+import { format } from 'date-fns';
 
 // Individual Draggable Task Component - optimized
 const DraggableTask = React.memo(({ task }) => {
@@ -58,10 +58,10 @@ const DraggableTask = React.memo(({ task }) => {
           title={`Codice Articolo: ${task.article_code || 'Non specificato'}
 Codice Articolo Esterno: ${task.external_article_code || 'Non specificato'}
 Nome Cliente: ${task.nome_cliente || 'Non specificato'}
-Data Consegna: ${formatDateUTC(task.delivery_date) || 'Non impostata'}
+        Data Consegna: ${task.delivery_date ? format(new Date(task.delivery_date), 'yyyy-MM-dd') : 'Non impostata'}
 Quantità: ${task.quantity || 'Non specificata'}
-${task.scheduled_start_time ? `Inizio Programmato: ${formatDateTimeUTC(task.scheduled_start_time)}` : 'Non programmato'}
-${task.scheduled_end_time ? `Fine Programmata: ${formatDateTimeUTC(task.scheduled_end_time)}` : 'Non programmato'}`}
+        ${task.scheduled_start_time ? `Inizio Programmato: ${format(new Date(task.scheduled_start_time), 'yyyy-MM-dd HH:mm')}` : 'Non programmato'}
+        ${task.scheduled_end_time ? `Fine Programmata: ${format(new Date(task.scheduled_end_time), 'yyyy-MM-dd HH:mm')}` : 'Non programmato'}`}
         >
           <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#374151' }}>i</span>
         </button>

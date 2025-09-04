@@ -1,5 +1,5 @@
 import React from 'react';
-import { getStartOfWeek, getEndOfWeek, addDaysToDate, formatDateMonthUTC, formatDateRangeUTC } from '../utils/dateUtils';
+import { startOfWeek, endOfWeek, addDays, format } from 'date-fns';
 
 function CalendarViewControls({ currentDate, currentView, onDateChange, onViewChange }) {
   const goToToday = () => {
@@ -12,7 +12,7 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
       newDate = new Date(currentDate);
       newDate.setMonth(newDate.getMonth() - 1);
     } else if (currentView === 'Week') {
-      newDate = addDaysToDate(currentDate, -7);
+      newDate = addDays(currentDate, -7);
     } else if (currentView === 'Year') {
       newDate = new Date(currentDate);
       newDate.setFullYear(newDate.getFullYear() - 1);
@@ -26,7 +26,7 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
       newDate = new Date(currentDate);
       newDate.setMonth(newDate.getMonth() + 1);
     } else if (currentView === 'Week') {
-      newDate = addDaysToDate(currentDate, 7);
+      newDate = addDays(currentDate, 7);
     } else if (currentView === 'Year') {
       newDate = new Date(currentDate);
       newDate.setFullYear(newDate.getFullYear() + 1);
@@ -36,11 +36,11 @@ function CalendarViewControls({ currentDate, currentView, onDateChange, onViewCh
 
   const getCurrentPeriodLabel = () => {
     if (currentView === 'Month') {
-      return formatDateMonthUTC(currentDate);
+              return format(currentDate, 'yyyy-MM');
     } else if (currentView === 'Week') {
-      const startOfWeek = getStartOfWeek(currentDate);
-      const endOfWeek = getEndOfWeek(currentDate);
-      return formatDateRangeUTC(startOfWeek, endOfWeek);
+          const weekStart = startOfWeek(currentDate);
+    const weekEnd = endOfWeek(currentDate);
+              return `${format(weekStart, 'yyyy-MM-dd')} - ${format(weekEnd, 'yyyy-MM-dd')}`;
     } else if (currentView === 'Year') {
       return currentDate.getUTCFullYear().toString();
     }

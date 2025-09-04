@@ -1,4 +1,4 @@
-import { toDateString } from '../../utils/dateUtils';
+import { format } from 'date-fns';
 
 /**
  * Scheduling Logic
@@ -225,7 +225,7 @@ export class SchedulingLogic {
     // Generate all dates between start and extended end (inclusive)
     let currentDate = new Date(taskStartDate);
     while (currentDate <= extendedEndDate) {
-      const dateStr = toDateString(currentDate);
+      const dateStr = format(currentDate, 'yyyy-MM-dd');
       const dateAvailability = this.get().machineAvailability[dateStr];
       
       if (dateAvailability && Array.isArray(dateAvailability)) {
@@ -268,7 +268,7 @@ export class SchedulingLogic {
     
     let currentDate = new Date(taskStartDate);
     while (currentDate <= taskEndDateWithBuffer) {
-      const dateStr = toDateString(currentDate);
+      const dateStr = format(currentDate, 'yyyy-MM-dd');
       await this.machineAvailabilityManager.loadMachineAvailabilityForDate(dateStr);
       currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
@@ -287,7 +287,7 @@ export class SchedulingLogic {
 
     let currentDate = new Date(taskStartDateWithBuffer);
     while (currentDate <= taskEndDate) {
-      const dateStr = toDateString(currentDate);
+      const dateStr = format(currentDate, 'yyyy-MM-dd');
       await this.machineAvailabilityManager.loadMachineAvailabilityForDate(dateStr);
       currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }

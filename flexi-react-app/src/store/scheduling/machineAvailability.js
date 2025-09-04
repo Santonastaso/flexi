@@ -1,5 +1,5 @@
 import { apiService } from '../../services';
-import { toDateString, addDaysToDate } from '../../utils/dateUtils';
+import { format, addDays } from 'date-fns';
 import { handleApiError, AppError, ERROR_TYPES } from '../../utils/errorUtils';
 import { useOrderStore } from '../useOrderStore';
 import { useUIStore } from '../useUIStore';
@@ -48,8 +48,8 @@ export class MachineAvailabilityManager {
   // Load machine availability for a date range
   loadMachineAvailabilityForDateRange = async (machineId, startDate, endDate) => {
     // Convert Date objects to date strings using toDateString for consistent timezone handling
-    const startDateStr = startDate instanceof Date ? toDateString(startDate) : startDate;
-    const endDateStr = endDate instanceof Date ? toDateString(endDate) : endDate;
+    const startDateStr = startDate instanceof Date ? format(startDate, 'yyyy-MM-dd') : startDate;
+    const endDateStr = endDate instanceof Date ? format(endDate, 'yyyy-MM-dd') : endDate;
     
     try {
       const data = await apiService.getMachineAvailabilityForDateRange(machineId, startDateStr, endDateStr);
@@ -154,7 +154,7 @@ export class MachineAvailabilityManager {
       
       let current = new Date(startDate);
       while (current <= endDate) {
-        const dateStr = toDateString(current);
+        const dateStr = format(current, 'yyyy-MM-dd');
         const existing = this.get().machineAvailability[dateStr];
         if (!existing) {
           await this.loadMachineAvailabilityForDate(dateStr);
@@ -164,7 +164,7 @@ export class MachineAvailabilityManager {
           const row = dayData.find(r => r.machine_id === machineId);
           if (row) result[dateStr] = row.unavailable_hours || [];
         }
-        current = addDaysToDate(current, 1);
+        current = addDays(current, 1);
       }
       return result;
     } catch (_e) {
@@ -305,7 +305,7 @@ export class MachineAvailabilityManager {
           // Process each date in the updated data
           updatedData.forEach(item => {
             if (item.date && item.unavailable_hours) {
-              const dateStr = toDateString(new Date(item.date));
+              const dateStr = format(new Date(item.date), 'yyyy-MM-dd');
               
               // Initialize the date array if it doesn't exist
               if (!next[dateStr]) {

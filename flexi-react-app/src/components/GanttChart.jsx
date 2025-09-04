@@ -2,14 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { useOrderStore, useSchedulerStore } from '../store';
-import { formatDateUTC, formatDateTimeUTC } from '../utils/dateUtils';
-import {
-  toDateString,
-  isSameUTCDate,
-  getStartOfWeek,
-  getStartOfDay,
-  getEndOfDay
-} from '../utils/dateUtils';
+import { format, startOfDay, endOfDay, startOfWeek, isSameDay } from 'date-fns';
 
 
 // A single 15-minute time slot on the calendar that can receive a dropped task
@@ -70,8 +63,8 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
     // Calculate segments for ALL tasks using description column only
     const eventSegments = useMemo(() => {
         const segmentInfo = getSplitTaskInfo(event.id);
-        const currentDayStart = getStartOfDay(currentDate);
-        const currentDayEnd = getEndOfDay(currentDate);
+        const currentDayStart = startOfDay(currentDate);
+        const currentDayEnd = endOfDay(currentDate);
         
         // Debug logging
         console.log(`🔍 Task ${event.odp_number} (${event.id}):`, {
@@ -101,8 +94,8 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
             };
             
             // Check if this segment is visible on current day
-            const segmentStartsOnCurrentDay = isSameUTCDate(singleSegment.start, currentDate);
-            const segmentEndsOnCurrentDay = isSameUTCDate(singleSegment.end, currentDate);
+                    const segmentStartsOnCurrentDay = isSameDay(singleSegment.start, currentDate);
+        const segmentEndsOnCurrentDay = isSameDay(singleSegment.end, currentDate);
             const segmentSpansCurrentDay = singleSegment.start < currentDayEnd && singleSegment.end > currentDayStart;
             
             if (!segmentStartsOnCurrentDay && !segmentEndsOnCurrentDay && !segmentSpansCurrentDay) {
@@ -157,8 +150,8 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
             const segmentEnd = new Date(segment.end);
             
             // Check if this segment is visible on the current day
-            const segmentStartsOnCurrentDay = isSameUTCDate(segmentStart, currentDate);
-            const segmentEndsOnCurrentDay = isSameUTCDate(segmentEnd, currentDate);
+                    const segmentStartsOnCurrentDay = isSameDay(segmentStart, currentDate);
+        const segmentEndsOnCurrentDay = isSameDay(segmentEnd, currentDate);
             const segmentSpansCurrentDay = segmentStart < currentDayEnd && segmentEnd > currentDayStart;
             
             if (segmentStartsOnCurrentDay || segmentEndsOnCurrentDay || segmentSpansCurrentDay) {
@@ -285,10 +278,10 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                     title={`Codice Articolo: ${event.article_code || 'Non specificato'}
 Codice Articolo Esterno: ${event.external_article_code || 'Non specificato'}
 Nome Cliente: ${event.nome_cliente || 'Non specificato'}
-Data Consegna: ${formatDateUTC(event.delivery_date) || 'Non impostata'}
+        Data Consegna: ${event.delivery_date ? format(new Date(event.delivery_date), 'yyyy-MM-dd') : 'Non impostata'}
 Quantità: ${event.quantity || 'Non specificata'}
-${event.scheduled_start_time ? `Inizio Programmato: ${formatDateTimeUTC(event.scheduled_start_time)}` : 'Non programmato'}
-${event.scheduled_end_time ? `Fine Programmata: ${formatDateTimeUTC(event.scheduled_end_time)}` : 'Non programmato'}`}
+        ${event.scheduled_start_time ? `Inizio Programmato: ${format(new Date(event.scheduled_start_time), 'yyyy-MM-dd HH:mm')}` : 'Non programmato'}
+        ${event.scheduled_end_time ? `Fine Programmata: ${format(new Date(event.scheduled_end_time), 'yyyy-MM-dd HH:mm')}` : 'Non programmato'}`}
                 >
                     <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>i</span>
                 </button>
@@ -443,11 +436,11 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
   
   // Generate week dates
   const weekDates = useMemo(() => {
-    const startOfWeek = getStartOfWeek(currentDate);
+          const weekStart = startOfWeek(currentDate);
     const dates = [];
     for (let i = 0; i < 7; i++) {
-      const day = new Date(startOfWeek);
-      day.setDate(startOfWeek.getDate() + i);
+      const day = new Date(weekStart);
+      day.setDate(weekStart.getDate() + i);
       dates.push(day);
     }
     return dates;
@@ -458,7 +451,7 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
     return scheduledTasks.filter(task => 
       task.scheduled_machine_id === machineId && 
       task.scheduled_start_time && 
-      toDateString(new Date(task.scheduled_start_time)) === dateStr
+              format(new Date(task.scheduled_start_time), 'yyyy-MM-dd') === dateStr
     );
   }, [scheduledTasks]);
 
@@ -479,8 +472,8 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
         <div className="machine-label-header">Macchine</div>
         {weekDates.map(day => (
           <div key={day.toISOString()} className="day-header-cell">
-            <div className="day-name">{formatDateUTC(day)}</div>
-<div className="day-date">{formatDateUTC(day)}</div>
+                            <div className="day-name">{format(day, 'yyyy-MM-dd')}</div>
+                <div className="day-date">{format(day, 'yyyy-MM-dd')}</div>
           </div>
         ))}
       </div>
@@ -494,7 +487,7 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
             </div>
             
             {weekDates.map(day => {
-              const dateStr = toDateString(day);
+              const dateStr = format(day, 'yyyy-MM-dd');
               const dayTasks = getTasksForMachineAndDay(machine.id, dateStr);
               const taskCount = getDayTaskCount(machine.id, dateStr);
               const isToday = day.toDateString() === new Date().toDateString();
@@ -552,7 +545,7 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId }) => {
   const { loadMachineAvailabilityForDate, machineAvailability } = useSchedulerStore();
 
   // Use the exact same date that's displayed in the banner - no conversion needed
-  const dateStr = useMemo(() => toDateString(currentDate), [currentDate]);
+        const dateStr = useMemo(() => format(currentDate, 'yyyy-MM-dd'), [currentDate]);
 
 
 

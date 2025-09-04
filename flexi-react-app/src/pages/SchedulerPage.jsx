@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense, lazy, useReducer } from 'react';
 import { DndContext, DragOverlay } from '@dnd-kit/core';
 import { useOrderStore, useMachineStore, useUIStore, useSchedulerStore, useMainStore } from '../store';
-import { formatDateUTC } from '../utils/dateUtils';
+import { format } from 'date-fns';
 
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
 import SearchableDropdown from '../components/SearchableDropdown';
@@ -277,7 +277,7 @@ function SchedulerPage() {
       return 'Oggi';
     } else {
       // Format the UTC date for display
-      return formatDateUTC(currentDate);
+      return format(currentDate, 'yyyy-MM-dd');
     }
   }, [currentDate]);
 

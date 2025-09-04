@@ -4,7 +4,7 @@
  */
 
 import { WORK_CENTERS, DEPARTMENT_TYPES } from '../constants.js';
-import { toDateString } from './dateUtils.js';
+import { format } from 'date-fns';
 
 /**
  * This function generates all unavailable hours for a given machine and day based on rules
@@ -78,7 +78,7 @@ export function generateCalendarForYear(machines, year) {
             if (unavailable_hours.length > 0) { // Only insert if there are unavailable hours
                 records.push({
                     machine_id: machine.id,
-                    date: toDateString(currentDate),
+                    date: format(currentDate, 'yyyy-MM-dd'),
                     unavailable_hours: unavailable_hours,
                 });
             }

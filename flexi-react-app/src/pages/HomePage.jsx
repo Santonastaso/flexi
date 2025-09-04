@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { useMachineStore, useOrderStore, useUIStore, useMainStore } from '../store';
-import { formatDateShortUTC } from '../utils/dateUtils';
+import { format } from 'date-fns';
 import { MACHINE_STATUSES } from '../constants';
 import StickyHeader from '../components/StickyHeader';
 import { Line, Pie } from 'react-chartjs-2';
@@ -211,7 +211,7 @@ function HomePage() {
     return {
       labels: allDates.map(date => {
         const d = new Date(date);
-        return formatDateShortUTC(d);
+        return format(new Date(d), 'dd/MM');
       }),
       datasets: [
         {

@@ -6,7 +6,7 @@ import StickyHeader from '../components/StickyHeader';
 import { useMachineStore, useUIStore, useMainStore } from '../store';
 import { useMachineValidation, useErrorHandler } from '../hooks';
 import { WORK_CENTERS } from '../constants';
-import { formatDateUTC } from '../utils/dateUtils';
+
 
 function MachineryListPage() {
   // Use Zustand store to select state and actions

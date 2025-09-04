@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
-import { toDateString, addHoursToDate } from '../utils/dateUtils';
+import { format, addHours } from 'date-fns';
 import { handleApiError } from '../utils/errorUtils';
 import { useOrderStore } from './useOrderStore';
 import { useMachineStore } from './useMachineStore';
@@ -79,7 +79,7 @@ export const useSchedulerStore = create((set, get) => {
         const scheduleData = {
           machine: machine.id,
           start_time: startDate.toISOString(),
-          end_time: addHoursToDate(startDate, timeRemainingHours).toISOString(),
+          end_time: addHours(startDate, timeRemainingHours).toISOString(),
         };
 
         // Use existing scheduleTask method with all validations
@@ -117,7 +117,7 @@ export const useSchedulerStore = create((set, get) => {
         const scheduleData = {
           machine: machine.id,
           start_time: startDate.toISOString(),
-          end_time: addHoursToDate(startDate, timeRemainingHours).toISOString(),
+          end_time: addHours(startDate, timeRemainingHours).toISOString(),
         };
 
         // Use existing scheduleTask method with all validations
@@ -261,7 +261,7 @@ export const useSchedulerStore = create((set, get) => {
     validateSlotAvailability: async (machine, currentDate, hour, minute) => {
       try {
         // Check if slot is unavailable
-        const dateStr = toDateString(currentDate);
+        const dateStr = format(currentDate, 'yyyy-MM-dd');
         const isUnavailable = await get().isTimeSlotUnavailable(machine.id, dateStr, hour);
         
         if (isUnavailable) {

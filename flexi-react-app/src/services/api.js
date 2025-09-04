@@ -1,6 +1,6 @@
 import { supabase, handleSupabaseError } from './supabase/client';
 import { safeAsync, handleApiError, AppError, ERROR_TYPES } from '../utils/errorUtils';
-import { toDateString, addDaysToDate } from '../utils/dateUtils';
+import { format, addDays } from 'date-fns';
 import { AppConfig } from './config';
 
 /**
@@ -325,7 +325,7 @@ class ApiService {
       const results = [];
       
       while (currentDate <= endDateObj) {
-        const dateStr = toDateString(currentDate);
+        const dateStr = format(currentDate, 'yyyy-MM-dd');
         
         // Get current unavailable hours for this date
         const currentData = await this.getMachineAvailabilityForDate(machineId, dateStr);
@@ -339,7 +339,7 @@ class ApiService {
         results.push(result);
         
         // Move to next date
-        currentDate = addDaysToDate(currentDate, 1);
+        currentDate = addDays(currentDate, 1);
       }
       
       return results;

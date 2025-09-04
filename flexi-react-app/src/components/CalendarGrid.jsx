@@ -1,11 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useMachineStore, useOrderStore, useSchedulerStore, useUIStore } from '../store';
-import { formatDateUTC } from '../utils/dateUtils';
-import {
-  toDateString,
-  isTaskOverlapping,
-  getStartOfWeek
-} from '../utils/dateUtils';
+import { format, startOfWeek, setHours, setMinutes, setSeconds, setMilliseconds, parseISO, isBefore, isAfter } from 'date-fns';
 import { useErrorHandler } from '../hooks';
 
 function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
@@ -40,21 +35,21 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
       const currentDateObj = new Date(firstDay);
       while (currentDateObj <= lastDay) {
         dates.push(new Date(currentDateObj));
-        dateStrings.push(toDateString(currentDateObj));
+        dateStrings.push(format(currentDateObj, 'yyyy-MM-dd'));
         currentDateObj.setUTCDate(currentDateObj.getUTCDate() + 1);
       }
     } else if (currentView === 'Week') {
-      const startOfWeek = getStartOfWeek(currentDate);
+      const weekStart = startOfWeek(currentDate);
       for (let i = 0; i < 7; i++) {
         // Create dates using UTC to avoid timezone shifts
         const day = new Date(Date.UTC(
-          startOfWeek.getUTCFullYear(),
-          startOfWeek.getUTCMonth(),
-          startOfWeek.getUTCDate() + i,
+          weekStart.getUTCFullYear(),
+          weekStart.getUTCMonth(),
+          weekStart.getUTCDate() + i,
           0, 0, 0, 0
         ));
         dates.push(day);
-        dateStrings.push(toDateString(day));
+        dateStrings.push(format(day, 'yyyy-MM-dd'));
       }
     } else if (currentView === 'Year') {
       const year = currentDate.getUTCFullYear();
@@ -63,13 +58,13 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
         for (let day = 1; day <= daysInMonth; day++) {
           const dateObj = new Date(Date.UTC(year, month, day));
           dates.push(dateObj);
-          dateStrings.push(toDateString(dateObj));
+          dateStrings.push(format(dateObj, 'yyyy-MM-dd'));
         }
       }
     } else {
       // Day view
       dates.push(currentDate);
-      dateStrings.push(toDateString(currentDate));
+      dateStrings.push(format(currentDate, 'yyyy-MM-dd'));
     }
     
     return { dates, dateStrings };
@@ -110,7 +105,21 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
     if (!machine || scheduledTasksForMachine.length === 0) return false;
     
     // Use the memoized scheduled tasks instead of filtering every time
-    return scheduledTasksForMachine.some(task => isTaskOverlapping(task, dateStr, hour));
+    return scheduledTasksForMachine.some(task => {
+      if (!task.scheduled_start_time || !task.scheduled_end_time) {
+        return false;
+      }
+
+      const taskStart = parseISO(task.scheduled_start_time);
+      const taskEnd = parseISO(task.scheduled_end_time);
+      
+      // Create slot boundaries using the dateStr directly
+      const slotStart = setMilliseconds(setSeconds(setMinutes(setHours(parseISO(dateStr), hour), 0), 0), 0);
+      const slotEnd = setMilliseconds(setSeconds(setMinutes(setHours(parseISO(dateStr), hour + 1), 0), 0), 0);
+      
+      // Check if the task overlaps with this hour slot
+      return isBefore(taskStart, slotEnd) && isAfter(taskEnd, slotStart);
+    });
   }, [machine, scheduledTasksForMachine]);
 
   // Direct access to store data - no need for local state
@@ -194,7 +203,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
               return <div key={`empty-${index}`} className="calendar-day empty"></div>;
             }
             
-            const dateStr = toDateString(date);
+            const dateStr = format(date, 'yyyy-MM-dd');
             const unavailableHours = getAvailabilityForDate(dateStr);
             const isCurrentMonth = date.getUTCMonth() === currentDate.getUTCMonth();
             const isToday = date.getUTCFullYear() === new Date().getUTCFullYear() && 
@@ -249,7 +258,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
           <div className="time-header-cell">Time</div>
           {dates.map(day => (
             <div key={day.toISOString()} className="day-header-cell">
-              {formatDateUTC(day)}
+                              {format(day, 'yyyy-MM-dd')}
             </div>
           ))}
         </div>
@@ -258,7 +267,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
           <div key={hour} className="time-row">
             <div className="time-label">{hour.toString().padStart(2, '0')}:00</div>
             {dates.map(day => {
-              const dateStr = toDateString(day);
+              const dateStr = format(day, 'yyyy-MM-dd');
               const unavailableHours = getAvailabilityForDate(dateStr);
               const hourStr = hour.toString();
               const isUnavailable = unavailableHours.includes(hourStr);
@@ -297,7 +306,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
       <div className="calendar-year-grid">
         {months.map(monthIndex => {
           const monthDate = new Date(Date.UTC(year, monthIndex, 1));
-          const monthName = formatDateUTC(monthDate).substring(5, 7); // Extract MM from YYYY-MM-DD
+          const monthName = format(monthDate, 'yyyy-MM-dd').substring(5, 7); // Extract MM from YYYY-MM-DD
           const daysInMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
           const firstDayOfMonth = new Date(Date.UTC(year, monthIndex, 1)).getUTCDay();
           
@@ -321,7 +330,7 @@ function CalendarGrid({ machineId, currentDate, currentView, refreshTrigger }) {
                     return <div key={`empty-${monthIndex}-${index}`} className="mini-day empty"></div>;
                   }
                   
-                  const dateStr = toDateString(new Date(Date.UTC(year, monthIndex, day)));
+                  const dateStr = format(new Date(Date.UTC(year, monthIndex, day)), 'yyyy-MM-dd');
                   const unavailableHours = getAvailabilityForDate(dateStr);
                   const hasUnavailableHours = unavailableHours.length > 0;
                   

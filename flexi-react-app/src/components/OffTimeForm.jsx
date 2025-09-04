@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useSchedulerStore, useUIStore } from '../store';
-import { toDateString, addDaysToDate } from '../utils/dateUtils';
+import { format, addDays } from 'date-fns';
 import { DEFAULT_VALUES, VALIDATION_MESSAGES } from '../constants';
 import { useErrorHandler } from '../hooks';
 
@@ -84,10 +84,10 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
 
   useEffect(() => {
     const today = new Date();
-    const tomorrow = addDaysToDate(today, 1);
+    const tomorrow = addDays(today, 1);
     
-    setValue('startDate', toDateString(today));
-    setValue('endDate', toDateString(tomorrow));
+          setValue('startDate', format(today, 'yyyy-MM-dd'));
+      setValue('endDate', format(tomorrow, 'yyyy-MM-dd'));
     setValue('startTime', DEFAULT_VALUES.OFF_TIME.START_TIME);
     setValue('endTime', DEFAULT_VALUES.OFF_TIME.END_TIME);
   }, [currentDate, setValue]);

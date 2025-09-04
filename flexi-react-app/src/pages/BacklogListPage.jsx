@@ -6,7 +6,7 @@ import StickyHeader from '../components/StickyHeader';
 import { useOrderStore, useUIStore, useMainStore, useMachineStore, usePhaseStore } from '../store';
 import { useOrderValidation, useErrorHandler } from '../hooks';
 import { WORK_CENTERS } from '../constants';
-import { formatDateUTC } from '../utils/dateUtils';
+import { format } from 'date-fns';
 
 function BacklogListPage() {
   // Use Zustand store to select state and actions
@@ -84,7 +84,7 @@ function BacklogListPage() {
     { 
       header: 'Data Consegna', 
       accessorKey: 'delivery_date',
-      cell: info => formatDateUTC(info.getValue()) || 'Non impostata'
+              cell: info => info.getValue() ? format(new Date(info.getValue()), 'yyyy-MM-dd') : 'Non impostata'
     },
     { 
       header: 'Inizio Programmato', 
