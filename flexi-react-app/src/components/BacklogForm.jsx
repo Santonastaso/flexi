@@ -1,23 +1,22 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
-import { useOrderStore, useUIStore, useSchedulerStore, usePhaseStore } from '../store';
-import { useProductionCalculations, useValidation } from '../hooks';
+import { useUIStore, useSchedulerStore } from '../store';
+import { useProductionCalculations, useValidation, useAddOrder, useUpdateOrder } from '../hooks';
 import { usePhaseSearch } from '../hooks/usePhaseSearch';
 import { showValidationError, showSuccess, showWarning } from '../utils';
 import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES, SEAL_SIDES, PRODUCT_TYPES } from '../constants';
 import { useErrorHandler } from '../hooks';
 
-
-
-
-
 const BacklogForm = ({ onSuccess, orderToEdit }) => {
-  const { addOdpOrder, updateOdpOrder } = useOrderStore();
   const { selectedWorkCenter, showConflictDialog } = useUIStore();
   const { scheduleTask } = useSchedulerStore();
   const { calculateProductionMetrics, validatePhaseParameters, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
   const { handleAsync } = useErrorHandler('BacklogForm');
   const { validateOrder } = useValidation();
+  
+  // React Query mutations
+  const addOrderMutation = useAddOrder();
+  const updateOrderMutation = useUpdateOrder();
   
   const [calculationResults, setCalculationResults] = useState(null);
   const isEditMode = Boolean(orderToEdit);
@@ -79,26 +78,12 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   // Effect to populate phase data when editing an existing order
   useEffect(() => {
     if (isEditMode && orderToEdit?.fase) {
-      // Find the phase by ID
-      const { phases } = usePhaseStore.getState();
-      const currentPhase = phases.find(p => p.id === orderToEdit.fase);
-      
-      if (currentPhase) {
-        setSelectedPhase(currentPhase);
-        setPhaseSearch(currentPhase.name);
-        
-        // Initialize editable phase parameters with current phase values
-        setEditablePhaseParams({
-          v_stampa: currentPhase.v_stampa || null,
-          t_setup_stampa: currentPhase.t_setup_stampa || null,
-          costo_h_stampa: currentPhase.costo_h_stampa || null,
-          v_conf: currentPhase.v_conf || null,
-          t_setup_conf: currentPhase.t_setup_conf || null,
-          costo_h_conf: currentPhase.costo_h_conf || null,
-        });
-      }
+      // For now, we'll need to fetch the phase data
+      // This will be handled by the phase search hook when it's migrated to React Query
+      // For now, we'll set the phase ID and let the phase search handle the rest
+      setValue('fase', orderToEdit.fase);
     }
-  }, [isEditMode, orderToEdit?.fase, setSelectedPhase, setPhaseSearch, setEditablePhaseParams]);
+  }, [isEditMode, orderToEdit?.fase, setValue]);
 
   const onSubmit = async (data) => {
     const validation = validateOrder(data);
@@ -115,7 +100,13 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
 
     await handleAsync(async () => {
       const orderData = { ...data, duration: calculationResults.totals.duration, cost: calculationResults.totals.cost, status: isEditMode ? orderToEdit.status : 'NOT SCHEDULED' };
-      const updatedOrder = isEditMode ? await updateOdpOrder(orderToEdit.id, orderData) : await addOdpOrder(orderData);
+      
+      let updatedOrder;
+      if (isEditMode) {
+        updatedOrder = await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
+      } else {
+        updatedOrder = await addOrderMutation.mutateAsync(orderData);
+      }
 
       if (isEditMode && updatedOrder?.scheduled_machine_id && updatedOrder?.scheduled_start_time) {
         const startDate = new Date(updatedOrder.scheduled_start_time);
@@ -169,6 +160,9 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
           { name: 'costo_h_conf', label: 'Costo Confezionamento:', unit: '€/h' },
         ];
   };
+
+  // Use mutation loading state
+  const isLoading = addOrderMutation.isPending || updateOrderMutation.isPending;
 
   return (
     <div className="content-section">
@@ -253,7 +247,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
 
         <div className="form-actions" style={{ marginTop: '20px' }}>
           <button type="button" className="nav-btn" onClick={handleCalculate} disabled={!selectedPhase}>Calcola</button>
-          <button type="submit" className="nav-btn today" disabled={!calculationResults || isSubmitting}>{isSubmitting ? (isEditMode ? 'Aggiornamento...' : 'Aggiunta...') : (isEditMode ? 'Aggiorna Ordine' : 'Aggiungi al Backlog')}</button>
+          <button type="submit" className="nav-btn today" disabled={!calculationResults || isLoading}>{isLoading ? (isEditMode ? 'Aggiornamento...' : 'Aggiunta...') : (isEditMode ? 'Aggiorna Ordine' : 'Aggiungi al Backlog')}</button>
         </div>
       </form>
     </div>

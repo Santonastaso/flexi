@@ -1,33 +1,46 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 import EditableCell from '../components/EditableCell';
 import StickyHeader from '../components/StickyHeader';
-import { useOrderStore, useUIStore, useMainStore, useMachineStore, usePhaseStore } from '../store';
-import { useValidation, useErrorHandler } from '../hooks';
-import { showValidationError, showError } from '../utils';
+import { useUIStore } from '../store';
+import { useValidation, useErrorHandler, useOrders, useMachines, usePhases, useUpdateOrder, useRemoveOrder } from '../hooks';
+import { showValidationError } from '../utils';
 import { WORK_CENTERS } from '../constants';
 import { format } from 'date-fns';
 
 function BacklogListPage() {
-  // Use Zustand store to select state and actions
-  const { odpOrders, updateOdpOrder, removeOdpOrder } = useOrderStore();
-  const { selectedWorkCenter, isLoading, isInitialized, showConfirmDialog } = useUIStore();
-  const { init, cleanup } = useMainStore();
-  const { machines } = useMachineStore();
-  const { phases } = usePhaseStore();
+  const { selectedWorkCenter, showConfirmDialog } = useUIStore();
+
+  // React Query hooks
+  const { data: orders = [], isLoading: ordersLoading, error: ordersError } = useOrders();
+  const { data: machines = [], isLoading: machinesLoading } = useMachines();
+  const { data: phases = [], isLoading: phasesLoading } = usePhases();
+  const updateOrderMutation = useUpdateOrder();
+  const removeOrderMutation = useRemoveOrder();
+
+  // Use unified validation hook
+  const { validateOrder } = useValidation();
+  
+  // Use unified error handling
+  const { handleAsync } = useErrorHandler('BacklogListPage');
+
+  // Show error if query failed
+  if (ordersError) {
+    return <div className="error">Errore nel caricamento degli ordini: {ordersError.message}</div>;
+  }
 
   // Filter orders by work center and join with machine and phase data
   const filteredOrders = useMemo(() => {
     if (!selectedWorkCenter) return [];
     
-    let orders = odpOrders;
+    let filteredOrders = orders;
     if (selectedWorkCenter !== WORK_CENTERS.BOTH) {
-      orders = odpOrders.filter(order => order.work_center === selectedWorkCenter);
+      filteredOrders = orders.filter(order => order.work_center === selectedWorkCenter);
     }
     
     // Join with machine and phase data
-    return orders.map(order => ({
+    return filteredOrders.map(order => ({
       ...order,
       machine_name: order.scheduled_machine_id 
         ? machines.find(m => m.id === order.scheduled_machine_id)?.machine_name || 'Macchina non trovata'
@@ -39,25 +52,9 @@ function BacklogListPage() {
       progress: order.progress || 0,
       time_remaining: order.time_remaining || order.duration || 0
     }));
-  }, [odpOrders, selectedWorkCenter, machines, phases]);
+  }, [orders, selectedWorkCenter, machines, phases]);
 
-  // Use unified validation hook
-  const { validateOrder } = useValidation();
-  
-  // Use unified error handling
-  const { handleAsync } = useErrorHandler('BacklogListPage');
-
-  // Initialize store on component mount
-  useEffect(() => {
-    if (!isInitialized) {
-      init();
-    }
-    
-    // Cleanup function for component unmount
-    return () => {
-      cleanup();
-    };
-  }, [init, isInitialized, cleanup]);
+  const isLoading = ordersLoading || machinesLoading || phasesLoading;
 
   const columns = useMemo(() => [
     // Identificazione
@@ -158,12 +155,18 @@ function BacklogListPage() {
     // Filter out computed fields that shouldn't be sent to the API
     const { machine_name, phase_name, progress, time_remaining, ...orderDataToUpdate } = updatedOrder;
     
-    try {
-      await updateOdpOrder(updatedOrder.id, orderDataToUpdate);
-    } catch (error) {
-      // Show specific error message from the store
-      showError(error.message);
-    }
+    await handleAsync(
+      async () => {
+        await updateOrderMutation.mutateAsync({ 
+          id: updatedOrder.id, 
+          updates: orderDataToUpdate 
+        });
+      },
+      { 
+        context: 'Update Order', 
+        fallbackMessage: 'Aggiornamento ordine fallito'
+      }
+    );
   };
 
   const handleDeleteOrder = async (orderToDelete) => {
@@ -171,12 +174,15 @@ function BacklogListPage() {
       'Elimina Ordine',
       `Sei sicuro di voler eliminare "${orderToDelete.odp_number}"? Questa azione non può essere annullata.`,
       async () => {
-        try {
-          await removeOdpOrder(orderToDelete.id);
-        } catch (error) {
-          // Show specific error message from the store
-          showError(error.message);
-        }
+        await handleAsync(
+          async () => {
+            await removeOrderMutation.mutateAsync(orderToDelete.id);
+          },
+          { 
+            context: 'Delete Order', 
+            fallbackMessage: 'Eliminazione ordine fallita'
+          }
+        );
       },
       'danger'
     );

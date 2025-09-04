@@ -7,11 +7,12 @@ export { default as useProductionCalculations } from './useProductionCalculation
 export { default as useValidation } from './useValidation';
 export { default as useErrorHandler } from './useErrorHandler';
 export { usePhaseSearch } from './usePhaseSearch';
-// useFormValidation removed - forms now use React Hook Form directly
+
+// React Query hooks
+export * from './useQueries';
 
 // Export all custom hooks
 export * from './useProductionCalculations';
 export * from './useValidation';
 export * from './useErrorHandler';
 export * from './usePhaseSearch';
-// useFormValidation exports removed - forms now use React Hook Form directly

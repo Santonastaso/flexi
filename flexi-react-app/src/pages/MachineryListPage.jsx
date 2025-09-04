@@ -1,26 +1,20 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 import EditableCell from '../components/EditableCell';
 import StickyHeader from '../components/StickyHeader';
-import { useMachineStore, useUIStore, useMainStore } from '../store';
-import { useValidation, useErrorHandler } from '../hooks';
+import { useUIStore } from '../store';
+import { useValidation, useErrorHandler, useMachinesByWorkCenter, useUpdateMachine, useRemoveMachine } from '../hooks';
 import { showValidationError, showError } from '../utils';
 import { WORK_CENTERS } from '../constants';
 
-
 function MachineryListPage() {
-  // Use Zustand store to select state and actions
-  const { machines, updateMachine, removeMachine } = useMachineStore();
-  const { selectedWorkCenter, isLoading, isInitialized, showConfirmDialog } = useUIStore();
-  const { init, cleanup } = useMainStore();
+  const { selectedWorkCenter, showConfirmDialog } = useUIStore();
 
-  // Filter machines by work center
-  const filteredMachines = useMemo(() => {
-    if (!selectedWorkCenter) return [];
-    if (selectedWorkCenter === WORK_CENTERS.BOTH) return machines;
-    return machines.filter(machine => machine.work_center === selectedWorkCenter);
-  }, [machines, selectedWorkCenter]);
+  // React Query hooks
+  const { data: machines = [], isLoading, error } = useMachinesByWorkCenter(selectedWorkCenter);
+  const updateMachineMutation = useUpdateMachine();
+  const removeMachineMutation = useRemoveMachine();
 
   // Use unified validation hook
   const { validateMachine } = useValidation();
@@ -28,17 +22,10 @@ function MachineryListPage() {
   // Use unified error handling
   const { handleAsync } = useErrorHandler('MachineryListPage');
 
-  // Initialize store on component mount
-  useEffect(() => {
-    if (!isInitialized) {
-      init();
-    }
-    
-    // Cleanup function for component unmount
-    return () => {
-      cleanup();
-    };
-  }, [init, isInitialized, cleanup]);
+  // Show error if query failed
+  if (error) {
+    return <div className="error">Errore nel caricamento delle macchine: {error.message}</div>;
+  }
 
   const columns = useMemo(() => [
     // Identificazione
@@ -87,12 +74,18 @@ function MachineryListPage() {
       return;
     }
     
-    try {
-      await updateMachine(updatedMachine.id, updatedMachine);
-    } catch (error) {
-      // Show specific error message from the store
-      showError(error.message);
-    }
+    await handleAsync(
+      async () => {
+        await updateMachineMutation.mutateAsync({ 
+          id: updatedMachine.id, 
+          updates: updatedMachine 
+        });
+      },
+      { 
+        context: 'Update Machine', 
+        fallbackMessage: 'Aggiornamento macchina fallito'
+      }
+    );
   };
 
   const handleDeleteMachine = async (machineToDelete) => {
@@ -100,12 +93,15 @@ function MachineryListPage() {
       'Elimina Macchina',
       `Sei sicuro di voler eliminare "${machineToDelete.machine_name}"? Questa azione non può essere annullata.`,
       async () => {
-        try {
-          await removeMachine(machineToDelete.id);
-        } catch (error) {
-          // Show specific error message from the store
-          showError(error.message);
-        }
+        await handleAsync(
+          async () => {
+            await removeMachineMutation.mutateAsync(machineToDelete.id);
+          },
+          { 
+            context: 'Delete Machine', 
+            fallbackMessage: 'Eliminazione macchina fallita'
+          }
+        );
       },
       'danger'
     );
@@ -124,7 +120,7 @@ function MachineryListPage() {
       <StickyHeader title="Catalogo Macchine" />
       <DataTable
         columns={columns}
-        data={filteredMachines}
+        data={machines}
         onSaveRow={handleSaveMachine}
         onDeleteRow={handleDeleteMachine}
       />

@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { useMachineStore, useUIStore } from '../store';
-import { useProductionCalculations, useValidation } from '../hooks';
+import { useUIStore } from '../store';
+import { useProductionCalculations, useValidation, useAddMachine, useUpdateMachine } from '../hooks';
 import { useErrorHandler } from '../hooks';
-import { showValidationError, showSuccess } from '../utils';
+import { showValidationError } from '../utils';
 import {
   DEPARTMENT_TYPES,
   WORK_CENTERS,
@@ -12,13 +12,14 @@ import {
   DEFAULT_VALUES
 } from '../constants';
 
-
-
 function MachineForm({ machineToEdit, onSuccess }) {
   const { selectedWorkCenter } = useUIStore();
-  const { addMachine, updateMachine } = useMachineStore();
   const { handleAsync } = useErrorHandler('MachineForm');
   const { validateMachine } = useValidation();
+  
+  // React Query mutations
+  const addMachineMutation = useAddMachine();
+  const updateMachineMutation = useUpdateMachine();
   
   const isEditMode = Boolean(machineToEdit);
   
@@ -87,13 +88,12 @@ function MachineForm({ machineToEdit, onSuccess }) {
     await handleAsync(
       async () => {
         if (isEditMode) {
-          await updateMachine(machineToEdit.id, data);
+          await updateMachineMutation.mutateAsync({ id: machineToEdit.id, updates: data });
         } else {
-          await addMachine(data);
+          await addMachineMutation.mutateAsync(data);
         }
         if (onSuccess) onSuccess();
         reset(initialFormData);
-        showSuccess(isEditMode ? 'Macchina aggiornata con successo' : 'Macchina aggiunta con successo');
       },
       { 
         context: isEditMode ? 'Update Machine' : 'Add Machine', 
@@ -101,6 +101,9 @@ function MachineForm({ machineToEdit, onSuccess }) {
       }
     );
   };
+
+  // Use mutation loading state
+  const isLoading = addMachineMutation.isPending || updateMachineMutation.isPending;
 
   return (
     <div className="content-section">
@@ -237,8 +240,8 @@ function MachineForm({ machineToEdit, onSuccess }) {
         </div>
 
         <div className="form-actions" style={{ marginTop: '20px' }}>
-          <button type="submit" className="nav-btn today" disabled={isSubmitting}>
-            {isSubmitting 
+          <button type="submit" className="nav-btn today" disabled={isLoading}>
+            {isLoading 
               ? (isEditMode ? 'Aggiornamento...' : 'Aggiunta...') 
               : (isEditMode ? 'Aggiorna Macchina' : 'Aggiungi Macchina')
             }
