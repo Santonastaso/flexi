@@ -12,7 +12,37 @@ export class MachineAvailabilityManager {
   constructor(get, set) {
     this.get = get;
     this.set = set;
+    // Lock mechanism to prevent concurrent updates
+    this.updateLocks = new Map(); // Map of machineId+dateStr -> Promise
   }
+
+  // Get lock key for a machine and date
+  getLockKey = (machineId, dateStr) => `${machineId}-${dateStr}`;
+
+  // Acquire lock for a machine and date
+  acquireLock = async (machineId, dateStr) => {
+    const lockKey = this.getLockKey(machineId, dateStr);
+    
+    // If there's already a lock, wait for it to complete
+    if (this.updateLocks.has(lockKey)) {
+      await this.updateLocks.get(lockKey);
+    }
+    
+    // Create new lock
+    let resolveLock;
+    const lockPromise = new Promise(resolve => {
+      resolveLock = resolve;
+    });
+    
+    this.updateLocks.set(lockKey, lockPromise);
+    return resolveLock;
+  };
+
+  // Release lock for a machine and date
+  releaseLock = (machineId, dateStr) => {
+    const lockKey = this.getLockKey(machineId, dateStr);
+    this.updateLocks.delete(lockKey);
+  };
 
   // Load machine availability for a specific date
   loadMachineAvailabilityForDate = async (dateStr) => {
@@ -180,6 +210,9 @@ export class MachineAvailabilityManager {
 
   // Set machine availability for a specific date
   setMachineAvailability = async (machineId, dateStr, unavailableHours) => {
+    // Acquire lock to prevent concurrent updates
+    const releaseLock = await this.acquireLock(machineId, dateStr);
+    
     try {
       // Check for overlaps with existing scheduled tasks on the same machine and date
       const { getOdpOrders } = useOrderStore.getState();
@@ -230,11 +263,18 @@ export class MachineAvailabilityManager {
       const appError = handleApiError(_error, 'Machine Availability');
       useUIStore.getState().showAlert(appError.message, 'error');
       throw appError;
+    } finally {
+      // Always release the lock
+      releaseLock();
+      this.releaseLock(machineId, dateStr);
     }
   };
 
   // Toggle machine hour availability
   toggleMachineHourAvailability = async (machineId, dateStr, hour) => {
+    // Acquire lock to prevent concurrent updates
+    const releaseLock = await this.acquireLock(machineId, dateStr);
+    
     try {
       const currentUnavailableHours = await this.getMachineAvailability(machineId, dateStr);
       
@@ -281,6 +321,10 @@ export class MachineAvailabilityManager {
       const appError = handleApiError(error, 'Machine Availability');
       useUIStore.getState().showAlert(appError.message, 'error');
       throw appError;
+    } finally {
+      // Always release the lock
+      releaseLock();
+      this.releaseLock(machineId, dateStr);
     }
   };
 

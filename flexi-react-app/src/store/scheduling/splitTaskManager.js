@@ -56,11 +56,13 @@ export class SplitTaskManager {
 
   // Update task with segment info and sync with database (ALL TASKS NOW HAVE SEGMENTS)
   updateTaskWithSplitInfo = async (taskId, segmentInfo, startTime = null, endTime = null, machineId = null) => {
-    console.log(`💾 DATABASE UPDATE: Starting updateTaskWithSplitInfo for task ${taskId}`);
-    console.log(`💾 DATABASE UPDATE: Segment info:`, segmentInfo);
-    console.log(`💾 DATABASE UPDATE: Start time: ${startTime?.toISOString()}`);
-    console.log(`💾 DATABASE UPDATE: End time: ${endTime?.toISOString()}`);
-    console.log(`💾 DATABASE UPDATE: Machine ID: ${machineId}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`💾 DATABASE UPDATE: Starting updateTaskWithSplitInfo for task ${taskId}`);
+      console.log(`💾 DATABASE UPDATE: Segment info:`, segmentInfo);
+      console.log(`💾 DATABASE UPDATE: Start time: ${startTime?.toISOString()}`);
+      console.log(`💾 DATABASE UPDATE: End time: ${endTime?.toISOString()}`);
+      console.log(`💾 DATABASE UPDATE: Machine ID: ${machineId}`);
+    }
     
     const { updateOdpOrder } = useOrderStore.getState();
     
@@ -79,31 +81,41 @@ export class SplitTaskManager {
       if (endTime) updateData.scheduled_end_time = endTime.toISOString();
       if (machineId) updateData.scheduled_machine_id = machineId;
       
-      console.log(`💾 DATABASE UPDATE: Initial update data:`, updateData);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`💾 DATABASE UPDATE: Initial update data:`, updateData);
+      }
       
       // Ensure we have all required scheduling fields or none of them
       if (updateData.scheduled_start_time && updateData.scheduled_end_time && updateData.scheduled_machine_id) {
         // All scheduling fields are present - this is valid
-        console.log(`💾 DATABASE UPDATE: ✅ All scheduling fields present - valid state`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`💾 DATABASE UPDATE: ✅ All scheduling fields present - valid state`);
+        }
       } else if (!updateData.scheduled_start_time && !updateData.scheduled_end_time && !updateData.scheduled_machine_id) {
         // No scheduling fields are present - this is also valid
-        console.log(`💾 DATABASE UPDATE: ✅ No scheduling fields present - valid state`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`💾 DATABASE UPDATE: ✅ No scheduling fields present - valid state`);
+        }
         delete updateData.scheduled_start_time;
         delete updateData.scheduled_end_time;
         delete updateData.scheduled_machine_id;
         updateData.status = 'NOT SCHEDULED';
       } else {
         // Partial scheduling fields - this violates the constraint, so we need to get the current task state
-        console.log(`💾 DATABASE UPDATE: ⚠️ Partial scheduling fields - need to get current task state`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`💾 DATABASE UPDATE: ⚠️ Partial scheduling fields - need to get current task state`);
+        }
         const { getOdpOrderById } = useOrderStore.getState();
         const currentTask = getOdpOrderById(taskId);
         
         if (currentTask) {
-          console.log(`💾 DATABASE UPDATE: Current task state:`, {
-            scheduled_start_time: currentTask.scheduled_start_time,
-            scheduled_end_time: currentTask.scheduled_end_time,
-            scheduled_machine_id: currentTask.scheduled_machine_id
-          });
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`💾 DATABASE UPDATE: Current task state:`, {
+              scheduled_start_time: currentTask.scheduled_start_time,
+              scheduled_end_time: currentTask.scheduled_end_time,
+              scheduled_machine_id: currentTask.scheduled_machine_id
+            });
+          }
           // Use existing values for missing fields to maintain constraint
           if (!updateData.scheduled_start_time) updateData.scheduled_start_time = currentTask.scheduled_start_time;
           if (!updateData.scheduled_end_time) updateData.scheduled_end_time = currentTask.scheduled_end_time;
@@ -111,11 +123,14 @@ export class SplitTaskManager {
         }
       }
       
-      console.log(`💾 DATABASE UPDATE: Final update data:`, updateData);
-      
-      console.log(`💾 DATABASE UPDATE: Calling updateOdpOrder with data:`, updateData);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`💾 DATABASE UPDATE: Final update data:`, updateData);
+        console.log(`💾 DATABASE UPDATE: Calling updateOdpOrder with data:`, updateData);
+      }
       const updatedTask = await updateOdpOrder(taskId, updateData);
-      console.log(`💾 DATABASE UPDATE: ✅ Successfully updated task ${taskId}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`💾 DATABASE UPDATE: ✅ Successfully updated task ${taskId}`);
+      }
       this.updateSplitTaskInfo(taskId, updatedTask);
     } else {
       // This should rarely happen now, but keep for safety
@@ -127,17 +142,33 @@ export class SplitTaskManager {
 
   // Update segment info when a task is updated (from real-time updates)
   updateSplitTaskInfo = (taskId, order) => {
+    // Always clear memory cache first to ensure consistency
+    this.clearSplitTaskInfo(taskId);
+    
     if (order.description && order.status === 'SCHEDULED') {
       try {
         const segmentInfo = JSON.parse(order.description);
         if (segmentInfo.segments && Array.isArray(segmentInfo.segments)) {
-          // All scheduled tasks should have segment info now
-          this.setSplitTaskInfo(taskId, segmentInfo);
+          // Validate segments before storing
+          const validation = this.validateSegments(segmentInfo.segments.map(seg => ({
+            start: new Date(seg.start),
+            end: new Date(seg.end),
+            duration: seg.duration
+          })));
+          
+          if (validation.isValid) {
+            // All scheduled tasks should have segment info now
+            this.setSplitTaskInfo(taskId, segmentInfo);
+          } else {
+            console.warn(`⚠️ Invalid segments for task ${taskId}:`, validation.error);
+            this.clearSplitTaskInfo(taskId);
+          }
         } else {
           this.clearSplitTaskInfo(taskId);
         }
       } catch (_error) {
         // If parsing fails, it's not segment info, clear it
+        console.warn(`⚠️ Failed to parse segment info for task ${taskId}:`, _error);
         this.clearSplitTaskInfo(taskId);
       }
     } else {
@@ -173,8 +204,60 @@ export class SplitTaskManager {
     console.log(`✅ Restored split task info for ${loadedCount} tasks`);
   };
 
-  // Create segment info object
+  // Validate segments for data integrity
+  validateSegments = (segments) => {
+    if (!Array.isArray(segments) || segments.length === 0) {
+      return { isValid: false, error: 'Segments must be a non-empty array' };
+    }
+
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      
+      // Check required properties
+      if (!segment.start || !segment.end || segment.duration === undefined) {
+        return { isValid: false, error: `Segment ${i} missing required properties (start, end, duration)` };
+      }
+
+      // Check if start and end are valid dates
+      const startDate = new Date(segment.start);
+      const endDate = new Date(segment.end);
+      
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return { isValid: false, error: `Segment ${i} has invalid date values` };
+      }
+
+      // Check if end is after start
+      if (endDate <= startDate) {
+        return { isValid: false, error: `Segment ${i} end time must be after start time` };
+      }
+
+      // Check if duration is positive
+      if (segment.duration <= 0) {
+        return { isValid: false, error: `Segment ${i} duration must be positive` };
+      }
+
+      // Check chronological order (segments should not overlap)
+      if (i > 0) {
+        const prevSegment = segments[i - 1];
+        const prevEnd = new Date(prevSegment.end);
+        if (startDate < prevEnd) {
+          return { isValid: false, error: `Segment ${i} overlaps with previous segment` };
+        }
+      }
+    }
+
+    return { isValid: true };
+  };
+
+  // Create segment info object with validation
   createSegmentInfo = (segments, originalDuration) => {
+    // Validate segments before creating info
+    const validation = this.validateSegments(segments);
+    if (!validation.isValid) {
+      console.error('❌ Invalid segments detected:', validation.error);
+      throw new Error(`Invalid segments: ${validation.error}`);
+    }
+
     return {
       totalSegments: segments.length,
       segments: segments.map(seg => ({
