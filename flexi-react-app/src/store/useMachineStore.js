@@ -52,7 +52,7 @@ const createMachineCrudActions = (set, get) => {
             machine.id === id ? { ...machine, ...updated } : machine
           ),
         }));
-        showSuccess(`Machine "${oldMachine?.machine_name || 'Unknown'}" updated successfully`);
+        // Success message handled by calling component
         return updated;
       } catch (error) {
         const appError = errorHandler(error);
@@ -68,7 +68,7 @@ const createMachineCrudActions = (set, get) => {
         set(state => ({
           machines: state.machines.filter(machine => machine.id !== id)
         }));
-        showSuccess(`Machine "${machine?.machine_name || 'Unknown'}" deleted successfully`);
+        // Success message handled by calling component
         return true;
       } catch (error) {
         const appError = errorHandler(error);

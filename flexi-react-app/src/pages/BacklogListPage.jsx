@@ -5,7 +5,7 @@ import EditableCell from '../components/EditableCell';
 
 import { useUIStore } from '../store';
 import { useValidation, useErrorHandler, useOrders, useMachines, usePhases, useUpdateOrder, useRemoveOrder } from '../hooks';
-import { showValidationError } from '../utils';
+import { showValidationError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
 import { format } from 'date-fns';
 
@@ -161,6 +161,7 @@ function BacklogListPage() {
           id: updatedOrder.id, 
           updates: orderDataToUpdate 
         });
+        showSuccess(`Ordine ${updatedOrder.odp_number} aggiornato con successo`);
       },
       { 
         context: 'Update Order', 

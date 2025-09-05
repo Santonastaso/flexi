@@ -119,6 +119,9 @@ const handlePhasesChange = (payload, _set, _get) => {
 };
 
 export const useMainStore = create((set, get) => ({
+  // State
+  isInitializing: false,
+  
   // Lifecycle
   init: async () => {
     const { getInitializationState, setLoading, setInitialized, showAlert } = useUIStore.getState();
@@ -131,6 +134,24 @@ export const useMainStore = create((set, get) => ({
     if (getInitializationState()) {
       return;
     }
+    
+    // Check if initialization is already in progress
+    if (get().isInitializing) {
+      // Wait for the ongoing initialization to complete
+      return new Promise((resolve) => {
+        const checkInitialization = () => {
+          if (getInitializationState()) {
+            resolve();
+          } else {
+            setTimeout(checkInitialization, 100);
+          }
+        };
+        checkInitialization();
+      });
+    }
+    
+    // Mark initialization as in progress
+    set({ isInitializing: true });
     
     setLoading(true);
     
@@ -268,6 +289,7 @@ export const useMainStore = create((set, get) => ({
         // Success - mark as initialized
         setLoading(false);
         setInitialized(true);
+        set({ isInitializing: false });
         
         // Show success message if some data was loaded
         const totalDataItems = uniqueMachines.length + (odpOrders?.length || 0) + (phases?.length || 0);
@@ -288,6 +310,7 @@ export const useMainStore = create((set, get) => ({
         logError(appError, 'Data Processing Failed');
         setLoading(false);
         setInitialized(false);
+        set({ isInitializing: false });
         showAlert(
           'Failed to process application data. Please refresh the page.',
           'error'
@@ -302,6 +325,7 @@ export const useMainStore = create((set, get) => ({
       
       setLoading(false);
       setInitialized(false);
+      set({ isInitializing: false });
       
       // Show appropriate error message based on error type
       if (appError.code === 'CRITICAL_INIT_ERROR') {

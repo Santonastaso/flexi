@@ -5,7 +5,7 @@ import EditableCell from '../components/EditableCell';
 
 import { usePhaseStore, useUIStore, useMainStore } from '../store';
 import { useValidation, useErrorHandler } from '../hooks';
-import { showValidationError, showError } from '../utils';
+import { showValidationError, showError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
 
 
@@ -68,6 +68,7 @@ function PhasesListPage() {
     
     try {
       await updatePhase(updatedPhase.id, updatedPhase);
+      showSuccess(`Fase ${updatedPhase.name} aggiornata con successo`);
     } catch (error) {
       // Show specific error message from the store
       showError(error.message);

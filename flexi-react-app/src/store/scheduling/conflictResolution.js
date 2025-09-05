@@ -1,6 +1,7 @@
 import { useOrderStore } from '../useOrderStore';
 import { useUIStore } from '../useUIStore';
 import { AppError, ERROR_TYPES } from '../../utils/errorUtils';
+import { TIME_CONSTANTS } from '../../constants';
 
 /**
  * Conflict Resolution
@@ -19,18 +20,18 @@ export class ConflictResolution {
 
   // Helper functions for precise minute-based calculations
   getTaskDurationMinutes = (task) => {
-    return Math.round((task.time_remaining || task.duration || 1) * 60);
+    return Math.round((task.time_remaining || task.duration || 1) * TIME_CONSTANTS.MINUTES_PER_HOUR);
   };
 
   getTaskEndTime = (task) => {
     const startTime = new Date(task.scheduled_start_time);
     const durationMinutes = this.getTaskDurationMinutes(task);
-    const endTime = new Date(startTime.getTime() + (durationMinutes * 60 * 1000));
+    const endTime = new Date(startTime.getTime() + (durationMinutes * TIME_CONSTANTS.MILLISECONDS_PER_MINUTE));
     return endTime;
   };
 
   addMinutesToDate = (date, minutes) => {
-    return new Date(date.getTime() + (minutes * 60 * 1000));
+    return new Date(date.getTime() + (minutes * TIME_CONSTANTS.MILLISECONDS_PER_MINUTE));
   };
 
   // Helper function to round up to the next 15-minute slot
@@ -40,7 +41,7 @@ export class ConflictResolution {
     const nextSlot = Math.ceil(minutes / 15) * 15;
     const roundedDate = new Date(date);
     
-    if (nextSlot === 60) {
+    if (nextSlot === TIME_CONSTANTS.MINUTES_PER_HOUR) {
       roundedDate.setUTCHours(hours + 1, 0, 0, 0);
     } else {
       roundedDate.setUTCMinutes(nextSlot, 0, 0);
@@ -79,8 +80,10 @@ export class ConflictResolution {
       };
     } else if (schedulingResult && schedulingResult.conflict) {
       // Conflict detected during shunting - this shouldn't happen in a properly designed shunt
-      console.error(`🚨 Conflict during shunting for task ${task.odp_number}:`, schedulingResult);
       throw new AppError(`Cannot shunt task ${task.odp_number}: would create new conflicts`, ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, null, 'ConflictResolution.scheduleTaskWithSplittingForShunt');
+    } else if (!schedulingResult) {
+      // No available slots found - return null to indicate failure
+      return null;
     }
 
     // Fallback: schedule without splitting (shouldn't reach here in normal operation)
@@ -123,8 +126,6 @@ export class ConflictResolution {
   // IMPROVED SHUNTING METHOD: Resolve conflict by shunting tasks in the chosen direction
   resolveConflictByShunting = async (conflictDetails, direction) => {
     try {
-      console.log(`🚀 SHUNTING START: Direction = ${direction}`);
-      console.log(`🔄 Shunting ${conflictDetails.draggedTask?.odp_number} ${direction} from ${conflictDetails.conflictingTask?.odp_number}`);
       
       const { conflictingTask, draggedTask, proposedStartTime: proposedStartTimeRaw, machine } = conflictDetails;
       const proposedStartTime = new Date(proposedStartTimeRaw);
@@ -145,7 +146,6 @@ export class ConflictResolution {
         return aStart - bStart;
       });
       
-      console.log(`📋 Found ${scheduledTasks.length} scheduled tasks on machine ${machine.machine_name}`);
       
       // Find the conflicting task index
       const conflictIndex = scheduledTasks.findIndex(t => t.id === conflictingTask.id);
@@ -155,7 +155,6 @@ export class ConflictResolution {
       
       // Calculate the duration of the dragged task in minutes
       const draggedDurationMinutes = this.getTaskDurationMinutes(draggedTask);
-      console.log(`📋 Dragged task duration: ${draggedDurationMinutes} minutes`);
       
       // Find contiguous tasks that need to be shunted
       const affectedTasks = [];
@@ -220,19 +219,34 @@ export class ConflictResolution {
               }
             }
           } else {
-            // Check space at beginning of day
+            // Check space at beginning of working day (6 AM UTC)
             const currentSegments = this.splitTaskManager.getTaskOccupiedSegments(currentTask);
             if (currentSegments.length > 0) {
               const firstTaskStart = Math.min(...currentSegments.map(seg => seg.start.getTime()));
               const dayStart = new Date(firstTaskStart);
-              dayStart.setHours(0, 0, 0, 0);
+              dayStart.setUTCHours(6, 0, 0, 0); // Working day starts at 6 AM UTC
               const gapMinutes = Math.floor((firstTaskStart - dayStart.getTime()) / (60 * 1000));
               
-              console.log(`🔍 Gap at beginning of day: ${gapMinutes} minutes`);
+              console.log(`🔍 Gap at beginning of working day (6 AM): ${gapMinutes} minutes`);
               
               if (gapMinutes >= draggedDurationMinutes) {
                 gapFound = true;
-                console.log(`✅ Found sufficient gap at day start: ${gapMinutes} minutes >= ${draggedDurationMinutes} minutes`);
+                console.log(`✅ Found sufficient gap at working day start: ${gapMinutes} minutes >= ${draggedDurationMinutes} minutes`);
+              } else {
+                // Check if we can move tasks to previous days
+                console.log(`🔍 Insufficient gap at day start (${gapMinutes} < ${draggedDurationMinutes}), checking previous days...`);
+                
+                // Check if there's space in previous days by looking at the first task's start time
+                const firstTaskStartDate = new Date(firstTaskStart);
+                const workingDayStart = new Date(firstTaskStartDate);
+                workingDayStart.setUTCHours(6, 0, 0, 0);
+                
+                // If the first task doesn't start at 6 AM, there might be space in previous days
+                if (firstTaskStartDate.getTime() > workingDayStart.getTime()) {
+                  console.log(`🔍 First task doesn't start at 6 AM, checking if we can schedule before it`);
+                  gapFound = true; // Allow shunting - the algorithm will find the best position
+                  console.log(`✅ Allowing shunting - will find optimal position before first task`);
+                }
               }
             }
           }
@@ -388,9 +402,51 @@ export class ConflictResolution {
         affectedTasks.length = 0;
         affectedTasks.push(...finalAffectedTasks);
         
-        // If no sufficient gap found, return error
+        // If no sufficient gap found, try to schedule at the earliest possible time
         if (!gapFound && affectedTasks.length === scheduledTasks.length) {
-          throw new AppError('Non c\'è spazio sufficiente per spostare i lavori', ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, null, 'ConflictResolution.resolveConflictByShunting');
+          const draggedTaskDuration = this.getTaskDurationMinutes(draggedTask);
+          const totalAffectedTasks = affectedTasks.length;
+          const machineName = machine.machine_name || 'Unknown Machine';
+          
+          console.warn(`⚠️ SHUNTING WARNING: No gap found for ${draggedTaskDuration} minutes on machine ${machineName}`);
+          console.warn(`⚠️ All ${totalAffectedTasks} tasks on machine would need to be moved`);
+          console.warn(`⚠️ Attempting to schedule at earliest possible time...`);
+          
+          // Try to schedule the dragged task at the earliest possible time (6 AM of the first task's day)
+          const firstTask = scheduledTasks[0];
+          const firstTaskSegments = this.splitTaskManager.getTaskOccupiedSegments(firstTask);
+          if (firstTaskSegments.length > 0) {
+            const earliestTaskStart = Math.min(...firstTaskSegments.map(seg => seg.start.getTime()));
+            const earliestPossibleStart = new Date(earliestTaskStart);
+            earliestPossibleStart.setUTCHours(6, 0, 0, 0); // Start of working day
+            
+            // Check if we can schedule at 6 AM of that day
+            if (earliestPossibleStart.getTime() < earliestTaskStart) {
+              console.log(`🔄 Attempting to schedule at earliest possible time: ${earliestPossibleStart.toISOString()}`);
+              gapFound = true; // Allow the algorithm to proceed
+            } else {
+              // No space even at 6 AM, return error
+              console.error(`❌ SHUNTING FAILED: No space even at 6 AM on machine ${machineName}`);
+              console.error(`❌ Consider: 1) Moving to different machine, 2) Reducing task duration, 3) Scheduling on different day`);
+              
+              throw new AppError(
+                `Non c'è spazio sufficiente per spostare i lavori. Il task ${draggedTask.odp_number} (${draggedTaskDuration} minuti) richiederebbe di spostare tutti i ${totalAffectedTasks} lavori sulla macchina ${machineName}. Prova a: 1) Spostare su una macchina diversa, 2) Ridurre la durata del task, 3) Programmare in un giorno diverso.`, 
+                ERROR_TYPES.BUSINESS_LOGIC_ERROR, 
+                400, 
+                null, 
+                'ConflictResolution.resolveConflictByShunting'
+              );
+            }
+          } else {
+            // No segments found, return error
+            throw new AppError(
+              `Non c'è spazio sufficiente per spostare i lavori. Il task ${draggedTask.odp_number} (${draggedTaskDuration} minuti) richiederebbe di spostare tutti i ${totalAffectedTasks} lavori sulla macchina ${machineName}. Prova a: 1) Spostare su una macchina diversa, 2) Ridurre la durata del task, 3) Programmare in un giorno diverso.`, 
+              ERROR_TYPES.BUSINESS_LOGIC_ERROR, 
+              400, 
+              null, 
+              'ConflictResolution.resolveConflictByShunting'
+            );
+          }
         }
         
         console.log(`📋 Moving ${affectedTasks.length} tasks ${direction}:`, affectedTasks.map(t => t.odp_number));
@@ -417,12 +473,12 @@ export class ConflictResolution {
         );
         
         console.log(`✅ Dragged task scheduled (RIGHT):`, {
-          start: draggedSchedulingResult.startTime.toISOString(),
-          end: draggedSchedulingResult.endTime.toISOString(),
+          start: draggedSchedulingResult.startTime?.toISOString() || 'undefined',
+          end: draggedSchedulingResult.endTime?.toISOString() || 'undefined',
           wasSplit: draggedSchedulingResult.wasSplit
         });
         
-        let currentStartTime = this.roundUpToNext15MinSlot(draggedSchedulingResult.endTime);
+        let currentStartTime = draggedSchedulingResult.endTime ? this.roundUpToNext15MinSlot(draggedSchedulingResult.endTime) : new Date();
         
         for (const task of affectedTasks) {
           // Exclude ALL conflicting tasks to avoid intra-batch conflicts
@@ -440,20 +496,33 @@ export class ConflictResolution {
             excludeTaskIds
           );
           
+          if (!schedulingResult) {
+            console.error(`❌ Failed to schedule task ${task.odp_number} at ${currentStartTime.toISOString()}`);
+            throw new AppError(
+              `Impossibile programmare il task ${task.odp_number} alla posizione richiesta. Non c'è spazio sufficiente.`, 
+              ERROR_TYPES.BUSINESS_LOGIC_ERROR, 
+              400, 
+              null, 
+              'ConflictResolution.resolveConflictByShunting'
+            );
+          }
+          
           console.log(`✅ Task ${task.odp_number} scheduled (RIGHT):`, {
-            start: schedulingResult.startTime.toISOString(),
-            end: schedulingResult.endTime.toISOString(),
+            start: schedulingResult.startTime?.toISOString() || 'undefined',
+            end: schedulingResult.endTime?.toISOString() || 'undefined',
             wasSplit: schedulingResult.wasSplit
           });
           
           updates.push({
             id: task.id,
-            scheduled_start_time: schedulingResult.startTime.toISOString(),
-            scheduled_end_time: schedulingResult.endTime.toISOString()
+            scheduled_start_time: schedulingResult.startTime?.toISOString(),
+            scheduled_end_time: schedulingResult.endTime?.toISOString()
           });
           
           // Next task starts at the next 15-minute slot after this task ends
-          currentStartTime = this.roundUpToNext15MinSlot(schedulingResult.endTime);
+          if (schedulingResult.endTime) {
+            currentStartTime = this.roundUpToNext15MinSlot(schedulingResult.endTime);
+          }
         }
       } else {
         // LEFT direction: schedule dragged task LAST; first, cascade tasks to end before the dragged start
@@ -478,20 +547,33 @@ export class ConflictResolution {
             excludeTaskIds
           );
           
+          if (!schedulingResult) {
+            console.error(`❌ Failed to schedule task ${task.odp_number} ending at ${currentEndTime.toISOString()}`);
+            throw new AppError(
+              `Impossibile programmare il task ${task.odp_number} alla posizione richiesta. Non c'è spazio sufficiente.`, 
+              ERROR_TYPES.BUSINESS_LOGIC_ERROR, 
+              400, 
+              null, 
+              'ConflictResolution.resolveConflictByShunting'
+            );
+          }
+          
           console.log(`✅ Task ${task.odp_number} scheduled (LEFT):`, {
-            start: schedulingResult.startTime.toISOString(),
-            end: schedulingResult.endTime.toISOString(),
+            start: schedulingResult.startTime?.toISOString() || 'undefined',
+            end: schedulingResult.endTime?.toISOString() || 'undefined',
             wasSplit: schedulingResult.wasSplit
           });
           
           updates.push({
             id: task.id,
-            scheduled_start_time: schedulingResult.startTime.toISOString(),
-            scheduled_end_time: schedulingResult.endTime.toISOString()
+            scheduled_start_time: schedulingResult.startTime?.toISOString(),
+            scheduled_end_time: schedulingResult.endTime?.toISOString()
           });
           
           // Next task (earlier) must end at the previous 15-min slot before this task starts
-          currentEndTime = this.roundUpToNext15MinSlot(this.addMinutesToDate(schedulingResult.startTime, -1));
+          if (schedulingResult.startTime) {
+            currentEndTime = this.roundUpToNext15MinSlot(this.addMinutesToDate(schedulingResult.startTime, -1));
+          }
         }
       }
       
@@ -511,17 +593,28 @@ export class ConflictResolution {
         );
       }
       
+      if (!draggedSchedulingResult) {
+        console.error(`❌ Failed to schedule dragged task ${draggedTask.odp_number} at ${proposedStart.toISOString()}`);
+        throw new AppError(
+          `Impossibile programmare il task ${draggedTask.odp_number} alla posizione richiesta. Non c'è spazio sufficiente.`, 
+          ERROR_TYPES.BUSINESS_LOGIC_ERROR, 
+          400, 
+          null, 
+          'ConflictResolution.resolveConflictByShunting'
+        );
+      }
+      
       console.log(`✅ Dragged task ${draggedTask.odp_number} scheduled:`, {
-        start: draggedSchedulingResult.startTime.toISOString(),
-        end: draggedSchedulingResult.endTime.toISOString(),
+        start: draggedSchedulingResult.startTime?.toISOString() || 'undefined',
+        end: draggedSchedulingResult.endTime?.toISOString() || 'undefined',
         wasSplit: draggedSchedulingResult.wasSplit
       });
       
       updates.push({
         id: draggedTask.id,
         scheduled_machine_id: machine.id,
-        scheduled_start_time: draggedSchedulingResult.startTime.toISOString(),
-        scheduled_end_time: draggedSchedulingResult.endTime.toISOString(),
+        scheduled_start_time: draggedSchedulingResult.startTime?.toISOString(),
+        scheduled_end_time: draggedSchedulingResult.endTime?.toISOString(),
         status: 'SCHEDULED'
       });
       

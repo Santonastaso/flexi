@@ -191,7 +191,7 @@ export class MachineAvailabilityManager {
       );
 
       const targetDate = new Date(dateStr);
-      const targetDateStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      const targetDateStart = new Date(Date.UTC(targetDate.getUTCFullYear(), targetDate.getUTCMonth(), targetDate.getUTCDate()));
       const targetDateEnd = new Date(targetDateStart.getTime() + 24 * 60 * 60 * 1000);
 
       for (const task of existingTasks) {

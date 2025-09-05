@@ -299,15 +299,8 @@ export class SchedulingLogic {
   checkSegmentsForOverlaps = (segments, machineId, excludeTaskId, additionalExcludeIds = []) => {
     const _allExcludeIds = [excludeTaskId, ...additionalExcludeIds].filter(id => id);
     
-    console.log(`🔧 SCHEDULING DEBUG: checkSegmentsForOverlaps called`);
-    console.log(`🔧 SCHEDULING DEBUG: Machine ID: ${machineId}`);
-    console.log(`🔧 SCHEDULING DEBUG: Exclude task ID: ${excludeTaskId}`);
-    console.log(`🔧 SCHEDULING DEBUG: Additional exclude IDs:`, additionalExcludeIds);
-    console.log(`🔧 SCHEDULING DEBUG: All exclude IDs:`, _allExcludeIds);
-    console.log(`🔧 SCHEDULING DEBUG: Segments to check:`, segments.length);
     
     for (const segment of segments) {
-      console.log(`🔧 SCHEDULING DEBUG: Checking segment: ${segment.start.toISOString()} - ${segment.end.toISOString()}`);
       
       const overlapResult = this.splitTaskManager.checkMachineOverlaps(
         segment.start, 
@@ -318,10 +311,6 @@ export class SchedulingLogic {
       );
       
       if (overlapResult.hasOverlap) {
-        console.error(`🚨 SCHEDULING ERROR: Overlap detected in segment`);
-        console.error(`🚨 SCHEDULING DEBUG: Segment: ${segment.start.toISOString()} - ${segment.end.toISOString()}`);
-        console.error(`🚨 SCHEDULING DEBUG: Conflicting task: ${overlapResult.conflictingTask?.odp_number} (ID: ${overlapResult.conflictingTask?.id})`);
-        console.error(`🚨 SCHEDULING DEBUG: Conflicting segment: ${overlapResult.conflictingSegment?.start?.toISOString()} - ${overlapResult.conflictingSegment?.end?.toISOString()}`);
         
         return {
           hasOverlap: true,
@@ -332,7 +321,6 @@ export class SchedulingLogic {
       }
     }
     
-    console.log(`🔧 SCHEDULING DEBUG: ✅ No overlaps detected`);
     return { hasOverlap: false };
   };
 
@@ -369,6 +357,12 @@ export class SchedulingLogic {
         
         const firstSegment = taskSegments[0];
         const lastSegment = taskSegments[taskSegments.length - 1];
+        
+        // Safety check: ensure segments have valid start and end times
+        if (!firstSegment?.start || !lastSegment?.end) {
+          console.error('Invalid segments returned from splitTaskAcrossAvailableSlots:', taskSegments);
+          return null;
+        }
         
         // Create segment info and update task description
         const segmentInfo = this.splitTaskManager.createSegmentInfo(taskSegments, durationHours);
@@ -449,6 +443,13 @@ export class SchedulingLogic {
     // Update task description with segment info
     const firstSegment = taskSegments[0];
     const lastSegment = taskSegments[taskSegments.length - 1];
+    
+    // Safety check: ensure segments have valid start and end times
+    if (!firstSegment?.start || !lastSegment?.end) {
+      console.error('Invalid segments returned from splitTaskAcrossAvailableSlotsBackward:', taskSegments);
+      return null;
+    }
+    
     await this.splitTaskManager.updateTaskWithSplitInfo(taskId, segmentInfo, firstSegment.start, lastSegment.end, machineId);
     return {
       startTime: firstSegment.start,

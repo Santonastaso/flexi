@@ -20,7 +20,7 @@ const createOrderCrudActions = (set, get) => {
 
         const added = await apiService.addOdpOrder(newOrder);
         set(state => ({ odpOrders: [...state.odpOrders, added] }));
-        showSuccess(`ODP Order "${newOrder?.odp_number || 'Unknown'}" added successfully`);
+        // Success message handled by calling component
         return added;
       } catch (error) {
         const appError = errorHandler(error);
@@ -38,7 +38,7 @@ const createOrderCrudActions = (set, get) => {
             order.id === id ? { ...order, ...updated } : order
           ),
         }));
-        showSuccess(`ODP Order "${oldOrder?.odp_number || 'Unknown'}" updated successfully`);
+        // Success message handled by calling component
         return updated;
       } catch (error) {
         const appError = errorHandler(error);
@@ -54,7 +54,7 @@ const createOrderCrudActions = (set, get) => {
         set(state => ({
           odpOrders: state.odpOrders.filter(order => order.id !== id)
         }));
-        showSuccess(`ODP Order "${order?.odp_number || 'Unknown'}" deleted successfully`);
+        // Success message handled by calling component
         return true;
       } catch (error) {
         const appError = errorHandler(error);

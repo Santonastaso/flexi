@@ -68,8 +68,8 @@ function HomePage() {
     // Adjust for Monday as first day: if today is Sunday (0), go back 6 days; otherwise go back (day - 1) days
     const dayOfWeek = now.getDay();
     const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    startOfWeek.setDate(now.getDate() - daysToSubtract);
-    startOfWeek.setHours(0, 0, 0, 0);
+    startOfWeek.setUTCDate(now.getUTCDate() - daysToSubtract);
+    startOfWeek.setUTCHours(0, 0, 0, 0);
 
     const completedThisWeek = orders.filter(order => {
       if (!order.completion_date) return false;
@@ -95,9 +95,9 @@ function HomePage() {
     // Tasks per day (start date) for the last 7 days and next 7 days (14 days total)
     const tasksPerDay = {};
     const sevenDaysAgo = new Date(now);
-    sevenDaysAgo.setDate(now.getDate() - 7);
+    sevenDaysAgo.setUTCDate(now.getUTCDate() - 7);
     const sevenDaysFromNow = new Date(now);
-    sevenDaysFromNow.setDate(now.getDate() + 7);
+    sevenDaysFromNow.setUTCDate(now.getUTCDate() + 7);
     
     orders.forEach(order => {
       if (order.scheduled_start_time) {
@@ -206,7 +206,7 @@ function HomePage() {
     
     for (let i = -7; i <= 7; i++) {
       const date = new Date(now);
-      date.setDate(now.getDate() + i);
+      date.setUTCDate(now.getUTCDate() + i);
       const dateStr = date.toISOString().split('T')[0];
       allDates.push(dateStr);
     }

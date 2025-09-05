@@ -7,6 +7,14 @@ const requiredString = yup.string().required('This field is required');
 const requiredNumber = yup.number().required('This field is required').min(0, 'Value must be at least 0');
 const optionalNumber = yup.number().nullable().transform((value) => (isNaN(value) ? null : value)).min(0, 'Value must be at least 0');
 
+// Shared validation functions
+const bagWidthStepValidation = (value) => {
+  if (value.bag_width && value.bag_step) {
+    return value.bag_width >= value.bag_step;
+  }
+  return true;
+};
+
 // ===== MACHINE SCHEMA =====
 export const machineSchema = yup.object({
   machine_name: requiredString
@@ -87,12 +95,7 @@ export const phaseSchema = yup.object({
   }),
   
   // Logical validations
-}).test('bag-width-step-logic', 'Bag width cannot be less than bag step', function(value) {
-  if (value.bag_width && value.bag_step) {
-    return value.bag_width >= value.bag_step;
-  }
-  return true;
-});
+}).test('bag-width-step-logic', 'Bag width cannot be less than bag step', bagWidthStepValidation);
 
 // ===== ORDER/BACKLOG SCHEMA =====
 export const orderSchema = yup.object({
@@ -120,15 +123,10 @@ export const orderSchema = yup.object({
   scheduled_start_time: yup.date().nullable().transform((value) => (value === '' ? null : value)),
   scheduled_end_time: yup.date().nullable().transform((value) => (value === '' ? null : value)),
   scheduled_machine_id: yup.string().nullable(),
-  fase: yup.object().nullable(),
+  fase: yup.string().nullable(),
   
   // Logical validations
-}).test('bag-width-step-logic', 'Bag width cannot be less than bag step', function(value) {
-  if (value.bag_width && value.bag_step) {
-    return value.bag_width >= value.bag_step;
-  }
-  return true;
-}).test('quantity-completed-logic', 'Quantity completed cannot exceed total quantity', function(value) {
+}).test('bag-width-step-logic', 'Bag width cannot be less than bag step', bagWidthStepValidation).test('quantity-completed-logic', 'Quantity completed cannot exceed total quantity', function(value) {
   if (value.quantity && value.quantity_completed) {
     return value.quantity_completed <= value.quantity;
   }

@@ -20,7 +20,7 @@ const createPhaseCrudActions = (set, get) => {
 
         const added = await apiService.addPhase(newPhase);
         set(state => ({ phases: [...state.phases, added] }));
-        showSuccess(`Phase "${newPhase?.name || 'Unknown'}" added successfully`);
+        // Success message handled by calling component
         return added;
       } catch (error) {
         const appError = errorHandler(error);
@@ -38,7 +38,7 @@ const createPhaseCrudActions = (set, get) => {
             phase.id === id ? { ...phase, ...updated } : phase
           ),
         }));
-        showSuccess(`Phase "${oldPhase?.name || 'Unknown'}" updated successfully`);
+        // Success message handled by calling component
         return updated;
       } catch (error) {
         const appError = errorHandler(error);
@@ -54,7 +54,7 @@ const createPhaseCrudActions = (set, get) => {
         set(state => ({
           phases: state.phases.filter(phase => phase.id !== id)
         }));
-        showSuccess(`Phase "${phase?.name || 'Unknown'}" deleted successfully`);
+        // Success message handled by calling component
         return true;
       } catch (error) {
         const appError = errorHandler(error);

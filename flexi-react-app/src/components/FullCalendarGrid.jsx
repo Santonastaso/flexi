@@ -77,10 +77,10 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
             
             // Simple date creation - same logic as Gantt chart
             const startTime = new Date(dateStr);
-            startTime.setHours(hourInt, 0, 0, 0);
+            startTime.setUTCHours(hourInt, 0, 0, 0);
             
             const endTime = new Date(startTime);
-            endTime.setHours(hourInt + 1, 0, 0, 0);
+            endTime.setUTCHours(hourInt + 1, 0, 0, 0);
             
             events.push({
               id: `availability-${dateStr}-${hour}`,
@@ -138,7 +138,7 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
     
     // Use the same simple logic as Gantt chart - just get the hour directly
     const dateStr = format(clickedDate, 'yyyy-MM-dd');
-    const hour = clickedDate.getHours();
+    const hour = clickedDate.getUTCHours();
     
     // Check if there are scheduled tasks at this time
     const hasScheduledTask = scheduledEvents.some(event => {

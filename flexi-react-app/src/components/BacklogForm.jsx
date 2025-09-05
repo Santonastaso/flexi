@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useUIStore, useSchedulerStore } from '../store';
 import { useProductionCalculations, useValidation, useAddOrder, useUpdateOrder } from '../hooks';
 import { usePhaseSearch } from '../hooks/usePhaseSearch';
-import { showValidationError, showSuccess, showWarning } from '../utils';
+import { showValidationError, showSuccess, showWarning, showError } from '../utils';
 import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES, SEAL_SIDES, PRODUCT_TYPES } from '../constants';
 import { useErrorHandler } from '../hooks';
 import {
@@ -120,7 +120,8 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
 
       if (isEditMode && updatedOrder?.scheduled_machine_id && updatedOrder?.scheduled_start_time) {
         const startDate = new Date(updatedOrder.scheduled_start_time);
-        const durationHours = updatedOrder.time_remaining || updatedOrder.duration;
+        // Use the newly calculated duration from calculationResults, not the old duration
+        const durationHours = calculationResults.totals.duration;
         const endDate = new Date(startDate.getTime() + durationHours * 3600000);
         const result = await scheduleTask(updatedOrder.id, { machine: updatedOrder.scheduled_machine_id, start_time: startDate.toISOString(), end_time: endDate.toISOString() });
         if (result?.conflict) showConflictDialog(result);

@@ -82,7 +82,7 @@ export function generateCalendarForYear(machines, year) {
                     unavailable_hours: unavailable_hours,
                 });
             }
-            currentDate.setDate(currentDate.getDate() + 1);
+            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         }
     }
     return records;

@@ -16,7 +16,7 @@ export const AppConfig = {
     MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
     DATE_FORMAT: 'dd/MM/yyyy',
     TIME_FORMAT: 'HH:mm',
-    TIMEZONE: 'Europe/Rome',
+    TIMEZONE: 'UTC',
     FIRST_DAY_OF_WEEK: 1, // Monday as first day of week (0=Sunday, 1=Monday)
   },
   

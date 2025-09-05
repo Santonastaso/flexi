@@ -5,7 +5,7 @@ import EditableCell from '../components/EditableCell';
 
 import { useUIStore } from '../store';
 import { useValidation, useErrorHandler, useMachinesByWorkCenter, useUpdateMachine, useRemoveMachine } from '../hooks';
-import { showValidationError, showError } from '../utils';
+import { showValidationError, showError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
 
 function MachineryListPage() {
@@ -79,6 +79,7 @@ function MachineryListPage() {
           id: updatedMachine.id, 
           updates: updatedMachine 
         });
+        showSuccess(`Macchina ${updatedMachine.machine_name} aggiornata con successo`);
       },
       { 
         context: 'Update Machine', 

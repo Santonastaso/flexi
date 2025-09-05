@@ -67,7 +67,7 @@ export const useSchedulerStore = create((set, get) => {
         // Simple date creation - no timezone bullshit
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
-        const day = currentDate.getDate();
+        const day = currentDate.getUTCDate();
         
         // Create absolute date with no timezone conversion
         const startDate = schedulingLogic.createAbsoluteDate(year, month, day, hour, minute);
@@ -105,7 +105,7 @@ export const useSchedulerStore = create((set, get) => {
         // Simple date creation - no timezone bullshit
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
-        const day = currentDate.getDate();
+        const day = currentDate.getUTCDate();
         
         // Create absolute date with no timezone conversion
         const startDate = schedulingLogic.createAbsoluteDate(year, month, day, hour, minute);
@@ -271,7 +271,7 @@ export const useSchedulerStore = create((set, get) => {
         // Check if slot already has a scheduled task
         const { getOdpOrders } = useOrderStore.getState();
         const startDate = new Date(currentDate);
-        startDate.setHours(hour, minute, 0, 0);
+        startDate.setUTCHours(hour, minute, 0, 0);
         const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour slot
 
         const existingTasks = getOdpOrders().filter(o => 

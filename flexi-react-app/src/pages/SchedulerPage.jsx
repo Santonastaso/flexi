@@ -4,6 +4,7 @@ import { useOrderStore, useMachineStore, useUIStore, useSchedulerStore, useMainS
 import { format } from 'date-fns';
 
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
+import { showError } from '../utils';
 import SearchableDropdown from '../components/SearchableDropdown';
 
 import TaskLookupInput from '../components/TaskLookupInput';
@@ -23,7 +24,7 @@ const downloadGanttAsHTML = (ganttElementSelector, dateDisplay) => {
   const ganttElement = document.querySelector(ganttElementSelector);
   
   if (!ganttElement) {
-    alert('Grafico Gantt non trovato. Assicurati che il grafico sia visibile sullo schermo.');
+    showError('Grafico Gantt non trovato. Assicurati che il grafico sia visibile sullo schermo.');
     return;
   }
   

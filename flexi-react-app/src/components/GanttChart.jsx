@@ -109,7 +109,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
             let segmentLeft, segmentWidth;
             
                             if (segmentStartsOnCurrentDay && segmentEndsOnCurrentDay) {
-                    // Segment starts and ends on current day - use UTC time
+                    // Segment starts and ends on current day - use UTC time (no conversion needed)
                     const startHour = singleSegment.start.getUTCHours();
                     const startMinute = singleSegment.start.getUTCMinutes();
                     const endHour = singleSegment.end.getUTCHours();
@@ -125,7 +125,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                     segmentLeft = startSlot * 15;
                     segmentWidth = (endSlot - startSlot) * 15;
                 } else if (segmentStartsOnCurrentDay) {
-                    // Segment starts on current day but ends later
+                    // Segment starts on current day but ends later - use UTC time (no conversion needed)
                     const startHour = singleSegment.start.getUTCHours();
                     const startMinute = singleSegment.start.getUTCMinutes();
                     const adjustedStartHour = Math.max(6, startHour);
@@ -134,7 +134,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                     segmentLeft = startSlot * 15;
                     segmentWidth = (64 - startSlot) * 15; // Rest of the day (64 slots from 6 AM to 10 PM)
                 } else if (segmentEndsOnCurrentDay) {
-                    // Segment starts earlier but ends on current day
+                    // Segment starts earlier but ends on current day - use UTC time (no conversion needed)
                     const endHour = singleSegment.end.getUTCHours();
                     const endMinute = singleSegment.end.getUTCMinutes();
                     const adjustedEndHour = Math.min(22, endHour);
@@ -168,7 +168,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                 let segmentLeft, segmentWidth;
                 
                 if (segmentStartsOnCurrentDay && segmentEndsOnCurrentDay) {
-                    // Segment starts and ends on current day - use UTC time
+                    // Segment starts and ends on current day - use UTC time (no conversion needed)
                     const startHour = segmentStart.getUTCHours();
                     const startMinute = segmentStart.getUTCMinutes();
                     const endHour = segmentEnd.getUTCHours();
@@ -184,7 +184,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                     segmentLeft = startSlot * 15;
                     segmentWidth = (endSlot - startSlot) * 15;
                 } else if (segmentStartsOnCurrentDay) {
-                    // Segment starts on current day but ends later
+                    // Segment starts on current day but ends later - use UTC time (no conversion needed)
                     const startHour = segmentStart.getUTCHours();
                     const startMinute = segmentStart.getUTCMinutes();
                     const adjustedStartHour = Math.max(6, startHour);
@@ -193,7 +193,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                     segmentLeft = startSlot * 15;
                     segmentWidth = (64 - startSlot) * 15; // Rest of the day (64 slots from 6 AM to 10 PM)
                 } else if (segmentEndsOnCurrentDay) {
-                    // Segment starts earlier but ends on current day
+                    // Segment starts earlier but ends on current day - use UTC time (no conversion needed)
                     const endHour = segmentEnd.getUTCHours();
                     const endMinute = segmentEnd.getUTCMinutes();
                     const adjustedEndHour = Math.min(22, endHour);
@@ -458,7 +458,7 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
     const dates = [];
     for (let i = 0; i < 7; i++) {
       const day = new Date(weekStart);
-      day.setDate(weekStart.getDate() + i);
+      day.setUTCDate(weekStart.getUTCDate() + i);
       dates.push(day);
     }
     return dates;
