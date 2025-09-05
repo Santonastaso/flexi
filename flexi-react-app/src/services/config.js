@@ -17,6 +17,7 @@ export const AppConfig = {
     DATE_FORMAT: 'dd/MM/yyyy',
     TIME_FORMAT: 'HH:mm',
     TIMEZONE: 'Europe/Rome',
+    FIRST_DAY_OF_WEEK: 1, // Monday as first day of week (0=Sunday, 1=Monday)
   },
   
   // Validation rules

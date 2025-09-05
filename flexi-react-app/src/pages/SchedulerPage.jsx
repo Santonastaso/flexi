@@ -377,6 +377,12 @@ function SchedulerPage() {
       // Create a unique ID for the drop target
       const targetId = `${machine.id}-${hour}-${minute}`;
       setDropTargetId(targetId);
+    } else if (over && over.data.current?.type === 'next-day') {
+      // Set drop target for next day zone
+      setDropTargetId('next-day-drop-zone');
+    } else if (over && over.data.current?.type === 'previous-day') {
+      // Set drop target for previous day zone
+      setDropTargetId('previous-day-drop-zone');
     } else {
       setDropTargetId(null);
     }
@@ -470,6 +476,20 @@ function SchedulerPage() {
           else if (draggedItem.type === 'event' && dropZone.type === 'pool') {
             const eventToUnschedule = draggedItem.event;
             unscheduleTask(eventToUnschedule.id);
+          }
+
+          // Case 4: Dragging a task or event to the next day zone
+          else if ((draggedItem.type === 'task' || draggedItem.type === 'event') && dropZone.type === 'next-day') {
+            // Navigation is handled by the NextDayDropZone component with timer
+            // This case is now handled automatically by the drag over effect
+            showAlert('Navigazione al giorno successivo completata', 'success');
+          }
+
+          // Case 5: Dragging a task or event to the previous day zone
+          else if ((draggedItem.type === 'task' || draggedItem.type === 'event') && dropZone.type === 'previous-day') {
+            // Navigation is handled by the PreviousDayDropZone component with timer
+            // This case is now handled automatically by the drag over effect
+            showAlert('Navigazione al giorno precedente completata', 'success');
           }
 
           resolve();
@@ -679,7 +699,13 @@ function SchedulerPage() {
         {/* Gantt Chart Section */}
         <div className="calendar-section">
           <Suspense fallback={<LoadingFallback />}>
-            <GanttChart machines={filteredMachines} currentDate={currentDate} dropTargetId={dropTargetId} />
+            <GanttChart 
+              machines={filteredMachines} 
+              currentDate={currentDate} 
+              dropTargetId={dropTargetId}
+              onNavigateToNextDay={() => navigateDate('next')}
+              onNavigateToPreviousDay={() => navigateDate('prev')}
+            />
           </Suspense>
         </div>
       </div>

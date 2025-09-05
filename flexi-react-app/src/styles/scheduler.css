@@ -98,10 +98,10 @@
 /* ===== DROP INDICATOR ===== */
 .drop-indicator {
     position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
+    top: -1px !important;
+    left: -1px !important;
+    right: -1px !important;
+    bottom: -1px !important;
     border: 3px dashed var(--sap-accent) !important;
     background: rgba(52, 152, 219, 0.1) !important;
     pointer-events: none !important;
@@ -636,12 +636,88 @@
     contain: layout;
 }
 
+.calendar-grid-with-day-navigation {
+    display: flex;
+    align-items: stretch;
+    width: fit-content;
+    min-width: fit-content;
+}
+
+.machine-column-wrapper {
+    width: 180px;
+    min-width: 180px;
+    background: var(--content-bg);
+    border-right: 2px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.machine-label-header {
+    width: 100%;
+    padding: 4px;
+    font-weight: 400;
+    background: var(--gray-light);
+    color: var(--text-dark);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.machine-labels-body {
+    width: 100%;
+}
+
+.machine-label-only {
+    width: 100%;
+    padding: 2px;
+    border-bottom: 2px solid #d1d5db;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: var(--content-bg);
+    min-height: 25px;
+}
+
+.machine-label-only:nth-child(even) {
+    background: rgba(0,0,0,0.02);
+}
+
+.machine-label-only:last-child {
+    border-bottom: none;
+}
+
+.time-grid-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 960px;
+    min-width: 960px;
+    flex-shrink: 0;
+}
+
+.time-header-row {
+    display: grid;
+    grid-template-columns: repeat(64, 15px);
+    min-width: 960px;
+    background: var(--gray-light);
+    border-bottom: 2px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.time-grid-body {
+    width: 100%;
+    min-width: 960px;
+    position: relative;
+    flex: 1;
+    overflow: visible;
+}
+
 .calendar-grid {
     background: var(--content-bg);
     contain: layout;
     position: relative;
-    width: 1690px;
-    min-width: 1690px;
+    width: 1140px; /* 180px (machine labels) + 960px (64 time slots × 15px) */
+    min-width: 1140px;
 }
 
 .calendar-grid-container .empty-state {
@@ -654,8 +730,8 @@
     display: flex;
     background: var(--gray-light);
     border-bottom: 2px solid var(--border-color);
-    width: 1690px;
-    min-width: 1690px;
+    width: 1140px;
+    min-width: 1140px;
     flex-shrink: 0;
     position: sticky;
     top: 0;
@@ -831,7 +907,7 @@
 /* ===== CALENDAR BODY ===== */
 .calendar-body {
     width: 100%;
-    min-width: 1620px;
+    min-width: 1140px;
     position: relative;
     flex: 1;
     overflow: visible;
@@ -842,7 +918,7 @@
     border-bottom: 2px solid #d1d5db;
     min-height: 25px;
     width: 100%;
-    min-width: 1140px;
+    min-width: 960px;
     background: var(--content-bg);
     flex-shrink: 0;
 }
@@ -1862,4 +1938,341 @@
     border-radius: var(--border-radius);
     padding: 8px;
     margin-top: 16px;
+}
+
+/* ===== NEXT DAY DROP ZONE STYLES ===== */
+.next-day-drop-zone {
+    width: 60px;
+    min-width: 60px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border: 2px dashed #cbd5e1;
+    border-radius: var(--border-radius);
+    margin-left: 0;
+    border-left: none;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    min-height: 200px;
+    flex-shrink: 0;
+}
+
+.next-day-drop-zone:hover {
+    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+    border-color: #94a3b8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.next-day-drop-zone.active {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border-color: var(--sap-accent);
+    border-style: solid;
+    transform: scale(1.02);
+    box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+    animation: nextDayActivePulse 1.6s ease-in-out;
+}
+
+@keyframes nextDayActivePulse {
+    0% { transform: scale(1.02); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1.02); }
+}
+
+.next-day-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8px 4px;
+    z-index: 2;
+    position: relative;
+}
+
+.next-day-icon {
+    color: var(--sap-accent);
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+
+.next-day-drop-zone.active .next-day-icon {
+    color: var(--sap-accent);
+    transform: scale(1.1);
+}
+
+.next-day-text {
+    margin-bottom: 8px;
+}
+
+.next-day-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.next-day-date {
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--text-light);
+    background: rgba(255, 255, 255, 0.8);
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.next-day-hint {
+    font-size: 8px;
+    color: var(--text-light);
+    font-style: italic;
+    line-height: 1.3;
+    max-width: 50px;
+}
+
+.next-day-bg-effect {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.next-day-drop-zone:hover .next-day-bg-effect {
+    opacity: 1;
+}
+
+.next-day-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100px;
+    height: 100px;
+    border: 2px solid var(--sap-accent);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    animation: nextDayPulse 1.5s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes nextDayPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0;
+    }
+}
+
+/* ===== PREVIOUS DAY DROP ZONE STYLES ===== */
+.previous-day-drop-zone {
+    width: 60px;
+    min-width: 60px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border: 2px dashed #cbd5e1;
+    border-radius: var(--border-radius);
+    margin-right: 0;
+    border-right: none;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    min-height: 200px;
+    flex-shrink: 0;
+}
+
+.previous-day-drop-zone:hover {
+    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+    border-color: #94a3b8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.previous-day-drop-zone.active {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border-color: var(--sap-accent);
+    border-style: solid;
+    transform: scale(1.02);
+    box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+    animation: previousDayActivePulse 1.6s ease-in-out;
+}
+
+@keyframes previousDayActivePulse {
+    0% { transform: scale(1.02); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1.02); }
+}
+
+.previous-day-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8px 4px;
+    z-index: 2;
+    position: relative;
+}
+
+.previous-day-icon {
+    color: var(--sap-accent);
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+
+.previous-day-drop-zone.active .previous-day-icon {
+    color: var(--sap-accent);
+    transform: scale(1.1);
+}
+
+.previous-day-text {
+    margin-bottom: 8px;
+}
+
+.previous-day-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.previous-day-date {
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--text-light);
+    background: rgba(255, 255, 255, 0.8);
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.previous-day-hint {
+    font-size: 8px;
+    color: var(--text-light);
+    font-style: italic;
+    line-height: 1.3;
+    max-width: 50px;
+}
+
+.previous-day-bg-effect {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.previous-day-drop-zone:hover .previous-day-bg-effect {
+    opacity: 1;
+}
+
+.previous-day-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100px;
+    height: 100px;
+    border: 2px solid var(--sap-accent);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    animation: previousDayPulse 1.5s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes previousDayPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0;
+    }
+}
+
+/* Responsive adjustments for next day drop zone */
+@media (max-width: 768px) {
+    .next-day-drop-zone {
+        width: 40px;
+        min-width: 40px;
+        min-height: 150px;
+    }
+    
+    .next-day-content {
+        padding: 12px 4px;
+    }
+    
+    .next-day-label {
+        font-size: 10px;
+    }
+    
+    .next-day-date {
+        font-size: 10px;
+        padding: 3px 6px;
+    }
+    
+    .next-day-hint {
+        font-size: 9px;
+        max-width: 70px;
+    }
+    
+    .next-day-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .previous-day-drop-zone {
+        width: 40px;
+        min-width: 40px;
+        min-height: 150px;
+    }
+    
+    .previous-day-content {
+        padding: 12px 4px;
+    }
+    
+    .previous-day-label {
+        font-size: 10px;
+    }
+    
+    .previous-day-date {
+        font-size: 10px;
+        padding: 3px 6px;
+    }
+    
+    .previous-day-hint {
+        font-size: 9px;
+        max-width: 70px;
+    }
+    
+    .previous-day-icon svg {
+        width: 20px;
+        height: 20px;
+    }
 }

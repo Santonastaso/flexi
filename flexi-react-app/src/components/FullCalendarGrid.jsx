@@ -7,6 +7,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { useMachineStore, useOrderStore, useSchedulerStore, useUIStore } from '../store';
 import { format, parseISO } from 'date-fns';
 import { useErrorHandler } from '../hooks';
+import { AppConfig } from '../services/config';
 
 function FullCalendarGrid({ machineId, refreshTrigger }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -67,11 +68,19 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
             : [];
           
           unavailableHours.forEach(hour => {
+            const hourInt = parseInt(hour);
+            
+            // Only render hours between 6:00 and 22:00 (same as Gantt chart)
+            if (hourInt < 6 || hourInt >= 22) {
+              return;
+            }
+            
+            // Simple date creation - same logic as Gantt chart
             const startTime = new Date(dateStr);
-            startTime.setHours(parseInt(hour), 0, 0, 0);
+            startTime.setHours(hourInt, 0, 0, 0);
             
             const endTime = new Date(startTime);
-            endTime.setHours(parseInt(hour) + 1, 0, 0, 0);
+            endTime.setHours(hourInt + 1, 0, 0, 0);
             
             events.push({
               id: `availability-${dateStr}-${hour}`,
@@ -126,6 +135,8 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
   // Handle date click for availability toggle
   const handleDateClick = useCallback(async (arg) => {
     const clickedDate = arg.date;
+    
+    // Use the same simple logic as Gantt chart - just get the hour directly
     const dateStr = format(clickedDate, 'yyyy-MM-dd');
     const hour = clickedDate.getHours();
     
@@ -190,7 +201,7 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
     },
     height: 'auto',
     locale: 'it',
-    timeZone: 'Europe/Rome',
+    firstDay: AppConfig.APP.FIRST_DAY_OF_WEEK, // Monday as first day of week
     slotMinTime: '06:00:00',
     slotMaxTime: '22:00:00',
     slotDuration: '01:00:00',

@@ -62,10 +62,13 @@ function HomePage() {
       return acc;
     }, {});
 
-    // Calculate completed tasks this week
+    // Calculate completed tasks this week (Monday as first day)
     const now = new Date();
     const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
+    // Adjust for Monday as first day: if today is Sunday (0), go back 6 days; otherwise go back (day - 1) days
+    const dayOfWeek = now.getDay();
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    startOfWeek.setDate(now.getDate() - daysToSubtract);
     startOfWeek.setHours(0, 0, 0, 0);
 
     const completedThisWeek = orders.filter(order => {

@@ -73,11 +73,6 @@ function PhasesForm({ phaseToEdit, onSuccess }) {
       return;
     }
     
-    if (validationErrors.length > 0) {
-      showAlert(`Validation errors:\n${validationErrors.join('\n')}`, 'error');
-      return;
-    }
-    
     // --- Submission Logic ---
     await handleAsync(
       async () => {

@@ -2,7 +2,10 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { useOrderStore, useSchedulerStore } from '../store';
-import { format, startOfDay, endOfDay, startOfWeek, isSameDay } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, isSameDay, addDays } from 'date-fns';
+import { AppConfig } from '../services/config';
+import NextDayDropZone from './NextDayDropZone';
+import PreviousDayDropZone from './PreviousDayDropZone';
 
 
 // A single 15-minute time slot on the calendar that can receive a dropped task
@@ -30,10 +33,10 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
           className="drop-indicator"
           style={{
             position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
+            top: '-1px',
+            left: '-1px',
+            right: '-1px',
+            bottom: '-1px',
             border: '3px dashed #007bff',
             background: 'rgba(0, 123, 255, 0.1)',
             pointerEvents: 'none',
@@ -292,6 +295,7 @@ Codice Articolo Esterno: ${event.external_article_code || 'Non specificato'}
 Nome Cliente: ${event.nome_cliente || 'Non specificato'}
         Data Consegna: ${event.delivery_date ? format(new Date(event.delivery_date), 'yyyy-MM-dd') : 'Non impostata'}
 Quantità: ${event.quantity || 'Non specificata'}
+Note Libere: ${event.user_notes || 'Nessuna nota'}
         ${event.scheduled_start_time ? `Inizio Programmato: ${event.scheduled_start_time.replace('+00:00', '')}` : 'Non programmato'}
         ${event.scheduled_end_time ? `Fine Programmata: ${event.scheduled_end_time.replace('+00:00', '')}` : 'Non programmato'}`}
                 >
@@ -391,7 +395,7 @@ Quantità: ${event.quantity || 'Non specificata'}
 });
 
 // A single row in the Gantt chart, representing one machine
-const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavailableByMachine, dropTargetId }) => {
+const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavailableByMachine, dropTargetId, hideMachineLabel = false }) => {
   // Memoize scheduled events for this machine - optimize filtering
   const machineScheduledEvents = useMemo(() =>
     scheduledEvents.filter(event => event.scheduled_machine_id === machine.id),
@@ -403,10 +407,12 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
 
   return (
     <div className="machine-row" data-machine-id={machine.id}>
-      <div className="machine-label">
-        <div className="machine-name">{machine.machine_name}</div>
-        <div className="machine-city">{machine.work_center}</div>
-      </div>
+      {!hideMachineLabel && (
+        <div className="machine-label">
+          <div className="machine-name">{machine.machine_name}</div>
+          <div className="machine-city">{machine.work_center}</div>
+        </div>
+      )}
       <div className="machine-slots">
         {/* Render time slots from 6:00 AM to 10:00 PM (16 hours = 64 slots) */}
         {Array.from({ length: 64 }, (_, index) => {
@@ -448,7 +454,7 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
   
   // Generate week dates
   const weekDates = useMemo(() => {
-          const weekStart = startOfWeek(currentDate);
+          const weekStart = startOfWeek(currentDate, { weekStartsOn: AppConfig.APP.FIRST_DAY_OF_WEEK });
     const dates = [];
     for (let i = 0; i < 7; i++) {
       const day = new Date(weekStart);
@@ -545,7 +551,7 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
 });
 
 // The main Gantt Chart component - heavily optimized for performance
-const GanttChart = React.memo(({ machines, currentDate, dropTargetId }) => {
+const GanttChart = React.memo(({ machines, currentDate, dropTargetId, onNavigateToNextDay, onNavigateToPreviousDay }) => {
   const [currentView, setCurrentView] = useState('Daily'); // Add view state
   
   const { odpOrders: tasks } = useOrderStore();
@@ -638,26 +644,46 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId }) => {
       
       <div className="calendar-grid-container">
         {currentView === 'Daily' ? (
-          <div className="calendar-grid">
-            <div className="calendar-header-row">
+          <div className="calendar-grid-with-day-navigation">
+            <div className="machine-column-wrapper">
               <div className="machine-label-header">Macchine</div>
-              <div className="time-header">
-                {timeHeader}
+              <div className="machine-labels-body">
+                {machines.map(machine => (
+                  <div key={machine.id} className="machine-label-only">
+                    <div className="machine-name">{machine.machine_name}</div>
+                    <div className="machine-city">{machine.work_center}</div>
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="calendar-body">
-              {/* Render only visible machines - can be optimized further with virtualization */}
-              {machines.map(machine => (
-                <MachineRow
-                  key={machine.id}
-                  machine={machine}
-                  scheduledEvents={scheduledTasks}
-                  currentDate={currentDate}
-                  unavailableByMachine={unavailableByMachine}
-                  dropTargetId={dropTargetId}
-                />
-              ))}
+            <PreviousDayDropZone 
+              currentDate={currentDate}
+              onNavigateToPreviousDay={onNavigateToPreviousDay}
+              isDragOver={dropTargetId === 'previous-day-drop-zone'}
+            />
+            <div className="time-grid-wrapper">
+              <div className="time-header-row">
+                {timeHeader}
+              </div>
+              <div className="time-grid-body">
+                {machines.map(machine => (
+                  <MachineRow
+                    key={machine.id}
+                    machine={machine}
+                    scheduledEvents={scheduledTasks}
+                    currentDate={currentDate}
+                    unavailableByMachine={unavailableByMachine}
+                    dropTargetId={dropTargetId}
+                    hideMachineLabel={true}
+                  />
+                ))}
+              </div>
             </div>
+            <NextDayDropZone 
+              currentDate={currentDate}
+              onNavigateToNextDay={onNavigateToNextDay}
+              isDragOver={dropTargetId === 'next-day-drop-zone'}
+            />
           </div>
         ) : (
           <WeeklyGanttView 
