@@ -503,6 +503,7 @@ function SchedulerPage() {
     }
   }, [currentDate, scheduleTaskFromSlot, rescheduleTaskToSlot, unscheduleTask, showAlert, showConflictDialog]);
 
+
   // Show loading state during initial load
   if (isLoading) {
     return (
@@ -646,6 +647,7 @@ function SchedulerPage() {
 
             {/* Action Buttons */}
             <div className="actions-section">
+              
               <button
                 className={`nav-btn ${isEditMode ? 'danger' : 'primary'}`}
                 onClick={toggleEditMode}
@@ -697,7 +699,7 @@ function SchedulerPage() {
           </div>
         </div>
 
-        {/* Gantt Chart Section */}
+        {/* Calendar Section */}
         <div className="calendar-section">
           <Suspense fallback={<LoadingFallback />}>
             <GanttChart 

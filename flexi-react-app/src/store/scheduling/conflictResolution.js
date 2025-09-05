@@ -1,14 +1,8 @@
 import { useOrderStore } from '../useOrderStore';
 import { useUIStore } from '../useUIStore';
-import { AppError, ERROR_TYPES } from '../../utils/errorUtils';
+import { AppError, ERROR_TYPES } from '../../utils/errorHandling';
 import { TIME_CONSTANTS } from '../../constants';
 
-// Production-safe logging wrapper
-const debugLog = (message, ...args) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(message, ...args);
-  }
-};
 
 /**
  * Conflict Resolution
@@ -136,7 +130,7 @@ export class ConflictResolution {
       
       const { conflictingTask, draggedTask, proposedStartTime: proposedStartTimeRaw, machine } = conflictDetails;
       const proposedStartTime = new Date(proposedStartTimeRaw);
-      const { updateOdpOrder } = useOrderStore.getState();
+      const { updateOrder } = useOrderStore.getState();
       const { getOdpOrders } = useOrderStore.getState();
       
       // Get all scheduled tasks on this machine (using segment-aware sorting)
@@ -169,7 +163,7 @@ export class ConflictResolution {
       
       if (direction === 'right') {
         // Push tasks to the right starting from the conflicting task
-        debugLog(`🔄 RIGHT SHUNTING: Finding tasks to move right from index ${conflictIndex}`);
+        // debugLog(`🔄 RIGHT SHUNTING: Finding tasks to move right from index ${conflictIndex}`);
         
         for (let i = conflictIndex; i < scheduledTasks.length && !gapFound; i++) {
           const currentTask = scheduledTasks[i];
@@ -187,21 +181,21 @@ export class ConflictResolution {
               const nextStart = Math.min(...nextSegments.map(seg => seg.start.getTime()));
               const gapMinutes = Math.floor((nextStart - currentEnd) / (60 * 1000));
               
-              debugLog(`🔍 Gap between ${currentTask.odp_number} and ${nextTask.odp_number}: ${gapMinutes} minutes`);
+              // debugLog(`🔍 Gap between ${currentTask.odp_number} and ${nextTask.odp_number}: ${gapMinutes} minutes`);
               
               if (gapMinutes >= draggedDurationMinutes) {
                 gapFound = true;
-                debugLog(`✅ Found sufficient gap: ${gapMinutes} minutes >= ${draggedDurationMinutes} minutes`);
+                // debugLog(`✅ Found sufficient gap: ${gapMinutes} minutes >= ${draggedDurationMinutes} minutes`);
               }
             }
           } else {
             gapFound = true; // Last task, infinite space after
-            debugLog(`✅ Last task reached, infinite space available`);
+            // debugLog(`✅ Last task reached, infinite space available`);
           }
         }
       } else {
         // Push tasks to the left starting from the conflicting task
-        debugLog(`🔄 LEFT SHUNTING: Finding tasks to move left from index ${conflictIndex}`);
+        // debugLog(`🔄 LEFT SHUNTING: Finding tasks to move left from index ${conflictIndex}`);
         
         for (let i = conflictIndex; i >= 0 && !gapFound; i--) {
           const currentTask = scheduledTasks[i];
@@ -218,11 +212,11 @@ export class ConflictResolution {
               const currentStart = Math.min(...currentSegments.map(seg => seg.start.getTime()));
               const gapMinutes = Math.floor((currentStart - prevEnd) / (60 * 1000));
               
-              debugLog(`🔍 Gap between ${prevTask.odp_number} and ${currentTask.odp_number}: ${gapMinutes} minutes`);
+              // debugLog(`🔍 Gap between ${prevTask.odp_number} and ${currentTask.odp_number}: ${gapMinutes} minutes`);
               
               if (gapMinutes >= draggedDurationMinutes) {
                 gapFound = true;
-                debugLog(`✅ Found sufficient gap: ${gapMinutes} minutes >= ${draggedDurationMinutes} minutes`);
+                // debugLog(`✅ Found sufficient gap: ${gapMinutes} minutes >= ${draggedDurationMinutes} minutes`);
               }
             }
           } else {
@@ -234,14 +228,14 @@ export class ConflictResolution {
               dayStart.setUTCHours(6, 0, 0, 0); // Working day starts at 6 AM UTC
               const gapMinutes = Math.floor((firstTaskStart - dayStart.getTime()) / (60 * 1000));
               
-              debugLog(`🔍 Gap at beginning of working day (6 AM): ${gapMinutes} minutes`);
+              // debugLog(`🔍 Gap at beginning of working day (6 AM): ${gapMinutes} minutes`);
               
               if (gapMinutes >= draggedDurationMinutes) {
                 gapFound = true;
-                debugLog(`✅ Found sufficient gap at working day start: ${gapMinutes} minutes >= ${draggedDurationMinutes} minutes`);
+                // debugLog(`✅ Found sufficient gap at working day start: ${gapMinutes} minutes >= ${draggedDurationMinutes} minutes`);
               } else {
                 // Check if we can move tasks to previous days
-                debugLog(`🔍 Insufficient gap at day start (${gapMinutes} < ${draggedDurationMinutes}), checking previous days...`);
+                // debugLog(`🔍 Insufficient gap at day start (${gapMinutes} < ${draggedDurationMinutes}), checking previous days...`);
                 
                 // Check if there's space in previous days by looking at the first task's start time
                 const firstTaskStartDate = new Date(firstTaskStart);
@@ -250,9 +244,9 @@ export class ConflictResolution {
                 
                 // If the first task doesn't start at 6 AM, there might be space in previous days
                 if (firstTaskStartDate.getTime() > workingDayStart.getTime()) {
-                  debugLog(`🔍 First task doesn't start at 6 AM, checking if we can schedule before it`);
+                  // debugLog(`🔍 First task doesn't start at 6 AM, checking if we can schedule before it`);
                   gapFound = true; // Allow shunting - the algorithm will find the best position
-                  debugLog(`✅ Allowing shunting - will find optimal position before first task`);
+                  // debugLog(`✅ Allowing shunting - will find optimal position before first task`);
                 }
               }
             }
@@ -261,7 +255,7 @@ export class ConflictResolution {
               }
         
         // IMPROVED: Iterative conflict detection and resolution
-        debugLog(`🔧 SHUNTING DEBUG: Starting iterative conflict detection...`);
+        // debugLog(`🔧 SHUNTING DEBUG: Starting iterative conflict detection...`);
         
         // Keep track of all tasks that need to be moved
         const allTasksToMove = new Set();
@@ -281,7 +275,7 @@ export class ConflictResolution {
         
         while (iteration < maxIterations) {
           iteration++;
-          debugLog(`🔧 SHUNTING DEBUG: Iteration ${iteration} - Checking for new conflicts...`);
+          // debugLog(`🔧 SHUNTING DEBUG: Iteration ${iteration} - Checking for new conflicts...`);
           
           let newConflictsFound = false;
           const tasksToCheck = Array.from(allTasksToMove);
@@ -290,7 +284,7 @@ export class ConflictResolution {
             const task = scheduledTasks.find(t => t.id === taskId) || draggedTask;
             if (!task) continue;
             
-            debugLog(`🔧 SHUNTING DEBUG: Checking conflicts for task ${task.odp_number}...`);
+            // debugLog(`🔧 SHUNTING DEBUG: Checking conflicts for task ${task.odp_number}...`);
             
             // Calculate where this task would be moved based on direction
             let newStartTime;
@@ -318,7 +312,7 @@ export class ConflictResolution {
               newStartTime = this.roundUpToNext15MinSlot(this.addMinutesToDate(draggedTaskStart, -affectedTaskDuration));
             }
             
-            debugLog(`🔧 SHUNTING DEBUG: Task ${task.odp_number} would be moved to: ${newStartTime.toISOString()}`);
+            // debugLog(`🔧 SHUNTING DEBUG: Task ${task.odp_number} would be moved to: ${newStartTime.toISOString()}`);
             
             // Simulate scheduling this task to see what segments it would create
             const taskHours = this.getTaskDurationMinutes(task) / 60;
@@ -333,14 +327,14 @@ export class ConflictResolution {
             
             if (hasConflicts) {
               // Task would be split - check all potential segments against all tasks
-              debugLog(`🔧 SHUNTING DEBUG: Task ${task.odp_number} would be split, checking all segments...`);
+              // debugLog(`🔧 SHUNTING DEBUG: Task ${task.odp_number} would be split, checking all segments...`);
               
               const taskSegments = this.schedulingLogic.splitTaskAcrossAvailableSlots(newStartTime, taskHours, machine.id, unavailableSlots);
-              debugLog(`🔧 SHUNTING DEBUG: Task ${task.odp_number} would be split into ${taskSegments.length} segments:`, taskSegments.map(seg => ({
-                start: seg.start.toISOString(),
-                end: seg.end.toISOString(),
-                duration: seg.duration
-              })));
+              // debugLog(`🔧 SHUNTING DEBUG: Task ${task.odp_number} would be split into ${taskSegments.length} segments:`, taskSegments.map(seg => ({
+              //   start: seg.start.toISOString(),
+              //   end: seg.end.toISOString(),
+              //   duration: seg.duration
+              // })));
               
               // Check each segment against ALL tasks on the machine
               for (const segment of taskSegments) {
@@ -348,37 +342,37 @@ export class ConflictResolution {
                   if (!allConflictingTasks.has(existingTask.id) && existingTask.id !== task.id) {
                     const overlapResult = this.splitTaskManager.checkTaskOverlap(segment.start, segment.end, existingTask);
                     if (overlapResult.hasOverlap) {
-                      debugLog(`🔧 SHUNTING DEBUG: Found new conflict with task ${existingTask.odp_number} (ID: ${existingTask.id}) from task ${task.odp_number}`);
-                      debugLog(`🔧 SHUNTING DEBUG: Segment: ${segment.start.toISOString()} - ${segment.end.toISOString()}`);
-                      debugLog(`🔧 SHUNTING DEBUG: Conflicting segment: ${overlapResult.conflictingSegment?.start?.toISOString()} - ${overlapResult.conflictingSegment?.end?.toISOString()}`);
+                      // debugLog(`🔧 SHUNTING DEBUG: Found new conflict with task ${existingTask.odp_number} (ID: ${existingTask.id}) from task ${task.odp_number}`);
+                      // debugLog(`🔧 SHUNTING DEBUG: Segment: ${segment.start.toISOString()} - ${segment.end.toISOString()}`);
+                      // debugLog(`🔧 SHUNTING DEBUG: Conflicting segment: ${overlapResult.conflictingSegment?.start?.toISOString()} - ${overlapResult.conflictingSegment?.end?.toISOString()}`);
                       
                       // Add this task to the conflicting tasks set
                       allConflictingTasks.add(existingTask.id);
                       allTasksToMove.add(existingTask.id);
                       newConflictsFound = true;
                       
-                      debugLog(`🔧 SHUNTING DEBUG: Added task ${existingTask.odp_number} to move list`);
+                      // debugLog(`🔧 SHUNTING DEBUG: Added task ${existingTask.odp_number} to move list`);
                     }
                   }
                 }
               }
             } else {
               // Task would not be split - check single time range
-              debugLog(`🔧 SHUNTING DEBUG: Task ${task.odp_number} would not be split, checking single time range...`);
+              // debugLog(`🔧 SHUNTING DEBUG: Task ${task.odp_number} would not be split, checking single time range...`);
               
               const taskEnd = new Date(newStartTime.getTime() + (taskHours * 60 * 60 * 1000));
               for (const existingTask of scheduledTasks) {
                 if (!allConflictingTasks.has(existingTask.id) && existingTask.id !== task.id) {
                   const overlapResult = this.splitTaskManager.checkTaskOverlap(newStartTime, taskEnd, existingTask);
                   if (overlapResult.hasOverlap) {
-                    debugLog(`🔧 SHUNTING DEBUG: Found new conflict with task ${existingTask.odp_number} (ID: ${existingTask.id}) from task ${task.odp_number}`);
+                    // debugLog(`🔧 SHUNTING DEBUG: Found new conflict with task ${existingTask.odp_number} (ID: ${existingTask.id}) from task ${task.odp_number}`);
                     
                     // Add this task to the conflicting tasks set
                     allConflictingTasks.add(existingTask.id);
                     allTasksToMove.add(existingTask.id);
                     newConflictsFound = true;
                     
-                    debugLog(`🔧 SHUNTING DEBUG: Added task ${existingTask.odp_number} to move list`);
+                    // debugLog(`🔧 SHUNTING DEBUG: Added task ${existingTask.odp_number} to move list`);
                   }
                 }
               }
@@ -387,11 +381,11 @@ export class ConflictResolution {
           
           // If no new conflicts found, we can proceed with shunting
           if (!newConflictsFound) {
-            debugLog(`🔧 SHUNTING DEBUG: No new conflicts found in iteration ${iteration}, proceeding with shunting`);
+            // debugLog(`🔧 SHUNTING DEBUG: No new conflicts found in iteration ${iteration}, proceeding with shunting`);
             break;
           }
           
-          debugLog(`🔧 SHUNTING DEBUG: New conflicts found in iteration ${iteration}, continuing...`);
+          // debugLog(`🔧 SHUNTING DEBUG: New conflicts found in iteration ${iteration}, continuing...`);
         }
         
         if (iteration >= maxIterations) {
@@ -402,8 +396,8 @@ export class ConflictResolution {
         // Convert the sets back to arrays for the rest of the algorithm
         const finalAffectedTasks = scheduledTasks.filter(t => allTasksToMove.has(t.id));
         
-        debugLog(`🔧 SHUNTING DEBUG: Final task list after ${iteration} iterations:`, finalAffectedTasks.map(t => t.odp_number));
-        debugLog(`🔧 SHUNTING DEBUG: All conflicting task IDs:`, Array.from(allConflictingTasks));
+        // debugLog(`🔧 SHUNTING DEBUG: Final task list after ${iteration} iterations:`, finalAffectedTasks.map(t => t.odp_number));
+        // debugLog(`🔧 SHUNTING DEBUG: All conflicting task IDs:`, Array.from(allConflictingTasks));
         
         // Update the affectedTasks array for the rest of the algorithm
         affectedTasks.length = 0;
@@ -429,7 +423,7 @@ export class ConflictResolution {
             
             // Check if we can schedule at 6 AM of that day
             if (earliestPossibleStart.getTime() < earliestTaskStart) {
-              debugLog(`🔄 Attempting to schedule at earliest possible time: ${earliestPossibleStart.toISOString()}`);
+              // debugLog(`🔄 Attempting to schedule at earliest possible time: ${earliestPossibleStart.toISOString()}`);
               gapFound = true; // Allow the algorithm to proceed
             } else {
               // No space even at 6 AM, return error
@@ -456,7 +450,7 @@ export class ConflictResolution {
           }
         }
         
-        debugLog(`📋 Moving ${affectedTasks.length} tasks ${direction}:`, affectedTasks.map(t => t.odp_number));
+        // debugLog(`📋 Moving ${affectedTasks.length} tasks ${direction}:`, affectedTasks.map(t => t.odp_number));
         
         // Calculate new positions for affected tasks with comprehensive splitting
         const updates = [];
@@ -469,8 +463,8 @@ export class ConflictResolution {
         const proposedStart = new Date(proposedStartTime);
         const excludeForDragged = [...Array.from(allConflictingTasks)];
         
-        debugLog(`🔄 RIGHT SHUNTING: Scheduling dragged task ${draggedTask.odp_number} at ${proposedStart.toISOString()}`);
-        debugLog(`🔄 Excluding all conflicting tasks:`, excludeForDragged);
+        // debugLog(`🔄 RIGHT SHUNTING: Scheduling dragged task ${draggedTask.odp_number} at ${proposedStart.toISOString()}`);
+        // debugLog(`🔄 Excluding all conflicting tasks:`, excludeForDragged);
         
         draggedSchedulingResult = await this.scheduleTaskWithSplittingForShuntExcluding(
           draggedTask,
@@ -479,11 +473,11 @@ export class ConflictResolution {
           excludeForDragged
         );
         
-        debugLog(`✅ Dragged task scheduled (RIGHT):`, {
-          start: draggedSchedulingResult.startTime?.toISOString() || 'undefined',
-          end: draggedSchedulingResult.endTime?.toISOString() || 'undefined',
-          wasSplit: draggedSchedulingResult.wasSplit
-        });
+        // debugLog(`✅ Dragged task scheduled (RIGHT):`, {
+        //   start: draggedSchedulingResult.startTime?.toISOString() || 'undefined',
+        //   end: draggedSchedulingResult.endTime?.toISOString() || 'undefined',
+        //   wasSplit: draggedSchedulingResult.wasSplit
+        // });
         
         let currentStartTime = draggedSchedulingResult.endTime ? this.roundUpToNext15MinSlot(draggedSchedulingResult.endTime) : new Date();
         
@@ -492,8 +486,8 @@ export class ConflictResolution {
           // We place them sequentially in this loop, so they won't collide with each other
           const excludeTaskIds = [...Array.from(allConflictingTasks)];
           
-          debugLog(`🔄 Shunting task ${task.odp_number} to ${currentStartTime.toISOString()}`);
-          debugLog(`🔄 Excluding all conflicting tasks:`, excludeTaskIds);
+          // debugLog(`🔄 Shunting task ${task.odp_number} to ${currentStartTime.toISOString()}`);
+          // debugLog(`🔄 Excluding all conflicting tasks:`, excludeTaskIds);
           
           // Use comprehensive splitting logic for shunted tasks
           const schedulingResult = await this.scheduleTaskWithSplittingForShuntExcluding(
@@ -514,11 +508,11 @@ export class ConflictResolution {
             );
           }
           
-          debugLog(`✅ Task ${task.odp_number} scheduled (RIGHT):`, {
-            start: schedulingResult.startTime?.toISOString() || 'undefined',
-            end: schedulingResult.endTime?.toISOString() || 'undefined',
-            wasSplit: schedulingResult.wasSplit
-          });
+          // debugLog(`✅ Task ${task.odp_number} scheduled (RIGHT):`, {
+          //   start: schedulingResult.startTime?.toISOString() || 'undefined',
+          //   end: schedulingResult.endTime?.toISOString() || 'undefined',
+          //   wasSplit: schedulingResult.wasSplit
+          // });
           
           updates.push({
             id: task.id,
@@ -536,14 +530,14 @@ export class ConflictResolution {
         const proposedStart = new Date(proposedStartTime);
         let currentEndTime = this.roundUpToNext15MinSlot(this.addMinutesToDate(proposedStart, -1));
 
-        debugLog(`🔄 LEFT SHUNTING: Working backwards from ${currentEndTime.toISOString()}`);
+        // debugLog(`🔄 LEFT SHUNTING: Working backwards from ${currentEndTime.toISOString()}`);
 
         // Work backwards through affected tasks, placing each so it ENDS at currentEndTime
         for (let i = affectedTasks.length - 1; i >= 0; i--) {
           const task = affectedTasks[i];
           const excludeTaskIds = [...Array.from(allConflictingTasks)];
           
-          debugLog(`🔄 Scheduling task ${task.odp_number} to END at ${currentEndTime.toISOString()}`);
+          // debugLog(`🔄 Scheduling task ${task.odp_number} to END at ${currentEndTime.toISOString()}`);
           
           // Use backward splitting to END at currentEndTime
           const schedulingResult = await this.schedulingLogic.scheduleTaskEndingAtWithSplitting(
@@ -565,11 +559,11 @@ export class ConflictResolution {
             );
           }
           
-          debugLog(`✅ Task ${task.odp_number} scheduled (LEFT):`, {
-            start: schedulingResult.startTime?.toISOString() || 'undefined',
-            end: schedulingResult.endTime?.toISOString() || 'undefined',
-            wasSplit: schedulingResult.wasSplit
-          });
+          // debugLog(`✅ Task ${task.odp_number} scheduled (LEFT):`, {
+          //   start: schedulingResult.startTime?.toISOString() || 'undefined',
+          //   end: schedulingResult.endTime?.toISOString() || 'undefined',
+          //   wasSplit: schedulingResult.wasSplit
+          // });
           
           updates.push({
             id: task.id,
@@ -589,8 +583,8 @@ export class ConflictResolution {
         const proposedStart = new Date(proposedStartTime);
         const excludeTaskIds = [...Array.from(allConflictingTasks)];
         
-        debugLog(`🔄 Scheduling dragged task ${draggedTask.odp_number} at ${proposedStart.toISOString()}`);
-        debugLog(`🔄 Excluding all conflicting tasks:`, excludeTaskIds);
+        // debugLog(`🔄 Scheduling dragged task ${draggedTask.odp_number} at ${proposedStart.toISOString()}`);
+        // debugLog(`🔄 Excluding all conflicting tasks:`, excludeTaskIds);
         
         draggedSchedulingResult = await this.scheduleTaskWithSplittingForShuntExcluding(
           draggedTask, 
@@ -611,11 +605,11 @@ export class ConflictResolution {
         );
       }
       
-      debugLog(`✅ Dragged task ${draggedTask.odp_number} scheduled:`, {
-        start: draggedSchedulingResult.startTime?.toISOString() || 'undefined',
-        end: draggedSchedulingResult.endTime?.toISOString() || 'undefined',
-        wasSplit: draggedSchedulingResult.wasSplit
-      });
+      // debugLog(`✅ Dragged task ${draggedTask.odp_number} scheduled:`, {
+      //   start: draggedSchedulingResult.startTime?.toISOString() || 'undefined',
+      //   end: draggedSchedulingResult.endTime?.toISOString() || 'undefined',
+      //   wasSplit: draggedSchedulingResult.wasSplit
+      // });
       
       updates.push({
         id: draggedTask.id,
@@ -626,13 +620,13 @@ export class ConflictResolution {
       });
       
       // Execute all updates
-      debugLog(`🔄 Applying ${updates.length} updates to database`);
+      // debugLog(`🔄 Applying ${updates.length} updates to database`);
       for (const update of updates) {
-        await updateOdpOrder(update.id, update);
-        debugLog(`✅ Updated task ${update.id}:`, update);
+        await updateOrder(update.id, update);
+        // debugLog(`✅ Updated task ${update.id}:`, update);
       }
       
-      debugLog(`✅ SHUNTING COMPLETE: ${updates.length} tasks updated successfully`);
+      // debugLog(`✅ SHUNTING COMPLETE: ${updates.length} tasks updated successfully`);
       
       // Hide the conflict dialog
       useUIStore.getState().hideConflictDialog();

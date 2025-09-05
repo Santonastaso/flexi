@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../services/supabase/client';
 import { WORK_CENTERS } from '../constants';
-import { AppError, ERROR_TYPES } from '../utils/errorUtils';
+import { AppError, ERROR_TYPES } from '../utils/errorHandling';
 
 // Create the authentication context
 const AuthContext = createContext();

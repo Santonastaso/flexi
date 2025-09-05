@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
 import { format, addHours } from 'date-fns';
-import { handleApiError } from '../utils/errorUtils';
+import { handleApiError } from '../utils/errorHandling';
 import { useOrderStore } from './useOrderStore';
 import { useMachineStore } from './useMachineStore';
 import { SplitTaskManager } from './scheduling/splitTaskManager';
@@ -55,10 +55,10 @@ export const useSchedulerStore = create((set, get) => {
     scheduleTaskFromSlot: async (taskId, machine, currentDate, hour, minute) => {
       try {
         // Get task and machine data
-        const { getOdpOrderById } = useOrderStore.getState();
-        const { getMachineById } = useMachineStore.getState();
-        const task = getOdpOrderById(taskId);
-        const machineData = getMachineById(machine.id);
+        const { getOdpOrdersById } = useOrderStore.getState();
+        const { getMachinesById } = useMachineStore.getState();
+        const task = getOdpOrdersById(taskId);
+        const machineData = getMachinesById(machine.id);
 
         if (!task || !machineData) {
           return { error: 'Task or machine not found' };
@@ -93,10 +93,10 @@ export const useSchedulerStore = create((set, get) => {
     rescheduleTaskToSlot: async (eventId, machine, currentDate, hour, minute) => {
       try {
         // Get event data
-        const { getOdpOrderById } = useOrderStore.getState();
-        const { getMachineById } = useMachineStore.getState();
-        const eventItem = getOdpOrderById(eventId);
-        const machineData = getMachineById(machine.id);
+        const { getOdpOrdersById } = useOrderStore.getState();
+        const { getMachinesById } = useMachineStore.getState();
+        const eventItem = getOdpOrdersById(eventId);
+        const machineData = getMachinesById(machine.id);
 
         if (!eventItem || !machineData) {
           return { error: 'Event or machine not found' };
@@ -132,10 +132,10 @@ export const useSchedulerStore = create((set, get) => {
     scheduleTask: async (taskId, eventData) => {
       try {
         // Validate work_center compatibility before scheduling
-        const { getOdpOrderById } = useOrderStore.getState();
-        const { getMachineById } = useMachineStore.getState();
-        const task = getOdpOrderById(taskId);
-        const machine = getMachineById(eventData.machine);
+        const { getOdpOrdersById } = useOrderStore.getState();
+        const { getMachinesById } = useMachineStore.getState();
+        const task = getOdpOrdersById(taskId);
+        const machine = getMachinesById(eventData.machine);
         
         if (task && machine && task.work_center && machine.work_center && task.work_center !== machine.work_center) {
           return { error: `Work center mismatch: task requires '${task.work_center}' but machine is '${machine.work_center}'` };
@@ -193,8 +193,8 @@ export const useSchedulerStore = create((set, get) => {
         }
         
         // Call the update method from the order store
-        const { updateOdpOrder } = useOrderStore.getState();
-        const result = await updateOdpOrder(taskId, updates);
+        const { updateOrder } = useOrderStore.getState();
+        const result = await updateOrder(taskId, updates);
         
         // Also update the split task info in memory for immediate access
         if (schedulingResult.segments) {
@@ -227,8 +227,8 @@ export const useSchedulerStore = create((set, get) => {
         await splitTaskManager.updateTaskWithSplitInfo(taskId, null);
         
         // Call the update method from the order store
-        const { updateOdpOrder } = useOrderStore.getState();
-        const result = await updateOdpOrder(taskId, updates);
+        const { updateOrder } = useOrderStore.getState();
+        const result = await updateOrder(taskId, updates);
         
         if (result?.error) {
           return { error: result.error };

@@ -4,7 +4,7 @@
  */
 
 import { WORK_CENTERS, DEPARTMENT_TYPES } from '../constants.js';
-import { format } from 'date-fns';
+import { format, getDay, startOfYear, endOfYear, addDays, isAfter, isSameDay } from 'date-fns';
 
 /**
  * This function generates all unavailable hours for a given machine and day based on rules
@@ -13,7 +13,7 @@ import { format } from 'date-fns';
  * @returns {Array<string>} Array of unavailable hours as strings
  */
 function getUnavailableHours(machine, date) {
-    const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+    const dayOfWeek = getDay(date); // 0 = Sunday, 6 = Saturday
     const unavailable = new Set();
 
     // Rule 1: Weekends are always off
@@ -68,12 +68,12 @@ function getUnavailableHours(machine, date) {
  */
 export function generateCalendarForYear(machines, year) {
     const records = [];
-    const startDate = new Date(year, 0, 1);
-    const endDate = new Date(year, 11, 31);
+    const startDate = startOfYear(new Date(year, 0, 1));
+    const endDate = endOfYear(new Date(year, 11, 31));
 
     for (const machine of machines) {
         let currentDate = new Date(startDate);
-        while (currentDate <= endDate) {
+        while (!isAfter(currentDate, endDate)) {
             const unavailable_hours = getUnavailableHours(machine, currentDate);
             if (unavailable_hours.length > 0) { // Only insert if there are unavailable hours
                 records.push({
@@ -82,7 +82,7 @@ export function generateCalendarForYear(machines, year) {
                     unavailable_hours: unavailable_hours,
                 });
             }
-            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+            currentDate = addDays(currentDate, 1);
         }
     }
     return records;

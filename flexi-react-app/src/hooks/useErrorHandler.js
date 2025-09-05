@@ -2,11 +2,10 @@ import { useCallback, useMemo } from 'react';
 import { useUIStore } from '../store';
 import { 
   handleApiError, 
-  logError, 
   ERROR_TYPES,
   withRetry,
   safeAsync 
-} from '../utils/errorUtils';
+} from '../utils/errorHandling';
 
 /**
  * Custom hook for consistent error handling across components
@@ -30,10 +29,7 @@ export const useErrorHandler = (context = '') => {
     // Convert to AppError if it isn't already
     const appError = handleApiError(error, errorContext);
     
-    // Log the error if requested
-    if (shouldLogError) {
-      logError(appError, errorContext);
-    }
+    // Error is automatically logged by handleApiError (Sentry integration)
 
     // Show user alert if requested
     if (showUserAlert) {

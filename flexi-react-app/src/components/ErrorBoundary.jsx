@@ -1,5 +1,5 @@
 import React from 'react';
-import { logError, getErrorSeverity, ERROR_SEVERITY } from '../utils/errorUtils';
+import { reportError } from '../services/sentry';
 
 /**
  * React Error Boundary Component
@@ -38,12 +38,12 @@ class ErrorBoundary extends React.Component {
       errorId: this.state.errorId || ErrorBoundary.generateErrorId()
     });
 
-    // Use our centralized error logging
-    const errorContext = 'ErrorBoundary';
-    logError(_error, errorContext);
-
-    // Log to external service in production (e.g., Sentry, LogRocket)
-    this.logErrorToService(_error, _errorInfo);
+    // Use Sentry for error reporting
+    reportError(_error, {
+      component: 'ErrorBoundary',
+      errorInfo: _errorInfo,
+      errorId: this.state.errorId
+    });
   }
 
   logErrorToService(_error, _errorInfo) {
@@ -91,36 +91,28 @@ Please describe what you were doing when this error occurred:
   };
 
   getErrorRecommendations = (error) => {
-    const severity = getErrorSeverity(error);
-    
-    switch (severity) {
-      case ERROR_SEVERITY.CRITICAL:
-        return (
-          <div className="error-boundary__recommendation critical">
-            <strong>Critical Error:</strong> This is a serious issue. Please contact support immediately.
-          </div>
-        );
-      case ERROR_SEVERITY.HIGH:
-        return (
-          <div className="error-boundary__recommendation high">
-            <strong>High Priority:</strong> Please try refreshing the page or contact support if the problem persists.
-          </div>
-        );
-      case ERROR_SEVERITY.MEDIUM:
-        return (
-          <div className="error-boundary__recommendation medium">
-            <strong>Medium Priority:</strong> Try refreshing the page or navigating to a different section.
-          </div>
-        );
-      case ERROR_SEVERITY.LOW:
-        return (
-          <div className="error-boundary__recommendation low">
-            <strong>Low Priority:</strong> This error should resolve itself. Try continuing with your task.
-          </div>
-        );
-      default:
-        return null;
+    // Simplified error recommendations without severity system
+    if (error?.message?.includes('Network') || error?.message?.includes('fetch')) {
+      return (
+        <div className="error-boundary__recommendation high">
+          <strong>Network Error:</strong> Please check your internet connection and try again.
+        </div>
+      );
     }
+    
+    if (error?.message?.includes('Authentication') || error?.message?.includes('login')) {
+      return (
+        <div className="error-boundary__recommendation high">
+          <strong>Authentication Error:</strong> Please try logging in again.
+        </div>
+      );
+    }
+    
+    return (
+      <div className="error-boundary__recommendation medium">
+        <strong>General Error:</strong> Please try refreshing the page or contact support if the problem persists.
+      </div>
+    );
   };
 
   render() {

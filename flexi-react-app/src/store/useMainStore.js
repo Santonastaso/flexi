@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
-import { handleApiError, logError, AppError } from '../utils/errorUtils';
+import { handleApiError, AppError } from '../utils/errorHandling';
 import { useMachineStore } from './useMachineStore';
 import { useOrderStore } from './useOrderStore';
 import { usePhaseStore } from './usePhaseStore';
@@ -171,7 +171,7 @@ export const useMainStore = create((set, get) => ({
           
           if (apiInitAttempts >= maxApiInitAttempts) {
             // Final attempt failed - show critical error and set app to failed state
-            logError(appError, 'API Service Initialization - Final Attempt Failed');
+            // Error automatically logged by handleApiError (Sentry integration)
             setLoading(false);
             setInitialized(false);
             showAlert(
@@ -208,7 +208,7 @@ export const useMainStore = create((set, get) => ({
         machines = await apiService.getMachines();
       } catch (machineError) {
         const appError = handleApiError(machineError, 'Machines Data Fetch');
-        logError(appError, 'Machines Data Fetch Failed');
+        // Error automatically logged by handleApiError (Sentry integration)
         showAlert(
           'Warning: Unable to load machine data. Some features may be limited.',
           'warning'
@@ -220,7 +220,7 @@ export const useMainStore = create((set, get) => ({
         odpOrders = await apiService.getOdpOrders();
       } catch (orderError) {
         const appError = handleApiError(orderError, 'Orders Data Fetch');
-        logError(appError, 'Orders Data Fetch Failed');
+        // Error automatically logged by handleApiError (Sentry integration)
         showAlert(
           'Warning: Unable to load order data. Some features may be limited.',
           'warning'
@@ -232,7 +232,7 @@ export const useMainStore = create((set, get) => ({
         phases = await apiService.getPhases();
       } catch (phaseError) {
         const appError = handleApiError(phaseError, 'Phases Data Fetch');
-        logError(appError, 'Phases Data Fetch Failed');
+        // Error automatically logged by handleApiError (Sentry integration)
         showAlert(
           'Warning: Unable to load phase data. Some features may be limited.',
           'warning'
@@ -277,7 +277,7 @@ export const useMainStore = create((set, get) => ({
             }
           } catch (realtimeError) {
             const appError = handleApiError(realtimeError, 'Real-time Subscriptions Setup');
-            logError(appError, 'Real-time Subscriptions Setup Failed');
+            // Error automatically logged by handleApiError (Sentry integration)
             showAlert(
               'Warning: Real-time updates are not available. Data may not update automatically.',
               'warning'
@@ -307,7 +307,7 @@ export const useMainStore = create((set, get) => ({
         
       } catch (dataProcessingError) {
         const appError = handleApiError(dataProcessingError, 'Data Processing');
-        logError(appError, 'Data Processing Failed');
+        // Error automatically logged by handleApiError (Sentry integration)
         setLoading(false);
         setInitialized(false);
         set({ isInitializing: false });
@@ -321,7 +321,7 @@ export const useMainStore = create((set, get) => ({
     } catch (error) {
       // Handle any unexpected errors
       const appError = error instanceof AppError ? error : handleApiError(error, 'Store Initialization');
-      logError(appError, 'Store Initialization - Unexpected Error');
+      // Error automatically logged by handleApiError (Sentry integration)
       
       setLoading(false);
       setInitialized(false);

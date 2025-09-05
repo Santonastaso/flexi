@@ -26,8 +26,8 @@ export class SplitTaskManager {
     }
     
     // Fallback: try to get from database via order store
-    const { getOdpOrderById } = useOrderStore.getState();
-    const task = getOdpOrderById(taskId);
+    const { getOdpOrdersById } = useOrderStore.getState();
+    const task = getOdpOrdersById(taskId);
     
     if (task && task.description && task.status === 'SCHEDULED') {
       try {
@@ -38,7 +38,7 @@ export class SplitTaskManager {
           return segmentInfo;
         }
       } catch (_error) {
-        console.warn(`Failed to parse segment info for task ${taskId}:`, _error);
+        // console.warn(`Failed to parse segment info for task ${taskId}:`, _error);
       }
     }
     
@@ -56,15 +56,8 @@ export class SplitTaskManager {
 
   // Update task with segment info and sync with database (ALL TASKS NOW HAVE SEGMENTS)
   updateTaskWithSplitInfo = async (taskId, segmentInfo, startTime = null, endTime = null, machineId = null) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`💾 DATABASE UPDATE: Starting updateTaskWithSplitInfo for task ${taskId}`);
-      console.log(`💾 DATABASE UPDATE: Segment info:`, segmentInfo);
-      console.log(`💾 DATABASE UPDATE: Start time: ${startTime?.toISOString()}`);
-      console.log(`💾 DATABASE UPDATE: End time: ${endTime?.toISOString()}`);
-      console.log(`💾 DATABASE UPDATE: Machine ID: ${machineId}`);
-    }
     
-    const { updateOdpOrder } = useOrderStore.getState();
+    const { updateOrder } = useOrderStore.getState();
     
     if (segmentInfo) {
       // Store segment info in memory and database (for both split and non-split tasks)
@@ -81,41 +74,22 @@ export class SplitTaskManager {
       if (endTime) updateData.scheduled_end_time = endTime.toISOString();
       if (machineId) updateData.scheduled_machine_id = machineId;
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`💾 DATABASE UPDATE: Initial update data:`, updateData);
-      }
       
       // Ensure we have all required scheduling fields or none of them
       if (updateData.scheduled_start_time && updateData.scheduled_end_time && updateData.scheduled_machine_id) {
         // All scheduling fields are present - this is valid
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`💾 DATABASE UPDATE: ✅ All scheduling fields present - valid state`);
-        }
       } else if (!updateData.scheduled_start_time && !updateData.scheduled_end_time && !updateData.scheduled_machine_id) {
         // No scheduling fields are present - this is also valid
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`💾 DATABASE UPDATE: ✅ No scheduling fields present - valid state`);
-        }
         delete updateData.scheduled_start_time;
         delete updateData.scheduled_end_time;
         delete updateData.scheduled_machine_id;
         updateData.status = 'NOT SCHEDULED';
       } else {
         // Partial scheduling fields - this violates the constraint, so we need to get the current task state
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`💾 DATABASE UPDATE: ⚠️ Partial scheduling fields - need to get current task state`);
-        }
-        const { getOdpOrderById } = useOrderStore.getState();
-        const currentTask = getOdpOrderById(taskId);
+        const { getOdpOrdersById } = useOrderStore.getState();
+        const currentTask = getOdpOrdersById(taskId);
         
         if (currentTask) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`💾 DATABASE UPDATE: Current task state:`, {
-              scheduled_start_time: currentTask.scheduled_start_time,
-              scheduled_end_time: currentTask.scheduled_end_time,
-              scheduled_machine_id: currentTask.scheduled_machine_id
-            });
-          }
           // Use existing values for missing fields to maintain constraint
           if (!updateData.scheduled_start_time) updateData.scheduled_start_time = currentTask.scheduled_start_time;
           if (!updateData.scheduled_end_time) updateData.scheduled_end_time = currentTask.scheduled_end_time;
@@ -123,19 +97,12 @@ export class SplitTaskManager {
         }
       }
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`💾 DATABASE UPDATE: Final update data:`, updateData);
-        console.log(`💾 DATABASE UPDATE: Calling updateOdpOrder with data:`, updateData);
-      }
-      const updatedTask = await updateOdpOrder(taskId, updateData);
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`💾 DATABASE UPDATE: ✅ Successfully updated task ${taskId}`);
-      }
+      const updatedTask = await updateOrder(taskId, updateData);
       this.updateSplitTaskInfo(taskId, updatedTask);
     } else {
       // This should rarely happen now, but keep for safety
       this.clearSplitTaskInfo(taskId);
-      const updatedTask = await updateOdpOrder(taskId, { description: '' });
+      const updatedTask = await updateOrder(taskId, { description: '' });
       this.updateSplitTaskInfo(taskId, updatedTask);
     }
   };
@@ -160,7 +127,7 @@ export class SplitTaskManager {
             // All scheduled tasks should have segment info now
             this.setSplitTaskInfo(taskId, segmentInfo);
           } else {
-            console.warn(`⚠️ Invalid segments for task ${taskId}:`, validation.error);
+            // console.warn(`⚠️ Invalid segments for task ${taskId}:`, validation.error);
             this.clearSplitTaskInfo(taskId);
           }
         } else {
@@ -168,7 +135,7 @@ export class SplitTaskManager {
         }
       } catch (_error) {
         // If parsing fails, it's not segment info, clear it
-        console.warn(`⚠️ Failed to parse segment info for task ${taskId}:`, _error);
+        // console.warn(`⚠️ Failed to parse segment info for task ${taskId}:`, _error);
         this.clearSplitTaskInfo(taskId);
       }
     } else {
@@ -195,13 +162,13 @@ export class SplitTaskManager {
           }
         } catch (_error) {
           // If parsing fails, it's not segment info, ignore
-          console.warn(`Failed to parse segment info for task ${order.odp_number}:`, _error);
+          // console.warn(`Failed to parse segment info for task ${order.odp_number}:`, _error);
         }
       }
     });
     
     this.set({ splitTasksInfo });
-    console.log(`✅ Restored split task info for ${loadedCount} tasks`);
+    // console.log(`✅ Restored split task info for ${loadedCount} tasks`);
   };
 
   // Validate segments for data integrity
@@ -254,7 +221,7 @@ export class SplitTaskManager {
     // Validate segments before creating info
     const validation = this.validateSegments(segments);
     if (!validation.isValid) {
-      console.error('❌ Invalid segments detected:', validation.error);
+      // console.error('❌ Invalid segments detected:', validation.error);
       throw new Error(`Invalid segments: ${validation.error}`);
     }
 
@@ -369,24 +336,24 @@ export class SplitTaskManager {
 
     // Debug logging for shunting conflicts
     if (allExcludeIds.length > 0) {
-      console.log(`📋 Tasks not excluded (sorted by start time):`, sortedTasks.map(t => ({ 
-        id: t.id, 
-        odp: t.odp_number,
-        start: this.getTaskOccupiedSegments(t)[0]?.start?.toISOString() || t.scheduled_start_time,
-        segments: this.getTaskOccupiedSegments(t).length
-      })));
-      console.log(`📋 ALL tasks on machine:`, getOdpOrders().filter(o => 
-        o.scheduled_machine_id === machineId && 
-        o.status === 'SCHEDULED'
-      ).map(t => ({ 
-        id: t.id, 
-        odp: t.odp_number,
-        segments: this.getTaskOccupiedSegments(t).length,
-        start: t.scheduled_start_time,
-        end: t.scheduled_end_time,
-        machine: t.scheduled_machine_id,
-        hasCompleteScheduling: !!(t.scheduled_start_time && t.scheduled_end_time && t.scheduled_machine_id)
-      })));
+      // console.log(`📋 Tasks not excluded (sorted by start time):`, sortedTasks.map(t => ({ 
+      //   id: t.id, 
+      //   odp: t.odp_number,
+      //   start: this.getTaskOccupiedSegments(t)[0]?.start?.toISOString() || t.scheduled_start_time,
+      //   segments: this.getTaskOccupiedSegments(t).length
+      // })));
+      // console.log(`📋 ALL tasks on machine:`, getOdpOrders().filter(o => 
+      //   o.scheduled_machine_id === machineId && 
+      //   o.status === 'SCHEDULED'
+      // ).map(t => ({ 
+      //   id: t.id, 
+      //   odp: t.odp_number,
+      //   segments: this.getTaskOccupiedSegments(t).length,
+      //   start: t.scheduled_start_time,
+      //   end: t.scheduled_end_time,
+      //   machine: t.scheduled_machine_id,
+      //   hasCompleteScheduling: !!(t.scheduled_start_time && t.scheduled_end_time && t.scheduled_machine_id)
+      // })));
     }
 
     for (const existingTask of sortedTasks) {

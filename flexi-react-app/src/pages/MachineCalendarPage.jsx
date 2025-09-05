@@ -10,11 +10,11 @@ function MachineCalendarPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   
   // Use modern slice stores instead of legacy useStore
-  const { getMachineById } = useMachineStore();
+  const { getMachinesById } = useMachineStore();
   const { isLoading, isInitialized } = useUIStore();
   const { init, cleanup } = useMainStore();
   
-  const machine = getMachineById(machineId);
+  const machine = getMachinesById(machineId);
   
   // Debug logging only in development and only when machine is not found
   const allMachines = useMachineStore.getState().machines;

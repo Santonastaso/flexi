@@ -16,42 +16,83 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
   
   const { machines } = useMachineStore();
   const { odpOrders } = useOrderStore();
-  const { machineAvailability, loadMachineAvailabilityForDateRange, toggleMachineHourAvailability } = useSchedulerStore();
+  const { machineAvailability, loadMachineAvailabilityForDateRange, toggleMachineHourAvailability, getTaskOccupiedSegments } = useSchedulerStore();
   const { showAlert } = useUIStore();
   
   const { handleAsync } = useErrorHandler('FullCalendarGrid');
   
   const machine = machines.find(m => m.id === machineId);
 
+  // Helper function to get actual task segments
+  const getTaskSegments = useCallback((task) => {
+    try {
+      // Try to get segments from the split task manager
+      const segments = getTaskOccupiedSegments(task);
+      if (segments && segments.length > 0) {
+        return segments;
+      }
+      
+      // Fallback: if no segments found, create a single segment from scheduled times
+      if (task.scheduled_start_time && task.scheduled_end_time) {
+        return [{
+          start: new Date(task.scheduled_start_time),
+          end: new Date(task.scheduled_end_time),
+          duration: (new Date(task.scheduled_end_time).getTime() - new Date(task.scheduled_start_time).getTime()) / (1000 * 60 * 60)
+        }];
+      }
+      
+      return [];
+    } catch (error) {
+      console.warn('Failed to get task segments:', error);
+      return [];
+    }
+  }, [getTaskOccupiedSegments]);
 
 
-  // Convert scheduled tasks to FullCalendar events
+
+  // Convert scheduled tasks to FullCalendar events (showing actual segments)
   const scheduledEvents = useMemo(() => {
     if (!machine) return [];
     
-    return odpOrders
+    const events = [];
+    
+    odpOrders
       .filter(task => 
         task.status === 'SCHEDULED' && 
         task.scheduled_machine_id === machine.id &&
         task.scheduled_start_time &&
         task.scheduled_end_time
       )
-      .map(task => ({
-        id: task.id,
-        title: `${task.odp_number} - ${task.article_code}`,
-        start: task.scheduled_start_time,
-        end: task.scheduled_end_time,
-        backgroundColor: '#3b82f6',
-        borderColor: '#2563eb',
-        textColor: '#ffffff',
-        extendedProps: {
-          odpNumber: task.odp_number,
-          articleCode: task.article_code,
-          quantity: task.quantity,
-          status: task.status
-        }
-      }));
-  }, [machine, odpOrders]);
+      .forEach(task => {
+        // Get the actual segments for this task
+        const segments = getTaskSegments(task);
+        
+        segments.forEach((segment, index) => {
+          const isSplitTask = segments.length > 1;
+          events.push({
+            id: `${task.id}-segment-${index}`,
+            title: `${task.odp_number} - ${task.article_code}${isSplitTask ? ` (${index + 1}/${segments.length})` : ''}`,
+            start: segment.start,
+            end: segment.end,
+            backgroundColor: isSplitTask ? '#8b5cf6' : '#3b82f6', // Purple for split tasks, blue for single
+            borderColor: isSplitTask ? '#7c3aed' : '#2563eb',
+            textColor: '#ffffff',
+            extendedProps: {
+              taskId: task.id,
+              odpNumber: task.odp_number,
+              articleCode: task.article_code,
+              quantity: task.quantity,
+              status: task.status,
+              segmentIndex: index,
+              totalSegments: segments.length,
+              isSplitTask: isSplitTask
+            }
+          });
+        });
+      });
+    
+    return events;
+  }, [machine, odpOrders, getTaskSegments]);
 
   // Convert machine availability to FullCalendar events
   const availabilityEvents = useMemo(() => {
@@ -112,10 +153,10 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
       
       setIsLoading(true);
       try {
-        // Load data for the current month
+        // Load data for the current month (UTC)
         const now = new Date();
-        const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+        const endDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
         
         await loadMachineAvailabilityForDateRange(
           machineId, 
@@ -193,7 +234,7 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
   const calendarOptions = useMemo(() => ({
     plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
     initialView: 'dayGridMonth',
-    initialDate: new Date(),
+    initialDate: new Date(), // FullCalendar will handle UTC conversion with timeZone: 'UTC'
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',
@@ -201,6 +242,7 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
     },
     height: 'auto',
     locale: 'it',
+    timeZone: 'UTC', // Force UTC timezone
     firstDay: AppConfig.APP.FIRST_DAY_OF_WEEK, // Monday as first day of week
     slotMinTime: '06:00:00',
     slotMaxTime: '22:00:00',

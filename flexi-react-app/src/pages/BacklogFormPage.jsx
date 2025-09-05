@@ -7,13 +7,13 @@ import { useOrderStore, useUIStore, useMainStore } from '../store';
 function BacklogFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getOdpOrderById } = useOrderStore();
+  const { getOdpOrdersById } = useOrderStore();
   const { selectedWorkCenter } = useUIStore();
   const { isLoading, isInitialized, init, cleanup } = useMainStore();
 
   // Check if this is edit mode (has ID) or add mode (no ID)
   const isEditMode = Boolean(id);
-  const order = isEditMode ? getOdpOrderById(id) : null;
+  const order = isEditMode ? getOdpOrdersById(id) : null;
 
   // Initialize store on component mount
   useEffect(() => {

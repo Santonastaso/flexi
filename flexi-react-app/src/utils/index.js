@@ -14,6 +14,15 @@ export {
   dismissAll, 
   dismiss 
 } from './toast';
+export {
+  AppError,
+  ERROR_TYPES,
+  handleApiError,
+  handleValidationError,
+  handleBusinessError,
+  createErrorHandler,
+  safeAsync,
+  withRetry
+} from './errorHandling';
 
-// Re-export individual functions for convenience
-export * from './validation';
+// Legacy validation utilities removed - all validation now handled by Yup schemas

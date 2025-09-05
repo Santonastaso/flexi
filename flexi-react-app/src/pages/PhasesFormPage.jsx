@@ -7,13 +7,13 @@ import { usePhaseStore, useUIStore, useMainStore } from '../store';
 function PhasesFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getPhaseById } = usePhaseStore();
+  const { getPhasesById } = usePhaseStore();
   const { selectedWorkCenter } = useUIStore();
   const { isLoading, isInitialized, init, cleanup } = useMainStore();
 
   // Check if this is edit mode (has ID) or add mode (no ID)
   const isEditMode = Boolean(id);
-  const phase = isEditMode ? getPhaseById(id) : null;
+  const phase = isEditMode ? getPhasesById(id) : null;
 
   // Initialize store on component mount
   useEffect(() => {

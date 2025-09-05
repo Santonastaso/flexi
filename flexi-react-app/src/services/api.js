@@ -1,5 +1,5 @@
 import { supabase, handleSupabaseError } from './supabase/client';
-import { safeAsync, handleApiError, AppError, ERROR_TYPES } from '../utils/errorUtils';
+import { safeAsync, handleApiError, AppError, ERROR_TYPES } from '../utils/errorHandling';
 import { format, addDays } from 'date-fns';
 import { AppConfig } from './config';
 
@@ -43,7 +43,7 @@ class ApiService {
         
       if (error) throw error;
       return data || [];
-    }, 'getMachines')();
+    }, 'getMachines');
   }
 
   async addMachine(machineData) {
