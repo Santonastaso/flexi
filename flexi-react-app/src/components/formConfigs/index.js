@@ -5,4 +5,5 @@
 
 export { machineFormConfig } from './machineFormConfig';
 export { phaseFormConfig } from './phaseFormConfig';
+export { backlogFormConfig } from './backlogFormConfig';
 export { offTimeFormConfig } from './offTimeFormConfig';

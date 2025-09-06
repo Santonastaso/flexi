@@ -54,6 +54,7 @@ function GenericForm({
   isEditMode = false,
   isLoading = false,
   customActions = null,
+  customFieldRenderers = {},
   className = "p-1 bg-white rounded-lg shadow-sm border"
 }) {
   const { handleAsync } = useErrorHandler('GenericForm');
@@ -133,6 +134,18 @@ function GenericForm({
     // Check conditional rendering
     if (field.conditional && !field.conditional(fieldValue, watch, getValues)) {
       return null;
+    }
+
+    // Check for custom field renderer first
+    if (customFieldRenderers[field.type]) {
+      return customFieldRenderers[field.type](field, {
+        watch,
+        setValue,
+        getValues,
+        register,
+        isSubmitting,
+        fieldValue
+      });
     }
 
     const baseInputProps = {
@@ -249,10 +262,23 @@ function GenericForm({
     );
   };
 
+  // Render custom sections (like calculation results)
+  const renderCustomSection = (sectionKey) => {
+    if (customFieldRenderers[sectionKey]) {
+      return customFieldRenderers[sectionKey]();
+    }
+    return null;
+  };
+
   return (
     <div className={className}>
       <form onSubmit={handleSubmit(handleFormSubmit)} noValidate className="space-y-2">
         {config.sections.map(renderSection)}
+        
+        {/* Render custom sections */}
+        {config.customFields && Object.keys(config.customFields).map(sectionKey => 
+          renderCustomSection(sectionKey)
+        )}
         
         {customActions && (
           <div className="space-y-2">

@@ -1,19 +1,15 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
 import { useUIStore, useSchedulerStore } from '../store';
 import { useProductionCalculations, useValidation, useAddOrder, useUpdateOrder } from '../hooks';
 import { usePhaseSearch } from '../hooks/usePhaseSearch';
 import { showValidationError, showSuccess, showWarning, showError } from '../utils';
-import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES, SEAL_SIDES, PRODUCT_TYPES } from '../constants';
+import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES } from '../constants';
 import { useErrorHandler } from '../hooks';
+import { backlogFormConfig } from './formConfigs';
+import GenericForm from './GenericForm';
 import {
   Button,
   Input,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Label,
 } from './ui';
 
@@ -31,7 +27,24 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   const [calculationResults, setCalculationResults] = useState(null);
   const isEditMode = Boolean(orderToEdit);
   
-  const initialFormData = useMemo(() => ({
+  // Create dynamic config based on selected work center
+  const dynamicConfig = useMemo(() => {
+    const config = { ...backlogFormConfig };
+    
+    // Update work center field based on selected work center
+    if (selectedWorkCenter !== WORK_CENTERS.BOTH) {
+      const workCenterField = config.sections[0].fields.find(f => f.name === 'work_center');
+      if (workCenterField) {
+        workCenterField.disabled = true;
+        workCenterField.defaultValue = selectedWorkCenter;
+        workCenterField.helpText = 'Centro di lavoro pre-impostato.';
+      }
+    }
+    
+    return config;
+  }, [selectedWorkCenter]);
+
+  const initialData = useMemo(() => ({
     odp_number: orderToEdit?.odp_number || '', 
     article_code: orderToEdit?.article_code || '', 
     production_lot: orderToEdit?.production_lot || '', 
@@ -54,23 +67,25 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     fase: orderToEdit?.fase || '',
   }), [selectedWorkCenter, orderToEdit]);
 
-  const { register, handleSubmit, formState: { isSubmitting }, watch, setValue, getValues, reset, clearErrors } = useForm({ defaultValues: initialFormData });
+  const [department, setDepartment] = useState(initialData.department);
+  const [workCenter, setWorkCenter] = useState(initialData.work_center);
+  const [quantity, setQuantity] = useState(initialData.quantity);
+  const [bagStep, setBagStep] = useState(initialData.bag_step);
 
-  const articleCode = watch('article_code');
-  const department = watch('department');
-  const workCenter = watch('work_center');
-
-  const { phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, selectedPhase, setSelectedPhase, filteredPhases, editablePhaseParams, setEditablePhaseParams, handlePhaseParamChange, handlePhaseSelect, handleBlur } = usePhaseSearch(department, workCenter);
+  const { phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, selectedPhase, setSelectedPhase, filteredPhases, editablePhaseParams, setEditablePhaseParams, handlePhaseParamChange, handlePhaseSelect, handleBlur } = usePhaseSearch(
+    department, 
+    workCenter
+  );
 
   const resetFormAndPhaseState = useCallback(() => {
-    reset(initialFormData);
     setPhaseSearch('');
     setSelectedPhase(null);
     setEditablePhaseParams({});
     setCalculationResults(null);
-  }, [initialFormData, reset, setPhaseSearch, setSelectedPhase, setEditablePhaseParams]);
+  }, [setPhaseSearch, setSelectedPhase, setEditablePhaseParams]);
 
-  useEffect(() => {
+  // Handle article code changes to auto-determine department and work center
+  const handleArticleCodeChange = useCallback((articleCode, setValue) => {
     if (articleCode) {
       const dept = autoDetermineDepartment(articleCode);
       setValue('department', dept);
@@ -83,19 +98,9 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       setEditablePhaseParams({});
       setCalculationResults(null);
     }
-  }, [articleCode, autoDetermineDepartment, autoDetermineWorkCenter, setValue, selectedWorkCenter, setPhaseSearch, setSelectedPhase, setEditablePhaseParams]);
+  }, [autoDetermineDepartment, autoDetermineWorkCenter, selectedWorkCenter, setPhaseSearch, setSelectedPhase, setEditablePhaseParams]);
 
-  // Effect to populate phase data when editing an existing order
-  useEffect(() => {
-    if (isEditMode && orderToEdit?.fase) {
-      // For now, we'll need to fetch the phase data
-      // This will be handled by the phase search hook when it's migrated to React Query
-      // For now, we'll set the phase ID and let the phase search handle the rest
-      setValue('fase', orderToEdit.fase);
-    }
-  }, [isEditMode, orderToEdit?.fase, setValue]);
-
-  const onSubmit = async (data) => {
+  const handleSubmit = async (data) => {
     const validation = validateOrder(data);
     
     if (!validation.isValid) {
@@ -135,18 +140,25 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   };
 
   const handleCalculate = () => {
-    if (!selectedPhase || !getValues('quantity') || !getValues('bag_step')) {
-      showWarning("Seleziona una fase e inserisci Quantità e Passo Busta per calcolare.");
+    if (!selectedPhase) {
+      showWarning("Seleziona una fase prima di calcolare.");
       return;
     }
+    
+    if (!quantity || !bagStep) {
+      showWarning("Inserisci Quantità e Passo Busta per calcolare.");
+      return;
+    }
+    
     const phaseForCalculation = { ...selectedPhase, ...editablePhaseParams };
     const validation = validatePhaseParameters(phaseForCalculation);
     if (!validation.isValid) {
-              showError(validation.error);
+      showError(validation.error);
       setCalculationResults(null);
       return;
     }
-    const results = calculateProductionMetrics(phaseForCalculation, getValues('quantity'), getValues('bag_step'));
+    
+    const results = calculateProductionMetrics(phaseForCalculation, quantity, bagStep);
     if (!results || typeof results.totals?.duration !== 'number' || typeof results.totals?.cost !== 'number') {
       showError("Errore nel calcolo. Verifica i parametri della fase.");
       setCalculationResults(null);
@@ -172,236 +184,167 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         ];
   };
 
+  // Custom field renderers for the backlog form
+  const customFieldRenderers = useMemo(() => ({
+    // Article code field with auto-determination
+    article_code: (field, { watch, setValue, getValues, register }) => {
+      return (
+        <Input 
+          type="text" 
+          {...register(field.name, {
+            ...field.validation,
+            onChange: (e) => {
+              // Call the registered onChange first
+              if (field.validation?.onChange) {
+                field.validation.onChange(e);
+              }
+              // Then trigger our automation
+              handleArticleCodeChange(e.target.value, setValue);
+            }
+          })}
+          placeholder={field.placeholder}
+          disabled={field.disabled}
+          className={field.className}
+        />
+      );
+    },
+
+    // Phase search field
+    phase_search: (field, { watch, setValue, getValues, register }) => {
+      const currentDepartment = watch('department');
+      const currentWorkCenter = watch('work_center');
+      const currentQuantity = watch('quantity');
+      const currentBagStep = watch('bag_step');
+      
+      // Update local state when form values change
+      useEffect(() => {
+        if (currentDepartment !== department) {
+          setDepartment(currentDepartment);
+        }
+        if (currentWorkCenter !== workCenter) {
+          setWorkCenter(currentWorkCenter);
+        }
+        if (currentQuantity !== quantity) {
+          setQuantity(currentQuantity);
+        }
+        if (currentBagStep !== bagStep) {
+          setBagStep(currentBagStep);
+        }
+      }, [currentDepartment, currentWorkCenter, currentQuantity, currentBagStep, department, workCenter, quantity, bagStep]);
+
+      return (
+        <div className="relative">
+          <Input 
+            type="text" 
+            value={phaseSearch} 
+            onChange={(e) => setPhaseSearch(e.target.value)} 
+            onFocus={() => setIsDropdownVisible(true)} 
+            onBlur={handleBlur}
+            placeholder="Cerca fase di produzione..."
+          />
+          <input type="hidden" {...register('fase')} />
+          {isDropdownVisible && filteredPhases.length > 0 && (
+            <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
+              {filteredPhases.map(phase => (
+                <div 
+                  key={phase.id} 
+                  className="px-3 py-1 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                  onMouseDown={() => { 
+                    handlePhaseSelect(phase, setValue, () => {}); 
+                    setCalculationResults(null);
+                  }}
+                >
+                  <div className="font-medium">{phase.name}</div>
+                  <div className="text-[10px] text-gray-600">{phase.contenuto_fase}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    },
+
+    // Phase parameters section
+    phase_parameters: () => {
+      if (!selectedPhase) return null;
+      
+      return (
+        <div className="space-y-2">
+          <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">
+            Parametri Fase Selezionata
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {getPhaseFields().map(field => (
+              <div className="space-y-2" key={field.name}>
+                <Label htmlFor={field.name}>{field.label}</Label>
+                <div className="flex items-center space-x-2">
+                  <Input 
+                    type="number" 
+                    id={field.name} 
+                    value={getPhaseParamValue(field.name)} 
+                    onChange={(e) => handlePhaseParamChange(field.name, e.target.value)} 
+                  />
+                  <span className="text-[10px] text-gray-500 whitespace-nowrap">{field.unit}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    },
+
+    // Calculation results section
+    calculation_results: () => {
+      if (!calculationResults?.totals) return null;
+      
+      return (
+        <div className="space-y-2">
+          <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">
+            Risultati Calcolo Produzione
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="space-y-2">
+              <Label>Durata Totale (ore):</Label>
+              <div className="text-[10px] font-semibold text-navy-800">
+                {calculationResults.totals.duration.toFixed(2)}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Costo Totale (€):</Label>
+              <div className="text-[10px] font-semibold text-green-600">
+                {calculationResults.totals.cost.toFixed(2)}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }), [phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, filteredPhases, handleBlur, handlePhaseSelect, setCalculationResults, selectedPhase, getPhaseParamValue, handlePhaseParamChange, getPhaseFields, calculationResults, handleArticleCodeChange]);
+
+  // Custom actions (Calculate button)
+  const customActions = useMemo(() => (
+    <div className="flex justify-end space-x-4 pt-6">
+      <Button type="button" variant="outline" onClick={handleCalculate} disabled={!selectedPhase}>
+        Calcola
+      </Button>
+    </div>
+  ), [selectedPhase, handleCalculate]);
+
   // Use mutation loading state
   const isLoading = addOrderMutation.isPending || updateOrderMutation.isPending;
 
   return (
-    <div className="p-1 bg-white rounded-lg shadow-sm border">
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-2">
-        {/* IDENTIFICAZIONE Section */}
-        <div className="space-y-2">
-                       <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Identificazione</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-            <div className="space-y-2">
-              <Label htmlFor="odp_number">Numero ODP *</Label>
-              <Input type="text" id="odp_number" {...register('odp_number')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="article_code">Codice Articolo *</Label>
-              <Input type="text" id="article_code" {...register('article_code')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="production_lot">Codice Articolo Esterno *</Label>
-              <Input type="text" id="production_lot" {...register('production_lot')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="work_center">Centro di Lavoro *</Label>
-              {selectedWorkCenter === WORK_CENTERS.BOTH ? (
-                <Select onValueChange={(value) => setValue('work_center', value)} defaultValue={watch('work_center')}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleziona" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={WORK_CENTERS.ZANICA}>ZANICA</SelectItem>
-                    <SelectItem value={WORK_CENTERS.BUSTO_GAROLFO}>BUSTO GAROLFO</SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : (
-                <>
-                  <Input type="text" id="work_center" value={selectedWorkCenter} disabled className="bg-gray-50" />
-                  <p className="text-[10px] text-gray-500">Centro di lavoro pre-impostato.</p>
-                </>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nome_cliente">Nome Cliente *</Label>
-              <Input type="text" id="nome_cliente" {...register('nome_cliente')} />
-            </div>
-          </div>
-        </div>
-
-        {/* SPECIFICHE TECNICHE Section */}
-        <div className="space-y-2">
-                       <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Specifiche Tecniche</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-            <div className="space-y-2">
-              <Label htmlFor="bag_height">Altezza Busta (mm) *</Label>
-              <Input type="number" id="bag_height" {...register('bag_height')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bag_width">Larghezza Busta (mm) *</Label>
-              <Input type="number" id="bag_width" {...register('bag_width')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bag_step">Passo Busta (mm) *</Label>
-              <Input type="number" id="bag_step" {...register('bag_step')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="seal_sides">Lati Sigillatura *</Label>
-              <Select onValueChange={(value) => setValue('seal_sides', value)} defaultValue={watch('seal_sides')}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleziona" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={SEAL_SIDES.THREE}>3 lati</SelectItem>
-                  <SelectItem value={SEAL_SIDES.FOUR}>4 lati</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="product_type">Tipo Prodotto *</Label>
-              <Select onValueChange={(value) => setValue('product_type', value)} defaultValue={watch('product_type')}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleziona" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={PRODUCT_TYPES.CREMA}>CREMA</SelectItem>
-                  <SelectItem value={PRODUCT_TYPES.LIQUIDO}>LIQUIDO</SelectItem>
-                  <SelectItem value={PRODUCT_TYPES.POLVERI}>POLVERI</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="quantity">Quantità *</Label>
-              <Input type="number" id="quantity" {...register('quantity')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="quantity_per_box">Q.tà per Scatola *</Label>
-              <Input type="number" id="quantity_per_box" {...register('quantity_per_box')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="quantity_completed">Q.tà Completata *</Label>
-              <Input type="number" id="quantity_completed" {...register('quantity_completed')} />
-            </div>
-          </div>
-        </div>
-        
-        {/* DATI COMMERCIALI Section */}
-        <div className="space-y-2">
-                       <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Dati Commerciali</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-            <div className="space-y-2">
-              <Label htmlFor="internal_customer_code">Lotto FLEXI *</Label>
-              <Input type="text" id="internal_customer_code" {...register('internal_customer_code')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="external_customer_code">Lotto Cliente *</Label>
-              <Input type="text" id="external_customer_code" {...register('external_customer_code')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="customer_order_ref">Riferimento Cliente *</Label>
-              <Input type="text" id="customer_order_ref" {...register('customer_order_ref')} />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="user_notes">Note Libere</Label>
-            <textarea 
-              id="user_notes" 
-              {...register('user_notes')} 
-              rows="3" 
-              placeholder="Inserisci note libere per l'ordine..." 
-                              className="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-800 focus:border-transparent"
-            />
-          </div>
-        </div>
-
-        {/* DATI LAVORAZIONE & PIANIFICAZIONE Section */}
-        <div className="space-y-2">
-                       <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Dati Lavorazione & Pianificazione</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-            <div className="space-y-2">
-              <Label htmlFor="department">Reparto *</Label>
-              <Input type="text" id="department" {...register('department')} readOnly className="bg-gray-50" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phase_search">Cerca Fase di Produzione *</Label>
-              <div className="relative">
-                <Input 
-                  type="text" 
-                  id="phase_search" 
-                  value={phaseSearch} 
-                  onChange={(e) => setPhaseSearch(e.target.value)} 
-                  onFocus={() => setIsDropdownVisible(true)} 
-                  onBlur={handleBlur} 
-                />
-                <input type="hidden" {...register('fase')} />
-                {isDropdownVisible && filteredPhases.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
-                    {filteredPhases.map(phase => (
-                      <div 
-                        key={phase.id} 
-                        className="px-3 py-1 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
-                        onMouseDown={() => { 
-                          handlePhaseSelect(phase, setValue, clearErrors); 
-                          setCalculationResults(null);
-                        }}
-                      >
-                        <div className="font-medium">{phase.name}</div>
-                        <div className="text-[10px] text-gray-600">{phase.contenuto_fase}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="delivery_date">Data di Consegna *</Label>
-              <Input type="datetime-local" id="delivery_date" {...register('delivery_date')} />
-            </div>
-          </div>
-        </div>
-
-        {/* Selected Phase Parameters */}
-                  {selectedPhase && (
-            <div className="space-y-2">
-                          <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Parametri Fase Selezionata</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              {getPhaseFields().map(field => (
-                <div className="space-y-2" key={field.name}>
-                  <Label htmlFor={field.name}>{field.label}</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input 
-                      type="number" 
-                      id={field.name} 
-                      value={getPhaseParamValue(field.name)} 
-                      onChange={(e) => handlePhaseParamChange(field.name, e.target.value)} 
-                    />
-                    <span className="text-[10px] text-gray-500 whitespace-nowrap">{field.unit}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Production Calculation Results */}
-                  {calculationResults?.totals && (
-            <div className="space-y-2">
-                          <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">Risultati Calcolo Produzione</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <div className="space-y-2">
-                <Label>Durata Totale (ore):</Label>
-                                 <div className="text-[10px] font-semibold text-navy-800">{calculationResults.totals.duration.toFixed(2)}</div>
-              </div>
-              <div className="space-y-2">
-                <Label>Costo Totale (€):</Label>
-                                 <div className="text-[10px] font-semibold text-green-600">{calculationResults.totals.cost.toFixed(2)}</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="flex justify-end space-x-4 pt-6">
-          <Button type="button" variant="outline" onClick={handleCalculate} disabled={!selectedPhase}>
-            Calcola
-          </Button>
-          <Button type="submit" disabled={!calculationResults || isLoading}>
-            {isLoading ? (isEditMode ? 'Aggiornamento...' : 'Aggiunta...') : (isEditMode ? 'Aggiorna Ordine' : 'Aggiungi al Backlog')}
-          </Button>
-        </div>
-      </form>
-    </div>
+    <GenericForm
+      config={dynamicConfig}
+      initialData={initialData}
+      onSubmit={handleSubmit}
+      onSuccess={onSuccess}
+      isEditMode={isEditMode}
+      isLoading={isLoading}
+      customActions={customActions}
+      customFieldRenderers={customFieldRenderers}
+    />
   );
-}
+};
 
 export default BacklogForm;
