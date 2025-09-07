@@ -690,7 +690,7 @@ function SchedulerPage() {
               {/* PDF Download Button */}
               <button
                 className="nav-btn secondary"
-                onClick={() => downloadGanttAsHTML('.calendar-section .calendar-grid', formatDateDisplay())}
+                onClick={() => downloadGanttAsHTML('.calendar-section .calendar-grid-container', formatDateDisplay())}
                 title="Download exact Gantt chart as HTML file"
               >
                 Scarica HTML

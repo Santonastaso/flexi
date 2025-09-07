@@ -676,7 +676,7 @@
     flex-direction: column;
     justify-content: center;
     background: var(--content-bg);
-    min-height: 25px;
+    min-height: 60px;
 }
 
 .machine-label-only:nth-child(even) {
@@ -838,7 +838,7 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    min-height: 30px;
+    min-height: 60px;
 }
 
 .time-slot:nth-child(4n+1) {
@@ -897,7 +897,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 25px;
+    min-height: 60px;
     box-sizing: border-box;
     font-size: 10px;
     font-weight: 400;
@@ -916,7 +916,7 @@
 .machine-row {
     display: flex;
     border-bottom: 2px solid #d1d5db;
-    min-height: 25px;
+    min-height: 60px;
     width: 100%;
     min-width: 960px;
     background: var(--content-bg);
@@ -2276,3 +2276,4 @@
         height: 20px;
     }
 }
+

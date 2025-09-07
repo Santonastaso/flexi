@@ -96,9 +96,8 @@ export class ConflictResolution {
   };
 
   // BULLETPROOF: Check if a task's segments would overlap with existing tasks after shunting
-  checkShuntingOverlaps = (taskSegments, machineId, excludeTaskIds = []) => {
-    const { getOdpOrders } = useOrderStore.getState();
-    const existingTasks = getOdpOrders().filter(o => 
+  checkShuntingOverlaps = (taskSegments, machineId, tasks, excludeTaskIds = []) => {
+    const existingTasks = tasks.filter(o => 
       o.scheduled_machine_id === machineId && 
       o.status === 'SCHEDULED' &&
       !excludeTaskIds.includes(o.id)
@@ -125,16 +124,14 @@ export class ConflictResolution {
   };
 
   // IMPROVED SHUNTING METHOD: Resolve conflict by shunting tasks in the chosen direction
-  resolveConflictByShunting = async (conflictDetails, direction) => {
+  resolveConflictByShunting = async (conflictDetails, direction, tasks, draggedTask, updateOrder) => {
     try {
       
-      const { conflictingTask, draggedTask, proposedStartTime: proposedStartTimeRaw, machine } = conflictDetails;
+      const { conflictingTask, proposedStartTime: proposedStartTimeRaw, machine } = conflictDetails;
       const proposedStartTime = new Date(proposedStartTimeRaw);
-      const { updateOrder } = useOrderStore.getState();
-      const { getOdpOrders } = useOrderStore.getState();
       
       // Get all scheduled tasks on this machine (using segment-aware sorting)
-      const scheduledTasks = getOdpOrders().filter(o => 
+      const scheduledTasks = tasks.filter(o => 
         o.scheduled_machine_id === machine.id && 
         o.status === 'SCHEDULED' &&
         o.id !== draggedTask.id

@@ -54,11 +54,12 @@ export const useSchedulerStore = create((set, get) => {
     // Consolidated drag-and-drop methods
     scheduleTaskFromSlot: async (taskId, machine, currentDate, hour, minute) => {
       try {
-        // Get task and machine data
-        const { getOdpOrdersById } = useOrderStore.getState();
+        // Get task and machine data from stores
+        const { getOdpOrdersById, getOdpOrders, updateOrder } = useOrderStore.getState();
         const { getMachinesById } = useMachineStore.getState();
         const task = getOdpOrdersById(taskId);
         const machineData = getMachinesById(machine.id);
+        const tasks = getOdpOrders();
 
         if (!task || !machineData) {
           return { error: 'Task or machine not found' };
@@ -82,8 +83,8 @@ export const useSchedulerStore = create((set, get) => {
           end_time: addHours(startDate, timeRemainingHours).toISOString(),
         };
 
-        // Use existing scheduleTask method with all validations
-        return await get().scheduleTask(taskId, scheduleData);
+        // Use existing scheduleTask method with all validations, passing tasks and updateOrder
+        return await get().scheduleTask(taskId, scheduleData, tasks, updateOrder);
       } catch (error) {
         const appError = handleApiError(error, 'SchedulerStore.scheduleTaskFromSlot');
         return { error: appError.message };
@@ -92,11 +93,12 @@ export const useSchedulerStore = create((set, get) => {
 
     rescheduleTaskToSlot: async (eventId, machine, currentDate, hour, minute) => {
       try {
-        // Get event data
-        const { getOdpOrdersById } = useOrderStore.getState();
+        // Get event data from stores
+        const { getOdpOrdersById, getOdpOrders, updateOrder } = useOrderStore.getState();
         const { getMachinesById } = useMachineStore.getState();
         const eventItem = getOdpOrdersById(eventId);
         const machineData = getMachinesById(machine.id);
+        const tasks = getOdpOrders();
 
         if (!eventItem || !machineData) {
           return { error: 'Event or machine not found' };
@@ -120,8 +122,8 @@ export const useSchedulerStore = create((set, get) => {
           end_time: addHours(startDate, timeRemainingHours).toISOString(),
         };
 
-        // Use existing scheduleTask method with all validations
-        return await get().scheduleTask(eventId, scheduleData);
+        // Use existing scheduleTask method with all validations, passing tasks and updateOrder
+        return await get().scheduleTask(eventId, scheduleData, tasks, updateOrder);
       } catch (error) {
         const appError = handleApiError(error, 'SchedulerStore.rescheduleTaskToSlot');
         return { error: appError.message };
@@ -129,13 +131,16 @@ export const useSchedulerStore = create((set, get) => {
     },
 
     // Main scheduler actions
-    scheduleTask: async (taskId, eventData) => {
+    scheduleTask: async (taskId, eventData, tasks = null, updateOrder = null) => {
       try {
-        // Validate work_center compatibility before scheduling
-        const { getOdpOrdersById } = useOrderStore.getState();
+        // Get data from stores if not provided
+        const { getOdpOrdersById, getOdpOrders, updateOrder: defaultUpdateOrder } = useOrderStore.getState();
         const { getMachinesById } = useMachineStore.getState();
+        
         const task = getOdpOrdersById(taskId);
         const machine = getMachinesById(eventData.machine);
+        const tasksData = tasks || getOdpOrders();
+        const updateOrderFn = updateOrder || defaultUpdateOrder;
         
         if (task && machine && task.work_center && machine.work_center && task.work_center !== machine.work_center) {
           return { error: `Work center mismatch: task requires '${task.work_center}' but machine is '${machine.work_center}'` };
@@ -165,7 +170,9 @@ export const useSchedulerStore = create((set, get) => {
             proposedEndTime: eventData.end_time,
             machine: machine,
             conflictingSegment: schedulingResult.conflictingSegment,
-            proposedSegments: schedulingResult.proposedSegments
+            proposedSegments: schedulingResult.proposedSegments,
+            tasks: tasksData,
+            updateOrder: updateOrderFn
           };
         }
 
@@ -193,8 +200,7 @@ export const useSchedulerStore = create((set, get) => {
         }
         
         // Call the update method from the order store
-        const { updateOrder } = useOrderStore.getState();
-        const result = await updateOrder(taskId, updates);
+        const result = await updateOrderFn(taskId, updates);
         
         // Also update the split task info in memory for immediate access
         if (schedulingResult.segments) {
@@ -255,7 +261,11 @@ export const useSchedulerStore = create((set, get) => {
     initializeEmptyMachineAvailability: machineAvailabilityManager.initializeEmptyMachineAvailability,
 
     // Conflict resolution methods (delegated to ConflictResolution)
-    resolveConflictByShunting: conflictResolution.resolveConflictByShunting,
+    resolveConflictByShunting: async (conflictDetails, direction) => {
+      const { getOdpOrders, updateOrder } = useOrderStore.getState();
+      const tasks = getOdpOrders();
+      return await conflictResolution.resolveConflictByShunting(conflictDetails, direction, tasks, conflictDetails.draggedTask, updateOrder);
+    },
 
     // Additional utility methods
     validateSlotAvailability: async (machine, currentDate, hour, minute) => {
