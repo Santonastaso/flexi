@@ -33,8 +33,10 @@ export class SplitTaskManager {
       try {
         const segmentInfo = JSON.parse(task.description);
         if (segmentInfo.segments && Array.isArray(segmentInfo.segments)) {
-          // Store in memory for future access
-          this.setSplitTaskInfo(taskId, segmentInfo);
+          // Store in memory for future access - defer to avoid setState during render
+          setTimeout(() => {
+            this.setSplitTaskInfo(taskId, segmentInfo);
+          }, 0);
           return segmentInfo;
         }
       } catch (_error) {

@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
 import { showError } from '../utils';
 import SearchableDropdown from '../components/SearchableDropdown';
+import { useQueryClient } from '@tanstack/react-query';
 
 import TaskLookupInput from '../components/TaskLookupInput';
 
@@ -129,6 +130,7 @@ function SchedulerPage() {
   const { selectedWorkCenter, isLoading, isInitialized, showAlert, isEditMode, toggleEditMode, showConflictDialog, schedulingLoading } = useUIStore();
   const { scheduleTask, unscheduleTask, scheduleTaskFromSlot, rescheduleTaskToSlot, validateSlotAvailability } = useSchedulerStore();
   const { init, cleanup } = useMainStore();
+  const queryClient = useQueryClient();
 
   // Initialize with UTC today
   const [currentDate, setCurrentDate] = useState(() => {
@@ -490,7 +492,7 @@ function SchedulerPage() {
             }
 
             // Use consolidated method from store
-            const result = await scheduleTaskFromSlot(task.id, machine, currentDate, hour, minute);
+            const result = await scheduleTaskFromSlot(task.id, machine, currentDate, hour, minute, null, queryClient);
             if (result?.error) {
               showAlert(result.error, 'error');
             } else if (result?.conflict) {
@@ -513,7 +515,7 @@ function SchedulerPage() {
             }
 
             // Use consolidated method from store
-            const result = await rescheduleTaskToSlot(eventItem.id, machine, currentDate, hour, minute);
+            const result = await rescheduleTaskToSlot(eventItem.id, machine, currentDate, hour, minute, queryClient);
             if (result?.error) {
               showAlert(result.error, 'error');
             } else if (result?.conflict) {
@@ -525,7 +527,7 @@ function SchedulerPage() {
           // Case 3: Dragging an event back to the task pool (unscheduling)
           else if (draggedItem.type === 'event' && dropZone.type === 'pool') {
             const eventToUnschedule = draggedItem.event;
-            unscheduleTask(eventToUnschedule.id);
+            unscheduleTask(eventToUnschedule.id, queryClient);
           }
 
           // Case 4: Dragging a task or event to the next day zone

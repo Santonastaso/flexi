@@ -6,6 +6,7 @@ import { format, startOfDay, endOfDay, startOfWeek, isSameDay, addDays } from 'd
 import { AppConfig } from '../services/config';
 import NextDayDropZone from './NextDayDropZone';
 import PreviousDayDropZone from './PreviousDayDropZone';
+import { useQueryClient } from '@tanstack/react-query';
 
 
 // A single 15-minute time slot on the calendar that can receive a dropped task
@@ -50,7 +51,7 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
 });
 
 // A scheduled event that can be dragged to be rescheduled or unscheduled
-const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
+const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient }) => {
     const [isLocked, setIsLocked] = useState(true); // Events start locked by default
     const navigate = useNavigate();
     const { getSplitTaskInfo, splitTasksInfo } = useSchedulerStore();
@@ -363,7 +364,7 @@ Note Libere: ${event.user_notes || 'Nessuna nota'}
                             e.stopPropagation();
                             e.preventDefault();
                             try {
-                                await useSchedulerStore.getState().unscheduleTask(event.id);
+                                await useSchedulerStore.getState().unscheduleTask(event.id, queryClient);
                             } catch (error) {
                                 console.error('Error unscheduling task:', error);
                             }
@@ -390,7 +391,7 @@ Note Libere: ${event.user_notes || 'Nessuna nota'}
 });
 
 // A single row in the Gantt chart, representing one machine
-const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavailableByMachine, dropTargetId, hideMachineLabel = false }) => {
+const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavailableByMachine, dropTargetId, hideMachineLabel = false, queryClient }) => {
   // Memoize scheduled events for this machine - optimize filtering
   const machineScheduledEvents = useMemo(() =>
     scheduledEvents.filter(event => event.scheduled_machine_id === machine.id),
@@ -436,6 +437,7 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
             event={event}
             machine={machine}
             currentDate={currentDate}
+            queryClient={queryClient}
           />
         ))}
       </div>
@@ -556,6 +558,7 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, onNavigate
   );
 
   const { loadMachineAvailabilityForDate, machineAvailability } = useSchedulerStore();
+  const queryClient = useQueryClient();
 
   // Use the exact same date that's displayed in the banner - no conversion needed
         const dateStr = useMemo(() => format(currentDate, 'yyyy-MM-dd'), [currentDate]);
@@ -671,6 +674,7 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, onNavigate
                     unavailableByMachine={unavailableByMachine}
                     dropTargetId={dropTargetId}
                     hideMachineLabel={true}
+                    queryClient={queryClient}
                   />
                 ))}
               </div>

@@ -51,9 +51,11 @@ export const useSchedulerStore = create((set, get) => {
     splitTaskAcrossAvailableSlots: schedulingLogic.splitTaskAcrossAvailableSlots,
     collectUnavailableSlots: schedulingLogic.collectUnavailableSlots,
     scheduleTaskWithSplitting: schedulingLogic.scheduleTaskWithSplitting,
+    findAdjacentTasksChain: schedulingLogic.findAdjacentTasksChain,
+    handleTaskDurationShrinking: schedulingLogic.handleTaskDurationShrinking,
 
     // Consolidated drag-and-drop methods
-    scheduleTaskFromSlot: async (taskId, machine, currentDate, hour, minute, overrideDuration = null) => {
+    scheduleTaskFromSlot: async (taskId, machine, currentDate, hour, minute, overrideDuration = null, queryClient = null) => {
       const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
       
       try {
@@ -91,7 +93,7 @@ export const useSchedulerStore = create((set, get) => {
         };
 
         // Use existing scheduleTask method with all validations, passing tasks and updateOrder
-        return await get().scheduleTask(taskId, scheduleData, tasks, updateOrder, overrideDuration);
+        return await get().scheduleTask(taskId, scheduleData, tasks, updateOrder, overrideDuration, queryClient);
       } catch (error) {
         const appError = handleApiError(error, 'SchedulerStore.scheduleTaskFromSlot');
         return { error: appError.message };
@@ -100,7 +102,7 @@ export const useSchedulerStore = create((set, get) => {
       }
     },
 
-    rescheduleTaskToSlot: async (eventId, machine, currentDate, hour, minute) => {
+    rescheduleTaskToSlot: async (eventId, machine, currentDate, hour, minute, queryClient = null) => {
       const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
       
       try {
@@ -136,7 +138,7 @@ export const useSchedulerStore = create((set, get) => {
         };
 
         // Use existing scheduleTask method with all validations, passing tasks and updateOrder
-        return await get().scheduleTask(eventId, scheduleData, tasks, updateOrder);
+        return await get().scheduleTask(eventId, scheduleData, tasks, updateOrder, null, queryClient);
       } catch (error) {
         const appError = handleApiError(error, 'SchedulerStore.rescheduleTaskToSlot');
         return { error: appError.message };
@@ -146,7 +148,7 @@ export const useSchedulerStore = create((set, get) => {
     },
 
     // Main scheduler actions
-    scheduleTask: async (taskId, eventData, tasks = null, updateOrder = null, overrideDuration = null) => {
+    scheduleTask: async (taskId, eventData, tasks = null, updateOrder = null, overrideDuration = null, queryClient = null) => {
       try {
         // Get data from stores if not provided
         const { getOdpOrdersById, getOdpOrders, updateOrder: defaultUpdateOrder } = useOrderStore.getState();
@@ -230,6 +232,12 @@ export const useSchedulerStore = create((set, get) => {
           splitTaskManager.setSplitTaskInfo(taskId, segmentInfo);
         }
         
+        // Invalidate React Query cache if queryClient is provided
+        if (queryClient) {
+          queryClient.invalidateQueries({ queryKey: ['orders'] });
+          queryClient.invalidateQueries({ queryKey: ['orders', taskId] });
+        }
+        
         return { success: true };
       } catch (error) {
         const appError = handleApiError(error, 'SchedulerStore.scheduleTask');
@@ -237,28 +245,36 @@ export const useSchedulerStore = create((set, get) => {
       }
     },
 
-    unscheduleTask: async (taskId) => {
+    unscheduleTask: async (taskId, queryClient = null) => {
       const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
       
       try {
         startSchedulingOperation('unschedule', taskId);
         
+        // Clear split task info from memory first
+        splitTaskManager.clearSplitTaskInfo(taskId);
+        
+        // Update the task with all unscheduling fields at once
         const updates = {
           scheduled_machine_id: null,
           scheduled_start_time: null,
           scheduled_end_time: null,
           status: 'NOT SCHEDULED',
+          description: '', // Clear the description/segment info
         };
         
-        // Clear split task info when unscheduling
-        await splitTaskManager.updateTaskWithSplitInfo(taskId, null);
-        
-        // Call the update method from the order store
+        // Update the task using the order store
         const { updateOrder } = useOrderStore.getState();
         const result = await updateOrder(taskId, updates);
         
         if (result?.error) {
           return { error: result.error };
+        }
+        
+        // Invalidate React Query cache if queryClient is provided
+        if (queryClient) {
+          queryClient.invalidateQueries({ queryKey: ['orders'] });
+          queryClient.invalidateQueries({ queryKey: ['orders', taskId] });
         }
         
         return { success: true };
