@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { useUIStore, useSchedulerStore } from '../store';
+import { useUIStore, useSchedulerStore, useOrderStore } from '../store';
 import { useProductionCalculations, useValidation, useAddOrder, useUpdateOrder } from '../hooks';
 import { usePhaseSearch } from '../hooks/usePhaseSearch';
 import { showValidationError, showSuccess, showWarning, showError } from '../utils';
@@ -15,7 +15,7 @@ import {
 
 const BacklogForm = ({ onSuccess, orderToEdit }) => {
   const { selectedWorkCenter, showConflictDialog } = useUIStore();
-  const { scheduleTask } = useSchedulerStore();
+  const { scheduleTaskFromSlot, unscheduleTask } = useSchedulerStore();
   const { calculateProductionMetrics, validatePhaseParameters, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
   const { handleAsync } = useErrorHandler('BacklogForm');
   const { validateOrder } = useValidation();
@@ -114,23 +114,114 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     }
 
     await handleAsync(async () => {
-      const orderData = { ...data, duration: calculationResults.totals.duration, cost: calculationResults.totals.cost, status: isEditMode ? orderToEdit.status : 'NOT SCHEDULED' };
+      // Filter out UI-only fields that shouldn't be sent to the database
+      const { phase_search, ...dbData } = data;
       
       let updatedOrder;
       if (isEditMode) {
-        updatedOrder = await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
+        // 1. Store new duration and compute time_remaining
+        const newDuration = calculationResults.totals.duration;
+        const progress = (orderToEdit.quantity_completed / orderToEdit.quantity) || 0;
+        const newTimeRemaining = newDuration * (1 - progress);
+        
+        // 2. If already scheduled, trigger scheduling with same start time
+        if (orderToEdit.scheduled_machine_id && orderToEdit.scheduled_start_time) {
+          console.log('🔄 EDIT FLOW: Starting rescheduling for task', orderToEdit.id);
+          console.log('📊 EDIT FLOW: Original duration:', orderToEdit.duration, 'New duration:', newDuration);
+          
+          const startDate = new Date(orderToEdit.scheduled_start_time);
+          const hour = startDate.getUTCHours();
+          const minute = startDate.getUTCMinutes();
+          const currentDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
+          
+          console.log('📅 EDIT FLOW: Start date:', startDate.toISOString());
+          console.log('⏰ EDIT FLOW: Hour:', hour, 'Minute:', minute);
+          console.log('📆 EDIT FLOW: Current date:', currentDate.toISOString());
+          
+          // First update the task with new duration so scheduleTaskFromSlot can use it
+          const tempUpdateData = { duration: newDuration };
+          console.log('💾 EDIT FLOW: Updating task with new duration:', tempUpdateData);
+          await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: tempUpdateData });
+          
+          // Wait a moment for the store to be updated
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Verify the task was updated in the store
+          const { getOdpOrdersById } = useOrderStore.getState();
+          const updatedTaskBeforeScheduling = getOdpOrdersById(orderToEdit.id);
+          console.log('🔍 EDIT FLOW: Task duration after update:', updatedTaskBeforeScheduling?.duration);
+          
+          // Unschedule the task first (like removing it from the Gantt)
+          console.log('🔄 EDIT FLOW: Unscheduling task first');
+          await unscheduleTask(orderToEdit.id);
+          
+          // Wait a moment for unscheduling to complete
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // 3. Now reschedule it with the new duration (like dropping it fresh)
+          const machine = { id: orderToEdit.scheduled_machine_id };
+          console.log('🎯 EDIT FLOW: Calling scheduleTaskFromSlot with:', {
+            taskId: orderToEdit.id,
+            machine: machine,
+            currentDate: currentDate.toISOString(),
+            hour,
+            minute
+          });
+          
+          const result = await scheduleTaskFromSlot(orderToEdit.id, machine, currentDate, hour, minute, newDuration);
+          console.log('📋 EDIT FLOW: scheduleTaskFromSlot result:', result);
+          
+          if (result?.conflict) {
+            console.log('⚠️ EDIT FLOW: Conflict detected, showing dialog');
+            // Add scheduling parameters to the conflict details so the dialog can retry
+            const conflictWithParams = {
+              ...result,
+              schedulingParams: {
+                taskId: orderToEdit.id,
+                machine: machine,
+                currentDate: currentDate,
+                hour: hour,
+                minute: minute,
+                newDuration: newDuration,
+                originalConflict: result
+              }
+            };
+            showConflictDialog(conflictWithParams);
+            return; // Don't continue if there's a conflict
+          } else if (result?.error) {
+            console.log('❌ EDIT FLOW: Error:', result.error);
+            showError(result.error);
+            return; // Don't continue if there's an error
+          } else {
+            console.log('✅ EDIT FLOW: Scheduling successful');
+          }
+          
+          // 4. Get the updated task data after scheduling (it was updated by scheduleTaskFromSlot)
+          const updatedTask = getOdpOrdersById(orderToEdit.id);
+          console.log('📋 EDIT FLOW: Updated task after scheduling:', updatedTask);
+          
+          // Update database with form fields + new scheduling info from the updated task
+          const orderData = { 
+            ...dbData, 
+            duration: newDuration, 
+            cost: calculationResults.totals.cost,
+            scheduled_start_time: updatedTask?.scheduled_start_time || startDate.toISOString(),
+            scheduled_end_time: updatedTask?.scheduled_end_time || new Date(startDate.getTime() + newDuration * 3600000).toISOString(),
+            description: updatedTask?.description || orderToEdit.description
+          };
+          
+          console.log('💾 EDIT FLOW: Final order data to save:', orderData);
+          updatedOrder = await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
+          console.log('✅ EDIT FLOW: Final update completed:', updatedOrder);
+        } else {
+          // Not scheduled, just update the order data
+          const orderData = { ...dbData, duration: newDuration, cost: calculationResults.totals.cost };
+          updatedOrder = await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
+        }
       } else {
+        // New order
+        const orderData = { ...dbData, duration: calculationResults.totals.duration, cost: calculationResults.totals.cost, status: 'NOT SCHEDULED' };
         updatedOrder = await addOrderMutation.mutateAsync(orderData);
-      }
-
-      if (isEditMode && updatedOrder?.scheduled_machine_id && updatedOrder?.scheduled_start_time) {
-        const startDate = new Date(updatedOrder.scheduled_start_time);
-        // Use the newly calculated duration from calculationResults, not the old duration
-        const durationHours = calculationResults.totals.duration;
-        const endDate = new Date(startDate.getTime() + durationHours * 3600000);
-        const result = await scheduleTask(updatedOrder.id, { machine: updatedOrder.scheduled_machine_id, start_time: startDate.toISOString(), end_time: endDate.toISOString() });
-        if (result?.conflict) showConflictDialog(result);
-        else if (result?.error) showError(result.error);
       }
 
       if (onSuccess) onSuccess();

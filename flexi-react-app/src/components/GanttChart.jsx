@@ -70,13 +70,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
         const currentDayStart = startOfDay(currentDate);
         const currentDayEnd = endOfDay(currentDate);
         
-        // Debug logging
-        console.log(`🔍 Task ${event.odp_number} (${event.id}):`, {
-            hasSegmentInfo: !!segmentInfo,
-            segmentCount: segmentInfo?.segments?.length || 0,
-            wasSplit: segmentInfo?.wasSplit || false,
-            description: event.description?.substring(0, 100) + '...'
-        });
+        // Debug logging removed
         
         // If no segment info exists, create a single segment from the task data
         if (!segmentInfo || !segmentInfo.segments) {
@@ -217,7 +211,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
             }
         }
         
-        console.log(`✅ Task ${event.odp_number}: ${visibleSegments.length} visible segments`);
+        // Debug logging removed
         return visibleSegments.length > 0 ? visibleSegments : null;
     }, [event.id, currentDate, getSplitTaskInfo, splitTasksInfo]);
 

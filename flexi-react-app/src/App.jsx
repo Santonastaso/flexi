@@ -23,9 +23,9 @@ import { useAuth } from './auth/AuthContext';
 
 // This component creates the main layout with the sidebar
 const AppLayout = () => {
-  const { confirmDialog, hideConfirmDialog, conflictDialog, hideConflictDialog, schedulingLoading } = useUIStore();
+  const { confirmDialog, hideConfirmDialog, conflictDialog, hideConflictDialog, showConflictDialog, schedulingLoading } = useUIStore();
   const { cleanup } = useMainStore();
-  const { resolveConflictByShunting } = useSchedulerStore();
+  const { resolveConflictByShunting, scheduleTaskFromSlot } = useSchedulerStore();
   const { user, signOut } = useAuth();
   
   // Cleanup store when app unmounts
@@ -102,10 +102,22 @@ const AppLayout = () => {
             disabled: schedulingLoading.isShunting,
             onClick: async () => {
               if (conflictDialog.details) {
-                const result = await resolveConflictByShunting(conflictDialog.details, 'left');
-                if (result.error) {
-                  const { showError } = await import('./utils/toast');
-                  showError(result.error);
+                // If this is from edit flow, use resolveConflictByShunting with edit flow parameters
+                if (conflictDialog.details.schedulingParams) {
+                  console.log('🔄 CONFLICT: Using resolveConflictByShunting for edit flow (left)');
+                  const { originalConflict } = conflictDialog.details.schedulingParams;
+                  const result = await resolveConflictByShunting(originalConflict, 'left');
+                  if (result.error) {
+                    const { showError } = await import('./utils/toast');
+                    showError(result.error);
+                  }
+                } else {
+                  // Original drag-and-drop flow, use complex shunting
+                  const result = await resolveConflictByShunting(conflictDialog.details, 'left');
+                  if (result.error) {
+                    const { showError } = await import('./utils/toast');
+                    showError(result.error);
+                  }
                 }
               }
             }
@@ -116,10 +128,22 @@ const AppLayout = () => {
             disabled: schedulingLoading.isShunting,
             onClick: async () => {
               if (conflictDialog.details) {
-                const result = await resolveConflictByShunting(conflictDialog.details, 'right');
-                if (result.error) {
-                  const { showError } = await import('./utils/toast');
-                  showError(result.error);
+                // If this is from edit flow, use resolveConflictByShunting with edit flow parameters
+                if (conflictDialog.details.schedulingParams) {
+                  console.log('🔄 CONFLICT: Using resolveConflictByShunting for edit flow (right)');
+                  const { originalConflict } = conflictDialog.details.schedulingParams;
+                  const result = await resolveConflictByShunting(originalConflict, 'right');
+                  if (result.error) {
+                    const { showError } = await import('./utils/toast');
+                    showError(result.error);
+                  }
+                } else {
+                  // Original drag-and-drop flow, use complex shunting
+                  const result = await resolveConflictByShunting(conflictDialog.details, 'right');
+                  if (result.error) {
+                    const { showError } = await import('./utils/toast');
+                    showError(result.error);
+                  }
                 }
               }
             }

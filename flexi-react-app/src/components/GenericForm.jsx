@@ -277,7 +277,7 @@ function GenericForm({
         
         {/* Render custom sections */}
         {config.customFields && Object.keys(config.customFields).map(sectionKey => 
-          renderCustomSection(sectionKey)
+          <div key={sectionKey}>{renderCustomSection(sectionKey)}</div>
         )}
         
         {customActions && (

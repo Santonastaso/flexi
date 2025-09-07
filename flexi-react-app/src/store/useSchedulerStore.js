@@ -53,7 +53,7 @@ export const useSchedulerStore = create((set, get) => {
     scheduleTaskWithSplitting: schedulingLogic.scheduleTaskWithSplitting,
 
     // Consolidated drag-and-drop methods
-    scheduleTaskFromSlot: async (taskId, machine, currentDate, hour, minute) => {
+    scheduleTaskFromSlot: async (taskId, machine, currentDate, hour, minute, overrideDuration = null) => {
       const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
       
       try {
@@ -77,7 +77,9 @@ export const useSchedulerStore = create((set, get) => {
         
         // Create absolute date with no timezone conversion
         const startDate = schedulingLogic.createAbsoluteDate(year, month, day, hour, minute);
-        const timeRemainingHours = task.time_remaining || task.duration || 1;
+        const timeRemainingHours = overrideDuration || task.time_remaining || task.duration || 1;
+        
+        console.log('🎯 SCHEDULER: Using duration:', timeRemainingHours, 'overrideDuration:', overrideDuration);
         
 
 
@@ -89,7 +91,7 @@ export const useSchedulerStore = create((set, get) => {
         };
 
         // Use existing scheduleTask method with all validations, passing tasks and updateOrder
-        return await get().scheduleTask(taskId, scheduleData, tasks, updateOrder);
+        return await get().scheduleTask(taskId, scheduleData, tasks, updateOrder, overrideDuration);
       } catch (error) {
         const appError = handleApiError(error, 'SchedulerStore.scheduleTaskFromSlot');
         return { error: appError.message };
@@ -144,7 +146,7 @@ export const useSchedulerStore = create((set, get) => {
     },
 
     // Main scheduler actions
-    scheduleTask: async (taskId, eventData, tasks = null, updateOrder = null) => {
+    scheduleTask: async (taskId, eventData, tasks = null, updateOrder = null, overrideDuration = null) => {
       try {
         // Get data from stores if not provided
         const { getOdpOrdersById, getOdpOrders, updateOrder: defaultUpdateOrder } = useOrderStore.getState();
@@ -161,7 +163,9 @@ export const useSchedulerStore = create((set, get) => {
 
         // Use comprehensive scheduling with splitting (includes bulletproof overlap detection)
         const newStart = new Date(eventData.start_time);
-        const timeRemainingHours = task.time_remaining || task.duration || 1;
+        const timeRemainingHours = overrideDuration || task.time_remaining || task.duration || 1;
+        
+        console.log('🎯 SCHEDULER: scheduleTask using duration:', timeRemainingHours, 'overrideDuration:', overrideDuration);
         const schedulingResult = await schedulingLogic.scheduleTaskWithSplitting(
           taskId, 
           newStart, 
