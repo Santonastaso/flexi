@@ -1,5 +1,47 @@
 /* ===== CLEANED SCHEDULER & CALENDAR STYLES ===== */
 
+/* ===== LOADING STATES ===== */
+.task-loading-indicator {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    z-index: 10;
+}
+
+.task-item.processing {
+    opacity: 0.7;
+    position: relative;
+}
+
+.task-item.processing::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+.scheduled-event.processing {
+    opacity: 0.7;
+    position: relative;
+}
+
+.scheduled-event.processing::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 4px;
+    pointer-events: none;
+}
+
 /* ===== SPLIT TASK STYLES ===== */
 .split-indicator {
     margin-left: 4px;

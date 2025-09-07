@@ -23,7 +23,7 @@ import { useAuth } from './auth/AuthContext';
 
 // This component creates the main layout with the sidebar
 const AppLayout = () => {
-  const { confirmDialog, hideConfirmDialog, conflictDialog, hideConflictDialog } = useUIStore();
+  const { confirmDialog, hideConfirmDialog, conflictDialog, hideConflictDialog, schedulingLoading } = useUIStore();
   const { cleanup } = useMainStore();
   const { resolveConflictByShunting } = useSchedulerStore();
   const { user, signOut } = useAuth();
@@ -97,8 +97,9 @@ const AppLayout = () => {
             onClick: hideConflictDialog
           },
           {
-            text: 'Sposta a Sinistra ←',
+            text: schedulingLoading.isShunting ? 'Spostamento...' : 'Sposta a Sinistra ←',
             variant: 'primary',
+            disabled: schedulingLoading.isShunting,
             onClick: async () => {
               if (conflictDialog.details) {
                 const result = await resolveConflictByShunting(conflictDialog.details, 'left');
@@ -110,8 +111,9 @@ const AppLayout = () => {
             }
           },
           {
-            text: 'Sposta a Destra →',
+            text: schedulingLoading.isShunting ? 'Spostamento...' : 'Sposta a Destra →',
             variant: 'primary',
+            disabled: schedulingLoading.isShunting,
             onClick: async () => {
               if (conflictDialog.details) {
                 const result = await resolveConflictByShunting(conflictDialog.details, 'right');

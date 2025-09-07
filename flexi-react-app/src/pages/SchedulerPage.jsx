@@ -18,6 +18,30 @@ const LoadingFallback = () => (
   <div className="loading">Caricamento componenti scheduler...</div>
 );
 
+// Scheduling operation loading overlay
+const SchedulingLoadingOverlay = ({ schedulingLoading }) => {
+  if (!schedulingLoading.isScheduling && !schedulingLoading.isRescheduling && !schedulingLoading.isShunting && !schedulingLoading.isNavigating) {
+    return null;
+  }
+
+  const getOperationText = () => {
+    if (schedulingLoading.isScheduling) return 'Programmazione lavoro...';
+    if (schedulingLoading.isRescheduling) return 'Riprogrammazione lavoro...';
+    if (schedulingLoading.isShunting) return 'Risoluzione conflitti...';
+    if (schedulingLoading.isNavigating) return 'Navigazione...';
+    return 'Operazione in corso...';
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 shadow-lg flex items-center space-x-3">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+        <span className="text-gray-700 font-medium">{getOperationText()}</span>
+      </div>
+    </div>
+  );
+};
+
 // Utility function to download Gantt chart as HTML
 const downloadGanttAsHTML = (ganttElementSelector, dateDisplay) => {
   // Find the actual Gantt chart element that's currently rendered on screen
@@ -102,7 +126,7 @@ function SchedulerPage() {
   // Select state and actions from Zustand store
   const { machines } = useMachineStore();
   const { odpOrders, getOdpOrdersByWorkCenter, getScheduledOrders } = useOrderStore();
-  const { selectedWorkCenter, isLoading, isInitialized, showAlert, isEditMode, toggleEditMode, showConflictDialog } = useUIStore();
+  const { selectedWorkCenter, isLoading, isInitialized, showAlert, isEditMode, toggleEditMode, showConflictDialog, schedulingLoading } = useUIStore();
   const { scheduleTask, unscheduleTask, scheduleTaskFromSlot, rescheduleTaskToSlot, validateSlotAvailability } = useSchedulerStore();
   const { init, cleanup } = useMainStore();
 
@@ -239,28 +263,53 @@ function SchedulerPage() {
   }, [machineData, filters]);
 
   // Memoize navigation functions to prevent unnecessary re-renders
-  const navigateDate = useCallback((direction) => {
-    setCurrentDate(prevDate => {
-      if (direction === 'today') {
-        // Use UTC today
-        const now = new Date();
-        const utcYear = now.getUTCFullYear();
-        const utcMonth = now.getUTCMonth();
-        const utcDay = now.getUTCDate();
-        return new Date(Date.UTC(utcYear, utcMonth, utcDay));
-      } else if (direction === 'prev') {
-        // Navigate to previous UTC day
-        const newPrevDate = new Date(prevDate);
-        newPrevDate.setUTCDate(newPrevDate.getUTCDate() - 1);
-        return newPrevDate;
-      } else if (direction === 'next') {
-        // Navigate to next UTC day
-        const newNextDate = new Date(prevDate);
-        newNextDate.setUTCDate(newNextDate.getUTCDate() + 1);
-        return newNextDate;
+  const navigateDate = useCallback(async (direction) => {
+    const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
+    const { loadMachineAvailabilityForDate } = useSchedulerStore.getState();
+    
+    try {
+      startSchedulingOperation('navigate');
+      
+      // Calculate the new date first
+      let newDate;
+      setCurrentDate(prevDate => {
+        if (direction === 'today') {
+          // Use UTC today
+          const now = new Date();
+          const utcYear = now.getUTCFullYear();
+          const utcMonth = now.getUTCMonth();
+          const utcDay = now.getUTCDate();
+          newDate = new Date(Date.UTC(utcYear, utcMonth, utcDay));
+          return newDate;
+        } else if (direction === 'prev') {
+          // Navigate to previous UTC day
+          const newPrevDate = new Date(prevDate);
+          newPrevDate.setUTCDate(newPrevDate.getUTCDate() - 1);
+          newDate = newPrevDate;
+          return newDate;
+        } else if (direction === 'next') {
+          // Navigate to next UTC day
+          const newNextDate = new Date(prevDate);
+          newNextDate.setUTCDate(newNextDate.getUTCDate() + 1);
+          newDate = newNextDate;
+          return newNextDate;
+        }
+        newDate = prevDate;
+        return prevDate;
+      });
+      
+      // Load unavailable slots for the new date during the loading period
+      if (newDate) {
+        const newDateStr = format(newDate, 'yyyy-MM-dd');
+        await loadMachineAvailabilityForDate(newDateStr);
       }
-      return prevDate;
-    });
+      
+      // Add remaining delay for safety (if loading was fast)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+    } finally {
+      stopSchedulingOperation();
+    }
   }, []);
 
   const formatDateDisplay = useCallback(() => {
@@ -507,8 +556,11 @@ function SchedulerPage() {
   // Show loading state during initial load
   if (isLoading) {
     return (
-      <div className="p-1 bg-white rounded shadow-sm border">
-        <div className="text-center py-1 text-gray-500 text-[10px]">Caricamento Scheduler Produzione...</div>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 shadow-lg flex items-center space-x-3">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <span className="text-gray-700 font-medium">Caricamento Scheduler Produzione...</span>
+        </div>
       </div>
     );
   }
@@ -522,8 +574,10 @@ function SchedulerPage() {
   }
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-      <div className={`content-section ${isEditMode ? 'edit-mode' : ''}`}>
+    <>
+      <SchedulingLoadingOverlay schedulingLoading={schedulingLoading} />
+      <DndContext onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+        <div className={`content-section ${isEditMode ? 'edit-mode' : ''}`}>
 
         
         {/* Task Pool Section */}
@@ -700,7 +754,7 @@ function SchedulerPage() {
         </div>
 
         {/* Calendar Section */}
-        <div className="calendar-section">
+        <div className="calendar-section relative">
           <Suspense fallback={<LoadingFallback />}>
             <GanttChart 
               machines={filteredMachines} 
@@ -710,6 +764,10 @@ function SchedulerPage() {
               onNavigateToPreviousDay={() => navigateDate('prev')}
             />
           </Suspense>
+          {/* White cover during loading */}
+          {(schedulingLoading.isScheduling || schedulingLoading.isRescheduling || schedulingLoading.isShunting || schedulingLoading.isNavigating) && (
+            <div className="absolute inset-0 bg-white z-40"></div>
+          )}
         </div>
       </div>
 
@@ -726,10 +784,14 @@ function SchedulerPage() {
             <span className="task-time">
               {activeDragItem.time_remaining ? Number(activeDragItem.time_remaining).toFixed(1) : (activeDragItem.duration || 1).toFixed(1)}h
             </span>
+            {(schedulingLoading.isScheduling || schedulingLoading.isRescheduling || schedulingLoading.isShunting || schedulingLoading.isNavigating) && (
+              <div className="absolute top-0 right-0 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+            )}
           </div>
         ) : null}
       </DragOverlay>
     </DndContext>
+    </>
   );
 }
 

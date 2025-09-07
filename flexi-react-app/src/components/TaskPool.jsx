@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 // Individual Draggable Task Component - optimized
 const DraggableTask = React.memo(({ task }) => {
   // Get global edit mode state and conflict dialog
-  const { isEditMode, conflictDialog } = useUIStore();
+  const { isEditMode, conflictDialog, schedulingLoading } = useUIStore();
   
   // Get the update function from the store
   const { updateOdpOrder: _updateOdpOrder } = useOrderStore();
@@ -28,13 +28,21 @@ const DraggableTask = React.memo(({ task }) => {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
+  const isTaskBeingProcessed = schedulingLoading.taskId === task.id && 
+    (schedulingLoading.isScheduling || schedulingLoading.isRescheduling || schedulingLoading.isShunting);
+
   return (
-    <div ref={setNodeRef} style={style} className={`task-item ${!isEditMode ? 'non-draggable' : ''} ${conflictDialog.isOpen && conflictDialog.details?.draggedTask?.id === task.id ? 'conflict-pending' : ''}`}>
+    <div ref={setNodeRef} style={style} className={`task-item ${!isEditMode ? 'non-draggable' : ''} ${conflictDialog.isOpen && conflictDialog.details?.draggedTask?.id === task.id ? 'conflict-pending' : ''} ${isTaskBeingProcessed ? 'processing' : ''}`}>
       <div className="task-content">
         <span className="task-label">{task.odp_number}</span>
         <span className="task-time">
           {task.time_remaining ? Number(task.time_remaining).toFixed(1) : (task.duration || 1).toFixed(1)}h
         </span>
+        {isTaskBeingProcessed && (
+          <div className="task-loading-indicator">
+            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+          </div>
+        )}
       </div>
       
       <div className="task-controls">

@@ -9,6 +9,16 @@ export const useUIStore = create((set, get) => ({
   selectedWorkCenter: WORK_CENTERS.BOTH,
   isEditMode: false, // Global edit mode state
   
+  // Scheduling operations loading state
+  schedulingLoading: {
+    isScheduling: false,
+    isRescheduling: false,
+    isShunting: false,
+    isNavigating: false, // For day navigation
+    operationType: null, // 'schedule', 'reschedule', 'shunt', 'unschedule', 'navigate'
+    taskId: null
+  },
+  
   // Confirmation dialog state
   confirmDialog: {
     isOpen: false,
@@ -31,6 +41,7 @@ export const useUIStore = create((set, get) => ({
   getEditMode: () => get().isEditMode,
   getConfirmDialog: () => get().confirmDialog,
   getConflictDialog: () => get().conflictDialog,
+  getSchedulingLoading: () => get().schedulingLoading,
 
   // Actions
   setLoading: (loading) => set({ isLoading: loading }),
@@ -42,6 +53,31 @@ export const useUIStore = create((set, get) => ({
   toggleEditMode: () => set((state) => ({ isEditMode: !state.isEditMode })),
   
   setEditMode: (enabled) => set({ isEditMode: enabled }),
+
+  // Scheduling loading actions
+  setSchedulingLoading: (loadingState) => set({ schedulingLoading: loadingState }),
+  
+  startSchedulingOperation: (operationType, taskId = null) => set({
+    schedulingLoading: {
+      isScheduling: operationType === 'schedule',
+      isRescheduling: operationType === 'reschedule',
+      isShunting: operationType === 'shunt',
+      isNavigating: operationType === 'navigate',
+      operationType,
+      taskId
+    }
+  }),
+  
+  stopSchedulingOperation: () => set({
+    schedulingLoading: {
+      isScheduling: false,
+      isRescheduling: false,
+      isShunting: false,
+      isNavigating: false,
+      operationType: null,
+      taskId: null
+    }
+  }),
 
   // Confirmation dialog actions
   showConfirmDialog: (title, message, onConfirm, type = 'danger') => set({
@@ -71,6 +107,7 @@ export const useUIStore = create((set, get) => ({
     isInitialized: false,
     selectedWorkCenter: WORK_CENTERS.BOTH,
     isEditMode: false,
+    schedulingLoading: { isScheduling: false, isRescheduling: false, isShunting: false, isNavigating: false, operationType: null, taskId: null },
     confirmDialog: { isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' },
     conflictDialog: { isOpen: false, details: null }
   }),

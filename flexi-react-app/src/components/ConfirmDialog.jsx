@@ -49,6 +49,7 @@ const ConfirmDialog = ({
                 key={index}
                 onClick={button.onClick} 
                 variant={button.variant || 'secondary'}
+                disabled={button.disabled || false}
               >
                 {button.text}
               </Button>

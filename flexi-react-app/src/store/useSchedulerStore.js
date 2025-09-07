@@ -4,6 +4,7 @@ import { format, addHours } from 'date-fns';
 import { handleApiError } from '../utils/errorHandling';
 import { useOrderStore } from './useOrderStore';
 import { useMachineStore } from './useMachineStore';
+import { useUIStore } from './useUIStore';
 import { SplitTaskManager } from './scheduling/splitTaskManager';
 import { SchedulingLogic } from './scheduling/schedulingLogic';
 import { ConflictResolution } from './scheduling/conflictResolution';
@@ -53,7 +54,11 @@ export const useSchedulerStore = create((set, get) => {
 
     // Consolidated drag-and-drop methods
     scheduleTaskFromSlot: async (taskId, machine, currentDate, hour, minute) => {
+      const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
+      
       try {
+        startSchedulingOperation('schedule', taskId);
+        
         // Get task and machine data from stores
         const { getOdpOrdersById, getOdpOrders, updateOrder } = useOrderStore.getState();
         const { getMachinesById } = useMachineStore.getState();
@@ -88,11 +93,17 @@ export const useSchedulerStore = create((set, get) => {
       } catch (error) {
         const appError = handleApiError(error, 'SchedulerStore.scheduleTaskFromSlot');
         return { error: appError.message };
+      } finally {
+        stopSchedulingOperation();
       }
     },
 
     rescheduleTaskToSlot: async (eventId, machine, currentDate, hour, minute) => {
+      const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
+      
       try {
+        startSchedulingOperation('reschedule', eventId);
+        
         // Get event data from stores
         const { getOdpOrdersById, getOdpOrders, updateOrder } = useOrderStore.getState();
         const { getMachinesById } = useMachineStore.getState();
@@ -127,6 +138,8 @@ export const useSchedulerStore = create((set, get) => {
       } catch (error) {
         const appError = handleApiError(error, 'SchedulerStore.rescheduleTaskToSlot');
         return { error: appError.message };
+      } finally {
+        stopSchedulingOperation();
       }
     },
 
@@ -221,7 +234,11 @@ export const useSchedulerStore = create((set, get) => {
     },
 
     unscheduleTask: async (taskId) => {
+      const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
+      
       try {
+        startSchedulingOperation('unschedule', taskId);
+        
         const updates = {
           scheduled_machine_id: null,
           scheduled_start_time: null,
@@ -244,6 +261,8 @@ export const useSchedulerStore = create((set, get) => {
       } catch (error) {
         const appError = handleApiError(error, 'SchedulerStore.unscheduleTask');
         return { error: appError.message };
+      } finally {
+        stopSchedulingOperation();
       }
     },
 
@@ -262,9 +281,17 @@ export const useSchedulerStore = create((set, get) => {
 
     // Conflict resolution methods (delegated to ConflictResolution)
     resolveConflictByShunting: async (conflictDetails, direction) => {
-      const { getOdpOrders, updateOrder } = useOrderStore.getState();
-      const tasks = getOdpOrders();
-      return await conflictResolution.resolveConflictByShunting(conflictDetails, direction, tasks, conflictDetails.draggedTask, updateOrder);
+      const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
+      
+      try {
+        startSchedulingOperation('shunt', conflictDetails.draggedTask?.id);
+        
+        const { getOdpOrders, updateOrder } = useOrderStore.getState();
+        const tasks = getOdpOrders();
+        return await conflictResolution.resolveConflictByShunting(conflictDetails, direction, tasks, conflictDetails.draggedTask, updateOrder);
+      } finally {
+        stopSchedulingOperation();
+      }
     },
 
     // Additional utility methods

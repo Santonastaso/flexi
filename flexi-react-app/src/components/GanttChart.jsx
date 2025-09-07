@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
-import { useOrderStore, useSchedulerStore } from '../store';
+import { useOrderStore, useSchedulerStore, useUIStore } from '../store';
 import { format, startOfDay, endOfDay, startOfWeek, isSameDay, addDays } from 'date-fns';
 import { AppConfig } from '../services/config';
 import NextDayDropZone from './NextDayDropZone';
@@ -54,6 +54,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
     const [isLocked, setIsLocked] = useState(true); // Events start locked by default
     const navigate = useNavigate();
     const { getSplitTaskInfo, splitTasksInfo } = useSchedulerStore();
+    const { schedulingLoading } = useUIStore();
     
     // Note: updateOdpOrder and handleAsync are available if needed for future features
 
@@ -252,7 +253,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate }) => {
                         transition: 'opacity 0.1s ease',
                         pointerEvents: 'auto',
                     }}
-                    className={`scheduled-event ${isVerySmallTask ? 'very-small' : ''} ${isSmallTask ? 'small' : ''} ${isExtremelyNarrow ? 'extremely-narrow' : ''} ${eventSegments.length > 1 ? 'split-segment' : ''}`}
+                    className={`scheduled-event ${isVerySmallTask ? 'very-small' : ''} ${isSmallTask ? 'small' : ''} ${isExtremelyNarrow ? 'extremely-narrow' : ''} ${eventSegments.length > 1 ? 'split-segment' : ''} ${schedulingLoading.taskId === event.id && (schedulingLoading.isScheduling || schedulingLoading.isRescheduling || schedulingLoading.isShunting) ? 'processing' : ''}`}
                 >
                     <div 
                         className={`event-content`}
@@ -568,7 +569,8 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, onNavigate
 
 
   useEffect(() => {
-    if (currentView === 'Daily') {
+    // Only load if not already loading (to avoid duplicate loading during navigation)
+    if (currentView === 'Daily' && !machineAvailability[dateStr]?._loading) {
       loadMachineAvailabilityForDate(dateStr);
     }
     
@@ -576,7 +578,7 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, onNavigate
     return () => {
       // No specific cleanup needed for this effect, but good practice to have
     };
-  }, [dateStr, loadMachineAvailabilityForDate, currentView]);
+  }, [dateStr, loadMachineAvailabilityForDate, currentView, machineAvailability]);
 
   // Optimize unavailable hours processing with early returns
   const unavailableByMachine = useMemo(() => {
