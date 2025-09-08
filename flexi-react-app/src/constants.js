@@ -38,8 +38,8 @@ export const SHIFT_TYPES = {
 
 // ===== SEAL SIDES =====
 export const SEAL_SIDES = {
-  THREE: '3',
-  FOUR: '4'
+  THREE: 3,
+  FOUR: 4
 };
 
 // ===== TASK STATUSES =====
@@ -47,7 +47,8 @@ export const TASK_STATUSES = {
   NOT_SCHEDULED: 'NOT SCHEDULED',
   SCHEDULED: 'SCHEDULED',
   IN_PROGRESS: 'IN PROGRESS',
-  COMPLETED: 'COMPLETED'
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
 };
 
 // ===== FORM FIELD NAMES =====
@@ -89,7 +90,6 @@ export const FORM_FIELDS = {
   SEAL_SIDES: 'seal_sides',
   PRODUCT_TYPE: 'product_type',
   QUANTITY: 'quantity',
-  QUANTITY_PER_BOX: 'quantity_per_box',
   QUANTITY_COMPLETED: 'quantity_completed',
   DELIVERY_DATE: 'delivery_date',
   USER_NOTES: 'user_notes',

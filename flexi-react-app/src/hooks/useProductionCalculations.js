@@ -37,7 +37,12 @@ export const useProductionCalculations = () => {
    * Calculate production metrics for a given phase and quantity
    */
   const calculateProductionMetrics = useCallback((phase, quantity, bagStep) => {
-    if (!phase || !quantity || !bagStep) {
+    if (!phase || !quantity) {
+      return null;
+    }
+    
+    // For STAMPA department, bagStep is required
+    if (phase.department === 'STAMPA' && !bagStep) {
       return null;
     }
 

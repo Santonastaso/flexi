@@ -161,7 +161,7 @@ function GenericForm({
         return (
           <Select 
             onValueChange={(value) => setValue(field.name, value)} 
-            defaultValue={getValues(field.name)}
+            value={getValues(field.name) || ''}
             disabled={field.disabled || isSubmitting}
           >
             <SelectTrigger>

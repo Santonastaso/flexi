@@ -21,10 +21,10 @@ function MachineForm({ machineToEdit, onSuccess }) {
     
     // Update machine type options dynamically
     config.sections[0].fields[1].options = [
-      { value: '', label: 'Seleziona tipo macchina' },
       ...getValidMachineTypes('STAMPA').map(type => ({ value: type, label: type })),
       ...getValidMachineTypes('CONFEZIONAMENTO').map(type => ({ value: type, label: type }))
     ];
+    config.sections[0].fields[1].placeholder = 'Seleziona tipo macchina';
     
     // Update work center field based on selected work center
     if (selectedWorkCenter !== WORK_CENTERS.BOTH) {

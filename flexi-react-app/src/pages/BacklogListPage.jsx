@@ -1,26 +1,22 @@
 import React, { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import DataTable from '../components/DataTable';
-import EditableCell from '../components/EditableCell';
 
 import { useUIStore } from '../store';
-import { useValidation, useErrorHandler, useOrders, useMachines, usePhases, useUpdateOrder, useRemoveOrder } from '../hooks';
-import { showValidationError, showSuccess } from '../utils';
+import { useErrorHandler, useOrders, useMachines, usePhases, useRemoveOrder } from '../hooks';
+import { showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
 import { format } from 'date-fns';
 
 function BacklogListPage() {
   const { selectedWorkCenter, showConfirmDialog } = useUIStore();
+  const navigate = useNavigate();
 
   // React Query hooks
   const { data: orders = [], isLoading: ordersLoading, error: ordersError } = useOrders();
   const { data: machines = [], isLoading: machinesLoading } = useMachines();
   const { data: phases = [], isLoading: phasesLoading } = usePhases();
-  const updateOrderMutation = useUpdateOrder();
   const removeOrderMutation = useRemoveOrder();
-
-  // Use unified validation hook
-  const { validateOrder } = useValidation();
   
   // Use unified error handling
   const { handleAsync } = useErrorHandler('BacklogListPage');
@@ -58,25 +54,23 @@ function BacklogListPage() {
 
   const columns = useMemo(() => [
     // Identificazione
-    { header: 'Numero ODP', accessorKey: 'odp_number', cell: EditableCell },
-    { header: 'Codice Articolo', accessorKey: 'article_code', cell: EditableCell },
-    { header: 'Lotto Produzione', accessorKey: 'production_lot', cell: EditableCell },
+    { header: 'Numero ODP', accessorKey: 'odp_number' },
+    { header: 'Codice Articolo', accessorKey: 'article_code' },
+    { header: 'Lotto Produzione', accessorKey: 'production_lot' },
     { header: 'Centro di Lavoro', accessorKey: 'work_center' },
     { header: 'Reparto', accessorKey: 'department' },
-    { header: 'Nome Cliente', accessorKey: 'nome_cliente', cell: EditableCell },
+    { header: 'Nome Cliente', accessorKey: 'nome_cliente' },
     
     // Specifiche Busta
-    { header: 'Altezza Busta (mm)', accessorKey: 'bag_height', cell: EditableCell },
-    { header: 'Larghezza Busta (mm)', accessorKey: 'bag_width', cell: EditableCell },
-    { header: 'Passo Busta (mm)', accessorKey: 'bag_step', cell: EditableCell },
+    { header: 'Altezza Busta (mm)', accessorKey: 'bag_height' },
+    { header: 'Larghezza Busta (mm)', accessorKey: 'bag_width' },
+    { header: 'Passo Busta (mm)', accessorKey: 'bag_step' },
     { header: 'Lati Sigillati', accessorKey: 'seal_sides' },
     { header: 'Tipo Prodotto', accessorKey: 'product_type' },
     
     // Quantità
-    { header: 'Quantità', accessorKey: 'quantity', cell: EditableCell },
-    { header: 'Quantità per Scatola', accessorKey: 'quantity_per_box', cell: EditableCell },
-    { header: 'Quantità Completata', accessorKey: 'quantity_completed', cell: EditableCell },
-    { header: 'Numero Scatole', accessorKey: 'n_boxes' },
+    { header: 'Quantità', accessorKey: 'quantity' },
+    { header: 'Quantità Completata', accessorKey: 'quantity_completed' },
     
     // Date e Tempi
     { 
@@ -96,10 +90,10 @@ function BacklogListPage() {
     },
     
     // Codici Cliente
-    { header: 'Codice Cliente Interno', accessorKey: 'internal_customer_code', cell: EditableCell },
-    { header: 'Codice Cliente Esterno', accessorKey: 'external_customer_code', cell: EditableCell },
-    { header: 'Riferimento Ordine Cliente', accessorKey: 'customer_order_ref', cell: EditableCell },
-    { header: 'Note Libere', accessorKey: 'user_notes', cell: EditableCell },
+    { header: 'Codice Cliente Interno', accessorKey: 'internal_customer_code' },
+    { header: 'Codice Cliente Esterno', accessorKey: 'external_customer_code' },
+    { header: 'Riferimento Ordine Cliente', accessorKey: 'customer_order_ref' },
+    { header: 'Note Libere', accessorKey: 'user_notes' },
     
     // Fase e Calcoli
     { header: 'Nome Fase', accessorKey: 'phase_name' },
@@ -143,31 +137,8 @@ function BacklogListPage() {
     },
   ], []);
 
-  const handleSaveOrder = async (updatedOrder) => {
-    // Use the unified validation hook
-    const validation = validateOrder(updatedOrder);
-    
-    if (!validation.isValid) {
-      showValidationError(Object.values(validation.errors));
-      return;
-    }
-    
-    // Filter out computed fields that shouldn't be sent to the API
-    const { machine_name, phase_name, progress, time_remaining, ...orderDataToUpdate } = updatedOrder;
-    
-    await handleAsync(
-      async () => {
-        await updateOrderMutation.mutateAsync({ 
-          id: updatedOrder.id, 
-          updates: orderDataToUpdate 
-        });
-        showSuccess(`Ordine ${updatedOrder.odp_number} aggiornato con successo`);
-      },
-      { 
-        context: 'Update Order', 
-        fallbackMessage: 'Aggiornamento ordine fallito'
-      }
-    );
+  const handleEditOrder = (order) => {
+    navigate(`/backlog/${order.id}/edit`);
   };
 
   const handleDeleteOrder = async (orderToDelete) => {
@@ -204,7 +175,7 @@ function BacklogListPage() {
         <DataTable
           columns={columns}
           data={filteredOrders}
-          onSaveRow={handleSaveOrder}
+          onEditRow={handleEditOrder}
           onDeleteRow={handleDeleteOrder}
         />
       </div>

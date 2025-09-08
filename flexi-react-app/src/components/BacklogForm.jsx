@@ -47,26 +47,28 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   }, [selectedWorkCenter]);
 
   const initialData = useMemo(() => ({
+    // Required fields
     odp_number: orderToEdit?.odp_number || '', 
     article_code: orderToEdit?.article_code || '', 
-    production_lot: orderToEdit?.production_lot || '', 
     work_center: orderToEdit?.work_center || (selectedWorkCenter === WORK_CENTERS.BOTH ? '' : selectedWorkCenter),
     nome_cliente: orderToEdit?.nome_cliente || '', 
     delivery_date: orderToEdit?.delivery_date ? new Date(orderToEdit.delivery_date).toISOString().slice(0, 16) : '', 
-    bag_height: orderToEdit?.bag_height || '',
-    bag_width: orderToEdit?.bag_width || '', 
-    bag_step: orderToEdit?.bag_step || '', 
-    seal_sides: orderToEdit?.seal_sides || DEFAULT_VALUES.ORDER.SEAL_SIDES, 
-    product_type: orderToEdit?.product_type || '',
     quantity: orderToEdit?.quantity || '', 
-    quantity_per_box: orderToEdit?.quantity_per_box || '', 
-    quantity_completed: orderToEdit?.quantity_completed || DEFAULT_VALUES.ORDER.QUANTITY_COMPLETED,
-    internal_customer_code: orderToEdit?.internal_customer_code || '', 
-    external_customer_code: orderToEdit?.external_customer_code || '',
     customer_order_ref: orderToEdit?.customer_order_ref || '', 
-    user_notes: orderToEdit?.user_notes || '',
     department: orderToEdit?.department || '', 
-    fase: orderToEdit?.fase || '',
+    quantity_completed: orderToEdit?.quantity_completed || DEFAULT_VALUES.ORDER.QUANTITY_COMPLETED,
+    
+    // Optional fields (can be null)
+    production_lot: orderToEdit?.production_lot || null,
+    bag_height: orderToEdit?.bag_height || null,
+    bag_width: orderToEdit?.bag_width || null, 
+    bag_step: orderToEdit?.bag_step || null, 
+    seal_sides: orderToEdit?.seal_sides || null, 
+    product_type: orderToEdit?.product_type || null,
+    internal_customer_code: orderToEdit?.internal_customer_code || null, 
+    external_customer_code: orderToEdit?.external_customer_code || null,
+    user_notes: orderToEdit?.user_notes || null,
+    fase: orderToEdit?.fase || null,
   }), [selectedWorkCenter, orderToEdit]);
 
   const [department, setDepartment] = useState(initialData.department);
@@ -107,11 +109,42 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     const validation = validateOrder(data);
     
     if (!validation.isValid) {
-      showValidationError(Object.values(validation.errors));
+      // Show validation errors with better formatting
+      const errorMessages = Object.entries(validation.errors).map(([field, message]) => {
+        // Map field names to user-friendly labels
+        const fieldLabels = {
+          'odp_number': 'Numero ODP',
+          'article_code': 'Codice Articolo',
+          'work_center': 'Centro di Lavoro',
+          'nome_cliente': 'Nome Cliente',
+          'quantity': 'Quantità',
+          'delivery_date': 'Data di Consegna',
+          'customer_order_ref': 'Riferimento Ordine Cliente',
+          'department': 'Reparto',
+          'bag_height': 'Altezza Busta',
+          'bag_width': 'Larghezza Busta',
+          'bag_step': 'Passo Busta',
+          'seal_sides': 'Lati Sigillatura',
+          'product_type': 'Tipo Prodotto',
+          'internal_customer_code': 'Codice Cliente Interno',
+          'external_customer_code': 'Codice Cliente Esterno'
+        };
+        
+        const fieldLabel = fieldLabels[field] || field;
+        return `${fieldLabel}: ${message}`;
+      });
+      
+      showValidationError(errorMessages);
       return;
     }
     
-    if (!calculationResults?.totals || typeof calculationResults.totals.duration !== 'number' || typeof calculationResults.totals.cost !== 'number') {
+    // Optional: Only require calculation results if phase is provided
+    // For STAMPA phases, also require bag_step; for CONFEZIONAMENTO, only fase is needed
+    const hasPhase = data.fase;
+    const needsBagStep = selectedPhase?.department === DEPARTMENT_TYPES.PRINTING;
+    const hasRequiredFields = hasPhase && (!needsBagStep || data.bag_step);
+    
+    if (hasRequiredFields && (!calculationResults?.totals || typeof calculationResults.totals.duration !== 'number' || typeof calculationResults.totals.cost !== 'number')) {
       showWarning("Calcola le metriche di produzione valide prima di procedere.");
       return;
     }
@@ -120,10 +153,29 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       // Filter out UI-only fields that shouldn't be sent to the database
       const { phase_search, ...dbData } = data;
       
+      // Clean data: convert empty strings to null for optional fields
+      const cleanedData = {
+        ...dbData,
+        // UUID fields
+        fase: dbData.fase === '' ? null : dbData.fase,
+        scheduled_machine_id: dbData.scheduled_machine_id === '' ? null : dbData.scheduled_machine_id,
+        // Optional string fields
+        production_lot: dbData.production_lot === '' ? null : dbData.production_lot,
+        internal_customer_code: dbData.internal_customer_code === '' ? null : dbData.internal_customer_code,
+        external_customer_code: dbData.external_customer_code === '' ? null : dbData.external_customer_code,
+        user_notes: dbData.user_notes === '' ? null : dbData.user_notes,
+        // Optional numeric fields
+        bag_height: dbData.bag_height === '' ? null : dbData.bag_height,
+        bag_width: dbData.bag_width === '' ? null : dbData.bag_width,
+        bag_step: dbData.bag_step === '' ? null : dbData.bag_step,
+        seal_sides: dbData.seal_sides === '' ? null : dbData.seal_sides,
+        product_type: dbData.product_type === '' ? null : dbData.product_type
+      };
+      
       let updatedOrder;
       if (isEditMode) {
         // 1. Store new duration and compute time_remaining
-        const newDuration = calculationResults.totals.duration;
+        const newDuration = calculationResults?.totals?.duration || orderToEdit.duration;
         const progress = (orderToEdit.quantity_completed / orderToEdit.quantity) || 0;
         const newTimeRemaining = newDuration * (1 - progress);
         
@@ -152,9 +204,9 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
               
               // Update the task with the new duration and other form data
               const orderData = { 
-                ...dbData, 
+                ...cleanedData, 
                 duration: newDuration, 
-                cost: calculationResults.totals.cost
+                cost: calculationResults?.totals?.cost || null
               };
               
               console.log('💾 EDIT FLOW: Final order data to save:', orderData);
@@ -241,9 +293,9 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
             
             // Update database with form fields + new scheduling info from the updated task
             const orderData = { 
-              ...dbData, 
+              ...cleanedData, 
               duration: newDuration, 
-              cost: calculationResults.totals.cost,
+              cost: calculationResults?.totals?.cost || null,
               scheduled_start_time: updatedTask?.scheduled_start_time || startDate.toISOString(),
               scheduled_end_time: updatedTask?.scheduled_end_time || new Date(startDate.getTime() + newDuration * 3600000).toISOString(),
               description: updatedTask?.description || orderToEdit.description
@@ -255,12 +307,12 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
           }
         } else {
           // Not scheduled, just update the order data
-          const orderData = { ...dbData, duration: newDuration, cost: calculationResults.totals.cost };
+          const orderData = { ...cleanedData, duration: newDuration, cost: calculationResults?.totals?.cost || null };
           updatedOrder = await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
         }
       } else {
         // New order
-        const orderData = { ...dbData, duration: calculationResults.totals.duration, cost: calculationResults.totals.cost, status: 'NOT SCHEDULED' };
+        const orderData = { ...cleanedData, duration: calculationResults?.totals?.duration || null, cost: calculationResults?.totals?.cost || null, status: 'NOT SCHEDULED' };
         updatedOrder = await addOrderMutation.mutateAsync(orderData);
       }
 
@@ -276,8 +328,14 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       return;
     }
     
-    if (!quantity || !bagStep) {
-      showWarning("Inserisci Quantità e Passo Busta per calcolare.");
+    // Validate required fields based on department
+    if (!quantity) {
+      showWarning("Inserisci la quantità per calcolare.");
+      return;
+    }
+    
+    if (selectedPhase.department === DEPARTMENT_TYPES.PRINTING && !bagStep) {
+      showWarning("Inserisci il passo busta per calcolare la stampa.");
       return;
     }
     
@@ -289,7 +347,9 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       return;
     }
     
-    const results = calculateProductionMetrics(phaseForCalculation, quantity, bagStep);
+    // For CONFEZIONAMENTO, bagStep is not needed, so we can pass null
+    const bagStepForCalculation = selectedPhase.department === DEPARTMENT_TYPES.PRINTING ? bagStep : null;
+    const results = calculateProductionMetrics(phaseForCalculation, quantity, bagStepForCalculation);
     if (!results || typeof results.totals?.duration !== 'number' || typeof results.totals?.cost !== 'number') {
       showError("Errore nel calcolo. Verifica i parametri della fase.");
       setCalculationResults(null);
@@ -450,7 +510,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         </div>
       );
     }
-  }), [phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, filteredPhases, handleBlur, handlePhaseSelect, setCalculationResults, selectedPhase, getPhaseParamValue, handlePhaseParamChange, getPhaseFields, calculationResults, handleArticleCodeChange]);
+  }), [phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, filteredPhases, handleBlur, handlePhaseSelect, selectedPhase, getPhaseParamValue, handlePhaseParamChange, getPhaseFields, calculationResults, handleArticleCodeChange]);
 
   // Custom actions (Calculate button)
   const customActions = useMemo(() => (

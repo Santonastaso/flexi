@@ -10,63 +10,31 @@ import {
 } from './table';
 import { Button } from './button';
 
-function DataTable({ data, columns, onSaveRow, onDeleteRow }) {
-  const [editingRowId, setEditingRowId] = useState(null);
-  const [editedData, setEditedData] = useState({});
+function DataTable({ data, columns, onEditRow, onDeleteRow }) {
 
   const tableColumns = useMemo(() => {
-    const handleSave = (row) => {
-      const validEditedData = {};
-      Object.keys(editedData).forEach(key => {
-        if (editedData[key] !== undefined && editedData[key] !== '') {
-          validEditedData[key] = editedData[key];
-        }
-      });
-      
-      const cleanOriginalData = { ...row.original };
-      const displayOnlyFields = ['machines', 'progress', 'n_boxes', 'time_remaining'];
-      displayOnlyFields.forEach(field => {
-        delete cleanOriginalData[field];
-      });
-      
-      const updatedRow = { ...cleanOriginalData, ...validEditedData };
-      onSaveRow(updatedRow);
-      setEditingRowId(null);
-      setEditedData({});
+    const handleEdit = (row) => {
+      onEditRow(row.original);
     };
 
     const actionColumn = {
       id: 'actions',
       header: 'Azioni',
       cell: ({ row }) => {
-        const isEditing = row.id === editingRowId;
         return (
           <div className="flex flex-row gap-1 items-center justify-start">
-            {isEditing ? (
-              <>
-                <Button size="sm" onClick={() => handleSave(row)}>
-                  Salva
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setEditingRowId(null)}>
-                  Annulla
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button size="sm" variant="outline" onClick={() => setEditingRowId(row.id)}>
-                  Modifica
-                </Button>
-                <Button size="sm" variant="destructive" onClick={() => onDeleteRow(row.original)}>
-                  Elimina
-                </Button>
-              </>
-            )}
+            <Button size="sm" variant="outline" onClick={() => handleEdit(row)}>
+              Modifica
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => onDeleteRow(row.original)}>
+              Elimina
+            </Button>
           </div>
         );
       },
     };
     return [...columns, actionColumn];
-  }, [columns, editingRowId, editedData, onSaveRow, onDeleteRow]);
+  }, [columns, onEditRow, onDeleteRow]);
 
   const tableData = useMemo(() => {
     if (data && data.length > 0) {
@@ -97,11 +65,7 @@ function DataTable({ data, columns, onSaveRow, onDeleteRow }) {
     data: tableData,
     columns: tableColumns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    meta: {
-      editingRowId,
-      setEditedData,
-    }
+    getSortedRowModel: getSortedRowModel()
   });
 
   return (
@@ -126,7 +90,7 @@ function DataTable({ data, columns, onSaveRow, onDeleteRow }) {
           {table.getRowModel().rows.map((row) => {
             const rowKey = row.original.id || row.id;
             return (
-              <TableRow key={rowKey} className={editingRowId === row.id ? 'bg-navy-50' : ''}>
+              <TableRow key={rowKey}>
                 {row.getVisibleCells().map((cell, cellIndex) => {
                   const cellKey = `${rowKey}_${cell.column.id}_${cellIndex}`;
                   return (

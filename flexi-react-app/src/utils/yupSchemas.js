@@ -99,43 +99,78 @@ export const phaseSchema = yup.object({
 
 // ===== ORDER/BACKLOG SCHEMA =====
 export const orderSchema = yup.object({
+  // Required fields (NOT NULL in DB)
   odp_number: requiredString
-    .min(3, 'ODP number must be at least 3 characters')
-    .max(20, 'ODP number must be at most 20 characters')
-    .matches(/^[a-zA-Z0-9]+$/, 'ODP number can only contain letters and numbers'),
-  
+    .min(1, 'Il numero ODP è obbligatorio'),
   article_code: requiredString
-    .min(3, 'Article code must be at least 3 characters')
-    .max(50, 'Article code must be at most 50 characters')
-    .matches(/^[a-zA-Z0-9-]+$/, 'Article code can only contain letters, numbers, and hyphens'),
+    .min(1, 'Il codice articolo è obbligatorio'),
+  work_center: requiredString
+    .oneOf(['ZANICA', 'BUSTO_GAROLFO'], 'Seleziona un centro di lavoro valido'),
+  nome_cliente: requiredString
+    .min(1, 'Il nome del cliente è obbligatorio'),
+  quantity: yup.number()
+    .required('La quantità è obbligatoria')
+    .min(0, 'La quantità deve essere maggiore o uguale a 0')
+    .typeError('La quantità deve essere un numero valido'),
+  delivery_date: yup.date()
+    .required('La data di consegna è obbligatoria')
+    .typeError('Inserisci una data di consegna valida'),
+  customer_order_ref: requiredString
+    .min(1, 'Il riferimento ordine cliente è obbligatorio'),
+  department: requiredString
+    .oneOf(['STAMPA', 'CONFEZIONAMENTO'], 'Seleziona un reparto valido'),
+  status: yup.string()
+    .oneOf(['NOT SCHEDULED', 'SCHEDULED', 'IN PROGRESS', 'COMPLETED', 'CANCELLED'], 'Stato non valido')
+    .default('NOT SCHEDULED'),
+  quantity_completed: yup.number()
+    .min(0, 'La quantità completata deve essere maggiore o uguale a 0')
+    .default(0),
   
-  production_lot: requiredString,
-  bag_height: requiredNumber.min(0.1, 'Bag height must be greater than 0'),
-  bag_width: requiredNumber.min(0.1, 'Bag width must be greater than 0'),
-  bag_step: requiredNumber.min(0.1, 'Bag step must be greater than 0'),
-  product_type: requiredString.oneOf(['CREMA', 'LIQUIDO', 'POLVERI'], 'Invalid product type'),
-  quantity: requiredNumber.min(1, 'Quantity must be at least 1'),
-  quantity_per_box: optionalNumber,
-  quantity_completed: optionalNumber,
-  
-  // Optional fields
-  delivery_date: yup.date().nullable().transform((value) => (value === '' ? null : value)),
-  scheduled_start_time: yup.date().nullable().transform((value) => (value === '' ? null : value)),
-  scheduled_end_time: yup.date().nullable().transform((value) => (value === '' ? null : value)),
-  scheduled_machine_id: yup.string().nullable(),
+  // Optional fields (NULL allowed in DB)
+  production_lot: yup.string().nullable(),
+  description: yup.string().nullable(),
+  bag_height: yup.number().nullable().min(0, 'L\'altezza busta deve essere maggiore o uguale a 0'),
+  bag_width: yup.number().nullable().min(0, 'La larghezza busta deve essere maggiore o uguale a 0'),
+  bag_step: yup.number().nullable().min(0, 'Il passo busta deve essere maggiore o uguale a 0'),
+  seal_sides: yup.number().nullable().oneOf([3, 4], 'I lati di sigillatura devono essere 3 o 4'),
+  product_type: yup.string().nullable().oneOf(['CREMA', 'LIQUIDO', 'POLVERI'], 'Seleziona un tipo di prodotto valido'),
+  internal_customer_code: yup.string().nullable().test('not-empty-if-provided', 'Il codice cliente interno non può essere vuoto', function(value) {
+    return !value || value.trim().length > 0;
+  }),
+  external_customer_code: yup.string().nullable().test('not-empty-if-provided', 'Il codice cliente esterno non può essere vuoto', function(value) {
+    return !value || value.trim().length > 0;
+  }),
   fase: yup.string().nullable(),
+  duration: yup.number().nullable().min(0, 'La durata deve essere maggiore o uguale a 0'),
+  cost: yup.number().nullable().min(0, 'Il costo deve essere maggiore o uguale a 0'),
+  scheduled_start_time: yup.date().nullable(),
+  scheduled_end_time: yup.date().nullable(),
+  scheduled_machine_id: yup.string().nullable(),
+  user_notes: yup.string().nullable(),
   
-  // Logical validations
-}).test('bag-width-step-logic', 'Bag width cannot be less than bag step', bagWidthStepValidation).test('quantity-completed-logic', 'Quantity completed cannot exceed total quantity', function(value) {
-  if (value.quantity && value.quantity_completed) {
+  // Logical validations matching DB constraints
+}).test('bag-width-step-logic', 'La larghezza busta non può essere minore del passo busta', function(value) {
+  if (value.bag_width && value.bag_step) {
+    return value.bag_width >= value.bag_step;
+  }
+  return true;
+}).test('quantity-completed-logic', 'La quantità completata non può superare la quantità totale', function(value) {
+  if (value.quantity && value.quantity_completed !== undefined) {
     return value.quantity_completed <= value.quantity;
   }
   return true;
-}).test('delivery-date-logic', 'Scheduled start cannot be after delivery date', function(value) {
-  if (value.delivery_date && value.scheduled_start_time) {
-    return new Date(value.scheduled_start_time) <= new Date(value.delivery_date);
+}).test('scheduled-time-order', 'L\'ora di fine programmata deve essere dopo l\'ora di inizio', function(value) {
+  if (value.scheduled_start_time && value.scheduled_end_time) {
+    return new Date(value.scheduled_end_time) > new Date(value.scheduled_start_time);
   }
   return true;
+}).test('scheduling-logic', 'I campi di programmazione devono essere tutti forniti o tutti nulli', function(value) {
+  const hasStart = !!value.scheduled_start_time;
+  const hasEnd = !!value.scheduled_end_time;
+  const hasMachine = !!value.scheduled_machine_id;
+  
+  // Either all three are provided or none are provided
+  return (hasStart && hasEnd && hasMachine) || (!hasStart && !hasEnd && !hasMachine);
 });
 
 // ===== OFF-TIME SCHEMA =====

@@ -1,23 +1,19 @@
 import React, { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import DataTable from '../components/DataTable';
-import EditableCell from '../components/EditableCell';
 
 import { useUIStore } from '../store';
-import { useValidation, useErrorHandler, useMachinesByWorkCenter, useUpdateMachine, useRemoveMachine } from '../hooks';
-import { showValidationError, showError, showSuccess } from '../utils';
+import { useErrorHandler, useMachinesByWorkCenter, useRemoveMachine } from '../hooks';
+import { showError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
 
 function MachineryListPage() {
   const { selectedWorkCenter, showConfirmDialog } = useUIStore();
+  const navigate = useNavigate();
 
   // React Query hooks
   const { data: machines = [], isLoading, error } = useMachinesByWorkCenter(selectedWorkCenter);
-  const updateMachineMutation = useUpdateMachine();
   const removeMachineMutation = useRemoveMachine();
-
-  // Use unified validation hook
-  const { validateMachine } = useValidation();
   
   // Use unified error handling
   const { handleAsync } = useErrorHandler('MachineryListPage');
@@ -29,20 +25,20 @@ function MachineryListPage() {
 
   const columns = useMemo(() => [
     // Identificazione
-    { header: 'Nome Macchina', accessorKey: 'machine_name', cell: EditableCell },
+    { header: 'Nome Macchina', accessorKey: 'machine_name' },
     { header: 'Centro di Lavoro', accessorKey: 'work_center' },
     { header: 'Reparto', accessorKey: 'department' },
-    { header: 'Stato', accessorKey: 'status', cell: EditableCell },
+    { header: 'Stato', accessorKey: 'status' },
     // Capacità Tecniche
-    { header: 'Larghezza Min (mm)', accessorKey: 'min_web_width', cell: EditableCell },
-    { header: 'Larghezza Max (mm)', accessorKey: 'max_web_width', cell: EditableCell },
-    { header: 'Altezza Min (mm)', accessorKey: 'min_bag_height', cell: EditableCell },
-    { header: 'Altezza Max (mm)', accessorKey: 'max_bag_height', cell: EditableCell },
+    { header: 'Larghezza Min (mm)', accessorKey: 'min_web_width' },
+    { header: 'Larghezza Max (mm)', accessorKey: 'max_web_width' },
+    { header: 'Altezza Min (mm)', accessorKey: 'min_bag_height' },
+    { header: 'Altezza Max (mm)', accessorKey: 'max_bag_height' },
     // Performance
-    { header: 'Velocità Std', accessorKey: 'standard_speed', cell: EditableCell },
-    { header: 'Setup (h)', accessorKey: 'setup_time_standard', cell: EditableCell },
-    { header: 'Cambio Colore (h)', accessorKey: 'changeover_color', cell: EditableCell },
-    { header: 'Cambio Materiale (h)', accessorKey: 'changeover_material', cell: EditableCell },
+    { header: 'Velocità Std', accessorKey: 'standard_speed' },
+    { header: 'Setup (h)', accessorKey: 'setup_time_standard' },
+    { header: 'Cambio Colore (h)', accessorKey: 'changeover_color' },
+    { header: 'Cambio Materiale (h)', accessorKey: 'changeover_material' },
     // Disponibilità
     { 
       header: 'Turni Attivi', 
@@ -64,28 +60,8 @@ function MachineryListPage() {
     }
   ], []);
 
-  const handleSaveMachine = async (updatedMachine) => {
-    // Use the unified validation hook
-    const validation = validateMachine(updatedMachine);
-    
-    if (!validation.isValid) {
-      showValidationError(Object.values(validation.errors));
-      return;
-    }
-    
-    await handleAsync(
-      async () => {
-        await updateMachineMutation.mutateAsync({ 
-          id: updatedMachine.id, 
-          updates: updatedMachine 
-        });
-        showSuccess(`Macchina ${updatedMachine.machine_name} aggiornata con successo`);
-      },
-      { 
-        context: 'Update Machine', 
-        fallbackMessage: 'Aggiornamento macchina fallito'
-      }
-    );
+  const handleEditMachine = (machine) => {
+    navigate(`/machinery/${machine.id}/edit`);
   };
 
   const handleDeleteMachine = async (machineToDelete) => {
@@ -122,7 +98,7 @@ function MachineryListPage() {
         <DataTable
           columns={columns}
           data={machines}
-          onSaveRow={handleSaveMachine}
+          onEditRow={handleEditMachine}
           onDeleteRow={handleDeleteMachine}
         />
       </div>

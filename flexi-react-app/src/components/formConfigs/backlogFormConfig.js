@@ -81,31 +81,32 @@ export const backlogFormConfig = {
           name: 'bag_height',
           label: 'Altezza Busta (mm)',
           type: 'number',
-          required: true,
+          required: false,
           placeholder: 'Inserisci altezza busta'
         },
         {
           name: 'bag_width',
           label: 'Larghezza Busta (mm)',
           type: 'number',
-          required: true,
+          required: false,
           placeholder: 'Inserisci larghezza busta'
         },
         {
           name: 'bag_step',
           label: 'Passo Busta (mm)',
           type: 'number',
-          required: true,
+          required: false,
           placeholder: 'Inserisci passo busta'
         },
         {
           name: 'seal_sides',
           label: 'Lati Sigillatura',
           type: 'select',
-          required: true,
+          required: false,
+          placeholder: 'Seleziona...',
           options: [
-            { value: SEAL_SIDES.THREE, label: '3 lati' },
-            { value: SEAL_SIDES.FOUR, label: '4 lati' }
+            { value: '3', label: '3' },
+            { value: '4', label: '4' }
           ],
           defaultValue: DEFAULT_VALUES.ORDER.SEAL_SIDES
         },
@@ -113,7 +114,8 @@ export const backlogFormConfig = {
           name: 'product_type',
           label: 'Tipo Prodotto',
           type: 'select',
-          required: true,
+          required: false,
+          placeholder: 'Seleziona...',
           options: [
             { value: PRODUCT_TYPES.CREMA, label: PRODUCT_TYPES.CREMA },
             { value: PRODUCT_TYPES.LIQUIDO, label: PRODUCT_TYPES.LIQUIDO },
@@ -126,13 +128,6 @@ export const backlogFormConfig = {
           type: 'number',
           required: true,
           placeholder: 'Inserisci quantità'
-        },
-        {
-          name: 'quantity_per_box',
-          label: 'Q.tà per Scatola',
-          type: 'number',
-          required: true,
-          placeholder: 'Inserisci quantità per scatola'
         },
         {
           name: 'quantity_completed',
@@ -221,19 +216,9 @@ export const backlogFormConfig = {
   customValidation: (data) => {
     const errors = {};
     
-    // Validate that phase is selected for calculation
-    if (!data.fase) {
-      errors.fase = 'Seleziona una fase di produzione';
-    }
-    
-    // Validate that quantity and bag_step are provided for calculation
-    if (!data.quantity || data.quantity <= 0) {
-      errors.quantity = 'Quantità deve essere maggiore di 0';
-    }
-    
-    if (!data.bag_step || data.bag_step <= 0) {
-      errors.bag_step = 'Passo busta deve essere maggiore di 0';
-    }
+    // Note: fase and bag_step are optional in the database
+    // These validations are only for calculation purposes
+    // The form can be submitted without these fields
     
     return {
       isValid: Object.keys(errors).length === 0,

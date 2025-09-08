@@ -1,19 +1,19 @@
 import React, { useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import DataTable from '../components/DataTable';
-import EditableCell from '../components/EditableCell';
 
 import { usePhaseStore, useUIStore, useMainStore } from '../store';
-import { useValidation, useErrorHandler } from '../hooks';
-import { showValidationError, showError, showSuccess } from '../utils';
+import { useErrorHandler } from '../hooks';
+import { showError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
 
 
 function PhasesListPage() {
   // Use Zustand store to select state and actions
-  const { phases, updatePhase, removePhase } = usePhaseStore();
+  const { phases, removePhase } = usePhaseStore();
   const { selectedWorkCenter, isLoading, isInitialized, showConfirmDialog } = useUIStore();
   const { init, cleanup } = useMainStore();
+  const navigate = useNavigate();
 
   // Filter phases by work center
   const filteredPhases = useMemo(() => {
@@ -22,9 +22,6 @@ function PhasesListPage() {
     return phases.filter(phase => phase.work_center === selectedWorkCenter);
   }, [phases, selectedWorkCenter]);
 
-  // Use unified validation hook
-  const { validatePhase } = useValidation();
-  
   // Use unified error handling
   const { handleAsync } = useErrorHandler('PhasesListPage');
 
@@ -42,37 +39,23 @@ function PhasesListPage() {
 
   const columns = useMemo(() => [
     // Identificazione
-    { header: 'Nome Fase', accessorKey: 'name', cell: EditableCell },
+    { header: 'Nome Fase', accessorKey: 'name' },
     { header: 'Centro di Lavoro', accessorKey: 'work_center' },
     { header: 'Reparto', accessorKey: 'department' },
     // Capacità Tecniche
-    { header: 'Numero Persone', accessorKey: 'numero_persone', cell: EditableCell },
-    { header: 'V Stampa', accessorKey: 'v_stampa', cell: EditableCell },
-    { header: 'T Setup Stampa (h)', accessorKey: 't_setup_stampa', cell: EditableCell },
-    { header: 'Costo H Stampa', accessorKey: 'costo_h_stampa', cell: EditableCell },
-    { header: 'V Conf', accessorKey: 'v_conf', cell: EditableCell },
-    { header: 'T Setup Conf (h)', accessorKey: 't_setup_conf', cell: EditableCell },
-    { header: 'Costo H Conf', accessorKey: 'costo_h_conf', cell: EditableCell },
+    { header: 'Numero Persone', accessorKey: 'numero_persone' },
+    { header: 'V Stampa', accessorKey: 'v_stampa' },
+    { header: 'T Setup Stampa (h)', accessorKey: 't_setup_stampa' },
+    { header: 'Costo H Stampa', accessorKey: 'costo_h_stampa' },
+    { header: 'V Conf', accessorKey: 'v_conf' },
+    { header: 'T Setup Conf (h)', accessorKey: 't_setup_conf' },
+    { header: 'Costo H Conf', accessorKey: 'costo_h_conf' },
     // Contenuto
-    { header: 'Contenuto Fase', accessorKey: 'contenuto_fase', cell: EditableCell },
+    { header: 'Contenuto Fase', accessorKey: 'contenuto_fase' },
   ], []);
 
-  const handleSavePhase = async (updatedPhase) => {
-    // Use the unified validation hook
-    const validation = validatePhase(updatedPhase);
-    
-    if (!validation.isValid) {
-      showValidationError(Object.values(validation.errors));
-      return;
-    }
-    
-    try {
-      await updatePhase(updatedPhase.id, updatedPhase);
-      showSuccess(`Fase ${updatedPhase.name} aggiornata con successo`);
-    } catch (error) {
-      // Show specific error message from the store
-      showError(error.message);
-    }
+  const handleEditPhase = (phase) => {
+    navigate(`/phases/${phase.id}/edit`);
   };
 
   const handleDeletePhase = async (phaseToDelete) => {
@@ -106,7 +89,7 @@ function PhasesListPage() {
         <DataTable
           columns={columns}
           data={filteredPhases}
-          onSaveRow={handleSavePhase}
+          onEditRow={handleEditPhase}
           onDeleteRow={handleDeletePhase}
         />
       </div>

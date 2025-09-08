@@ -64,7 +64,7 @@ function EditableCell({
     if (columnId === 'status') return 'select';
     
     // Integer fields (no decimals)
-    const integerFields = ['quantity', 'quantity_completed', 'quantity_per_box', 'numero_persone', 'bag_height', 'bag_width', 'bag_step', 'min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height'];
+    const integerFields = ['quantity', 'quantity_completed', 'numero_persone', 'bag_height', 'bag_width', 'bag_step', 'min_web_width', 'max_web_width', 'min_bag_height', 'max_bag_height'];
     if (integerFields.includes(columnId)) return 'integer';
 
     // Decimal fields (one decimal where appropriate or two for costs)
