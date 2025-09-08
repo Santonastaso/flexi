@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import BacklogForm from '../components/BacklogForm';
 import StickyHeader from '../components/StickyHeader';
+import { Button } from '../components/ui';
 import { useOrderStore, useUIStore, useMainStore } from '../store';
 
 function BacklogFormPage() {
@@ -50,6 +51,21 @@ function BacklogFormPage() {
   return (
     <div className="p-1 bg-white rounded shadow-sm border">
       <StickyHeader title={isEditMode ? `Modifica Ordine: ${order?.odp_number}` : 'Aggiungi Nuovo Ordine'} />
+      
+      {/* Back to Scheduler Button - only show in edit mode */}
+      {isEditMode && (
+        <div className="mb-4 flex justify-start">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => navigate('/scheduler')}
+            className="text-[10px]"
+          >
+            ← Torna al Programmatore
+          </Button>
+        </div>
+      )}
+      
       <BacklogForm onSuccess={undefined} orderToEdit={order} />
     </div>
   );

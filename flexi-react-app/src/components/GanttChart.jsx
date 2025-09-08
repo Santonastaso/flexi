@@ -448,6 +448,7 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
 // Weekly Gantt View Component - reuses machine calendar weekly structure
 const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) => {
   const navigate = useNavigate();
+  const { getSplitTaskInfo } = useSchedulerStore();
   
   // Generate week dates
   const weekDates = useMemo(() => {
@@ -461,14 +462,35 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
     return dates;
   }, [currentDate]);
 
-  // Get tasks for each machine and day
+  // Get tasks for each machine and day - now checks for segments on that day
   const getTasksForMachineAndDay = useCallback((machineId, dateStr) => {
-    return scheduledTasks.filter(task => 
-      task.scheduled_machine_id === machineId && 
-      task.scheduled_start_time && 
-              format(new Date(task.scheduled_start_time), 'yyyy-MM-dd') === dateStr
-    );
-  }, [scheduledTasks]);
+    return scheduledTasks.filter(task => {
+      // First check if task is assigned to this machine
+      if (task.scheduled_machine_id !== machineId || !task.scheduled_start_time) {
+        return false;
+      }
+      
+      // Get segment information for this task
+      const segmentInfo = getSplitTaskInfo(task.id);
+      
+      if (segmentInfo && segmentInfo.segments && segmentInfo.segments.length > 0) {
+        // Check if any segment falls on this day
+        const targetDate = new Date(dateStr + 'T00:00:00Z');
+        const nextDay = new Date(targetDate.getTime() + 24 * 60 * 60 * 1000);
+        
+        return segmentInfo.segments.some(segment => {
+          const segmentStart = new Date(segment.start);
+          const segmentEnd = new Date(segment.end);
+          
+          // Check if segment overlaps with the target day
+          return segmentStart < nextDay && segmentEnd > targetDate;
+        });
+      } else {
+        // Fallback: check if task start date matches (for tasks without segment info)
+        return format(new Date(task.scheduled_start_time), 'yyyy-MM-dd') === dateStr;
+      }
+    });
+  }, [scheduledTasks, getSplitTaskInfo]);
 
   // Handle task click to show details
   const handleTaskClick = useCallback((task) => {

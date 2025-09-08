@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { usePhaseStore } from '../store';
 
-export const usePhaseSearch = (department, workCenter) => {
+export const usePhaseSearch = (department, workCenter, initialPhaseId = null) => {
   const { phases } = usePhaseStore();
   const [phaseSearch, setPhaseSearch] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
@@ -24,6 +24,26 @@ export const usePhaseSearch = (department, workCenter) => {
     }
     return [];
   }, [phaseSearch, department, workCenter, phases]);
+
+  // Auto-populate phase search field when initial phase ID is provided (for edit mode)
+  useEffect(() => {
+    if (initialPhaseId && phases && phases.length > 0 && !selectedPhase) {
+      const phase = phases.find(p => p.id === initialPhaseId);
+      if (phase) {
+        setSelectedPhase(phase);
+        setPhaseSearch(phase.name);
+        // Initialize editable phase parameters with current phase values
+        setEditablePhaseParams({
+          v_stampa: phase.v_stampa || null,
+          t_setup_stampa: phase.t_setup_stampa || null,
+          costo_h_stampa: phase.costo_h_stampa || null,
+          v_conf: phase.v_conf || null,
+          t_setup_conf: phase.t_setup_conf || null,
+          costo_h_conf: phase.costo_h_conf || null,
+        });
+      }
+    }
+  }, [initialPhaseId, phases, selectedPhase]);
 
   // Cleanup effect for component unmount
   useEffect(() => {

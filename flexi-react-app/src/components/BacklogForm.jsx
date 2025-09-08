@@ -76,7 +76,8 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
 
   const { phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, selectedPhase, setSelectedPhase, filteredPhases, editablePhaseParams, setEditablePhaseParams, handlePhaseParamChange, handlePhaseSelect, handleBlur } = usePhaseSearch(
     department, 
-    workCenter
+    workCenter,
+    isEditMode ? orderToEdit?.fase : null
   );
 
   const resetFormAndPhaseState = useCallback(() => {
