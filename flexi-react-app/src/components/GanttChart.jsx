@@ -663,57 +663,59 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, onNavigate
         </select>
       </div>
       
-      <div className="calendar-grid-container">
-        {currentView === 'Daily' ? (
-          <div className="calendar-grid-with-day-navigation">
-            <div className="machine-column-wrapper">
-              <div className="machine-label-header">Macchine</div>
-              <div className="machine-labels-body">
-                {machines.map(machine => (
-                  <div key={machine.id} className="machine-label-only">
-                    <div className="machine-name">{machine.machine_name}</div>
-                    <div className="machine-city">{machine.work_center}</div>
-                  </div>
-                ))}
+      <div className="gantt-scroll-container">
+        <div className="calendar-grid-container">
+          {currentView === 'Daily' ? (
+            <div className="calendar-grid-with-day-navigation">
+              <div className="machine-column-wrapper">
+                <div className="machine-label-header sticky-header">Macchine</div>
+                <div className="machine-labels-body">
+                  {machines.map(machine => (
+                    <div key={machine.id} className="machine-label-only">
+                      <div className="machine-name">{machine.machine_name}</div>
+                      <div className="machine-city">{machine.work_center}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
+              <PreviousDayDropZone 
+                currentDate={currentDate}
+                onNavigateToPreviousDay={onNavigateToPreviousDay}
+                isDragOver={dropTargetId === 'previous-day-drop-zone'}
+              />
+              <div className="time-grid-wrapper">
+                <div className="time-header-row sticky-header">
+                  {timeHeader}
+                </div>
+                <div className="time-grid-body">
+                  {machines.map(machine => (
+                    <MachineRow
+                      key={machine.id}
+                      machine={machine}
+                      scheduledEvents={scheduledTasks}
+                      currentDate={currentDate}
+                      unavailableByMachine={unavailableByMachine}
+                      dropTargetId={dropTargetId}
+                      hideMachineLabel={true}
+                      queryClient={queryClient}
+                    />
+                  ))}
+                </div>
+              </div>
+              <NextDayDropZone 
+                currentDate={currentDate}
+                onNavigateToNextDay={onNavigateToNextDay}
+                isDragOver={dropTargetId === 'next-day-drop-zone'}
+              />
             </div>
-            <PreviousDayDropZone 
+          ) : (
+            <WeeklyGanttView 
+              machines={machines}
               currentDate={currentDate}
-              onNavigateToPreviousDay={onNavigateToPreviousDay}
-              isDragOver={dropTargetId === 'previous-day-drop-zone'}
+              scheduledTasks={scheduledTasks}
             />
-            <div className="time-grid-wrapper">
-              <div className="time-header-row">
-                {timeHeader}
-              </div>
-              <div className="time-grid-body">
-                {machines.map(machine => (
-                  <MachineRow
-                    key={machine.id}
-                    machine={machine}
-                    scheduledEvents={scheduledTasks}
-                    currentDate={currentDate}
-                    unavailableByMachine={unavailableByMachine}
-                    dropTargetId={dropTargetId}
-                    hideMachineLabel={true}
-                    queryClient={queryClient}
-                  />
-                ))}
-              </div>
-            </div>
-            <NextDayDropZone 
-              currentDate={currentDate}
-              onNavigateToNextDay={onNavigateToNextDay}
-              isDragOver={dropTargetId === 'next-day-drop-zone'}
-            />
-          </div>
-        ) : (
-          <WeeklyGanttView 
-            machines={machines}
-            currentDate={currentDate}
-            scheduledTasks={scheduledTasks}
-          />
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
