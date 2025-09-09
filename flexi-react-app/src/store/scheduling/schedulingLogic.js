@@ -502,16 +502,12 @@ export class SchedulingLogic {
       console.log('🔄 DURATION SHRINKING: Found cascading chain of', chainTasks.length, 'tasks to reschedule');
       console.log('📋 DURATION SHRINKING: Chain tasks:', chainTasks.map(t => t.odp_number));
       
-      // First, update the original task with the new duration (backend will calculate time_remaining)
-      await apiService.updateOdpOrder(taskId, {
-        duration: newDuration
-      });
+      // Calculate time_remaining from new duration and progress (like expansion flow)
+      const progress = (task.quantity_completed / task.quantity) || 0;
+      const newTimeRemaining = newDuration * (1 - progress);
       
-      // Get the updated task with the new time_remaining calculated by the backend
-      const updatedTask = getOrderById(taskId);
-      const newTimeRemaining = updatedTask.time_remaining || newDuration;
-      
-      console.log('📊 DURATION SHRINKING: Updated time_remaining from backend:', newTimeRemaining);
+      console.log('📊 DURATION SHRINKING: Calculated time_remaining:', newTimeRemaining, 'from new duration:', newDuration, 'and progress:', progress);
+      console.log('📊 DURATION SHRINKING: Progress calculation:', task.quantity_completed, '/', task.quantity, '=', progress);
       
       // Now reschedule the original task using the new time_remaining
       console.log('🔄 DURATION SHRINKING: Rescheduling original task with new time_remaining');
@@ -542,11 +538,24 @@ export class SchedulingLogic {
       }
       
       // Update the original task with the new scheduling information and additional fields
+      // First update with scheduling info and description (segment info)
+      await this.splitTaskManager.updateTaskWithSplitInfo(
+        taskId, 
+        originalTaskSchedulingResult.segments ? {
+          segments: originalTaskSchedulingResult.segments,
+          totalSegments: originalTaskSchedulingResult.segments.length,
+          originalDuration: originalTaskSchedulingResult.originalDuration || newTimeRemaining,
+          wasSplit: originalTaskSchedulingResult.wasSplit || false
+        } : null,
+        originalTaskSchedulingResult.startTime,
+        originalTaskSchedulingResult.endTime,
+        machineId
+      );
+      
+      // Then update with additional fields like duration, time_remaining, cost, etc.
       const finalUpdateData = {
-        scheduled_start_time: originalTaskSchedulingResult.startTime.toISOString(),
-        scheduled_end_time: originalTaskSchedulingResult.endTime.toISOString(),
-        status: 'SCHEDULED',
         duration: newDuration,
+        time_remaining: newTimeRemaining,
         ...additionalFields // Include any additional fields like cost, etc.
       };
       
@@ -603,12 +612,19 @@ export class SchedulingLogic {
           };
         }
         
-        // Update the task with the new scheduling information
-        await apiService.updateOdpOrder(chainTask.id, {
-          scheduled_start_time: schedulingResult.startTime.toISOString(),
-          scheduled_end_time: schedulingResult.endTime.toISOString(),
-          status: 'SCHEDULED'
-        });
+        // Update the task with the new scheduling information and description (segment info)
+        await this.splitTaskManager.updateTaskWithSplitInfo(
+          chainTask.id,
+          schedulingResult.segments ? {
+            segments: schedulingResult.segments,
+            totalSegments: schedulingResult.segments.length,
+            originalDuration: schedulingResult.originalDuration || (chainTask.time_remaining || chainTask.duration || 1),
+            wasSplit: schedulingResult.wasSplit || false
+          } : null,
+          schedulingResult.startTime,
+          schedulingResult.endTime,
+          machineId
+        );
         
         rescheduledTasks.push({
           id: chainTask.id,
@@ -631,10 +647,14 @@ export class SchedulingLogic {
       
       console.log('✅ DURATION SHRINKING: Successfully rescheduled', rescheduledTasks.length, 'tasks');
       
+      // Get the final updated task with description field
+      const finalUpdatedTask = getOrderById(taskId);
+      
       return { 
         success: true, 
         message: `Successfully rescheduled ${rescheduledTasks.length} tasks due to duration reduction`,
-        rescheduledTasks: rescheduledTasks
+        rescheduledTasks: rescheduledTasks,
+        updatedTask: finalUpdatedTask // Include the updated task with description field
       };
       
     } catch (error) {
