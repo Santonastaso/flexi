@@ -66,9 +66,12 @@ function SideNav() {
     <nav className="w-48 bg-navy-800 border-r border-navy-700 h-screen flex flex-col flex-shrink-0 sticky left-0 z-30">
       {/* Logo */}
       <div className="p-3 border-b border-navy-700">
-        <Link to="/" className="text-[30px] font-bold text-white">
-          <span className="text-navy-200">flex</span>
-          <span className="text-white">i</span>
+        <Link to="/" className="flex items-center justify-center">
+          <img 
+            src="/assets/logo.svg" 
+            alt="Flexi Logo" 
+            className="h-24 w-auto"
+          />
         </Link>
       </div>
 

@@ -8,6 +8,7 @@ import NextDayDropZone from './NextDayDropZone';
 import PreviousDayDropZone from './PreviousDayDropZone';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from './ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 
 // A single 15-minute time slot on the calendar that can receive a dropped task
@@ -687,14 +688,15 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, onNavigate
 
           {/* View Selector */}
           <div className="gantt-view-selector">
-            <select 
-              value={currentView} 
-              onChange={(e) => setCurrentView(e.target.value)}
-              className="view-selector"
-            >
-              <option value="Daily">Vista Giornaliera</option>
-              <option value="Weekly">Vista Settimanale</option>
-            </select>
+            <Select value={currentView} onValueChange={setCurrentView}>
+              <SelectTrigger className="view-selector">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Daily">Vista Giornaliera</SelectItem>
+                <SelectItem value="Weekly">Vista Settimanale</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         
