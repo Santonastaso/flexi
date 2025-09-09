@@ -252,17 +252,18 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
             // Wait a moment for unscheduling to complete
             await new Promise(resolve => setTimeout(resolve, 100));
             
-            // 3. Now reschedule it with the new duration (like dropping it fresh)
+            // 3. Now reschedule it with the new time remaining (like dropping it fresh)
             const machine = { id: orderToEdit.scheduled_machine_id };
             console.log('🎯 EDIT FLOW: Calling scheduleTaskFromSlot with:', {
               taskId: orderToEdit.id,
               machine: machine,
               currentDate: currentDate.toISOString(),
               hour,
-              minute
+              minute,
+              timeRemaining: newTimeRemaining
             });
             
-            const result = await scheduleTaskFromSlot(orderToEdit.id, machine, currentDate, hour, minute, newDuration, queryClient);
+            const result = await scheduleTaskFromSlot(orderToEdit.id, machine, currentDate, hour, minute, newTimeRemaining, queryClient);
             console.log('📋 EDIT FLOW: scheduleTaskFromSlot result:', result);
             
             if (result?.conflict) {
@@ -276,7 +277,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                   currentDate: currentDate,
                   hour: hour,
                   minute: minute,
-                  newDuration: newDuration,
+                  newDuration: newTimeRemaining,
                   originalConflict: result
                 }
               };
