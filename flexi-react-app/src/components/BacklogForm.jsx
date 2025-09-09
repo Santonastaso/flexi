@@ -192,26 +192,29 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
             
             // Use the new handleTaskDurationShrinking function
             const { handleTaskDurationShrinking } = useSchedulerStore.getState();
+            
+            // Prepare additional fields to include in the scheduling update
+            const { description, ...cleanedDataWithoutDescription } = cleanedData;
+            const additionalFields = {
+              ...cleanedDataWithoutDescription,
+              cost: calculationResults?.totals?.cost || null
+            };
+            
             const shrinkResult = await handleTaskDurationShrinking(
               orderToEdit.id, 
               newDuration, 
-              orderToEdit.scheduled_machine_id
+              orderToEdit.scheduled_machine_id,
+              additionalFields
             );
             
             if (shrinkResult.success) {
               console.log('✅ EDIT FLOW: Cascading rescheduling successful:', shrinkResult.message);
               console.log('📋 EDIT FLOW: Rescheduled tasks:', shrinkResult.rescheduledTasks);
               
-              // Update the task with the new duration and other form data
-              const orderData = { 
-                ...cleanedData, 
-                duration: newDuration, 
-                cost: calculationResults?.totals?.cost || null
-              };
-              
-              console.log('💾 EDIT FLOW: Final order data to save:', orderData);
-              updatedOrder = await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
-              console.log('✅ EDIT FLOW: Final update completed:', updatedOrder);
+              // The scheduling logic has already updated the task with all necessary fields
+              // including the new description with segments, duration, and cost
+              console.log('✅ EDIT FLOW: Task fully updated by scheduling logic, no additional update needed');
+              updatedOrder = { id: orderToEdit.id, ...shrinkResult.rescheduledTasks[0] };
             } else {
               console.log('❌ EDIT FLOW: Cascading rescheduling failed:', shrinkResult.error);
               showError(shrinkResult.error || 'Failed to reschedule tasks');
@@ -287,9 +290,9 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
               console.log('✅ EDIT FLOW: Scheduling successful');
             }
             
-            // 4. Get the updated task data after scheduling (it was updated by scheduleTaskFromSlot)
-            const updatedTask = getOrderById(orderToEdit.id);
-            console.log('📋 EDIT FLOW: Updated task after scheduling:', updatedTask);
+            // 4. Use the updated task data from the scheduling result
+            const updatedTask = result?.updatedTask;
+            console.log('📋 EDIT FLOW: Updated task from scheduling result:', updatedTask);
             
             // Update database with form fields + new scheduling info from the updated task
             const orderData = { 

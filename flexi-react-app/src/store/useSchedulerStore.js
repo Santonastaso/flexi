@@ -93,7 +93,10 @@ export const useSchedulerStore = create((set, get) => {
         };
 
         // Use existing scheduleTask method with all validations, passing tasks and updateOrder
-        return await get().scheduleTask(taskId, scheduleData, tasks, overrideDuration, queryClient);
+        console.log('🎯 SCHEDULER: Calling scheduleTask with:', { taskId, scheduleData, overrideDuration });
+        const result = await get().scheduleTask(taskId, scheduleData, tasks, overrideDuration, queryClient);
+        console.log('🎯 SCHEDULER: scheduleTask result:', result);
+        return result;
       } catch (error) {
         const appError = handleApiError(error, 'SchedulerStore.scheduleTaskFromSlot');
         return { error: appError.message };
@@ -150,6 +153,8 @@ export const useSchedulerStore = create((set, get) => {
     // Main scheduler actions
     scheduleTask: async (taskId, eventData, tasks = null, overrideDuration = null, queryClient = null) => {
       try {
+        console.log('🎯 SCHEDULER: scheduleTask called with:', { taskId, eventData, overrideDuration });
+        
         // Get data from stores if not provided
         const { getOrderById, getOdpOrders } = useOrderStore.getState();
         const { getMachineById } = useMachineStore.getState();
@@ -157,6 +162,8 @@ export const useSchedulerStore = create((set, get) => {
         const task = getOrderById(taskId);
         const machine = getMachineById(eventData.machine);
         const tasksData = tasks || getOdpOrders();
+        
+        console.log('🎯 SCHEDULER: Task found:', task?.odp_number, 'Machine found:', machine?.name);
         
         if (task && machine && task.work_center && machine.work_center && task.work_center !== machine.work_center) {
           return { error: `Work center mismatch: task requires '${task.work_center}' but machine is '${machine.work_center}'` };
@@ -167,12 +174,14 @@ export const useSchedulerStore = create((set, get) => {
         const timeRemainingHours = overrideDuration || task.time_remaining || task.duration || 1;
         
         console.log('🎯 SCHEDULER: scheduleTask using duration:', timeRemainingHours, 'overrideDuration:', overrideDuration);
+        console.log('🎯 SCHEDULER: Calling scheduleTaskWithSplitting with:', { taskId, newStart: newStart.toISOString(), timeRemainingHours, machineId: eventData.machine });
         const schedulingResult = await schedulingLogic.scheduleTaskWithSplitting(
           taskId, 
           newStart, 
           timeRemainingHours, 
           eventData.machine
         );
+        console.log('🎯 SCHEDULER: scheduleTaskWithSplitting result:', schedulingResult);
 
         if (!schedulingResult) {
           return { error: 'No available time slots found for this task' };
@@ -237,7 +246,11 @@ export const useSchedulerStore = create((set, get) => {
           queryClient.invalidateQueries({ queryKey: ['orders', taskId] });
         }
         
-        return { success: true };
+        return { 
+          success: true, 
+          updatedTask: result,
+          schedulingResult: schedulingResult
+        };
       } catch (error) {
         const appError = handleApiError(error, 'SchedulerStore.scheduleTask');
         return { error: appError.message };
@@ -295,7 +308,7 @@ export const useSchedulerStore = create((set, get) => {
     initializeEmptyMachineAvailability: machineAvailabilityManager.initializeEmptyMachineAvailability,
 
     // Conflict resolution methods (delegated to ConflictResolution)
-    resolveConflictByShunting: async (conflictDetails, direction) => {
+    resolveConflictByShunting: async (conflictDetails, direction, queryClient = null) => {
       const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
       
       try {
@@ -303,7 +316,31 @@ export const useSchedulerStore = create((set, get) => {
         
         const { getOdpOrders } = useOrderStore.getState();
         const tasks = getOdpOrders();
-        return await conflictResolution.resolveConflictByShunting(conflictDetails, direction, tasks, conflictDetails.draggedTask);
+        const result = await conflictResolution.resolveConflictByShunting(conflictDetails, direction, tasks, conflictDetails.draggedTask);
+        
+        // Only invalidate cache if shunting was successful
+        if (result && !result.error && queryClient) {
+          console.log('🔄 SHUNTING: Invalidating React Query cache to refresh UI');
+          // Use Promise.all for parallel invalidation to improve performance
+          const invalidationPromises = [
+            queryClient.invalidateQueries({ queryKey: ['orders'] }),
+            queryClient.invalidateQueries({ queryKey: ['machines'] })
+          ];
+          
+          // Add specific task invalidation if task ID exists
+          if (conflictDetails.draggedTask?.id) {
+            invalidationPromises.push(
+              queryClient.invalidateQueries({ queryKey: ['orders', conflictDetails.draggedTask.id] })
+            );
+          }
+          
+          await Promise.all(invalidationPromises);
+        }
+        
+        return result;
+      } catch (error) {
+        console.error('❌ SHUNTING ERROR in scheduler store:', error);
+        return { error: error.message || 'Errore durante lo spostamento del task' };
       } finally {
         stopSchedulingOperation();
       }

@@ -20,6 +20,7 @@ import ConfirmDialog from './components/ui/confirm-dialog';
 import { useUIStore, useMainStore, useSchedulerStore } from './store';
 import { useAuth } from './auth/AuthContext';
 import { useStoreSync } from './hooks';
+import { useQueryClient } from '@tanstack/react-query';
 
 
 // This component creates the main layout with the sidebar
@@ -28,6 +29,7 @@ const AppLayout = () => {
   const { cleanup } = useMainStore();
   const { resolveConflictByShunting, scheduleTaskFromSlot } = useSchedulerStore();
   const { user, signOut } = useAuth();
+  const queryClient = useQueryClient();
   
   // Sync React Query data with Zustand stores
   useStoreSync();
@@ -105,24 +107,28 @@ const AppLayout = () => {
             variant: 'primary',
             disabled: schedulingLoading.isShunting,
             onClick: async () => {
-              if (conflictDialog.details) {
-                // If this is from edit flow, use resolveConflictByShunting with edit flow parameters
-                if (conflictDialog.details.schedulingParams) {
-                  console.log('🔄 CONFLICT: Using resolveConflictByShunting for edit flow (left)');
-                  const { originalConflict } = conflictDialog.details.schedulingParams;
-                  const result = await resolveConflictByShunting(originalConflict, 'left');
-                  if (result.error) {
-                    const { showError } = await import('./utils/toast');
-                    showError(result.error);
-                  }
+              if (!conflictDialog.details) return;
+              
+              try {
+                const conflictData = conflictDialog.details.schedulingParams 
+                  ? conflictDialog.details.schedulingParams.originalConflict 
+                  : conflictDialog.details;
+                
+                console.log('🔄 CONFLICT: Using resolveConflictByShunting (left)');
+                const result = await resolveConflictByShunting(conflictData, 'left', queryClient);
+                
+                if (result.error) {
+                  const { showError } = await import('./utils/toast');
+                  showError(result.error);
                 } else {
-                  // Original drag-and-drop flow, use complex shunting
-                  const result = await resolveConflictByShunting(conflictDialog.details, 'left');
-                  if (result.error) {
-                    const { showError } = await import('./utils/toast');
-                    showError(result.error);
-                  }
+                  const { showSuccess } = await import('./utils/toast');
+                  showSuccess('Task spostato con successo');
+                  hideConflictDialog();
                 }
+              } catch (error) {
+                console.error('❌ SHUNTING ERROR:', error);
+                const { showError } = await import('./utils/toast');
+                showError('Errore durante lo spostamento del task');
               }
             }
           },
@@ -131,24 +137,28 @@ const AppLayout = () => {
             variant: 'primary',
             disabled: schedulingLoading.isShunting,
             onClick: async () => {
-              if (conflictDialog.details) {
-                // If this is from edit flow, use resolveConflictByShunting with edit flow parameters
-                if (conflictDialog.details.schedulingParams) {
-                  console.log('🔄 CONFLICT: Using resolveConflictByShunting for edit flow (right)');
-                  const { originalConflict } = conflictDialog.details.schedulingParams;
-                  const result = await resolveConflictByShunting(originalConflict, 'right');
-                  if (result.error) {
-                    const { showError } = await import('./utils/toast');
-                    showError(result.error);
-                  }
+              if (!conflictDialog.details) return;
+              
+              try {
+                const conflictData = conflictDialog.details.schedulingParams 
+                  ? conflictDialog.details.schedulingParams.originalConflict 
+                  : conflictDialog.details;
+                
+                console.log('🔄 CONFLICT: Using resolveConflictByShunting (right)');
+                const result = await resolveConflictByShunting(conflictData, 'right', queryClient);
+                
+                if (result.error) {
+                  const { showError } = await import('./utils/toast');
+                  showError(result.error);
                 } else {
-                  // Original drag-and-drop flow, use complex shunting
-                  const result = await resolveConflictByShunting(conflictDialog.details, 'right');
-                  if (result.error) {
-                    const { showError } = await import('./utils/toast');
-                    showError(result.error);
-                  }
+                  const { showSuccess } = await import('./utils/toast');
+                  showSuccess('Task spostato con successo');
+                  hideConflictDialog();
                 }
+              } catch (error) {
+                console.error('❌ SHUNTING ERROR:', error);
+                const { showError } = await import('./utils/toast');
+                showError('Errore durante lo spostamento del task');
               }
             }
           }

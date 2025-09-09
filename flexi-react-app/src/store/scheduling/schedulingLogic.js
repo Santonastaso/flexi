@@ -467,17 +467,17 @@ export class SchedulingLogic {
   };
 
   // Handle task duration shrinking with cascading rescheduling
-  handleTaskDurationShrinking = async (taskId, newDuration, machineId) => {
+  handleTaskDurationShrinking = async (taskId, newDuration, machineId, additionalFields = {}) => {
     try {
       console.log('🔄 DURATION SHRINKING: Starting cascading rescheduling for task', taskId);
       console.log('📊 DURATION SHRINKING: New duration:', newDuration, 'hours');
       
       // Get the task and machine data
       const { getOrderById, getOdpOrders } = useOrderStore.getState();
-      const { getMachinesById } = useMachineStore.getState();
+      const { getMachineById } = useMachineStore.getState();
       
       const task = getOrderById(taskId);
-      const machine = getMachinesById(machineId);
+      const machine = getMachineById(machineId);
       const allTasks = getOdpOrders();
       
       if (!task || !machine) {
@@ -541,12 +541,17 @@ export class SchedulingLogic {
         };
       }
       
-      // Update the original task with the new scheduling information
-      await apiService.updateOdpOrder(taskId, {
+      // Update the original task with the new scheduling information and additional fields
+      const finalUpdateData = {
         scheduled_start_time: originalTaskSchedulingResult.startTime.toISOString(),
         scheduled_end_time: originalTaskSchedulingResult.endTime.toISOString(),
-        status: 'SCHEDULED'
-      });
+        status: 'SCHEDULED',
+        duration: newDuration,
+        ...additionalFields // Include any additional fields like cost, etc.
+      };
+      
+      console.log('💾 DURATION SHRINKING: Final update data:', finalUpdateData);
+      await apiService.updateOdpOrder(taskId, finalUpdateData);
       
       const rescheduledTasks = [{
         id: taskId,
