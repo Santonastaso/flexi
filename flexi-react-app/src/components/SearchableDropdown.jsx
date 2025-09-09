@@ -108,8 +108,7 @@ function SearchableDropdown({
                             className={`px-3 py-1 hover:bg-gray-100 cursor-pointer border-b border-gray-100 ${allVisibleSelected ? 'bg-navy-50 text-navy-800' : ''}`}
             onMouseDown={handleAllOptionClick}
           >
-            <div className="font-medium">Tutti i {label}</div>
-                           <div className="text-[10px] text-gray-600">Mostra tutti i {label.toLowerCase()}</div>
+            <div className="text-xs font-bold">Tutti</div>
           </div>
           
           {/* Individual options */}
@@ -119,8 +118,7 @@ function SearchableDropdown({
               className={`px-3 py-1 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 ${selectedOptions.includes(option) ? 'bg-navy-50 text-navy-800' : ''}`}
               onMouseDown={(e) => handleOptionClick(e, option)}
             >
-              <div className="font-medium">{option}</div>
-                             <div className="text-[10px] text-gray-600">{label}</div>
+              <div className="text-xs font-normal">{option}</div>
             </div>
           ))}
         </div>

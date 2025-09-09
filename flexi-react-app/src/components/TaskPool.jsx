@@ -125,7 +125,11 @@ function TaskPool() {
 
   // Memoize unscheduled tasks filtering for better performance
   const unscheduledTasks = useMemo(() => {
-    let filtered = tasks.filter(task => task.status !== 'SCHEDULED');
+    let filtered = tasks.filter(task => 
+      task.status !== 'SCHEDULED' && 
+      task.duration > 0 && 
+      task.cost > 0
+    );
     if (selectedWorkCenter && selectedWorkCenter !== 'BOTH') {
       filtered = filtered.filter(task => task.work_center === selectedWorkCenter);
     }
@@ -154,7 +158,7 @@ function TaskPool() {
         ) : (
           <div className="empty-state">
             <h3>Nessun lavoro non programmato disponibile</h3>
-            <p>Aggiungi lavori al backlog per visualizzarli qui.</p>
+            <p>I lavori devono avere durata e costo maggiori di 0 per essere visualizzati qui.</p>
           </div>
         )}
       </div>

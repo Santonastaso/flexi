@@ -11,7 +11,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import TaskLookupInput from '../components/TaskLookupInput';
 
 // Lazy load heavy components to improve initial load time
-const TaskPool = lazy(() => import('../components/TaskPool'));
+const TaskPoolDataTable = lazy(() => import('../components/TaskPoolDataTable'));
 const GanttChart = lazy(() => import('../components/GanttChart'));
 
 // Loading fallback component
@@ -584,134 +584,29 @@ function SchedulerPage() {
         
         {/* Task Pool Section */}
         <div className="task-pool-section">
+          <div className="task-pool-header">
+            <h2 className="task-pool-title">Pool Lavori</h2>
+            <button
+              className={`nav-btn ${isEditMode ? 'danger' : 'primary'}`}
+              onClick={toggleEditMode}
+              title={isEditMode ? "Disabilita modalità modifica" : "Abilita modalità modifica"}
+            >
+              {isEditMode ? 'Disabilita Modalità Modifica' : 'Abilita Modalità Modifica'}
+            </button>
+          </div>
           <Suspense fallback={<LoadingFallback />}>
-            <TaskPool />
+            <TaskPoolDataTable />
           </Suspense>
         </div>
 
-        {/* Task Lookup Section */}
+        {/* Filters Section */}
         <div className="section-controls">
-          <h2 className="text-[10px] font-semibold text-gray-900 mb-1">Ricerca Lavoro</h2>
-          <div className="task-lookup-grid">
-            <div className="task-lookup-item">
-              <div className="task-lookup-input-container">
-                <TaskLookupInput
-                  placeholder="Inserisci numero ODP per cercare..."
-                  value={taskLookup}
-                  onChange={(e) => setTaskLookup(e.target.value)}
-                  onLookup={() => handleLookup(taskLookup, 'odp_number', 'ODP')}
-                  suggestions={scheduledOrders}
-                  field="odp_number"
-                  fieldLabel="ODP"
-                  onDropdownSelect={executeLookupFromDropdown}
-                />
-              </div>
-              <button
-                className="nav-btn"
-                onClick={() => handleLookup(taskLookup, 'odp_number', 'ODP')}
-              >
-                Cerca ODP
-              </button>
-            </div>
-            
-            <div className="task-lookup-item">
-              <div className="task-lookup-input-container">
-                <TaskLookupInput
-                  placeholder="Inserisci codice articolo per cercare..."
-                  value={articleCodeLookup}
-                  onChange={(e) => setArticleCodeLookup(e.target.value)}
-                  onLookup={() => handleLookup(articleCodeLookup, 'article_code', 'codice articolo')}
-                  suggestions={scheduledOrders}
-                  field="article_code"
-                  fieldLabel="Articolo"
-                  onDropdownSelect={executeLookupFromDropdown}
-                />
-              </div>
-              <button
-                className="nav-btn"
-                onClick={() => handleLookup(articleCodeLookup, 'article_code', 'codice articolo')}
-              >
-                Cerca Articolo
-              </button>
-            </div>
-            
-            <div className="task-lookup-item">
-              <div className="task-lookup-input-container">
-                <TaskLookupInput
-                  placeholder="Inserisci nome cliente per cercare..."
-                  value={customerNameLookup}
-                  onChange={(e) => setCustomerNameLookup(e.target.value)}
-                  onLookup={() => handleLookup(customerNameLookup, 'nome_cliente', 'cliente')}
-                  suggestions={scheduledOrders}
-                  field="nome_cliente"
-                  fieldLabel="Cliente"
-                  onDropdownSelect={executeLookupFromDropdown}
-                />
-              </div>
-              <button
-                className="nav-btn"
-                onClick={() => handleLookup(customerNameLookup, 'nome_cliente', 'cliente')}
-              >
-                Cerca Cliente
-              </button>
-            </div>
+          <div className="task-pool-header">
+            <h2 className="task-pool-title">Filtri</h2>
           </div>
-        </div>
-
-        {/* Production Schedule Controls Section */}
-        <div className="section-controls">
-          <h2 className="text-[10px] font-semibold text-gray-900 mb-1">Programma Produzione</h2>
-          <div className="controls-grid">
-            {/* Machine Filters */}
-            <div className="filters-section">
-              <SearchableDropdown
-                label="Centro di Lavoro"
-                options={machineData.workCenters}
-                selectedOptions={filters.workCenter}
-                onSelectionChange={(value) => dispatch({ type: 'SET_FILTER', payload: { filterName: 'workCenter', value } })}
-                searchPlaceholder="Cerca Centri di Lavoro"
-                id="work_center_filter"
-              />
-              
-              <SearchableDropdown
-                label="Reparto"
-                options={machineData.departments}
-                selectedOptions={filters.department}
-                onSelectionChange={(value) => dispatch({ type: 'SET_FILTER', payload: { filterName: 'department', value } })}
-                searchPlaceholder="Cerca Reparti"
-                id="department_filter"
-              />
-              
-              <SearchableDropdown
-                label="Tipo Macchina"
-                options={machineData.machineTypes}
-                selectedOptions={filters.machineType}
-                onSelectionChange={(value) => dispatch({ type: 'SET_FILTER', payload: { filterName: 'machineType', value } })}
-                searchPlaceholder="Cerca Tipi di Macchina"
-                id="machine_type_filter"
-              />
-              
-              <SearchableDropdown
-                label="Nome Macchina"
-                options={machineData.machineNames}
-                selectedOptions={filters.machineName}
-                onSelectionChange={(value) => dispatch({ type: 'SET_FILTER', payload: { filterName: 'machineName', value } })}
-                searchPlaceholder="Cerca Nomi Macchine"
-                id="machine_name_filter"
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="actions-section">
-              
-              <button
-                className={`nav-btn ${isEditMode ? 'danger' : 'primary'}`}
-                onClick={toggleEditMode}
-                title={isEditMode ? "Disabilita modalità modifica" : "Abilita modalità modifica"}
-              >
-                {isEditMode ? 'Disabilita Modalità Modifica' : 'Abilita Modalità Modifica'}
-              </button>
-              
+          <div className="filters-grid">
+            {/* Action Buttons - Moved to far left */}
+            <div className="filters-actions-left">
               <button
                 className="nav-btn secondary"
                 onClick={clearFilters}
@@ -719,30 +614,103 @@ function SchedulerPage() {
               >
                 Cancella Filtri
               </button>
+            </div>
 
-              {/* Calendar Navigation */}
-              <div className="calendar-navigation">
-                <button
-                  className="nav-btn secondary"
-                  onClick={() => navigateDate('today')}
-                >
-                  Oggi
-                </button>
-                <button
-                  className="nav-btn secondary"
-                  onClick={() => navigateDate('prev')}
-                >
-                  &lt;
-                </button>
-                <span className="current-date">{formatDateDisplay()}</span>
-                <button
-                  className="nav-btn secondary"
-                  onClick={() => navigateDate('next')}
-                >
-                  &gt;
-                </button>
-              </div>
+            {/* Task Lookup Filters */}
+            <SearchableDropdown
+              label="ODP"
+              options={scheduledOrders.map(order => order.odp_number).filter(Boolean)}
+              selectedOptions={taskLookup ? [taskLookup] : []}
+              onSelectionChange={(value) => {
+                if (value.length > 0) {
+                  setTaskLookup(value[0]);
+                  handleLookup(value[0], 'odp_number', 'ODP');
+                } else {
+                  setTaskLookup('');
+                }
+              }}
+              searchPlaceholder="Cerca ODP..."
+              id="odp_filter"
+              width="150px"
+            />
+            
+            <SearchableDropdown
+              label="Codice Articolo"
+              options={scheduledOrders.map(order => order.article_code).filter(Boolean)}
+              selectedOptions={articleCodeLookup ? [articleCodeLookup] : []}
+              onSelectionChange={(value) => {
+                if (value.length > 0) {
+                  setArticleCodeLookup(value[0]);
+                  handleLookup(value[0], 'article_code', 'codice articolo');
+                } else {
+                  setArticleCodeLookup('');
+                }
+              }}
+              searchPlaceholder="Cerca Articolo..."
+              id="article_filter"
+              width="150px"
+            />
+            
+            <SearchableDropdown
+              label="Nome Cliente"
+              options={scheduledOrders.map(order => order.nome_cliente).filter(Boolean)}
+              selectedOptions={customerNameLookup ? [customerNameLookup] : []}
+              onSelectionChange={(value) => {
+                if (value.length > 0) {
+                  setCustomerNameLookup(value[0]);
+                  handleLookup(value[0], 'nome_cliente', 'cliente');
+                } else {
+                  setCustomerNameLookup('');
+                }
+              }}
+              searchPlaceholder="Cerca Cliente..."
+              id="customer_filter"
+              width="150px"
+            />
 
+            {/* Machine Filters */}
+            <SearchableDropdown
+              label="Centro di Lavoro"
+              options={machineData.workCenters}
+              selectedOptions={filters.workCenter}
+              onSelectionChange={(value) => dispatch({ type: 'SET_FILTER', payload: { filterName: 'workCenter', value } })}
+              searchPlaceholder="Cerca Centri di Lavoro"
+              id="work_center_filter"
+              width="150px"
+            />
+            
+            <SearchableDropdown
+              label="Reparto"
+              options={machineData.departments}
+              selectedOptions={filters.department}
+              onSelectionChange={(value) => dispatch({ type: 'SET_FILTER', payload: { filterName: 'department', value } })}
+              searchPlaceholder="Cerca Reparti"
+              id="department_filter"
+              width="150px"
+            />
+            
+            <SearchableDropdown
+              label="Tipo Macchina"
+              options={machineData.machineTypes}
+              selectedOptions={filters.machineType}
+              onSelectionChange={(value) => dispatch({ type: 'SET_FILTER', payload: { filterName: 'machineType', value } })}
+              searchPlaceholder="Cerca Tipi di Macchina"
+              id="machine_type_filter"
+              width="150px"
+            />
+            
+            <SearchableDropdown
+              label="Nome Macchina"
+              options={machineData.machineNames}
+              selectedOptions={filters.machineName}
+              onSelectionChange={(value) => dispatch({ type: 'SET_FILTER', payload: { filterName: 'machineName', value } })}
+              searchPlaceholder="Cerca Nomi Macchine"
+              id="machine_name_filter"
+              width="150px"
+            />
+
+            {/* Action Buttons - Right side */}
+            <div className="filters-actions-right">
               {/* PDF Download Button */}
               <button
                 className="nav-btn secondary"

@@ -1,7 +1,7 @@
 import React from 'react';
 
 const Table = React.forwardRef(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto" style={{ maxHeight: '95vh' }}>
+  <div className="relative w-full overflow-x-auto overflow-y-visible" style={{ maxHeight: '95vh' }}>
                       <table
                     ref={ref}
                     className={`w-full caption-bottom text-[10px] !text-[10px] relative ${className}`}

@@ -1,4 +1,6 @@
 import { format } from 'date-fns';
+import { useOrderStore } from '../useOrderStore';
+import { useMachineStore } from '../useMachineStore';
 
 /**
  * Scheduling Logic
@@ -458,5 +460,236 @@ export class SchedulingLogic {
       segments: taskSegments,
       originalDuration: durationHours
     };
+  };
+
+  // Handle task duration shrinking with cascading rescheduling
+  handleTaskDurationShrinking = async (taskId, newDuration, machineId) => {
+    try {
+      console.log('🔄 DURATION SHRINKING: Starting cascading rescheduling for task', taskId);
+      console.log('📊 DURATION SHRINKING: New duration:', newDuration, 'hours');
+      
+      // Get the task and machine data
+      const { getOdpOrdersById, getOdpOrders, updateOrder } = useOrderStore.getState();
+      const { getMachinesById } = useMachineStore.getState();
+      
+      const task = getOdpOrdersById(taskId);
+      const machine = getMachinesById(machineId);
+      const allTasks = getOdpOrders();
+      
+      if (!task || !machine) {
+        return { success: false, error: 'Task or machine not found' };
+      }
+      
+      if (!task.scheduled_start_time || !task.scheduled_end_time) {
+        return { success: false, error: 'Task is not scheduled' };
+      }
+      
+      // Calculate the ORIGINAL end time using pre-shrinking duration
+      const originalStartTime = new Date(task.scheduled_start_time);
+      const originalDuration = task.duration; // Pre-shrinking duration
+      const originalEndTime = new Date(originalStartTime.getTime() + (originalDuration * 60 * 60 * 1000));
+      
+      console.log('📅 DURATION SHRINKING: Original end time (pre-shrinking):', originalEndTime.toISOString());
+      console.log('📅 DURATION SHRINKING: Original duration:', originalDuration, 'New duration:', newDuration);
+      
+      // Find the cascading chain of tasks that need to be rescheduled
+      const chainTasks = this.findCascadingChain(taskId, originalEndTime, machineId, allTasks);
+      
+      console.log('🔄 DURATION SHRINKING: Found cascading chain of', chainTasks.length, 'tasks to reschedule');
+      console.log('📋 DURATION SHRINKING: Chain tasks:', chainTasks.map(t => t.odp_number));
+      
+      // First, update the original task with the new duration (backend will calculate time_remaining)
+      await updateOrder(taskId, {
+        duration: newDuration
+      });
+      
+      // Get the updated task with the new time_remaining calculated by the backend
+      const updatedTask = getOdpOrdersById(taskId);
+      const newTimeRemaining = updatedTask.time_remaining || newDuration;
+      
+      console.log('📊 DURATION SHRINKING: Updated time_remaining from backend:', newTimeRemaining);
+      
+      // Now reschedule the original task using the new time_remaining
+      console.log('🔄 DURATION SHRINKING: Rescheduling original task with new time_remaining');
+      const originalTaskSchedulingResult = await this.scheduleTaskWithSplitting(
+        taskId,
+        originalStartTime,
+        newTimeRemaining,
+        machineId,
+        [] // No exclusions for the original task
+      );
+      
+      if (!originalTaskSchedulingResult) {
+        console.error('❌ DURATION SHRINKING: Failed to reschedule original task');
+        return { 
+          success: false, 
+          error: 'Failed to reschedule original task. Not enough space available.',
+          rescheduledTasks: []
+        };
+      }
+      
+      if (originalTaskSchedulingResult.conflict) {
+        console.error('❌ DURATION SHRINKING: Conflict detected while rescheduling original task');
+        return { 
+          success: false, 
+          error: 'Conflict detected while rescheduling original task. Consider using conflict resolution.',
+          rescheduledTasks: []
+        };
+      }
+      
+      // Update the original task with the new scheduling information
+      await updateOrder(taskId, {
+        scheduled_start_time: originalTaskSchedulingResult.startTime.toISOString(),
+        scheduled_end_time: originalTaskSchedulingResult.endTime.toISOString(),
+        status: 'SCHEDULED'
+      });
+      
+      const rescheduledTasks = [{
+        id: taskId,
+        odp_number: task.odp_number,
+        new_start_time: originalTaskSchedulingResult.startTime.toISOString(),
+        new_end_time: originalTaskSchedulingResult.endTime.toISOString(),
+        was_split: originalTaskSchedulingResult.wasSplit
+      }];
+      
+      // Now reschedule the chain tasks sequentially, starting after the rescheduled original task
+      let currentStartTime = new Date(originalTaskSchedulingResult.endTime);
+      
+      // Round up to the next 15-minute slot
+      const minutes = currentStartTime.getUTCMinutes();
+      const nextSlot = Math.ceil(minutes / 15) * 15;
+      if (nextSlot === 60) {
+        currentStartTime.setUTCHours(currentStartTime.getUTCHours() + 1, 0, 0, 0);
+      } else {
+        currentStartTime.setUTCMinutes(nextSlot, 0, 0);
+      }
+      
+      for (const chainTask of chainTasks) {
+        console.log('🔄 DURATION SHRINKING: Rescheduling task', chainTask.odp_number, 'to start at', currentStartTime.toISOString());
+        
+        // Use the existing scheduling logic with splitting
+        const schedulingResult = await this.scheduleTaskWithSplitting(
+          chainTask.id,
+          currentStartTime,
+          chainTask.time_remaining || chainTask.duration || 1,
+          machineId,
+          [taskId] // Exclude the original task from overlap detection
+        );
+        
+        if (!schedulingResult) {
+          console.error('❌ DURATION SHRINKING: Failed to reschedule task', chainTask.odp_number);
+          return { 
+            success: false, 
+            error: `Failed to reschedule task ${chainTask.odp_number}. Not enough space available.`,
+            rescheduledTasks: rescheduledTasks
+          };
+        }
+        
+        if (schedulingResult.conflict) {
+          console.error('❌ DURATION SHRINKING: Conflict detected while rescheduling task', chainTask.odp_number);
+          return { 
+            success: false, 
+            error: `Conflict detected while rescheduling task ${chainTask.odp_number}. Consider using conflict resolution.`,
+            rescheduledTasks: rescheduledTasks
+          };
+        }
+        
+        // Update the task with the new scheduling information
+        await updateOrder(chainTask.id, {
+          scheduled_start_time: schedulingResult.startTime.toISOString(),
+          scheduled_end_time: schedulingResult.endTime.toISOString(),
+          status: 'SCHEDULED'
+        });
+        
+        rescheduledTasks.push({
+          id: chainTask.id,
+          odp_number: chainTask.odp_number,
+          new_start_time: schedulingResult.startTime.toISOString(),
+          new_end_time: schedulingResult.endTime.toISOString(),
+          was_split: schedulingResult.wasSplit
+        });
+        
+        // Move to the next available slot after this task
+        currentStartTime = new Date(schedulingResult.endTime);
+        const nextMinutes = currentStartTime.getUTCMinutes();
+        const nextSlot = Math.ceil(nextMinutes / 15) * 15;
+        if (nextSlot === 60) {
+          currentStartTime.setUTCHours(currentStartTime.getUTCHours() + 1, 0, 0, 0);
+        } else {
+          currentStartTime.setUTCMinutes(nextSlot, 0, 0);
+        }
+      }
+      
+      console.log('✅ DURATION SHRINKING: Successfully rescheduled', rescheduledTasks.length, 'tasks');
+      
+      return { 
+        success: true, 
+        message: `Successfully rescheduled ${rescheduledTasks.length} tasks due to duration reduction`,
+        rescheduledTasks: rescheduledTasks
+      };
+      
+    } catch (error) {
+      console.error('❌ DURATION SHRINKING ERROR:', error);
+      return { 
+        success: false, 
+        error: error.message || 'Unknown error during duration shrinking',
+        rescheduledTasks: []
+      };
+    }
+  };
+
+  // Find the cascading chain of tasks that need to be rescheduled
+  findCascadingChain = (originalTaskId, originalEndTime, machineId, allTasks) => {
+    const chain = [];
+    const visited = new Set();
+    
+    // Find all tasks on the same machine that are scheduled after the original task
+    const tasksOnMachine = allTasks.filter(t => 
+      t.scheduled_machine_id === machineId && 
+      t.status === 'SCHEDULED' &&
+      t.id !== originalTaskId &&
+      t.scheduled_start_time
+    ).sort((a, b) => new Date(a.scheduled_start_time) - new Date(b.scheduled_start_time));
+    
+    // Start with tasks that begin within 15 minutes of the original end time
+    const initialCandidates = tasksOnMachine.filter(t => {
+      const taskStart = new Date(t.scheduled_start_time);
+      const timeDiffMinutes = (taskStart.getTime() - originalEndTime.getTime()) / (1000 * 60);
+      return timeDiffMinutes >= 0 && timeDiffMinutes <= 15; // Within 15 minutes
+    });
+    
+    console.log('🔍 DURATION SHRINKING: Initial candidates within 15 minutes:', initialCandidates.map(t => t.odp_number));
+    
+    // Build the chain by following the 15-minute rule
+    const buildChain = (currentEndTime) => {
+      for (const task of tasksOnMachine) {
+        if (visited.has(task.id)) continue;
+        
+        const taskStart = new Date(task.scheduled_start_time);
+        const timeDiffMinutes = (taskStart.getTime() - currentEndTime.getTime()) / (1000 * 60);
+        
+        // If this task starts within 15 minutes of the current end time
+        if (timeDiffMinutes >= 0 && timeDiffMinutes <= 15) {
+          visited.add(task.id);
+          chain.push(task);
+          
+          // Calculate this task's end time and continue the chain
+          const taskDuration = task.time_remaining || task.duration || 1;
+          const taskEndTime = new Date(taskStart.getTime() + (taskDuration * 60 * 60 * 1000));
+          
+          console.log('🔗 DURATION SHRINKING: Added to chain:', task.odp_number, 'ends at', taskEndTime.toISOString());
+          
+          // Recursively find tasks that start within 15 minutes of this task's end
+          buildChain(taskEndTime);
+        }
+      }
+    };
+    
+    // Start building the chain from the original end time
+    buildChain(originalEndTime);
+    
+    console.log('📋 DURATION SHRINKING: Complete chain found:', chain.map(t => t.odp_number));
+    
+    return chain;
   };
 }

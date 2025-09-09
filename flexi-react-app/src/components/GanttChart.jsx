@@ -662,6 +662,23 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, onNavigate
           <option value="Weekly">Vista Settimanale</option>
         </select>
       </div>
+
+      {/* Centered Date Navigation */}
+      <div className="gantt-date-navigation">
+        <button
+          className="nav-btn secondary"
+          onClick={() => onNavigateToPreviousDay && onNavigateToPreviousDay()}
+        >
+          &lt;
+        </button>
+        <span className="current-date">{format(currentDate, 'dd/MM/yyyy')}</span>
+        <button
+          className="nav-btn secondary"
+          onClick={() => onNavigateToNextDay && onNavigateToNextDay()}
+        >
+          &gt;
+        </button>
+      </div>
       
       <div className="gantt-scroll-container">
         <div className="calendar-grid-container">
