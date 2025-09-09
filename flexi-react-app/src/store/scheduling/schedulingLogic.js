@@ -1,6 +1,9 @@
 import { format } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
 import { useOrderStore } from '../useOrderStore';
 import { useMachineStore } from '../useMachineStore';
+import { SCHEDULING } from '../../constants';
+import { apiService } from '../../services/api';
 
 /**
  * Scheduling Logic
@@ -16,9 +19,10 @@ export class SchedulingLogic {
 
   // Absolute date creation - no timezone conversion at all
   createAbsoluteDate = (year, month, day, hour = 0, minute = 0) => {
-    // Use UTC methods to create dates that represent the EXACT time values
+    // Use fromZonedTime to create dates that represent the EXACT time values
     // This way hour 15 means hour 15, not hour 15 in your local timezone
-    return new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0));
+    const localDate = new Date(year, month - 1, day, hour, minute, 0, 0);
+    return fromZonedTime(localDate, 'UTC');
   };
 
   // Helper function to split tasks across available time slots
@@ -112,7 +116,7 @@ export class SchedulingLogic {
         }
         
         // Safety check to prevent infinite loops
-        if (segments.length > 50) {
+        if (segments.length > SCHEDULING.MAX_TASK_SEGMENTS) {
           console.warn('Task splitting exceeded maximum segments limit');
           break;
         }
@@ -469,10 +473,10 @@ export class SchedulingLogic {
       console.log('📊 DURATION SHRINKING: New duration:', newDuration, 'hours');
       
       // Get the task and machine data
-      const { getOdpOrdersById, getOdpOrders, updateOrder } = useOrderStore.getState();
+      const { getOrderById, getOdpOrders } = useOrderStore.getState();
       const { getMachinesById } = useMachineStore.getState();
       
-      const task = getOdpOrdersById(taskId);
+      const task = getOrderById(taskId);
       const machine = getMachinesById(machineId);
       const allTasks = getOdpOrders();
       
@@ -499,12 +503,12 @@ export class SchedulingLogic {
       console.log('📋 DURATION SHRINKING: Chain tasks:', chainTasks.map(t => t.odp_number));
       
       // First, update the original task with the new duration (backend will calculate time_remaining)
-      await updateOrder(taskId, {
+      await apiService.updateOdpOrder(taskId, {
         duration: newDuration
       });
       
       // Get the updated task with the new time_remaining calculated by the backend
-      const updatedTask = getOdpOrdersById(taskId);
+      const updatedTask = getOrderById(taskId);
       const newTimeRemaining = updatedTask.time_remaining || newDuration;
       
       console.log('📊 DURATION SHRINKING: Updated time_remaining from backend:', newTimeRemaining);
@@ -538,7 +542,7 @@ export class SchedulingLogic {
       }
       
       // Update the original task with the new scheduling information
-      await updateOrder(taskId, {
+      await apiService.updateOdpOrder(taskId, {
         scheduled_start_time: originalTaskSchedulingResult.startTime.toISOString(),
         scheduled_end_time: originalTaskSchedulingResult.endTime.toISOString(),
         status: 'SCHEDULED'
@@ -595,7 +599,7 @@ export class SchedulingLogic {
         }
         
         // Update the task with the new scheduling information
-        await updateOrder(chainTask.id, {
+        await apiService.updateOdpOrder(chainTask.id, {
           scheduled_start_time: schedulingResult.startTime.toISOString(),
           scheduled_end_time: schedulingResult.endTime.toISOString(),
           status: 'SCHEDULED'

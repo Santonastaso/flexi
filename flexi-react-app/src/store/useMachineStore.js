@@ -1,31 +1,40 @@
-import { createEntityStore } from './storeFactory';
-import { apiService } from '../services';
-import { generateCalendarForYear } from '../utils/calendarPopulationUtils';
-import { showSuccess, showWarning } from '../utils';
+import { create } from 'zustand';
 
-// Create machine store using the factory with custom calendar logic
-export const useMachineStore = createEntityStore(
-  'Machine',
-  'machines',
-  {
-    add: async (newMachine) => {
-      const added = await apiService.addMachine(newMachine);
-      
-      // Automatically populate the new machine's calendar
-      try {
-        const currentYear = new Date().getFullYear();
-        const records = generateCalendarForYear([added], currentYear);
-        if (records.length > 0) {
-          await apiService.bulkUpsertMachineAvailability(records);
-        }
-        showSuccess(`Machine "${added?.machine_name || 'Unknown'}" added and calendar set successfully`);
-      } catch (calendarError) {
-        showWarning(`Machine added, but failed to set calendar: ${calendarError.message}`);
+// Create machine store without direct API calls
+// Data fetching is now handled by React Query hooks in useQueries.js
+export const useMachineStore = create((set, get) => ({
+  // State
+  machines: [],
+
+  // Selectors
+  getMachines: () => get().machines,
+  getMachineById: (id) => get().machines.find(machine => machine.id === id),
+  getMachinesByWorkCenter: (workCenter) => {
+    if (workCenter === 'BOTH') {
+      return get().machines;
+    }
+    return get().machines.filter(machine => machine.work_center === workCenter);
+  },
+
+  // Actions - only for client-side state management
+  setMachines: (machines) => set({ machines: machines || [] }),
+
+  // Utility actions
+  cleanupDuplicateMachines: () => {
+    const state = get();
+    
+    // Remove duplicate machines (keep first occurrence)
+    const uniqueMachines = [];
+    const seenIds = new Set();
+    state.machines.forEach(machine => {
+      if (!seenIds.has(machine.id)) {
+        seenIds.add(machine.id);
+        uniqueMachines.push(machine);
       }
-      
-      return added;
-    },
-    update: apiService.updateMachine,
-    remove: apiService.removeMachine,
-  }
-);
+    });
+    
+    set({ machines: uniqueMachines });
+  },
+
+  reset: () => set({ machines: [] }),
+}));

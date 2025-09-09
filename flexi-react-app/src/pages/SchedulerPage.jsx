@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense, lazy, useReducer } from 'react';
-import { DndContext, DragOverlay } from '@dnd-kit/core';
+import { DndContext, DragOverlay, PointerSensor, MouseSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { useOrderStore, useMachineStore, useUIStore, useSchedulerStore, useMainStore } from '../store';
+import { useOrders, useMachines } from '../hooks';
 import { format } from 'date-fns';
 
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
@@ -124,13 +125,30 @@ const downloadGanttAsHTML = (ganttElementSelector, dateDisplay) => {
 };
 
 function SchedulerPage() {
-  // Select state and actions from Zustand store
-  const { machines } = useMachineStore();
-  const { odpOrders, getOdpOrdersByWorkCenter, getScheduledOrders } = useOrderStore();
+  // Use React Query for data fetching
+  const { data: orders = [], isLoading: ordersLoading, error: ordersError } = useOrders();
+  const { data: machines = [], isLoading: machinesLoading, error: machinesError } = useMachines();
+  
+  // Use Zustand store for selectors and client state
+  const { getOdpOrdersByWorkCenter, getScheduledOrders } = useOrderStore();
   const { selectedWorkCenter, isLoading, isInitialized, showAlert, isEditMode, toggleEditMode, showConflictDialog, schedulingLoading } = useUIStore();
   const { scheduleTask, unscheduleTask, scheduleTaskFromSlot, rescheduleTaskToSlot, validateSlotAvailability } = useSchedulerStore();
   const { init, cleanup } = useMainStore();
   const queryClient = useQueryClient();
+
+  // Configure drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 0, // No distance required - immediate activation
+      },
+    }),
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 0, // No distance required - immediate activation
+      },
+    })
+  );
 
   // Initialize with UTC today
   const [currentDate, setCurrentDate] = useState(() => {
@@ -138,6 +156,10 @@ function SchedulerPage() {
     return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   });
   const [activeDragItem, setActiveDragItem] = useState(null);
+  
+  
+  // Combined loading state
+  const isDataLoading = ordersLoading || machinesLoading || isLoading;
   const [dropTargetId, setDropTargetId] = useState(null);
   const [taskLookup, setTaskLookup] = useState('');
   const [articleCodeLookup, setArticleCodeLookup] = useState('');
@@ -180,9 +202,9 @@ function SchedulerPage() {
   // Get ODP orders filtered by selected work center
   const filteredOdpOrders = useMemo(() => {
     if (!selectedWorkCenter) return [];
-    const filtered = getOdpOrdersByWorkCenter(selectedWorkCenter);
-    return filtered;
-  }, [selectedWorkCenter, getOdpOrdersByWorkCenter]);
+    if (selectedWorkCenter === 'BOTH') return orders;
+    return orders.filter(order => order.work_center === selectedWorkCenter);
+  }, [selectedWorkCenter, orders]);
 
   // Get scheduled orders filtered by selected work center
   const scheduledOrders = useMemo(() => {
@@ -404,12 +426,11 @@ function SchedulerPage() {
 
   // Memoize drag handlers with performance optimizations
   const handleDragStart = useCallback((event) => {
-    const startTime = performance.now();
     const draggedItem = event.active.data.current;
 
-    if (draggedItem.type === 'task') {
+    if (draggedItem && draggedItem.type === 'task') {
       setActiveDragItem(draggedItem.task);
-    } else if (draggedItem.type === 'event') {
+    } else if (draggedItem && draggedItem.type === 'event') {
       setActiveDragItem(draggedItem.event);
     }
   }, []);
@@ -464,6 +485,8 @@ function SchedulerPage() {
 
     const draggedItem = active.data.current;
     const dropZone = over.data.current;
+
+    // Drag end processing
 
     // Quick validation before async operation
     if (!draggedItem || !dropZone) {
@@ -556,12 +579,37 @@ function SchedulerPage() {
 
 
   // Show loading state during initial load
-  if (isLoading) {
+  if (isDataLoading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 shadow-lg flex items-center space-x-3">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           <span className="text-gray-700 font-medium">Caricamento Scheduler Produzione...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if data fetching failed
+  if (ordersError || machinesError) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 shadow-lg text-center">
+          <div className="text-red-600 mb-4">
+            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Errore nel caricamento dei dati</h3>
+          <p className="text-gray-600 mb-4">
+            {ordersError?.message || machinesError?.message || 'Errore sconosciuto'}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Riprova
+          </button>
         </div>
       </div>
     );
@@ -578,7 +626,7 @@ function SchedulerPage() {
   return (
     <>
       <SchedulingLoadingOverlay schedulingLoading={schedulingLoading} />
-      <DndContext onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         <div className={`content-section ${isEditMode ? 'edit-mode' : ''}`}>
 
         
@@ -743,20 +791,29 @@ function SchedulerPage() {
 
       <DragOverlay>
         {activeDragItem ? (
-          <div className="task-item drag-overlay" style={{
+          <div style={{
+            background: '#1e293b', // --sap-primary
+            color: '#ffffff', // --text-white
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '10px',
+            fontWeight: '400',
+            zIndex: 9999,
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%) rotate(3deg) scale(1.05)',
+            border: '1px solid #2d3a4b', // --sap-secondary
             boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
-            transform: 'rotate(3deg) scale(1.05)',
-            opacity: 0.9,
-            zIndex: 1002,
-            pointerEvents: 'none' // Improve drag performance
+            pointerEvents: 'none',
+            minHeight: '15px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            userSelect: 'none',
+            whiteSpace: 'nowrap'
           }}>
-            <span>{activeDragItem.odp_number}</span>
-            <span className="task-time">
-              {activeDragItem.time_remaining ? Number(activeDragItem.time_remaining).toFixed(1) : (activeDragItem.duration || 1).toFixed(1)}h
-            </span>
-            {(schedulingLoading.isScheduling || schedulingLoading.isRescheduling || schedulingLoading.isShunting || schedulingLoading.isNavigating) && (
-              <div className="absolute top-0 right-0 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-            )}
+            {activeDragItem.odp_number}
           </div>
         ) : null}
       </DragOverlay>

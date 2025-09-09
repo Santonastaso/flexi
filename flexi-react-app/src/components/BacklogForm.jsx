@@ -238,8 +238,8 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
             await new Promise(resolve => setTimeout(resolve, 100));
             
             // Verify the task was updated in the store
-            const { getOdpOrdersById } = useOrderStore.getState();
-            const updatedTaskBeforeScheduling = getOdpOrdersById(orderToEdit.id);
+            const { getOrderById } = useOrderStore.getState();
+            const updatedTaskBeforeScheduling = getOrderById(orderToEdit.id);
             console.log('🔍 EDIT FLOW: Task duration after update:', updatedTaskBeforeScheduling?.duration);
             
             // Unschedule the task first (like removing it from the Gantt)
@@ -288,7 +288,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
             }
             
             // 4. Get the updated task data after scheduling (it was updated by scheduleTaskFromSlot)
-            const updatedTask = getOdpOrdersById(orderToEdit.id);
+            const updatedTask = getOrderById(orderToEdit.id);
             console.log('📋 EDIT FLOW: Updated task after scheduling:', updatedTask);
             
             // Update database with form fields + new scheduling info from the updated task

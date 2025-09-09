@@ -4,17 +4,21 @@ import BacklogForm from '../components/BacklogForm';
 import StickyHeader from '../components/StickyHeader';
 import { Button } from '../components/ui';
 import { useOrderStore, useUIStore, useMainStore } from '../store';
+import { useOrder } from '../hooks';
 
 function BacklogFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getOdpOrdersById } = useOrderStore();
+  
+  // Use React Query for data fetching
+  const { data: order, isLoading: orderLoading, error: orderError } = useOrder(id);
+  
+  // Use Zustand store for client state
   const { selectedWorkCenter } = useUIStore();
   const { isLoading, isInitialized, init, cleanup } = useMainStore();
 
   // Check if this is edit mode (has ID) or add mode (no ID)
   const isEditMode = Boolean(id);
-  const order = isEditMode ? getOdpOrdersById(id) : null;
 
   // Initialize store on component mount
   useEffect(() => {
@@ -30,12 +34,12 @@ function BacklogFormPage() {
 
   // Redirect if order not found in edit mode
   useEffect(() => {
-    if (isEditMode && !isLoading && !order) {
+    if (isEditMode && !orderLoading && !order && orderError) {
       navigate('/backlog', { replace: true });
     }
-  }, [isEditMode, isLoading, order, navigate]);
+  }, [isEditMode, orderLoading, order, navigate, orderError]);
 
-  if (isLoading) {
+  if (orderLoading) {
     return <div>Caricamento...</div>;
   }
 

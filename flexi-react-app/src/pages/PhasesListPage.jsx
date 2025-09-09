@@ -3,15 +3,18 @@ import { Link, useNavigate } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 
 import { usePhaseStore, useUIStore, useMainStore } from '../store';
-import { useErrorHandler } from '../hooks';
+import { useErrorHandler, usePhases, useRemovePhase } from '../hooks';
 import { showError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
 
 
 function PhasesListPage() {
-  // Use Zustand store to select state and actions
-  const { phases, removePhase } = usePhaseStore();
-  const { selectedWorkCenter, isLoading, isInitialized, showConfirmDialog } = useUIStore();
+  // Use React Query for data fetching
+  const { data: phases = [], isLoading: phasesLoading, error: phasesError } = usePhases();
+  const removePhaseMutation = useRemovePhase();
+  
+  // Use Zustand store for client state
+  const { selectedWorkCenter, isInitialized, showConfirmDialog } = useUIStore();
   const { init, cleanup } = useMainStore();
   const navigate = useNavigate();
 
@@ -64,18 +67,22 @@ function PhasesListPage() {
       `Sei sicuro di voler eliminare "${phaseToDelete.name}"? Questa azione non può essere annullata.`,
       async () => {
         try {
-          await removePhase(phaseToDelete.id);
+          await removePhaseMutation.mutateAsync(phaseToDelete.id);
+          showSuccess(`Fase "${phaseToDelete.name}" eliminata con successo`);
         } catch (error) {
-          // Show specific error message from the store
-          showError(error.message);
+          showError(error.message || 'Errore durante l\'eliminazione della fase');
         }
       },
       'danger'
     );
   };
 
-  if (isLoading) {
+  if (phasesLoading) {
     return <div>Caricamento dati fasi...</div>;
+  }
+
+  if (phasesError) {
+    return <div className="text-center py-2 text-red-600 text-[10px]">Errore nel caricamento delle fasi: {phasesError.message}</div>;
   }
 
   if (!selectedWorkCenter) {

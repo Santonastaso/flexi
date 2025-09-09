@@ -53,81 +53,48 @@ const cleanupGlobalListeners = () => {
   }
 };
 
-// Handle ODP Orders changes
+// Handle ODP Orders changes - now invalidates React Query cache
 const handleOdpOrdersChange = (payload, _set, _get) => {
   const { eventType, newRecord, oldRecord } = payload;
-  const { setOdpOrders, getOdpOrders } = useOrderStore.getState();
   const { updateSplitTaskInfo } = useSchedulerStore.getState();
   
-  switch (eventType) {
-    case 'INSERT':
-      setOdpOrders([...getOdpOrders(), newRecord]);
-      if (newRecord.status === 'SCHEDULED') {
-        updateSplitTaskInfo(newRecord.id, newRecord);
-      }
-      break;
-    case 'UPDATE':
-      setOdpOrders(getOdpOrders().map(order => 
-        order.id === newRecord.id ? newRecord : order
-      ));
-      updateSplitTaskInfo(newRecord.id, newRecord);
-      break;
-    case 'DELETE':
-      setOdpOrders(getOdpOrders().filter(order => order.id !== oldRecord.id));
-      break;
+  // Update split task info for scheduled orders
+  if (eventType === 'INSERT' && newRecord.status === 'SCHEDULED') {
+    updateSplitTaskInfo(newRecord.id, newRecord);
+  } else if (eventType === 'UPDATE') {
+    updateSplitTaskInfo(newRecord.id, newRecord);
   }
+  
+  // Note: Data updates are now handled by React Query invalidation
+  // The actual data fetching and cache updates are managed by React Query
+  console.log(`Orders ${eventType.toLowerCase()}:`, newRecord || oldRecord);
 };
 
-// Handle Machines changes
+// Handle Machines changes - now invalidates React Query cache
 const handleMachinesChange = (payload, _set, _get) => {
   const { eventType, newRecord, oldRecord } = payload;
-  const { setMachines, getMachines } = useMachineStore.getState();
   
-  switch (eventType) {
-    case 'INSERT':
-      setMachines([...getMachines(), newRecord]);
-      break;
-    case 'UPDATE':
-      setMachines(getMachines().map(machine => 
-        machine.id === newRecord.id ? newRecord : machine
-      ));
-      break;
-    case 'DELETE':
-      setMachines(getMachines().filter(machine => machine.id !== oldRecord.id));
-      break;
-  }
+  // Note: Data updates are now handled by React Query invalidation
+  // The actual data fetching and cache updates are managed by React Query
+  console.log(`Machines ${eventType.toLowerCase()}:`, newRecord || oldRecord);
 };
 
-// Handle Phases changes
+// Handle Phases changes - now invalidates React Query cache
 const handlePhasesChange = (payload, _set, _get) => {
   const { eventType, newRecord, oldRecord } = payload;
-  const { setPhases, getPhases } = usePhaseStore.getState();
   
-  switch (eventType) {
-    case 'INSERT':
-      setPhases([...getPhases(), newRecord]);
-      break;
-    case 'UPDATE':
-      setPhases(getPhases().map(phase => 
-        phase.id === newRecord.id ? newRecord : phase
-      ));
-      break;
-    case 'DELETE':
-      setPhases(getPhases().filter(phase => phase.id !== oldRecord.id));
-      break;
-  }
+  // Note: Data updates are now handled by React Query invalidation
+  // The actual data fetching and cache updates are managed by React Query
+  console.log(`Phases ${eventType.toLowerCase()}:`, newRecord || oldRecord);
 };
 
 export const useMainStore = create((set, get) => ({
   // State
   isInitializing: false,
   
-  // Lifecycle
+  // Lifecycle - simplified to only handle non-data initialization
   init: async () => {
     const { getInitializationState, setLoading, setInitialized, showAlert } = useUIStore.getState();
-    const { setMachines } = useMachineStore.getState();
-    const { setOdpOrders } = useOrderStore.getState();
-    const { setPhases } = usePhaseStore.getState();
     const { initializeEmptyMachineAvailability } = useSchedulerStore.getState();
     
     // Check if already initialized to prevent duplicate initialization
@@ -199,65 +166,8 @@ export const useMainStore = create((set, get) => ({
         }
       }
       
-      // Step 2: Fetch core data with individual error handling
-      let machines = [];
-      let odpOrders = [];
-      let phases = [];
-      
+      // Step 2: Initialize non-data components
       try {
-        machines = await apiService.getMachines();
-      } catch (machineError) {
-        const appError = handleApiError(machineError, 'Machines Data Fetch');
-        // Error automatically logged by handleApiError (Sentry integration)
-        showAlert(
-          'Warning: Unable to load machine data. Some features may be limited.',
-          'warning'
-        );
-        // Continue with empty machines array
-      }
-      
-      try {
-        odpOrders = await apiService.getOdpOrders();
-      } catch (orderError) {
-        const appError = handleApiError(orderError, 'Orders Data Fetch');
-        // Error automatically logged by handleApiError (Sentry integration)
-        showAlert(
-          'Warning: Unable to load order data. Some features may be limited.',
-          'warning'
-        );
-        // Continue with empty orders array
-      }
-      
-      try {
-        phases = await apiService.getPhases();
-      } catch (phaseError) {
-        const appError = handleApiError(phaseError, 'Phases Data Fetch');
-        // Error automatically logged by handleApiError (Sentry integration)
-        showAlert(
-          'Warning: Unable to load phase data. Some features may be limited.',
-          'warning'
-        );
-        // Continue with empty phases array
-      }
-      
-      // Step 3: Process and set data with validation
-      try {
-        // Remove any duplicate machines before setting state
-        const uniqueMachines = [];
-        const seenMachineIds = new Set();
-        if (machines && machines.length > 0) {
-          machines.forEach(machine => {
-            if (!seenMachineIds.has(machine.id)) {
-              seenMachineIds.add(machine.id);
-              uniqueMachines.push(machine);
-            }
-          });
-        }
-        
-        setMachines(uniqueMachines);
-        setOdpOrders(odpOrders || []);
-        setPhases(phases || []);
-        
         // Initialize empty machine availability
         initializeEmptyMachineAvailability();
         
@@ -268,7 +178,7 @@ export const useMainStore = create((set, get) => ({
         // Migrate existing tasks to new bulletproof segment format
         await migrateExistingTasksToSegmentFormat();
         
-        // Step 4: Setup real-time subscriptions with error handling
+        // Step 3: Setup real-time subscriptions with error handling
         if (!window.realtimeChannel) {
           try {
             const realtimeChannel = setupRealtimeSubscriptions(set, get);
@@ -291,19 +201,10 @@ export const useMainStore = create((set, get) => ({
         setInitialized(true);
         set({ isInitializing: false });
         
-        // Show success message if some data was loaded
-        const totalDataItems = uniqueMachines.length + (odpOrders?.length || 0) + (phases?.length || 0);
-        if (totalDataItems > 0) {
-          showAlert(
-            `Application initialized successfully. Loaded ${totalDataItems} data items.`,
-            'success'
-          );
-        } else {
-          showAlert(
-            'Application initialized with limited functionality due to data loading issues.',
-            'warning'
-          );
-        }
+        showAlert(
+          'Application initialized successfully. Data will be loaded via React Query.',
+          'success'
+        );
         
       } catch (dataProcessingError) {
         const appError = handleApiError(dataProcessingError, 'Data Processing');
@@ -344,27 +245,10 @@ export const useMainStore = create((set, get) => ({
     }
   },
 
-  // Manual refresh function for debugging or when real-time fails
-  refreshData: async () => {
-    const { setLoading } = useUIStore.getState();
-    const { setMachines } = useMachineStore.getState();
-    const { setOdpOrders } = useOrderStore.getState();
-    const { setPhases } = usePhaseStore.getState();
-    
-    setLoading(true);
-    try {
-      const [machines, odpOrders, phases] = await Promise.all([
-        apiService.getMachines(),
-        apiService.getOdpOrders(),
-        apiService.getPhases(),
-      ]);
-      setMachines(machines || []);
-      setOdpOrders(odpOrders || []);
-      setPhases(phases || []);
-      setLoading(false);
-    } catch (_error) {
-      setLoading(false);
-    }
+  // Manual refresh function - now handled by React Query invalidation
+  refreshData: () => {
+    // This method is deprecated - use React Query's invalidateQueries instead
+    console.warn('refreshData is deprecated. Use React Query invalidation instead.');
   },
 
   // Debug function to check for duplicate data
@@ -423,11 +307,11 @@ export const useMainStore = create((set, get) => ({
   },
 
   // Get combined state from all stores
+  // Note: Data fetching is now handled by React Query hooks
   getState: () => {
     const { getMachines } = useMachineStore.getState();
     const { getOdpOrders } = useOrderStore.getState();
     const { getPhases } = usePhaseStore.getState();
-    // const { getMachineAvailability } = useSchedulerStore.getState();
     const { getLoadingState, getInitializationState } = useUIStore.getState();
     
     return {

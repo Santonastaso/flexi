@@ -2,6 +2,7 @@ import { useOrderStore } from '../useOrderStore';
 import { useUIStore } from '../useUIStore';
 import { AppError, ERROR_TYPES } from '../../utils/errorHandling';
 import { TIME_CONSTANTS } from '../../constants';
+import { apiService } from '../../services/api';
 
 
 /**
@@ -124,7 +125,7 @@ export class ConflictResolution {
   };
 
   // IMPROVED SHUNTING METHOD: Resolve conflict by shunting tasks in the chosen direction
-  resolveConflictByShunting = async (conflictDetails, direction, tasks, draggedTask, updateOrder) => {
+  resolveConflictByShunting = async (conflictDetails, direction, tasks, draggedTask) => {
     try {
       
       const { conflictingTask, proposedStartTime: proposedStartTimeRaw, machine } = conflictDetails;
@@ -619,7 +620,7 @@ export class ConflictResolution {
       // Execute all updates
       // debugLog(`🔄 Applying ${updates.length} updates to database`);
       for (const update of updates) {
-        await updateOrder(update.id, update);
+        await apiService.updateOdpOrder(update.id, update);
         // debugLog(`✅ Updated task ${update.id}:`, update);
       }
       

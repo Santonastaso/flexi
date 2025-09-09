@@ -20,11 +20,12 @@ const GanttActionsCell = ({ task, isEditMode, schedulingLoading, conflictDialog 
   const { updateOdpOrder: _updateOdpOrder } = useOrderStore();
   const { handleAsync: _handleAsync } = useErrorHandler('TaskPoolDataTable');
 
-  const { attributes, listeners } = useDraggable({
+  const { attributes, listeners, setNodeRef } = useDraggable({
     id: `task-${task.id}`,
     data: { task, type: 'task' },
-    disabled: !isEditMode,
+    disabled: false, // Always allow dragging from task pool
   });
+
 
   const isTaskBeingProcessed = schedulingLoading.taskId === task.id && 
     (schedulingLoading.isScheduling || schedulingLoading.isRescheduling || schedulingLoading.isShunting);
@@ -58,19 +59,44 @@ ${task.scheduled_end_time ? `Fine Programmata: ${task.scheduled_end_time.replace
         i
       </button>
 
-      {/* Drag Handle - only active when in edit mode */}
-      {isEditMode && (
-        <div 
-          className="inline-flex items-center justify-center w-6 h-6 text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors cursor-grab active:cursor-grabbing" 
-          {...listeners} 
-          {...attributes}
-          title="Trascina per programmare"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-          </svg>
-        </div>
-      )}
+      {/* Drag Handle - always visible and functional */}
+      <div 
+        ref={setNodeRef}
+        className="drag-handle" 
+        {...listeners} 
+        {...attributes}
+        title="Trascina per programmare"
+        style={{
+          background: '#f3f4f6',
+          border: '1px solid #d1d5db',
+          minWidth: '30px',
+          minHeight: '30px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'grab',
+          borderRadius: '4px',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.background = '#e5e7eb';
+          e.target.style.borderColor = '#9ca3af';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.background = '#f3f4f6';
+          e.target.style.borderColor = '#d1d5db';
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+        </svg>
+      </div>
 
       {/* Loading indicator */}
       {isTaskBeingProcessed && (
@@ -131,6 +157,7 @@ function TaskPoolDataTable() {
     if (selectedWorkCenter && selectedWorkCenter !== 'BOTH') {
       filtered = filtered.filter(task => task.work_center === selectedWorkCenter);
     }
+    // Filtered unscheduled tasks ready for display
     return filtered;
   }, [tasks, selectedWorkCenter]);
 
@@ -179,6 +206,12 @@ function TaskPoolDataTable() {
   ], [isEditMode, schedulingLoading, conflictDialog]);
 
   const handleEditRow = (task) => {
+    // Ensure the task data is available before navigation
+    if (!task || !task.id) {
+      console.error('Invalid task data for editing:', task);
+      return;
+    }
+    
     // Navigate to edit page
     navigate(`/backlog/${task.id}/edit`);
   };

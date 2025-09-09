@@ -107,6 +107,21 @@ class ApiService {
     }
   }
 
+  async getOdpOrder(id) {
+    try {
+      const { data, error } = await supabase
+        .from('odp_orders')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      throw new AppError(`Failed to fetch ODP order: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, error, 'API.getOdpOrder');
+    }
+  }
+
   async addOdpOrder(orderData) {
     try {
       const { data, error } = await supabase

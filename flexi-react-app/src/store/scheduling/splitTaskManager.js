@@ -26,8 +26,8 @@ export class SplitTaskManager {
     }
     
     // Fallback: try to get from database via order store
-    const { getOdpOrdersById } = useOrderStore.getState();
-    const task = getOdpOrdersById(taskId);
+    const { getOrderById } = useOrderStore.getState();
+    const task = getOrderById(taskId);
     
     if (task && task.description && task.status === 'SCHEDULED') {
       try {
@@ -59,7 +59,8 @@ export class SplitTaskManager {
   // Update task with segment info and sync with database (ALL TASKS NOW HAVE SEGMENTS)
   updateTaskWithSplitInfo = async (taskId, segmentInfo, startTime = null, endTime = null, machineId = null) => {
     
-    const { updateOrder } = useOrderStore.getState();
+    // Import API service for direct updates
+    const { apiService } = await import('../../services/api');
     
     if (segmentInfo) {
       // Store segment info in memory and database (for both split and non-split tasks)
@@ -88,8 +89,8 @@ export class SplitTaskManager {
         updateData.status = 'NOT SCHEDULED';
       } else {
         // Partial scheduling fields - this violates the constraint, so we need to get the current task state
-        const { getOdpOrdersById } = useOrderStore.getState();
-        const currentTask = getOdpOrdersById(taskId);
+        const { getOrderById } = useOrderStore.getState();
+        const currentTask = getOrderById(taskId);
         
         if (currentTask) {
           // Use existing values for missing fields to maintain constraint
@@ -99,12 +100,12 @@ export class SplitTaskManager {
         }
       }
       
-      const updatedTask = await updateOrder(taskId, updateData);
+      const updatedTask = await apiService.updateOdpOrder(taskId, updateData);
       this.updateSplitTaskInfo(taskId, updatedTask);
     } else {
       // This should rarely happen now, but keep for safety
       this.clearSplitTaskInfo(taskId);
-      const updatedTask = await updateOrder(taskId, { description: '' });
+      const updatedTask = await apiService.updateOdpOrder(taskId, { description: '' });
       this.updateSplitTaskInfo(taskId, updatedTask);
     }
   };

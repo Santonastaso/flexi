@@ -12,6 +12,7 @@ import { useUIStore } from './useUIStore';
 
 /**
  * Create CRUD actions for any entity type
+ * @deprecated This function is deprecated. Use React Query mutations instead.
  * @param {string} entityName - Name of the entity (e.g., 'Machine', 'Phase', 'Order')
  * @param {string} entityKey - Key used in state (e.g., 'machines', 'phases', 'orders')
  * @param {Object} apiMethods - API methods for this entity
@@ -20,52 +21,22 @@ import { useUIStore } from './useUIStore';
  * @returns {Object} CRUD actions
  */
 const createCrudActions = (entityName, entityKey, apiMethods, set, get) => {
-  const errorHandler = createErrorHandler(entityName);
-
+  console.warn(`createCrudActions is deprecated. Use React Query mutations for ${entityName} instead.`);
+  
   return {
     [`add${entityName}`]: async (newEntity) => {
-      try {
-        // Validate work center (skip validation if BOTH is selected)
-        const { selectedWorkCenter } = useUIStore.getState();
-        if (selectedWorkCenter && selectedWorkCenter !== WORK_CENTERS.BOTH && newEntity.work_center && newEntity.work_center !== selectedWorkCenter) {
-          throw new AppError(`Cannot add ${entityName} with different work center. Selected: ${selectedWorkCenter}, Item: ${newEntity.work_center}`, ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, null, `${entityName}Store.add${entityName}`);
-        }
-
-        const added = await apiMethods.add(newEntity);
-        set(state => ({ [entityKey]: [...state[entityKey], added] }));
-        return added;
-      } catch (error) {
-        const appError = errorHandler(error);
-        throw appError;
-      }
+      console.warn(`add${entityName} is deprecated. Use React Query mutations instead.`);
+      throw new Error(`add${entityName} is deprecated. Use React Query mutations instead.`);
     },
 
     [`update${entityName}`]: async (id, updates) => {
-      try {
-        const updated = await apiMethods.update(id, updates);
-        set(state => ({
-          [entityKey]: state[entityKey].map(entity =>
-            entity.id === id ? { ...entity, ...updated } : entity
-          ),
-        }));
-        return updated;
-      } catch (error) {
-        const appError = errorHandler(error);
-        throw appError;
-      }
+      console.warn(`update${entityName} is deprecated. Use React Query mutations instead.`);
+      throw new Error(`update${entityName} is deprecated. Use React Query mutations instead.`);
     },
 
     [`remove${entityName}`]: async (id) => {
-      try {
-        await apiMethods.remove(id);
-        set(state => ({
-          [entityKey]: state[entityKey].filter(entity => entity.id !== id)
-        }));
-        return true;
-      } catch (error) {
-        const appError = errorHandler(error);
-        throw appError;
-      }
+      console.warn(`remove${entityName} is deprecated. Use React Query mutations instead.`);
+      throw new Error(`remove${entityName} is deprecated. Use React Query mutations instead.`);
     },
   };
 };
@@ -150,55 +121,65 @@ export const createEntityStore = (entityName, entityKey, apiMethods, customActio
 
 /**
  * Pre-configured store creators for common entity types
+ * @deprecated These functions are deprecated. Use individual store files instead.
  */
 
 // Machine store configuration
-export const createMachineStore = () => createEntityStore(
-  'Machine',
-  'machines',
-  {
-    add: apiService.addMachine,
-    update: apiService.updateMachine,
-    remove: apiService.removeMachine,
-  },
-  {
-    // Custom machine-specific actions can be added here
-  }
-);
+export const createMachineStore = () => {
+  console.warn('createMachineStore is deprecated. Use useMachineStore directly instead.');
+  return createEntityStore(
+    'Machine',
+    'machines',
+    {
+      add: apiService.addMachine,
+      update: apiService.updateMachine,
+      remove: apiService.removeMachine,
+    },
+    {
+      // Custom machine-specific actions can be added here
+    }
+  );
+};
 
 // Order store configuration
-export const createOrderStore = () => createEntityStore(
-  'Order',
-  'odpOrders',
-  {
-    add: apiService.addOdpOrder,
-    update: apiService.updateOdpOrder,
-    remove: apiService.removeOdpOrder,
-  },
-  {
-    // Custom order-specific actions
-    getScheduledOrders: () => {
-      const { getOdpOrders } = useOrderStore.getState();
-      return getOdpOrders().filter(order => order.status === 'SCHEDULED');
+export const createOrderStore = () => {
+  console.warn('createOrderStore is deprecated. Use useOrderStore directly instead.');
+  return createEntityStore(
+    'Order',
+    'odpOrders',
+    {
+      add: apiService.addOdpOrder,
+      update: apiService.updateOdpOrder,
+      remove: apiService.removeOdpOrder,
     },
-    
-    getUnscheduledOrders: () => {
-      const { getOdpOrders } = useOrderStore.getState();
-      return getOdpOrders().filter(order => order.status === 'NOT SCHEDULED');
-    },
-  }
-);
+    {
+      // Custom order-specific actions
+      getScheduledOrders: () => {
+        const { getOdpOrders } = useOrderStore.getState();
+        return getOdpOrders().filter(order => order.status === 'SCHEDULED');
+      },
+      
+      getUnscheduledOrders: () => {
+        const { getOdpOrders } = useOrderStore.getState();
+        return getOdpOrders().filter(order => order.status === 'NOT SCHEDULED');
+      },
+    }
+  );
+};
 
 // Phase store configuration
-export const createPhaseStore = () => createEntityStore(
-  'Phase',
-  'phases',
-  {
-    add: apiService.addPhase,
-    update: apiService.updatePhase,
-    remove: apiService.removePhase,
-  },
-  {
-    // Custom phase-specific actions can be added here
-  }
-);
+export const createPhaseStore = () => {
+  console.warn('createPhaseStore is deprecated. Use usePhaseStore directly instead.');
+  return createEntityStore(
+    'Phase',
+    'phases',
+    {
+      add: apiService.addPhase,
+      update: apiService.updatePhase,
+      remove: apiService.removePhase,
+    },
+    {
+      // Custom phase-specific actions can be added here
+    }
+  );
+};

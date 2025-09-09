@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { useMachineStore, useOrderStore, useUIStore, useMainStore } from '../store';
+import { useMachines, useOrders } from '../hooks';
 import { format } from 'date-fns';
 import { MACHINE_STATUSES } from '../constants';
 import StickyHeader from '../components/StickyHeader';
@@ -29,10 +30,16 @@ ChartJS.register(
 );
 
 function HomePage() {
-  const { machines } = useMachineStore();
-  const { odpOrders: orders } = useOrderStore();
-  const { isLoading, isInitialized } = useUIStore();
+  // Use React Query for data fetching
+  const { data: machines = [], isLoading: machinesLoading, error: machinesError } = useMachines();
+  const { data: orders = [], isLoading: ordersLoading, error: ordersError } = useOrders();
+  
+  // Use Zustand store for client state
+  const { isInitialized } = useUIStore();
   const { init, cleanup } = useMainStore();
+  
+  // Combined loading state
+  const isLoading = machinesLoading || ordersLoading;
 
   useEffect(() => {
     if (!isInitialized) {
@@ -286,7 +293,17 @@ function HomePage() {
   if (isLoading) {
     return (
       <div className="p-1 bg-white rounded shadow-sm border">
-                     <div className="text-center py-1 text-gray-500 text-[10px]">Caricamento dashboard...</div>
+        <div className="text-center py-1 text-gray-500 text-[10px]">Caricamento dashboard...</div>
+      </div>
+    );
+  }
+
+  if (machinesError || ordersError) {
+    return (
+      <div className="p-1 bg-white rounded shadow-sm border">
+        <div className="text-center py-1 text-red-600 text-[10px]">
+          Errore nel caricamento dei dati: {machinesError?.message || ordersError?.message}
+        </div>
       </div>
     );
   }

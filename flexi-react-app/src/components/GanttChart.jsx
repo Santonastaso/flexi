@@ -443,6 +443,20 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
       </div>
     </div>
   );
+}, (prevProps, nextProps) => {
+  // Custom comparison function to prevent re-renders when only dropTargetId changes
+  // Only re-render if the actual data props change
+  return (
+    prevProps.machine.id === nextProps.machine.id &&
+    prevProps.machine.machine_name === nextProps.machine.machine_name &&
+    prevProps.machine.work_center === nextProps.machine.work_center &&
+    prevProps.scheduledEvents === nextProps.scheduledEvents &&
+    prevProps.currentDate.getTime() === nextProps.currentDate.getTime() &&
+    prevProps.unavailableByMachine === nextProps.unavailableByMachine &&
+    prevProps.hideMachineLabel === nextProps.hideMachineLabel &&
+    prevProps.queryClient === nextProps.queryClient
+    // Note: dropTargetId is intentionally excluded from comparison
+  );
 });
 
 // Weekly Gantt View Component - reuses machine calendar weekly structure

@@ -157,9 +157,21 @@ export const useOrders = () => {
 export const useOrder = (id) => {
   return useQuery({
     queryKey: queryKeys.order(id),
-    queryFn: () => apiService.getOdpOrders().then(orders => 
-      orders.find(order => order.id === id)
-    ),
+    queryFn: async () => {
+      try {
+        // Try to fetch the specific order first
+        return await apiService.getOdpOrder(id);
+      } catch (error) {
+        // If that fails, fall back to fetching all orders and finding the one we need
+        // This provides better resilience and can use cached data
+        const orders = await apiService.getOdpOrders();
+        const order = orders.find(order => order.id === id);
+        if (!order) {
+          throw new Error(`Order with id ${id} not found`);
+        }
+        return order;
+      }
+    },
     enabled: !!id,
     staleTime: 1 * 60 * 1000,
   });

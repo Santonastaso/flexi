@@ -62,10 +62,10 @@ export const useSchedulerStore = create((set, get) => {
         startSchedulingOperation('schedule', taskId);
         
         // Get task and machine data from stores
-        const { getOdpOrdersById, getOdpOrders, updateOrder } = useOrderStore.getState();
-        const { getMachinesById } = useMachineStore.getState();
-        const task = getOdpOrdersById(taskId);
-        const machineData = getMachinesById(machine.id);
+        const { getOrderById, getOdpOrders } = useOrderStore.getState();
+        const { getMachineById } = useMachineStore.getState();
+        const task = getOrderById(taskId);
+        const machineData = getMachineById(machine.id);
         const tasks = getOdpOrders();
 
         if (!task || !machineData) {
@@ -93,7 +93,7 @@ export const useSchedulerStore = create((set, get) => {
         };
 
         // Use existing scheduleTask method with all validations, passing tasks and updateOrder
-        return await get().scheduleTask(taskId, scheduleData, tasks, updateOrder, overrideDuration, queryClient);
+        return await get().scheduleTask(taskId, scheduleData, tasks, overrideDuration, queryClient);
       } catch (error) {
         const appError = handleApiError(error, 'SchedulerStore.scheduleTaskFromSlot');
         return { error: appError.message };
@@ -109,10 +109,10 @@ export const useSchedulerStore = create((set, get) => {
         startSchedulingOperation('reschedule', eventId);
         
         // Get event data from stores
-        const { getOdpOrdersById, getOdpOrders, updateOrder } = useOrderStore.getState();
-        const { getMachinesById } = useMachineStore.getState();
-        const eventItem = getOdpOrdersById(eventId);
-        const machineData = getMachinesById(machine.id);
+        const { getOrderById, getOdpOrders } = useOrderStore.getState();
+        const { getMachineById } = useMachineStore.getState();
+        const eventItem = getOrderById(eventId);
+        const machineData = getMachineById(machine.id);
         const tasks = getOdpOrders();
 
         if (!eventItem || !machineData) {
@@ -138,7 +138,7 @@ export const useSchedulerStore = create((set, get) => {
         };
 
         // Use existing scheduleTask method with all validations, passing tasks and updateOrder
-        return await get().scheduleTask(eventId, scheduleData, tasks, updateOrder, null, queryClient);
+        return await get().scheduleTask(eventId, scheduleData, tasks, null, queryClient);
       } catch (error) {
         const appError = handleApiError(error, 'SchedulerStore.rescheduleTaskToSlot');
         return { error: appError.message };
@@ -148,16 +148,15 @@ export const useSchedulerStore = create((set, get) => {
     },
 
     // Main scheduler actions
-    scheduleTask: async (taskId, eventData, tasks = null, updateOrder = null, overrideDuration = null, queryClient = null) => {
+    scheduleTask: async (taskId, eventData, tasks = null, overrideDuration = null, queryClient = null) => {
       try {
         // Get data from stores if not provided
-        const { getOdpOrdersById, getOdpOrders, updateOrder: defaultUpdateOrder } = useOrderStore.getState();
-        const { getMachinesById } = useMachineStore.getState();
+        const { getOrderById, getOdpOrders } = useOrderStore.getState();
+        const { getMachineById } = useMachineStore.getState();
         
-        const task = getOdpOrdersById(taskId);
-        const machine = getMachinesById(eventData.machine);
+        const task = getOrderById(taskId);
+        const machine = getMachineById(eventData.machine);
         const tasksData = tasks || getOdpOrders();
-        const updateOrderFn = updateOrder || defaultUpdateOrder;
         
         if (task && machine && task.work_center && machine.work_center && task.work_center !== machine.work_center) {
           return { error: `Work center mismatch: task requires '${task.work_center}' but machine is '${machine.work_center}'` };
@@ -191,7 +190,6 @@ export const useSchedulerStore = create((set, get) => {
             conflictingSegment: schedulingResult.conflictingSegment,
             proposedSegments: schedulingResult.proposedSegments,
             tasks: tasksData,
-            updateOrder: updateOrderFn
           };
         }
 
@@ -218,8 +216,9 @@ export const useSchedulerStore = create((set, get) => {
           updates.description = JSON.stringify(segmentInfo);
         }
         
-        // Call the update method from the order store
-        const result = await updateOrderFn(taskId, updates);
+        // Update the task using the API service directly
+        const { apiService } = await import('../services/api');
+        const result = await apiService.updateOdpOrder(taskId, updates);
         
         // Also update the split task info in memory for immediate access
         if (schedulingResult.segments) {
@@ -263,13 +262,9 @@ export const useSchedulerStore = create((set, get) => {
           description: '', // Clear the description/segment info
         };
         
-        // Update the task using the order store
-        const { updateOrder } = useOrderStore.getState();
-        const result = await updateOrder(taskId, updates);
-        
-        if (result?.error) {
-          return { error: result.error };
-        }
+        // Update the task using the API service directly
+        const { apiService } = await import('../services/api');
+        await apiService.updateOdpOrder(taskId, updates);
         
         // Invalidate React Query cache if queryClient is provided
         if (queryClient) {
@@ -306,9 +301,9 @@ export const useSchedulerStore = create((set, get) => {
       try {
         startSchedulingOperation('shunt', conflictDetails.draggedTask?.id);
         
-        const { getOdpOrders, updateOrder } = useOrderStore.getState();
+        const { getOdpOrders } = useOrderStore.getState();
         const tasks = getOdpOrders();
-        return await conflictResolution.resolveConflictByShunting(conflictDetails, direction, tasks, conflictDetails.draggedTask, updateOrder);
+        return await conflictResolution.resolveConflictByShunting(conflictDetails, direction, tasks, conflictDetails.draggedTask);
       } finally {
         stopSchedulingOperation();
       }

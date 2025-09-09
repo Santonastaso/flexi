@@ -16,9 +16,10 @@ import SignupPage from './pages/SignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './auth/ProtectedRoute';
-import ConfirmDialog from './components/ConfirmDialog';
+import ConfirmDialog from './components/ui/confirm-dialog';
 import { useUIStore, useMainStore, useSchedulerStore } from './store';
 import { useAuth } from './auth/AuthContext';
+import { useStoreSync } from './hooks';
 
 
 // This component creates the main layout with the sidebar
@@ -27,6 +28,9 @@ const AppLayout = () => {
   const { cleanup } = useMainStore();
   const { resolveConflictByShunting, scheduleTaskFromSlot } = useSchedulerStore();
   const { user, signOut } = useAuth();
+  
+  // Sync React Query data with Zustand stores
+  useStoreSync();
   
   // Cleanup store when app unmounts
   useEffect(() => {

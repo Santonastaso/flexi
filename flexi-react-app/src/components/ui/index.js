@@ -25,6 +25,6 @@ export {
   TableHeader,
   TableRow,
 } from './table';
-export { default as ConfirmDialog } from '../ConfirmDialog';
+export { default as ConfirmDialog } from './confirm-dialog';
 export { default as DataTable } from '../DataTable';
 export { default as MachineForm } from '../MachineForm';

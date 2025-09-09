@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
-import { usePhaseStore, useUIStore } from '../store';
-import { useErrorHandler } from '../hooks';
+import { useUIStore } from '../store';
+import { useErrorHandler, useAddPhase, useUpdatePhase } from '../hooks';
 import { showSuccess } from '../utils';
 import { WORK_CENTERS, DEPARTMENT_TYPES } from '../constants';
 import GenericForm from './GenericForm';
@@ -8,7 +8,11 @@ import { phaseFormConfig } from './formConfigs';
 
 function PhasesForm({ phaseToEdit, onSuccess }) {
   const { selectedWorkCenter } = useUIStore();
-  const { addPhase, updatePhase } = usePhaseStore();
+  
+  // React Query mutations
+  const addPhaseMutation = useAddPhase();
+  const updatePhaseMutation = useUpdatePhase();
+  
   const { handleAsync } = useErrorHandler('PhasesForm');
   
   const isEditMode = Boolean(phaseToEdit);
@@ -45,9 +49,9 @@ function PhasesForm({ phaseToEdit, onSuccess }) {
     await handleAsync(
       async () => {
         if (isEditMode) {
-          await updatePhase(phaseToEdit.id, data);
+          await updatePhaseMutation.mutateAsync({ id: phaseToEdit.id, updates: data });
         } else {
-          await addPhase(data);
+          await addPhaseMutation.mutateAsync(data);
         }
         if (onSuccess) {
           onSuccess();

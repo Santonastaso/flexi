@@ -74,11 +74,20 @@
 }
 
 /* ===== GLOBAL DRAG & DROP STYLES ===== */
-*[class*="dragging"], *[class*="drag-overlay"] {
-    box-shadow: none !important;
+*[class*="dragging"] {
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
     filter: none !important;
     text-shadow: none !important;
-    transform: none !important;
+    transform: rotate(3deg) scale(1.05) !important;
+}
+
+/* Allow drag overlay to have proper styling */
+.task-item.drag-overlay {
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
+    transform: rotate(3deg) scale(1.05) !important;
+    opacity: 0.9 !important;
+    z-index: 1002 !important;
+    pointer-events: none !important;
 }
 
 /* ===== EDIT MODE STYLES ===== */
@@ -95,7 +104,7 @@
 
 .scheduled-event.non-draggable:hover,
 .task-item.non-draggable:hover {
-    transform: none !important;
+    transform: rotate(3deg) scale(1.05) !important;
 }
 
 /* ===== CONFLICT RESOLUTION STYLES ===== */
@@ -467,7 +476,7 @@
 }
 
 .task-pool-table-container .TableRow.non-draggable:hover {
-    transform: none !important;
+    transform: rotate(3deg) scale(1.05) !important;
 }
 
 /* ===== TASK POOL INFO ===== */
@@ -1141,14 +1150,14 @@
 }
 
 .scheduled-event.dragging {
-    opacity: 1;
+    opacity: 0.9;
     cursor: grabbing;
-    box-shadow: none !important;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
     z-index: 1001;
     pointer-events: none;
     transition: none;
     background: var(--sap-primary) !important;
-    transform: none !important;
+    transform: rotate(3deg) scale(1.05) !important;
 }
 
 .scheduled-event.cross-day {
@@ -1224,9 +1233,9 @@
 }
 
 .task-item.dragging {
-    opacity: 1;
-    box-shadow: none !important;
-    transform: none !important;
+    opacity: 0.9;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
+    transform: rotate(3deg) scale(1.05) !important;
     background: var(--sap-primary) !important;
     color: var(--text-white) !important;
     border: 1px solid var(--sap-secondary) !important;
@@ -1239,9 +1248,9 @@
 
 .task-item.drag-overlay {
     cursor: grabbing;
-    opacity: 1;
+    opacity: 0.9;
     z-index: 1002;
-    box-shadow: none !important;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
     background: var(--sap-primary) !important;
     color: var(--text-white) !important;
     border: 1px solid var(--sap-secondary) !important;
@@ -1250,7 +1259,7 @@
     font-size: 10px !important;
     font-weight: 400 !important;
     min-height: 16px !important;
-    transform: none !important;
+    transform: rotate(3deg) scale(1.05) !important;
 }
 
 .task-label {
@@ -2210,7 +2219,7 @@
 }
 
 .next-day-drop-zone:hover .next-day-bg-effect {
-    opacity: 1;
+    opacity: 0.9;
 }
 
 .next-day-pulse {
@@ -2229,7 +2238,7 @@
 @keyframes nextDayPulse {
     0% {
         transform: translate(-50%, -50%) scale(0.8);
-        opacity: 1;
+        opacity: 0.9;
     }
     100% {
         transform: translate(-50%, -50%) scale(1.2);
@@ -2348,7 +2357,7 @@
 }
 
 .previous-day-drop-zone:hover .previous-day-bg-effect {
-    opacity: 1;
+    opacity: 0.9;
 }
 
 .previous-day-pulse {
@@ -2367,7 +2376,7 @@
 @keyframes previousDayPulse {
     0% {
         transform: translate(-50%, -50%) scale(0.8);
-        opacity: 1;
+        opacity: 0.9;
     }
     100% {
         transform: translate(-50%, -50%) scale(1.2);
@@ -2513,11 +2522,20 @@
 }
 
 /* ===== GLOBAL DRAG & DROP STYLES ===== */
-*[class*="dragging"], *[class*="drag-overlay"] {
-    box-shadow: none !important;
+*[class*="dragging"] {
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
     filter: none !important;
     text-shadow: none !important;
-    transform: none !important;
+    transform: rotate(3deg) scale(1.05) !important;
+}
+
+/* Allow drag overlay to have proper styling */
+.task-item.drag-overlay {
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
+    transform: rotate(3deg) scale(1.05) !important;
+    opacity: 0.9 !important;
+    z-index: 1002 !important;
+    pointer-events: none !important;
 }
 
 /* ===== EDIT MODE STYLES ===== */
@@ -2534,7 +2552,7 @@
 
 .scheduled-event.non-draggable:hover,
 .task-item.non-draggable:hover {
-    transform: none !important;
+    transform: rotate(3deg) scale(1.05) !important;
 }
 
 /* ===== CONFLICT RESOLUTION STYLES ===== */
@@ -3511,14 +3529,14 @@
 }
 
 .scheduled-event.dragging {
-    opacity: 1;
+    opacity: 0.9;
     cursor: grabbing;
-    box-shadow: none !important;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
     z-index: 1001;
     pointer-events: none;
     transition: none;
     background: var(--sap-primary) !important;
-    transform: none !important;
+    transform: rotate(3deg) scale(1.05) !important;
 }
 
 .scheduled-event.cross-day {
@@ -3594,9 +3612,9 @@
 }
 
 .task-item.dragging {
-    opacity: 1;
-    box-shadow: none !important;
-    transform: none !important;
+    opacity: 0.9;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
+    transform: rotate(3deg) scale(1.05) !important;
     background: var(--sap-primary) !important;
     color: var(--text-white) !important;
     border: 1px solid var(--sap-secondary) !important;
@@ -3609,9 +3627,9 @@
 
 .task-item.drag-overlay {
     cursor: grabbing;
-    opacity: 1;
+    opacity: 0.9;
     z-index: 1002;
-    box-shadow: none !important;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
     background: var(--sap-primary) !important;
     color: var(--text-white) !important;
     border: 1px solid var(--sap-secondary) !important;
@@ -3620,7 +3638,7 @@
     font-size: 10px !important;
     font-weight: 400 !important;
     min-height: 16px !important;
-    transform: none !important;
+    transform: rotate(3deg) scale(1.05) !important;
 }
 
 .task-label {
@@ -4580,7 +4598,7 @@
 }
 
 .next-day-drop-zone:hover .next-day-bg-effect {
-    opacity: 1;
+    opacity: 0.9;
 }
 
 .next-day-pulse {
@@ -4599,7 +4617,7 @@
 @keyframes nextDayPulse {
     0% {
         transform: translate(-50%, -50%) scale(0.8);
-        opacity: 1;
+        opacity: 0.9;
     }
     100% {
         transform: translate(-50%, -50%) scale(1.2);
@@ -4718,7 +4736,7 @@
 }
 
 .previous-day-drop-zone:hover .previous-day-bg-effect {
-    opacity: 1;
+    opacity: 0.9;
 }
 
 .previous-day-pulse {
@@ -4737,7 +4755,7 @@
 @keyframes previousDayPulse {
     0% {
         transform: translate(-50%, -50%) scale(0.8);
-        opacity: 1;
+        opacity: 0.9;
     }
     100% {
         transform: translate(-50%, -50%) scale(1.2);

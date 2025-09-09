@@ -182,6 +182,11 @@ export const CONFIRMATION_TYPES = {
   INFO: 'info'
 };
 
+// ===== SCHEDULING =====
+export const SCHEDULING = {
+  MAX_TASK_SEGMENTS: 50 // Safety limit to prevent infinite loops in task splitting
+};
+
 // ===== TIME CONSTANTS =====
 export const TIME_CONSTANTS = {
   MILLISECONDS_PER_SECOND: 1000,
@@ -209,5 +214,6 @@ export default {
   FIELD_CONFIGS,
   ALERT_TYPES,
   CONFIRMATION_TYPES,
+  SCHEDULING,
   TIME_CONSTANTS
 };
