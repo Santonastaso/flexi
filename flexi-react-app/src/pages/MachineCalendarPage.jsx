@@ -16,20 +16,6 @@ function MachineCalendarPage() {
   
   const machine = getMachineById(machineId);
   
-  // Debug logging only in development and only when machine is not found
-  const allMachines = useMachineStore.getState().machines;
-  useEffect(() => {
-    if (!machine && import.meta.env.MODE === 'development') {
-      console.log('MachineCalendarPage Debug:', {
-        machineId,
-        machine,
-        isLoading,
-        isInitialized,
-        machinesCount: allMachines.length,
-        firstFewMachines: allMachines.slice(0, 3).map(m => ({ id: m.id, name: m.machine_name }))
-      });
-    }
-  }, []); // Only run once on mount
 
   useEffect(() => {
     // Only initialize once
@@ -63,10 +49,6 @@ function MachineCalendarPage() {
     );
   }
 
-  // If we have machines but not initialized, show the page anyway
-  if (!isInitialized && allMachines.length > 0) {
-    // Page will show despite not being initialized
-  }
 
   if (!machine) {
     return (

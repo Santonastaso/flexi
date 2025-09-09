@@ -13,14 +13,6 @@ const FilterDropdown = ({ column, options, onFilterChange, isOpen, onToggle, act
     const filtered = options.filter(option => 
       option && option.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    console.log('FilterDropdown Debug:', {
-      column,
-      searchTerm,
-      options,
-      filtered,
-      optionsLength: options.length,
-      filteredLength: filtered.length
-    });
     return filtered;
   }, [options, searchTerm, column]);
 

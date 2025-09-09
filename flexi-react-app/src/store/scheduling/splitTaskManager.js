@@ -10,22 +10,18 @@ export class SplitTaskManager {
     this.set = set;
   }
 
-  // Set split task info in memory
   setSplitTaskInfo = (taskId, segmentInfo) => {
     this.set(state => ({
       splitTasksInfo: { ...state.splitTasksInfo, [taskId]: segmentInfo }
     }));
   };
 
-  // Get split task info from memory with fallback to database
   getSplitTaskInfo = (taskId) => {
-    // First try to get from memory
     const memoryInfo = this.get().splitTasksInfo[taskId];
     if (memoryInfo && memoryInfo.segments) {
       return memoryInfo;
     }
     
-    // Fallback: try to get from database via order store
     const { getOrderById } = useOrderStore.getState();
     const task = getOrderById(taskId);
     
@@ -33,21 +29,18 @@ export class SplitTaskManager {
       try {
         const segmentInfo = JSON.parse(task.description);
         if (segmentInfo.segments && Array.isArray(segmentInfo.segments)) {
-          // Store in memory for future access - defer to avoid setState during render
           setTimeout(() => {
             this.setSplitTaskInfo(taskId, segmentInfo);
           }, 0);
           return segmentInfo;
         }
       } catch (_error) {
-        // console.warn(`Failed to parse segment info for task ${taskId}:`, _error);
       }
     }
     
     return null;
   };
 
-  // Clear split task info from memory
   clearSplitTaskInfo = (taskId) => {
     this.set(state => {
       const newSplitTasksInfo = { ...state.splitTasksInfo };
@@ -56,18 +49,14 @@ export class SplitTaskManager {
     });
   };
 
-  // Update task with segment info and sync with database (ALL TASKS NOW HAVE SEGMENTS)
   updateTaskWithSplitInfo = async (taskId, segmentInfo, startTime = null, endTime = null, machineId = null) => {
     
-    // Import API service for direct updates
     const { apiService } = await import('../../services/api');
     
     if (segmentInfo) {
-      // Store segment info in memory and database (for both split and non-split tasks)
       this.setSplitTaskInfo(taskId, segmentInfo);
       const segmentInfoJson = JSON.stringify(segmentInfo);
       
-      // Prepare update object - ensure all scheduling fields are updated together to satisfy constraint
       const updateData = { 
         description: segmentInfoJson,
         status: 'SCHEDULED'
@@ -78,22 +67,17 @@ export class SplitTaskManager {
       if (machineId) updateData.scheduled_machine_id = machineId;
       
       
-      // Ensure we have all required scheduling fields or none of them
       if (updateData.scheduled_start_time && updateData.scheduled_end_time && updateData.scheduled_machine_id) {
-        // All scheduling fields are present - this is valid
       } else if (!updateData.scheduled_start_time && !updateData.scheduled_end_time && !updateData.scheduled_machine_id) {
-        // No scheduling fields are present - this is also valid
         delete updateData.scheduled_start_time;
         delete updateData.scheduled_end_time;
         delete updateData.scheduled_machine_id;
         updateData.status = 'NOT SCHEDULED';
       } else {
-        // Partial scheduling fields - this violates the constraint, so we need to get the current task state
         const { getOrderById } = useOrderStore.getState();
         const currentTask = getOrderById(taskId);
         
         if (currentTask) {
-          // Use existing values for missing fields to maintain constraint
           if (!updateData.scheduled_start_time) updateData.scheduled_start_time = currentTask.scheduled_start_time;
           if (!updateData.scheduled_end_time) updateData.scheduled_end_time = currentTask.scheduled_end_time;
           if (!updateData.scheduled_machine_id) updateData.scheduled_machine_id = currentTask.scheduled_machine_id;
@@ -103,23 +87,19 @@ export class SplitTaskManager {
       const updatedTask = await apiService.updateOdpOrder(taskId, updateData);
       this.updateSplitTaskInfo(taskId, updatedTask);
     } else {
-      // This should rarely happen now, but keep for safety
       this.clearSplitTaskInfo(taskId);
       const updatedTask = await apiService.updateOdpOrder(taskId, { description: '' });
       this.updateSplitTaskInfo(taskId, updatedTask);
     }
   };
 
-  // Update segment info when a task is updated (from real-time updates)
   updateSplitTaskInfo = (taskId, order) => {
-    // Always clear memory cache first to ensure consistency
     this.clearSplitTaskInfo(taskId);
     
     if (order.description && order.status === 'SCHEDULED') {
       try {
         const segmentInfo = JSON.parse(order.description);
         if (segmentInfo.segments && Array.isArray(segmentInfo.segments)) {
-          // Validate segments before storing
           const validation = this.validateSegments(segmentInfo.segments.map(seg => ({
             start: new Date(seg.start),
             end: new Date(seg.end),
@@ -127,18 +107,14 @@ export class SplitTaskManager {
           })));
           
           if (validation.isValid) {
-            // All scheduled tasks should have segment info now
             this.setSplitTaskInfo(taskId, segmentInfo);
           } else {
-            // console.warn(`⚠️ Invalid segments for task ${taskId}:`, validation.error);
             this.clearSplitTaskInfo(taskId);
           }
         } else {
           this.clearSplitTaskInfo(taskId);
         }
       } catch (_error) {
-        // If parsing fails, it's not segment info, clear it
-        // console.warn(`⚠️ Failed to parse segment info for task ${taskId}:`, _error);
         this.clearSplitTaskInfo(taskId);
       }
     } else {
@@ -146,7 +122,6 @@ export class SplitTaskManager {
     }
   };
 
-  // Restore split task info from database on app initialization
   restoreSplitTaskInfo = () => {
     const { getOdpOrders } = useOrderStore.getState();
     const orders = getOdpOrders();
@@ -159,22 +134,17 @@ export class SplitTaskManager {
         try {
           const segmentInfo = JSON.parse(order.description);
           if (segmentInfo.segments && Array.isArray(segmentInfo.segments)) {
-            // All scheduled tasks should have segment info now
             splitTasksInfo[order.id] = segmentInfo;
             loadedCount++;
           }
         } catch (_error) {
-          // If parsing fails, it's not segment info, ignore
-          // console.warn(`Failed to parse segment info for task ${order.odp_number}:`, _error);
         }
       }
     });
     
     this.set({ splitTasksInfo });
-    // console.log(`✅ Restored split task info for ${loadedCount} tasks`);
   };
 
-  // Validate segments for data integrity
   validateSegments = (segments) => {
     if (!Array.isArray(segments) || segments.length === 0) {
       return { isValid: false, error: 'Segments must be a non-empty array' };
@@ -183,12 +153,10 @@ export class SplitTaskManager {
     for (let i = 0; i < segments.length; i++) {
       const segment = segments[i];
       
-      // Check required properties
       if (!segment.start || !segment.end || segment.duration === undefined) {
         return { isValid: false, error: `Segment ${i} missing required properties (start, end, duration)` };
       }
 
-      // Check if start and end are valid dates
       const startDate = new Date(segment.start);
       const endDate = new Date(segment.end);
       
@@ -196,17 +164,14 @@ export class SplitTaskManager {
         return { isValid: false, error: `Segment ${i} has invalid date values` };
       }
 
-      // Check if end is after start
       if (endDate <= startDate) {
         return { isValid: false, error: `Segment ${i} end time must be after start time` };
       }
 
-      // Check if duration is positive
       if (segment.duration <= 0) {
         return { isValid: false, error: `Segment ${i} duration must be positive` };
       }
 
-      // Check chronological order (segments should not overlap)
       if (i > 0) {
         const prevSegment = segments[i - 1];
         const prevEnd = new Date(prevSegment.end);
@@ -219,12 +184,9 @@ export class SplitTaskManager {
     return { isValid: true };
   };
 
-  // Create segment info object with validation
   createSegmentInfo = (segments, originalDuration) => {
-    // Validate segments before creating info
     const validation = this.validateSegments(segments);
     if (!validation.isValid) {
-      // console.error('❌ Invalid segments detected:', validation.error);
       throw new Error(`Invalid segments: ${validation.error}`);
     }
 
@@ -240,9 +202,7 @@ export class SplitTaskManager {
     };
   };
 
-  // BULLETPROOF: Get all actual occupied time segments for a task
   getTaskOccupiedSegments = (task) => {
-    // First try to get from memory
     const segmentInfo = this.getSplitTaskInfo(task.id);
     if (segmentInfo && segmentInfo.segments) {
       return segmentInfo.segments.map(seg => ({
@@ -252,7 +212,6 @@ export class SplitTaskManager {
       }));
     }
 
-    // Fallback: try to parse from task description
     if (task.description) {
       try {
         const segmentInfo = JSON.parse(task.description);
@@ -264,11 +223,9 @@ export class SplitTaskManager {
           }));
         }
       } catch (_error) {
-        // Parsing failed, fall through to legacy method
       }
     }
 
-    // Legacy fallback: create single segment from scheduled times
     if (task.scheduled_start_time) {
       const startTime = new Date(task.scheduled_start_time);
       const durationHours = task.time_remaining || task.duration || 1;
@@ -284,12 +241,10 @@ export class SplitTaskManager {
     return [];
   };
 
-  // BULLETPROOF: Check if two time ranges overlap
   doTimeRangesOverlap = (range1Start, range1End, range2Start, range2End) => {
     return range1Start < range2End && range1End > range2Start;
   };
 
-  // BULLETPROOF: Check if a new task would overlap with an existing task
   checkTaskOverlap = (newTaskStart, newTaskEnd, existingTask) => {
     const existingSegments = this.getTaskOccupiedSegments(existingTask);
     
@@ -309,13 +264,11 @@ export class SplitTaskManager {
     return { hasOverlap: false };
   };
 
-  // BULLETPROOF: Check if a new task would overlap with any existing tasks on a machine
   checkMachineOverlaps = (newTaskStart, newTaskEnd, machineId, excludeTaskId = null, additionalExcludeIds = []) => {
     const { getOdpOrders } = useOrderStore.getState();
     const allExcludeIds = [excludeTaskId, ...additionalExcludeIds].filter(id => id);
     
     
-    // Filter out tasks that don't have proper scheduling information
     const existingTasks = getOdpOrders().filter(o => 
       o.scheduled_machine_id === machineId && 
       o.status === 'SCHEDULED' &&
@@ -326,7 +279,6 @@ export class SplitTaskManager {
     );
 
 
-    // Sort tasks by their earliest start time to find the earliest conflict first
     const sortedTasks = existingTasks.sort((a, b) => {
       const aSegments = this.getTaskOccupiedSegments(a);
       const bSegments = this.getTaskOccupiedSegments(b);
@@ -336,28 +288,6 @@ export class SplitTaskManager {
       
       return aStart.getTime() - bStart.getTime();
     });
-
-    // Debug logging for shunting conflicts
-    if (allExcludeIds.length > 0) {
-      // console.log(`📋 Tasks not excluded (sorted by start time):`, sortedTasks.map(t => ({ 
-      //   id: t.id, 
-      //   odp: t.odp_number,
-      //   start: this.getTaskOccupiedSegments(t)[0]?.start?.toISOString() || t.scheduled_start_time,
-      //   segments: this.getTaskOccupiedSegments(t).length
-      // })));
-      // console.log(`📋 ALL tasks on machine:`, getOdpOrders().filter(o => 
-      //   o.scheduled_machine_id === machineId && 
-      //   o.status === 'SCHEDULED'
-      // ).map(t => ({ 
-      //   id: t.id, 
-      //   odp: t.odp_number,
-      //   segments: this.getTaskOccupiedSegments(t).length,
-      //   start: t.scheduled_start_time,
-      //   end: t.scheduled_end_time,
-      //   machine: t.scheduled_machine_id,
-      //   hasCompleteScheduling: !!(t.scheduled_start_time && t.scheduled_end_time && t.scheduled_machine_id)
-      // })));
-    }
 
     for (const existingTask of sortedTasks) {
       
@@ -374,34 +304,28 @@ export class SplitTaskManager {
     return { hasOverlap: false };
   };
 
-  // Migrate existing tasks to segment format (for backward compatibility)
   migrateExistingTasksToSegmentFormat = async () => {
     const { getOdpOrders } = useOrderStore.getState();
     const orders = getOdpOrders();
     
     for (const order of orders) {
       if (order.status === 'SCHEDULED' && order.scheduled_start_time) {
-        // Check if task already has proper segment info
         const existingSegmentInfo = this.getSplitTaskInfo(order.id);
         if (existingSegmentInfo && existingSegmentInfo.segments) {
           continue; // Already migrated
         }
         
-        // Check if description has valid segment info
         if (order.description) {
           try {
             const parsedDescription = JSON.parse(order.description);
             if (parsedDescription.segments && Array.isArray(parsedDescription.segments)) {
-              // Valid segment info exists, just store in memory
               this.setSplitTaskInfo(order.id, parsedDescription);
               continue;
             }
           } catch (_error) {
-            // Invalid JSON, will create new segment info
           }
         }
         
-        // Create single segment for this task
         const startTime = new Date(order.scheduled_start_time);
         const durationHours = order.time_remaining || order.duration || 1;
         const endTime = new Date(startTime.getTime() + (durationHours * 60 * 60 * 1000));
@@ -418,7 +342,6 @@ export class SplitTaskManager {
     }
   };
 
-  // Utility method to verify all scheduled tasks have segment info
   verifyAllTasksHaveSegmentInfo = () => {
     const { getOdpOrders } = useOrderStore.getState();
     const orders = getOdpOrders();

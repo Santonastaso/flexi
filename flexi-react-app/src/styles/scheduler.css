@@ -173,7 +173,7 @@
     padding: 1px;
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--sap-primary);
-    margin-bottom: 2px;
+    margin-bottom: 10px;
     transition: box-shadow 0.2s ease;
     width: 100%;
     margin-top: 0;
@@ -370,12 +370,26 @@
     margin-bottom: 6px;
 }
 
+/* ===== TASK POOL SECTION ===== */
+.task-pool-section {
+    background: var(--content-bg);
+    border-radius: var(--border-radius);
+    padding: 1px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--sap-primary);
+    margin-bottom: 10px;
+    transition: box-shadow 0.2s ease;
+    width: 100%;
+    margin-top: 0;
+}
+
 /* ===== TASK POOL HEADER ===== */
 .task-pool-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 12px;
+    padding: 2px 4px;
 }
 
 /* ===== TASK POOL GRID (CONSOLIDATED) ===== */

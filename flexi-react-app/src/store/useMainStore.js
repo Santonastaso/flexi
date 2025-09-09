@@ -29,21 +29,16 @@ const setupRealtimeSubscriptions = (set, get) => {
 };
 
 // Cleanup function for real-time subscriptions
-const cleanupRealtimeSubscriptions = () => {
-  if (window.realtimeChannel) {
-    apiService.cleanupRealtimeSubscriptions(window.realtimeChannel);
-    window.realtimeChannel = null;
+const cleanupRealtimeSubscriptions = (get, set) => {
+  const { realtimeChannel } = get();
+  if (realtimeChannel) {
+    apiService.cleanupRealtimeSubscriptions(realtimeChannel);
+    set({ realtimeChannel: null });
   }
 };
 
-// Setup global cleanup on page unload
+// Setup global cleanup on page unload - will be managed by store instance
 let beforeUnloadHandler = null;
-if (typeof window !== 'undefined') {
-  beforeUnloadHandler = () => {
-    cleanupRealtimeSubscriptions();
-  };
-  window.addEventListener('beforeunload', beforeUnloadHandler);
-}
 
 // Cleanup function for removing global event listeners
 const cleanupGlobalListeners = () => {
@@ -91,6 +86,7 @@ const handlePhasesChange = (payload, _set, _get) => {
 export const useMainStore = create((set, get) => ({
   // State
   isInitializing: false,
+  realtimeChannel: null, // Store realtime channel in state instead of global window
   
   // Lifecycle - simplified to only handle non-data initialization
   init: async () => {
@@ -179,11 +175,20 @@ export const useMainStore = create((set, get) => ({
         await migrateExistingTasksToSegmentFormat();
         
         // Step 3: Setup real-time subscriptions with error handling
-        if (!window.realtimeChannel) {
+        const { realtimeChannel: existingChannel } = get();
+        if (!existingChannel) {
           try {
             const realtimeChannel = setupRealtimeSubscriptions(set, get);
             if (realtimeChannel) {
-              window.realtimeChannel = realtimeChannel;
+              set({ realtimeChannel });
+              
+              // Setup cleanup on page unload
+              if (typeof window !== 'undefined' && !beforeUnloadHandler) {
+                beforeUnloadHandler = () => {
+                  cleanupRealtimeSubscriptions(get, set);
+                };
+                window.addEventListener('beforeunload', beforeUnloadHandler);
+              }
             }
           } catch (realtimeError) {
             const appError = handleApiError(realtimeError, 'Real-time Subscriptions Setup');
@@ -284,7 +289,7 @@ export const useMainStore = create((set, get) => ({
 
   reset: () => {
     // Cleanup real-time subscriptions
-    cleanupRealtimeSubscriptions();
+    cleanupRealtimeSubscriptions(get, set);
     
     // Reset all stores
     const { reset: resetMachineStore } = useMachineStore.getState();
@@ -298,11 +303,14 @@ export const useMainStore = create((set, get) => ({
     resetPhaseStore();
     resetSchedulerStore();
     resetUIStore();
+    
+    // Reset local state
+    set({ isInitializing: false, realtimeChannel: null });
   },
 
   // Cleanup function for component unmounting
   cleanup: () => {
-    cleanupRealtimeSubscriptions();
+    cleanupRealtimeSubscriptions(get, set);
     cleanupGlobalListeners();
   },
 

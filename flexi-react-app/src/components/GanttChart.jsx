@@ -72,7 +72,6 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient })
         const currentDayStart = startOfDay(currentDate);
         const currentDayEnd = endOfDay(currentDate);
         
-        // Debug logging removed
         
         // If no segment info exists, create a single segment from the task data
         if (!segmentInfo || !segmentInfo.segments) {
@@ -213,7 +212,6 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient })
             }
         }
         
-        // Debug logging removed
         return visibleSegments.length > 0 ? visibleSegments : null;
     }, [event.id, currentDate, getSplitTaskInfo, splitTasksInfo]);
 
@@ -232,7 +230,6 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient })
     // Early return if no segments are visible (AFTER all hooks are called)
     if (!eventSegments || eventSegments.length === 0) return null;
     
-    // Debug logging removed for production
 
     return (
         <>
