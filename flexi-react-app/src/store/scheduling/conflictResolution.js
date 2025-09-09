@@ -58,7 +58,7 @@ export class ConflictResolution {
   };
 
   // Schedule task with comprehensive splitting logic, excluding specific tasks from overlap detection
-  scheduleTaskWithSplittingForShuntExcluding = async (task, newStartTime, machine, excludeTaskIds) => {
+  scheduleTaskWithSplittingForShuntExcluding = async (task, newStartTime, machine, excludeTaskIds, maxCascadeDepth = 3) => {
     const taskHours = this.getTaskDurationMinutes(task) / 60;
     
     // Filter out the current task from exclude list to avoid self-exclusion issues
@@ -81,8 +81,21 @@ export class ConflictResolution {
         wasSplit: schedulingResult.wasSplit
       };
     } else if (schedulingResult && schedulingResult.conflict) {
-      // Conflict detected during shunting - this shouldn't happen in a properly designed shunt
-      throw new AppError(`Cannot shunt task ${task.odp_number}: would create new conflicts`, ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, null, 'ConflictResolution.scheduleTaskWithSplittingForShunt');
+      // Conflict detected during shunting - try cascading shunting
+      console.log(`🔄 CASCADING SHUNT: Task ${task.odp_number} conflicts with ${schedulingResult.conflictingTask?.odp_number}, attempting cascading resolution`);
+      
+      if (maxCascadeDepth > 0) {
+        return await this.handleCascadingConflict(task, newStartTime, machine, excludeTaskIds, schedulingResult, maxCascadeDepth - 1);
+      } else {
+        // Max cascade depth reached - return conflict info instead of throwing error
+        console.warn(`⚠️ CASCADING SHUNT: Max depth reached for task ${task.odp_number}, returning conflict info`);
+        return {
+          conflict: true,
+          conflictingTask: schedulingResult.conflictingTask,
+          conflictingSegment: schedulingResult.conflictingSegment,
+          proposedSegments: schedulingResult.proposedSegments
+        };
+      }
     } else if (!schedulingResult) {
       // No available slots found - return null to indicate failure
       return null;
@@ -94,6 +107,92 @@ export class ConflictResolution {
       endTime: this.addMinutesToDate(newStartTime, this.getTaskDurationMinutes(task)),
       wasSplit: false
     };
+  };
+
+  // Handle cascading conflicts by recursively shunting conflicting tasks
+  handleCascadingConflict = async (originalTask, originalStartTime, machine, excludeTaskIds, conflictResult, maxCascadeDepth) => {
+    const conflictingTask = conflictResult.conflictingTask;
+    const conflictingSegment = conflictResult.conflictingSegment;
+    
+    console.log(`🔄 CASCADING SHUNT: Attempting to shunt conflicting task ${conflictingTask?.odp_number} to resolve conflict with ${originalTask.odp_number}`);
+    
+    // Calculate new start time for the conflicting task (after the original task would end)
+    const originalTaskEndTime = new Date(originalStartTime.getTime() + (this.getTaskDurationMinutes(originalTask) * 60 * 1000));
+    const newConflictingStartTime = this.roundUpToNext15MinSlot(originalTaskEndTime);
+    
+    // Add the conflicting task to the exclude list to prevent infinite loops
+    const updatedExcludeIds = [...excludeTaskIds, conflictingTask.id];
+    
+    try {
+      // Try to shunt the conflicting task
+      const conflictingTaskResult = await this.scheduleTaskWithSplittingForShuntExcluding(
+        conflictingTask,
+        newConflictingStartTime,
+        machine,
+        updatedExcludeIds,
+        maxCascadeDepth
+      );
+      
+      if (conflictingTaskResult && !conflictingTaskResult.conflict) {
+        // Successfully shunted the conflicting task, now try to schedule the original task
+        console.log(`✅ CASCADING SHUNT: Successfully shunted conflicting task ${conflictingTask.odp_number}`);
+        
+        // Update the conflicting task in the store
+        await this.updateTaskSchedule(conflictingTask.id, conflictingTaskResult.startTime, conflictingTaskResult.endTime);
+        
+        // Now try to schedule the original task again
+        const originalTaskResult = await this.scheduleTaskWithSplittingForShuntExcluding(
+          originalTask,
+          originalStartTime,
+          machine,
+          updatedExcludeIds,
+          maxCascadeDepth
+        );
+        
+        if (originalTaskResult && !originalTaskResult.conflict) {
+          console.log(`✅ CASCADING SHUNT: Successfully scheduled original task ${originalTask.odp_number} after resolving conflicts`);
+          return originalTaskResult;
+        } else {
+          console.warn(`⚠️ CASCADING SHUNT: Original task ${originalTask.odp_number} still conflicts after shunting conflicting task`);
+          return originalTaskResult || {
+            conflict: true,
+            conflictingTask: conflictingTask,
+            conflictingSegment: conflictingSegment,
+            proposedSegments: conflictResult.proposedSegments
+          };
+        }
+      } else {
+        // Could not shunt the conflicting task
+        console.warn(`⚠️ CASCADING SHUNT: Could not shunt conflicting task ${conflictingTask?.odp_number}`);
+        return conflictingTaskResult || {
+          conflict: true,
+          conflictingTask: conflictingTask,
+          conflictingSegment: conflictingSegment,
+          proposedSegments: conflictResult.proposedSegments
+        };
+      }
+    } catch (error) {
+      console.error(`❌ CASCADING SHUNT: Error during cascading conflict resolution:`, error);
+      return {
+        conflict: true,
+        conflictingTask: conflictingTask,
+        conflictingSegment: conflictingSegment,
+        proposedSegments: conflictResult.proposedSegments
+      };
+    }
+  };
+
+  // Helper method to update task schedule in the store
+  updateTaskSchedule = async (taskId, startTime, endTime) => {
+    try {
+      const { updateOrder } = useOrderStore.getState();
+      await updateOrder(taskId, {
+        scheduled_start_time: startTime.toISOString(),
+        scheduled_end_time: endTime.toISOString()
+      });
+    } catch (error) {
+      console.error(`❌ CASCADING SHUNT: Failed to update task ${taskId} schedule:`, error);
+    }
   };
 
   // BULLETPROOF: Check if a task's segments would overlap with existing tasks after shunting
@@ -471,6 +570,18 @@ export class ConflictResolution {
           excludeForDragged
         );
         
+        // Handle cascading conflict results
+        if (draggedSchedulingResult && draggedSchedulingResult.conflict) {
+          console.warn(`⚠️ CASCADING SHUNT: Dragged task ${draggedTask.odp_number} still has conflicts after cascading resolution`);
+          // Return the conflict info instead of throwing an error
+          return {
+            error: `Impossibile programmare il task ${draggedTask.odp_number} alla posizione richiesta. Conflitti non risolvibili automaticamente.`,
+            conflict: draggedSchedulingResult.conflict,
+            conflictingTask: draggedSchedulingResult.conflictingTask,
+            conflictingSegment: draggedSchedulingResult.conflictingSegment
+          };
+        }
+        
         // debugLog(`✅ Dragged task scheduled (RIGHT):`, {
         //   start: draggedSchedulingResult.startTime?.toISOString() || 'undefined',
         //   end: draggedSchedulingResult.endTime?.toISOString() || 'undefined',
@@ -504,6 +615,14 @@ export class ConflictResolution {
               null, 
               'ConflictResolution.resolveConflictByShunting'
             );
+          }
+          
+          // Handle cascading conflict results for individual tasks
+          if (schedulingResult && schedulingResult.conflict) {
+            console.warn(`⚠️ CASCADING SHUNT: Task ${task.odp_number} still has conflicts after cascading resolution`);
+            // For individual tasks, we'll continue but log the issue
+            // The conflict will be handled by the overall shunting process
+            continue;
           }
           
           // debugLog(`✅ Task ${task.odp_number} scheduled (RIGHT):`, {
@@ -555,6 +674,13 @@ export class ConflictResolution {
               null, 
               'ConflictResolution.resolveConflictByShunting'
             );
+          }
+          
+          // Handle cascading conflict results for LEFT direction tasks
+          if (schedulingResult && schedulingResult.conflict) {
+            console.warn(`⚠️ CASCADING SHUNT: Task ${task.odp_number} still has conflicts after cascading resolution (LEFT direction)`);
+            // For individual tasks, we'll continue but log the issue
+            continue;
           }
           
           // debugLog(`✅ Task ${task.odp_number} scheduled (LEFT):`, {
