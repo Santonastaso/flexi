@@ -75,13 +75,6 @@ const NextDayDropZone = ({ currentDate, onNavigateToNextDay, isDragOver }) => {
             <path d="M8.59 16.59L13.17 12L8.59 7.41L10 6l6 6-6 6-1.41-1.41z"/>
           </svg>
         </div>
-        <div className="next-day-text">
-          <div className="next-day-label">Giorno Successivo</div>
-          <div className="next-day-date">{nextDayFormatted}</div>
-        </div>
-        <div className="next-day-hint">
-          {navigationTimer ? 'Navigazione in corso...' : 'Trascina qui per andare al giorno successivo'}
-        </div>
       </div>
       
       {/* Animated background effect */}

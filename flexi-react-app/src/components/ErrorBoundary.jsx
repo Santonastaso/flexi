@@ -1,5 +1,6 @@
 import React from 'react';
 import { reportError } from '../services/sentry';
+import { Button } from './ui/button';
 
 /**
  * React Error Boundary Component
@@ -146,19 +147,19 @@ Please describe what you were doing when this error occurred:
             )}
 
             <div className="error-boundary__actions">
-              <button 
+              <Button 
                 onClick={this.handleRetry} 
-                className="btn-primary"
+                variant="default"
               >
                 Try Again
-              </button>
+              </Button>
               
-              <button 
+              <Button 
                 onClick={this.handleGoHome} 
-                className="btn-secondary"
+                variant="secondary"
               >
                 Go to Home
-              </button>
+              </Button>
               
               <button 
                 onClick={this.handleReportIssue}

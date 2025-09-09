@@ -8,6 +8,7 @@ import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
 import { showError } from '../utils';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { useQueryClient } from '@tanstack/react-query';
+import { Button } from '../components/ui/button';
 
 import TaskLookupInput from '../components/TaskLookupInput';
 
@@ -633,14 +634,15 @@ function SchedulerPage() {
         {/* Task Pool Section */}
         <div className="task-pool-section">
           <div className="task-pool-header">
-            <h2 className="task-pool-title">Pool Lavori</h2>
-            <button
-              className={`nav-btn ${isEditMode ? 'danger' : 'primary'}`}
+            <h2 className="text-[10px] font-semibold text-gray-900">Pool Lavori</h2>
+            <Button
+              variant={isEditMode ? 'destructive' : 'default'}
+              size="sm"
               onClick={toggleEditMode}
               title={isEditMode ? "Disabilita modalità modifica" : "Abilita modalità modifica"}
             >
               {isEditMode ? 'Disabilita Modalità Modifica' : 'Abilita Modalità Modifica'}
-            </button>
+            </Button>
           </div>
           <Suspense fallback={<LoadingFallback />}>
             <TaskPoolDataTable />
@@ -650,18 +652,19 @@ function SchedulerPage() {
         {/* Filters Section */}
         <div className="section-controls">
           <div className="task-pool-header">
-            <h2 className="task-pool-title">Filtri</h2>
+            <h2 className="text-[10px] font-semibold text-gray-900">Filtri</h2>
           </div>
           <div className="filters-grid">
             {/* Action Buttons - Moved to far left */}
             <div className="filters-actions-left">
-              <button
-                className="nav-btn secondary"
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={clearFilters}
                 title="Clear all filters"
               >
                 Cancella Filtri
-              </button>
+              </Button>
             </div>
 
             {/* Task Lookup Filters */}
@@ -760,13 +763,14 @@ function SchedulerPage() {
             {/* Action Buttons - Right side */}
             <div className="filters-actions-right">
               {/* PDF Download Button */}
-              <button
-                className="nav-btn secondary"
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => downloadGanttAsHTML('.calendar-section .calendar-grid-container', formatDateDisplay())}
                 title="Download exact Gantt chart as HTML file"
               >
                 Scarica HTML
-              </button>
+              </Button>
             </div>
           </div>
         </div>

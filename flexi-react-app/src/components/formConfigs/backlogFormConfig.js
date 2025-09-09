@@ -171,7 +171,7 @@ export const backlogFormConfig = {
           rows: 3
         }
       ],
-      gridCols: 'grid-cols-1'
+      gridCols: 'grid-cols-2 md:grid-cols-3'
     },
     {
       title: 'Dati Lavorazione & Pianificazione',

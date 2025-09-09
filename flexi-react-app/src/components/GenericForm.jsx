@@ -42,7 +42,7 @@ import {
  * {
  *   title: string,          // Section title
  *   fields: Array,          // Array of field configurations
- *   gridCols?: string,      // CSS grid columns (default: "grid-cols-1 md:grid-cols-2 lg:grid-cols-4")
+ *   gridCols?: string,      // CSS grid columns (default: "grid-cols-2 md:grid-cols-4 lg:grid-cols-8")
  * }
  */
 
@@ -245,7 +245,7 @@ function GenericForm({
         <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">
           {section.title}
         </h3>
-        <div className={`grid gap-2 ${section.gridCols || 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'}`}>
+        <div className={`grid gap-2 ${section.gridCols || 'grid-cols-2 md:grid-cols-4 lg:grid-cols-8'}`}>
           {visibleFields.map(field => (
             <div key={field.name} className="space-y-2">
               <Label htmlFor={field.name}>

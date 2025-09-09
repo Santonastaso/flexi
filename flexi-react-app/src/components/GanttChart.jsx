@@ -7,6 +7,7 @@ import { AppConfig } from '../services/config';
 import NextDayDropZone from './NextDayDropZone';
 import PreviousDayDropZone from './PreviousDayDropZone';
 import { useQueryClient } from '@tanstack/react-query';
+import { Button } from './ui/button';
 
 
 // A single 15-minute time slot on the calendar that can receive a dropped task
@@ -665,36 +666,42 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, onNavigate
 
   return (
     <div className="calendar-section">
-      {/* View Selector */}
-      <div className="gantt-view-selector">
-        <select 
-          value={currentView} 
-          onChange={(e) => setCurrentView(e.target.value)}
-          className="view-selector"
-        >
-          <option value="Daily">Vista Giornaliera</option>
-          <option value="Weekly">Vista Settimanale</option>
-        </select>
-      </div>
+      <div className="gantt-chart-wrapper">
+        {/* Combined Controls Bar */}
+        <div className="gantt-controls-bar">
+          {/* Centered Date Navigation */}
+          <div className="gantt-date-navigation">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onNavigateToPreviousDay && onNavigateToPreviousDay()}
+            >
+              &lt;
+            </Button>
+            <span className="current-date">{format(currentDate, 'dd/MM/yyyy')}</span>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onNavigateToNextDay && onNavigateToNextDay()}
+            >
+              &gt;
+            </Button>
+          </div>
 
-      {/* Centered Date Navigation */}
-      <div className="gantt-date-navigation">
-        <button
-          className="nav-btn secondary"
-          onClick={() => onNavigateToPreviousDay && onNavigateToPreviousDay()}
-        >
-          &lt;
-        </button>
-        <span className="current-date">{format(currentDate, 'dd/MM/yyyy')}</span>
-        <button
-          className="nav-btn secondary"
-          onClick={() => onNavigateToNextDay && onNavigateToNextDay()}
-        >
-          &gt;
-        </button>
-      </div>
-      
-      <div className="gantt-scroll-container">
+          {/* View Selector */}
+          <div className="gantt-view-selector">
+            <select 
+              value={currentView} 
+              onChange={(e) => setCurrentView(e.target.value)}
+              className="view-selector"
+            >
+              <option value="Daily">Vista Giornaliera</option>
+              <option value="Weekly">Vista Settimanale</option>
+            </select>
+          </div>
+        </div>
+        
+        <div className="gantt-scroll-container">
         <div className="calendar-grid-container">
           {currentView === 'Daily' ? (
             <div className="calendar-grid-with-day-navigation">
@@ -747,6 +754,7 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, onNavigate
             />
           )}
         </div>
+      </div>
       </div>
     </div>
   );

@@ -75,13 +75,6 @@ const PreviousDayDropZone = ({ currentDate, onNavigateToPreviousDay, isDragOver 
             <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
           </svg>
         </div>
-        <div className="previous-day-text">
-          <div className="previous-day-label">Giorno Precedente</div>
-          <div className="previous-day-date">{previousDayFormatted}</div>
-        </div>
-        <div className="previous-day-hint">
-          {navigationTimer ? 'Navigazione in corso...' : 'Trascina qui per andare al giorno precedente'}
-        </div>
       </div>
       
       {/* Animated background effect */}

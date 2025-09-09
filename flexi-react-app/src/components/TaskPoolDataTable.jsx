@@ -23,7 +23,7 @@ const GanttActionsCell = ({ task, isEditMode, schedulingLoading, conflictDialog 
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: `task-${task.id}`,
     data: { task, type: 'task' },
-    disabled: false, // Always allow dragging from task pool
+    disabled: !isEditMode, // Only allow dragging when edit mode is enabled
   });
 
 
@@ -59,44 +59,46 @@ ${task.scheduled_end_time ? `Fine Programmata: ${task.scheduled_end_time.replace
         i
       </button>
 
-      {/* Drag Handle - always visible and functional */}
-      <div 
-        ref={setNodeRef}
-        className="drag-handle" 
-        {...listeners} 
-        {...attributes}
-        title="Trascina per programmare"
-        style={{
-          background: '#f3f4f6',
-          border: '1px solid #d1d5db',
-          minWidth: '30px',
-          minHeight: '30px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'grab',
-          borderRadius: '4px',
-          transition: 'all 0.2s ease'
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.background = '#e5e7eb';
-          e.target.style.borderColor = '#9ca3af';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.background = '#f3f4f6';
-          e.target.style.borderColor = '#d1d5db';
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-        </svg>
-      </div>
+      {/* Drag Handle - only visible when edit mode is enabled */}
+      {isEditMode && (
+        <div 
+          ref={setNodeRef}
+          className="drag-handle" 
+          {...listeners} 
+          {...attributes}
+          title="Trascina per programmare"
+          style={{
+            background: '#f3f4f6',
+            border: '1px solid #d1d5db',
+            minWidth: '30px',
+            minHeight: '30px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'grab',
+            borderRadius: '4px',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = '#e5e7eb';
+            e.target.style.borderColor = '#9ca3af';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = '#f3f4f6';
+            e.target.style.borderColor = '#d1d5db';
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          </svg>
+        </div>
+      )}
 
       {/* Loading indicator */}
       {isTaskBeingProcessed && (

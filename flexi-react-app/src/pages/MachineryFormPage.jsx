@@ -7,13 +7,13 @@ import { useMachineStore, useUIStore, useMainStore } from '../store';
 function MachineryFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getMachinesById } = useMachineStore();
+  const { getMachineById } = useMachineStore();
   const { selectedWorkCenter } = useUIStore();
   const { isLoading, isInitialized, init, cleanup } = useMainStore();
 
   // Check if this is edit mode (has ID) or add mode (no ID)
   const isEditMode = Boolean(id);
-  const machine = isEditMode ? getMachinesById(id) : null;
+  const machine = isEditMode ? getMachineById(id) : null;
 
   // Initialize store on component mount
   useEffect(() => {
