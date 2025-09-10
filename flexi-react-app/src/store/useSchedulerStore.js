@@ -72,12 +72,12 @@ export const useSchedulerStore = create((set, get) => {
           return { error: 'Task or machine not found' };
         }
 
-        // Simple date creation - no timezone bullshit
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+        // Pure UTC date creation - no timezone conversion
+        const year = currentDate.getUTCFullYear();
+        const month = currentDate.getUTCMonth() + 1; // getUTCMonth() returns 0-11, we need 1-12
         const day = currentDate.getUTCDate();
         
-        // Create absolute date with no timezone conversion
+        // Create absolute UTC date with no timezone conversion
         const startDate = schedulingLogic.createAbsoluteDate(year, month, day, hour, minute);
         const timeRemainingHours = overrideDuration || task.time_remaining || task.duration || 1;
         
@@ -122,12 +122,12 @@ export const useSchedulerStore = create((set, get) => {
           return { error: 'Event or machine not found' };
         }
 
-        // Simple date creation - no timezone bullshit
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+        // Pure UTC date creation - no timezone conversion
+        const year = currentDate.getUTCFullYear();
+        const month = currentDate.getUTCMonth() + 1; // getUTCMonth() returns 0-11, we need 1-12
         const day = currentDate.getUTCDate();
         
-        // Create absolute date with no timezone conversion
+        // Create absolute UTC date with no timezone conversion
         const startDate = schedulingLogic.createAbsoluteDate(year, month, day, hour, minute);
         const timeRemainingHours = eventItem.time_remaining || eventItem.duration || 1;
         
@@ -357,7 +357,7 @@ export const useSchedulerStore = create((set, get) => {
           return { error: 'Cannot schedule task on unavailable time slot' };
         }
 
-        // Check if slot already has a scheduled task
+        // Check if slot already has a scheduled task - use pure UTC
         const { getOdpOrders } = useOrderStore.getState();
         const startDate = new Date(currentDate);
         startDate.setUTCHours(hour, minute, 0, 0);

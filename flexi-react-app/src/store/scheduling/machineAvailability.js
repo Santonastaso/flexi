@@ -77,7 +77,7 @@ export class MachineAvailabilityManager {
 
   // Load machine availability for a date range
   loadMachineAvailabilityForDateRange = async (machineId, startDate, endDate) => {
-    // Convert Date objects to date strings using toDateString for consistent timezone handling
+    // Convert Date objects to date strings using UTC consistently
     const startDateStr = startDate instanceof Date ? format(startDate, 'yyyy-MM-dd') : startDate;
     const endDateStr = endDate instanceof Date ? format(endDate, 'yyyy-MM-dd') : endDate;
     
@@ -223,8 +223,9 @@ export class MachineAvailabilityManager {
         o.scheduled_end_time
       );
 
-      const targetDate = new Date(dateStr);
-      const targetDateStart = new Date(Date.UTC(targetDate.getUTCFullYear(), targetDate.getUTCMonth(), targetDate.getUTCDate()));
+      // Use UTC consistently for date calculations
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const targetDateStart = new Date(Date.UTC(year, month - 1, day));
       const targetDateEnd = new Date(targetDateStart.getTime() + 24 * 60 * 60 * 1000);
 
       for (const task of existingTasks) {

@@ -184,93 +184,136 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
           console.log('🔄 EDIT FLOW: Starting rescheduling for task', orderToEdit.id);
           console.log('📊 EDIT FLOW: Original duration:', orderToEdit.duration, 'New duration:', newDuration);
           
-          console.log('📈 EDIT FLOW: Using standard rescheduling for all duration changes');
+          const originalDuration = orderToEdit.duration;
+          const durationDifference = newDuration - originalDuration;
           
-          const startDate = new Date(orderToEdit.scheduled_start_time);
-          const hour = startDate.getUTCHours();
-          const minute = startDate.getUTCMinutes();
-          const currentDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
-          
-          console.log('📅 EDIT FLOW: Start date:', startDate.toISOString());
-          console.log('⏰ EDIT FLOW: Hour:', hour, 'Minute:', minute);
-          console.log('📆 EDIT FLOW: Current date:', currentDate.toISOString());
-          
-          // First update the task with new duration so scheduleTaskFromSlot can use it
-          const tempUpdateData = { duration: newDuration };
-          console.log('💾 EDIT FLOW: Updating task with new duration:', tempUpdateData);
-          await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: tempUpdateData });
-          
-          // Wait a moment for the store to be updated
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          // Verify the task was updated in the store
-          const { getOrderById } = useOrderStore.getState();
-          const updatedTaskBeforeScheduling = getOrderById(orderToEdit.id);
-          console.log('🔍 EDIT FLOW: Task duration after update:', updatedTaskBeforeScheduling?.duration);
-          
-          // Unschedule the task first (like removing it from the Gantt)
-          console.log('🔄 EDIT FLOW: Unscheduling task first');
-          await unscheduleTask(orderToEdit.id, queryClient);
-          
-          // Wait a moment for unscheduling to complete
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          // 3. Now reschedule it with the new time remaining (like dropping it fresh)
-          const machine = { id: orderToEdit.scheduled_machine_id };
-          console.log('🎯 EDIT FLOW: Calling scheduleTaskFromSlot with:', {
-            taskId: orderToEdit.id,
-            machine: machine,
-            currentDate: currentDate.toISOString(),
-            hour,
-            minute,
-            timeRemaining: newTimeRemaining
-          });
-          
-          const result = await scheduleTaskFromSlot(orderToEdit.id, machine, currentDate, hour, minute, newTimeRemaining, queryClient);
-          console.log('📋 EDIT FLOW: scheduleTaskFromSlot result:', result);
-          
-          if (result?.conflict) {
-            console.log('⚠️ EDIT FLOW: Conflict detected, showing dialog');
-            // Add scheduling parameters to the conflict details so the dialog can retry
-            const conflictWithParams = {
-              ...result,
-              schedulingParams: {
-                taskId: orderToEdit.id,
-                machine: machine,
-                currentDate: currentDate,
-                hour: hour,
-                minute: minute,
-                newDuration: newTimeRemaining,
-                originalConflict: result
-              }
+          if (Math.abs(durationDifference) < 0.01) {
+            // SCENARIO X: Duration stays the same - do nothing, no scheduling
+            console.log('📊 SCENARIO X: Duration unchanged, skipping rescheduling');
+            
+            // Just update the order data without any scheduling changes
+            const orderData = { 
+              ...cleanedData, 
+              duration: newDuration, 
+              cost: calculationResults?.totals?.cost || null
             };
-            showConflictDialog(conflictWithParams);
-            return; // Don't continue if there's a conflict
-          } else if (result?.error) {
-            console.log('❌ EDIT FLOW: Error:', result.error);
-            showError(result.error);
-            return; // Don't continue if there's an error
+            updatedOrder = await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
+          } else if (durationDifference > 0) {
+            // SCENARIO Y: Duration increase - keep the code exactly as it is
+            console.log('📈 SCENARIO Y: Duration increased, using standard rescheduling');
+            
+            const startDate = new Date(orderToEdit.scheduled_start_time);
+            const hour = startDate.getUTCHours();
+            const minute = startDate.getUTCMinutes();
+            const currentDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
+            
+            console.log('📅 EDIT FLOW: Start date:', startDate.toISOString());
+            console.log('⏰ EDIT FLOW: Hour:', hour, 'Minute:', minute);
+            console.log('📆 EDIT FLOW: Current date:', currentDate.toISOString());
+            
+            // First update the task with new duration so scheduleTaskFromSlot can use it
+            const tempUpdateData = { duration: newDuration };
+            console.log('💾 EDIT FLOW: Updating task with new duration:', tempUpdateData);
+            await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: tempUpdateData });
+            
+            // Wait a moment for the store to be updated
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Verify the task was updated in the store
+            const { getOrderById } = useOrderStore.getState();
+            const updatedTaskBeforeScheduling = getOrderById(orderToEdit.id);
+            console.log('🔍 EDIT FLOW: Task duration after update:', updatedTaskBeforeScheduling?.duration);
+            
+            // Unschedule the task first (like removing it from the Gantt)
+            console.log('🔄 EDIT FLOW: Unscheduling task first');
+            await unscheduleTask(orderToEdit.id, queryClient);
+            
+            // Wait a moment for unscheduling to complete
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // 3. Now reschedule it with the new time remaining (like dropping it fresh)
+            const machine = { id: orderToEdit.scheduled_machine_id };
+            console.log('🎯 EDIT FLOW: Calling scheduleTaskFromSlot with:', {
+              taskId: orderToEdit.id,
+              machine: machine,
+              currentDate: currentDate.toISOString(),
+              hour,
+              minute,
+              timeRemaining: newTimeRemaining
+            });
+            
+            const result = await scheduleTaskFromSlot(orderToEdit.id, machine, currentDate, hour, minute, newTimeRemaining, queryClient);
+            console.log('📋 EDIT FLOW: scheduleTaskFromSlot result:', result);
+            
+            if (result?.conflict) {
+              console.log('⚠️ EDIT FLOW: Conflict detected, showing dialog');
+              // Add scheduling parameters to the conflict details so the dialog can retry
+              const conflictWithParams = {
+                ...result,
+                schedulingParams: {
+                  taskId: orderToEdit.id,
+                  machine: machine,
+                  currentDate: currentDate,
+                  hour: hour,
+                  minute: minute,
+                  newDuration: newTimeRemaining,
+                  originalConflict: result
+                }
+              };
+              showConflictDialog(conflictWithParams);
+              return; // Don't continue if there's a conflict
+            } else if (result?.error) {
+              console.log('❌ EDIT FLOW: Error:', result.error);
+              showError(result.error);
+              return; // Don't continue if there's an error
+            } else {
+              console.log('✅ EDIT FLOW: Scheduling successful');
+            }
+            
+            // 4. Use the updated task data from the scheduling result
+            const updatedTask = result?.updatedTask;
+            console.log('📋 EDIT FLOW: Updated task from scheduling result:', updatedTask);
+            
+            // Update database with form fields + new scheduling info from the updated task
+            const orderData = { 
+              ...cleanedData, 
+              duration: newDuration, 
+              cost: calculationResults?.totals?.cost || null,
+              scheduled_start_time: updatedTask?.scheduled_start_time || startDate.toISOString(),
+              scheduled_end_time: updatedTask?.scheduled_end_time || new Date(startDate.getTime() + newDuration * 3600000).toISOString(),
+              description: updatedTask?.description || orderToEdit.description
+            };
+            
+            console.log('💾 EDIT FLOW: Final order data to save:', orderData);
+            updatedOrder = await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
+            console.log('✅ EDIT FLOW: Final update completed:', updatedOrder);
           } else {
-            console.log('✅ EDIT FLOW: Scheduling successful');
+            // SCENARIO Z: Duration decrease - new function with adjacent task detection
+            console.log('📉 SCENARIO Z: Duration decreased, using adjacent task rescheduling');
+            
+            const result = await handleDurationDecreaseRescheduling(
+              orderToEdit.id, 
+              newDuration, 
+              newTimeRemaining, 
+              cleanedData, 
+              calculationResults?.totals?.cost || null,
+              queryClient,
+              updateOrderMutation,
+              scheduleTaskFromSlot,
+              unscheduleTask,
+              showConflictDialog,
+              showError
+            );
+            
+            if (result?.error) {
+              console.log('❌ SCENARIO Z: Error:', result.error);
+              showError(result.error);
+              return;
+            }
+            
+            updatedOrder = result.updatedOrder;
+            console.log('✅ SCENARIO Z: Duration decrease rescheduling completed:', updatedOrder);
           }
-          
-          // 4. Use the updated task data from the scheduling result
-          const updatedTask = result?.updatedTask;
-          console.log('📋 EDIT FLOW: Updated task from scheduling result:', updatedTask);
-          
-          // Update database with form fields + new scheduling info from the updated task
-          const orderData = { 
-            ...cleanedData, 
-            duration: newDuration, 
-            cost: calculationResults?.totals?.cost || null,
-            scheduled_start_time: updatedTask?.scheduled_start_time || startDate.toISOString(),
-            scheduled_end_time: updatedTask?.scheduled_end_time || new Date(startDate.getTime() + newDuration * 3600000).toISOString(),
-            description: updatedTask?.description || orderToEdit.description
-          };
-          
-          console.log('💾 EDIT FLOW: Final order data to save:', orderData);
-          updatedOrder = await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
-          console.log('✅ EDIT FLOW: Final update completed:', updatedOrder);
         } else {
           // Not scheduled, just update the order data
           const orderData = { ...cleanedData, duration: newDuration, cost: calculationResults?.totals?.cost || null };
@@ -325,6 +368,251 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   };
 
   const getPhaseParamValue = (paramName) => editablePhaseParams[paramName] ?? selectedPhase[paramName] ?? '';
+
+  // SCENARIO Z: Handle duration decrease with adjacent task detection and rescheduling
+  const handleDurationDecreaseRescheduling = async (taskId, newDuration, newTimeRemaining, cleanedData, cost, queryClient, updateOrderMutation, scheduleTaskFromSlot, unscheduleTask, showConflictDialog, showError) => {
+    try {
+      console.log('📉 SCENARIO Z: Starting duration decrease rescheduling for task', taskId);
+      
+      const { getOrderById, getOdpOrders } = useOrderStore.getState();
+      
+      // Get current task data
+      const currentTask = getOrderById(taskId);
+      if (!currentTask) {
+        return { error: 'Task not found' };
+      }
+      
+      const startDate = new Date(currentTask.scheduled_start_time);
+      const hour = startDate.getUTCHours();
+      const minute = startDate.getUTCMinutes();
+      const currentDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
+      const machine = { id: currentTask.scheduled_machine_id };
+      
+      console.log('📅 SCENARIO Z: Current task start:', startDate.toISOString());
+      console.log('📅 SCENARIO Z: New time remaining:', newTimeRemaining);
+      
+      // STEP 1: Find ENTIRE CHAIN of adjacent tasks BEFORE any rescheduling
+      // Use the ACTUAL scheduled end time from the database (handles split tasks correctly)
+      const currentEndTime = new Date(currentTask.scheduled_end_time);
+      console.log('📅 SCENARIO Z: Current end time for task A (from DB):', currentEndTime.toISOString());
+      
+      // Find the complete chain of adjacent tasks BEFORE any rescheduling
+      const allTasks = getOdpOrders();
+      const adjacentTasksChain = [];
+      let currentEndTimeForChain = currentEndTime;
+      
+      console.log('🔍 SCENARIO Z: Starting to find chain of adjacent tasks...');
+      
+      // Find continuous chain of adjacent tasks starting from task A's current end time
+      while (true) {
+        const nextAdjacentTask = allTasks.find(task => {
+          if (task.id === taskId || !task.scheduled_machine_id || !task.scheduled_start_time || task.status !== 'SCHEDULED') {
+            return false;
+          }
+          
+          // Check if task is on the same machine
+          if (task.scheduled_machine_id !== currentTask.scheduled_machine_id) {
+            return false;
+          }
+          
+          // Check if this task is already in our chain
+          if (adjacentTasksChain.some(chainTask => chainTask.id === task.id)) {
+            return false;
+          }
+          
+          const taskStartTime = new Date(task.scheduled_start_time);
+          const timeDifferenceMinutes = Math.abs(taskStartTime.getTime() - currentEndTimeForChain.getTime()) / (1000 * 60);
+          
+          console.log('🔍 SCENARIO Z: Checking task', task.odp_number, 'start:', taskStartTime.toISOString(), 'diff:', timeDifferenceMinutes, 'minutes', 'against end time:', currentEndTimeForChain.toISOString());
+          
+          return timeDifferenceMinutes <= 120; // Within 2 hours (to catch longer gaps)
+        });
+        
+        if (nextAdjacentTask) {
+          console.log('🔗 SCENARIO Z: Found adjacent task in chain:', nextAdjacentTask.odp_number);
+          adjacentTasksChain.push(nextAdjacentTask);
+          
+          // Update the end time for the next iteration (use actual scheduled end time)
+          currentEndTimeForChain = new Date(nextAdjacentTask.scheduled_end_time);
+          
+          console.log('📅 SCENARIO Z: Next task end time for chain:', currentEndTimeForChain.toISOString());
+          console.log('🔄 SCENARIO Z: Continuing to search for more adjacent tasks...');
+        } else {
+          console.log('🛑 SCENARIO Z: No more adjacent tasks found, stopping chain search');
+          break; // No more adjacent tasks found
+        }
+      }
+      
+      if (adjacentTasksChain.length > 0) {
+        console.log('🔗 SCENARIO Z: Found chain of', adjacentTasksChain.length, 'adjacent tasks:', adjacentTasksChain.map(t => t.odp_number));
+        
+        // STEP 2: Reschedule task A using scenario Y code
+        console.log('🔄 SCENARIO Z: Step 2 - Rescheduling task A');
+        
+        // First update the task with new duration
+        const tempUpdateData = { duration: newDuration };
+        await updateOrderMutation.mutateAsync({ id: taskId, updates: tempUpdateData });
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Unschedule task A
+        await unscheduleTask(taskId, queryClient);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Reschedule task A with new time remaining
+        const resultA = await scheduleTaskFromSlot(taskId, machine, currentDate, hour, minute, newTimeRemaining, queryClient);
+        
+        if (resultA?.conflict) {
+          console.log('⚠️ SCENARIO Z: Conflict detected for task A, showing dialog');
+          const conflictWithParams = {
+            ...resultA,
+            schedulingParams: {
+              taskId: taskId,
+              machine: machine,
+              currentDate: currentDate,
+              hour: hour,
+              minute: minute,
+              newDuration: newTimeRemaining,
+              originalConflict: resultA
+            }
+          };
+          showConflictDialog(conflictWithParams);
+          return { error: 'Conflict detected for task A' };
+        } else if (resultA?.error) {
+          console.log('❌ SCENARIO Z: Error rescheduling task A:', resultA.error);
+          return { error: resultA.error };
+        }
+        
+        console.log('✅ SCENARIO Z: Task A rescheduled successfully');
+        
+        // STEP 3: Reschedule all tasks in the chain sequentially
+        console.log('🔄 SCENARIO Z: Step 3 - Rescheduling chain of', adjacentTasksChain.length, 'tasks');
+        
+        // Use the scheduling result from task A to get its new end time
+        let currentEndTimeForRescheduling = new Date(resultA.schedulingResult.endTime);
+        const reschedulingResults = [];
+        
+        // Reschedule each task in the chain sequentially
+        for (let i = 0; i < adjacentTasksChain.length; i++) {
+          const chainTask = adjacentTasksChain[i];
+          console.log(`🔄 SCENARIO Z: Rescheduling chain task ${i + 1}/${adjacentTasksChain.length}:`, chainTask.odp_number);
+          
+          // Calculate new start time for this chain task (at end of previous task)
+          const newStartHour = currentEndTimeForRescheduling.getUTCHours();
+          const newStartMinute = currentEndTimeForRescheduling.getUTCMinutes();
+          const newStartDate = new Date(Date.UTC(currentEndTimeForRescheduling.getUTCFullYear(), currentEndTimeForRescheduling.getUTCMonth(), currentEndTimeForRescheduling.getUTCDate()));
+          
+          console.log('📅 SCENARIO Z: Chain task new start time:', currentEndTimeForRescheduling.toISOString());
+          console.log('⏰ SCENARIO Z: Chain task new hour:', newStartHour, 'minute:', newStartMinute);
+          
+          // Get chain task's time remaining
+          const chainTaskTimeRemaining = chainTask.time_remaining || chainTask.duration || 1;
+          console.log('📊 SCENARIO Z: Chain task time remaining:', chainTaskTimeRemaining);
+          
+          // Unschedule chain task
+          await unscheduleTask(chainTask.id, queryClient);
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Reschedule chain task using scenario Y code
+          const resultChainTask = await scheduleTaskFromSlot(chainTask.id, machine, newStartDate, newStartHour, newStartMinute, chainTaskTimeRemaining, queryClient);
+          
+          if (resultChainTask?.conflict) {
+            console.log('⚠️ SCENARIO Z: Conflict detected for chain task', chainTask.odp_number, ', showing dialog');
+            const conflictWithParams = {
+              ...resultChainTask,
+              schedulingParams: {
+                taskId: chainTask.id,
+                machine: machine,
+                currentDate: newStartDate,
+                hour: newStartHour,
+                minute: newStartMinute,
+                newDuration: chainTaskTimeRemaining,
+                originalConflict: resultChainTask
+              }
+            };
+            showConflictDialog(conflictWithParams);
+            return { error: `Conflict detected for chain task ${chainTask.odp_number}` };
+          } else if (resultChainTask?.error) {
+            console.log('❌ SCENARIO Z: Error rescheduling chain task', chainTask.odp_number, ':', resultChainTask.error);
+            return { error: `Error rescheduling chain task ${chainTask.odp_number}: ${resultChainTask.error}` };
+          }
+          
+          console.log('✅ SCENARIO Z: Chain task', chainTask.odp_number, 'rescheduled successfully');
+          reschedulingResults.push(resultChainTask);
+          
+          // Update the end time for the next iteration (this task's new end time)
+          currentEndTimeForRescheduling = new Date(resultChainTask.schedulingResult.endTime);
+          console.log('📅 SCENARIO Z: Updated end time for next chain task:', currentEndTimeForRescheduling.toISOString());
+        }
+        
+        console.log('✅ SCENARIO Z: All', adjacentTasksChain.length, 'chain tasks rescheduled successfully');
+        
+        // Update database with form fields + new scheduling info
+        const finalUpdatedTaskA = resultA?.updatedTask;
+        const orderData = { 
+          ...cleanedData, 
+          duration: newDuration, 
+          cost: cost,
+          scheduled_start_time: finalUpdatedTaskA?.scheduled_start_time || startDate.toISOString(),
+          scheduled_end_time: finalUpdatedTaskA?.scheduled_end_time || new Date(startDate.getTime() + newDuration * 3600000).toISOString(),
+          description: finalUpdatedTaskA?.description || currentTask.description
+        };
+        
+        const updatedOrder = await updateOrderMutation.mutateAsync({ id: taskId, updates: orderData });
+        console.log('✅ SCENARIO Z: Task A and', adjacentTasksChain.length, 'chain tasks rescheduled successfully');
+        
+        return { updatedOrder };
+      } else {
+        console.log('📊 SCENARIO Z: No adjacent task found, using standard rescheduling');
+        
+        // No adjacent task found, use standard rescheduling (scenario Y code)
+        const tempUpdateData = { duration: newDuration };
+        await updateOrderMutation.mutateAsync({ id: taskId, updates: tempUpdateData });
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        await unscheduleTask(taskId, queryClient);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const result = await scheduleTaskFromSlot(taskId, machine, currentDate, hour, minute, newTimeRemaining, queryClient);
+        
+        if (result?.conflict) {
+          console.log('⚠️ SCENARIO Z: Conflict detected, showing dialog');
+          const conflictWithParams = {
+            ...result,
+            schedulingParams: {
+              taskId: taskId,
+              machine: machine,
+              currentDate: currentDate,
+              hour: hour,
+              minute: minute,
+              newDuration: newTimeRemaining,
+              originalConflict: result
+            }
+          };
+          showConflictDialog(conflictWithParams);
+          return { error: 'Conflict detected' };
+        } else if (result?.error) {
+          console.log('❌ SCENARIO Z: Error:', result.error);
+          return { error: result.error };
+        }
+        
+        const updatedTask = result?.updatedTask;
+        const orderData = { 
+          ...cleanedData, 
+          duration: newDuration, 
+          cost: cost,
+          scheduled_start_time: updatedTask?.scheduled_start_time || startDate.toISOString(),
+          scheduled_end_time: updatedTask?.scheduled_end_time || new Date(startDate.getTime() + newDuration * 3600000).toISOString(),
+          description: updatedTask?.description || currentTask.description
+        };
+        
+        const updatedOrder = await updateOrderMutation.mutateAsync({ id: taskId, updates: orderData });
+        return { updatedOrder };
+      }
+    } catch (error) {
+      console.error('❌ SCENARIO Z: Error in handleDurationDecreaseRescheduling:', error);
+      return { error: error.message || 'Error during duration decrease rescheduling' };
+    }
+  };
 
   const getPhaseFields = () => {
     if (!selectedPhase) return [];

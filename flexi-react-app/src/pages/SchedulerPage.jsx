@@ -111,9 +111,9 @@ const downloadGanttAsHTML = (ganttElementSelector, dateDisplay) => {
   const link = document.createElement('a');
   link.href = url;
   
-  // Generate filename with current date
+  // Generate filename with current date - use UTC consistently
   const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-  const timeStr = new Date().toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS format
+  const timeStr = new Date().toISOString().split('T')[1].split('.')[0].replace(/:/g, '-'); // HH-MM-SS format
   link.download = `grafico-gantt-${dateStr}-${timeStr}.html`;
   
   // Trigger download
@@ -151,7 +151,7 @@ function SchedulerPage() {
     })
   );
 
-  // Initialize with UTC today
+  // Initialize with pure UTC today - no timezone conversion
   const [currentDate, setCurrentDate] = useState(() => {
     const now = new Date();
     return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -299,7 +299,7 @@ function SchedulerPage() {
       let newDate;
       setCurrentDate(prevDate => {
         if (direction === 'today') {
-          // Use UTC today
+          // Use pure UTC today - no timezone conversion
           const now = new Date();
           const utcYear = now.getUTCFullYear();
           const utcMonth = now.getUTCMonth();
@@ -307,13 +307,13 @@ function SchedulerPage() {
           newDate = new Date(Date.UTC(utcYear, utcMonth, utcDay));
           return newDate;
         } else if (direction === 'prev') {
-          // Navigate to previous UTC day
+          // Navigate to previous UTC day - pure UTC
           const newPrevDate = new Date(prevDate);
           newPrevDate.setUTCDate(newPrevDate.getUTCDate() - 1);
           newDate = newPrevDate;
           return newDate;
         } else if (direction === 'next') {
-          // Navigate to next UTC day
+          // Navigate to next UTC day - pure UTC
           const newNextDate = new Date(prevDate);
           newNextDate.setUTCDate(newNextDate.getUTCDate() + 1);
           newDate = newNextDate;
@@ -338,20 +338,20 @@ function SchedulerPage() {
   }, []);
 
   const formatDateDisplay = useCallback(() => {
-    // Use UTC today for comparison
+    // Use pure UTC today for comparison - no timezone conversion
     const now = new Date();
     const utcYear = now.getUTCFullYear();
     const utcMonth = now.getUTCMonth();
     const utcDay = now.getUTCDate();
     const utcToday = new Date(Date.UTC(utcYear, utcMonth, utcDay));
     
-    // currentDate is already UTC, so compare directly
+    // currentDate is already pure UTC, so compare directly
     const isToday = currentDate.getTime() === utcToday.getTime();
     
     if (isToday) {
       return 'Oggi';
     } else {
-      // Format the UTC date for display
+      // Format the pure UTC date for display
       return format(currentDate, 'yyyy-MM-dd');
     }
   }, [currentDate]);
@@ -398,7 +398,7 @@ function SchedulerPage() {
     dispatch({ type: 'SET_FILTER', payload: { filterName: 'department', value: [machine.department] } });
     dispatch({ type: 'SET_FILTER', payload: { filterName: 'machineType', value: [machine.machine_type] } });
     
-    // Navigate to the start date of the task
+    // Navigate to the start date of the task - use pure UTC
     if (task.scheduled_start_time) {
       const taskDate = new Date(task.scheduled_start_time);
       const utcYear = taskDate.getUTCFullYear();

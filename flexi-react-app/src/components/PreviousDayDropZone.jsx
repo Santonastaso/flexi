@@ -6,6 +6,7 @@ const PreviousDayDropZone = ({ currentDate, onNavigateToPreviousDay, isDragOver 
   const [isHovered, setIsHovered] = useState(false);
   const [navigationTimer, setNavigationTimer] = useState(null);
   
+  // Use pure UTC date arithmetic - no timezone conversion
   const previousDay = subDays(currentDate, 1);
   const previousDayFormatted = format(previousDay, 'yyyy-MM-dd');
   

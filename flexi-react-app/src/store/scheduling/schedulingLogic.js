@@ -1,5 +1,4 @@
 import { format } from 'date-fns';
-import { fromZonedTime } from 'date-fns-tz';
 import { useOrderStore } from '../useOrderStore';
 import { useMachineStore } from '../useMachineStore';
 import { SCHEDULING } from '../../constants';
@@ -17,12 +16,10 @@ export class SchedulingLogic {
     this.machineAvailabilityManager = machineAvailabilityManager;
   }
 
-  // Absolute date creation - no timezone conversion at all
+  // Absolute date creation - pure UTC, no timezone conversion at all
   createAbsoluteDate = (year, month, day, hour = 0, minute = 0) => {
-    // Use fromZonedTime to create dates that represent the EXACT time values
-    // This way hour 15 means hour 15, not hour 15 in your local timezone
-    const localDate = new Date(year, month - 1, day, hour, minute, 0, 0);
-    return fromZonedTime(localDate, 'UTC');
+    // Create pure UTC date - hour 15 means hour 15 UTC, period
+    return new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0));
   };
 
   // Helper function to split tasks across available time slots
@@ -219,7 +216,7 @@ export class SchedulingLogic {
   // Helper function to collect all unavailable slots for a task's time range
   collectUnavailableSlots = (startTime, endTime, machineId) => {
     const unavailableSlots = [];
-    // Use UTC methods to get absolute dates without timezone conversion
+    // Use UTC methods consistently - no timezone conversion
     const taskStartDate = this.createAbsoluteDate(startTime.getUTCFullYear(), startTime.getUTCMonth() + 1, startTime.getUTCDate());
     const taskEndDate = this.createAbsoluteDate(endTime.getUTCFullYear(), endTime.getUTCMonth() + 1, endTime.getUTCDate());
     
@@ -242,7 +239,7 @@ export class SchedulingLogic {
           const [year, month, day] = dateStr.split('-').map(Number);
           
           for (const hour of machineAvailability.unavailable_hours) {
-            // Create absolute date - hour as exact value
+            // Create absolute UTC date - hour as exact UTC value
             const hourStart = this.createAbsoluteDate(year, month, day, parseInt(hour), 0);
             const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
             

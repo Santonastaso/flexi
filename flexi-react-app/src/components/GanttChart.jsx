@@ -93,9 +93,9 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient })
                 duration: timeRemaining
             };
             
-            // Check if this segment is visible on current day
-                    const segmentStartsOnCurrentDay = isSameDay(singleSegment.start, currentDate);
-        const segmentEndsOnCurrentDay = isSameDay(singleSegment.end, currentDate);
+            // Check if this segment is visible on current day - use UTC consistently
+            const segmentStartsOnCurrentDay = isSameDay(singleSegment.start, currentDate);
+            const segmentEndsOnCurrentDay = isSameDay(singleSegment.end, currentDate);
             const segmentSpansCurrentDay = singleSegment.start < currentDayEnd && singleSegment.end > currentDayStart;
             
             if (!segmentStartsOnCurrentDay && !segmentEndsOnCurrentDay && !segmentSpansCurrentDay) {
@@ -155,9 +155,9 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient })
             const segmentStart = new Date(segment.start);
             const segmentEnd = new Date(segment.end);
             
-            // Check if this segment is visible on the current day
-                    const segmentStartsOnCurrentDay = isSameDay(segmentStart, currentDate);
-        const segmentEndsOnCurrentDay = isSameDay(segmentEnd, currentDate);
+            // Check if this segment is visible on the current day - use UTC consistently
+            const segmentStartsOnCurrentDay = isSameDay(segmentStart, currentDate);
+            const segmentEndsOnCurrentDay = isSameDay(segmentEnd, currentDate);
             const segmentSpansCurrentDay = segmentStart < currentDayEnd && segmentEnd > currentDayStart;
             
             if (segmentStartsOnCurrentDay || segmentEndsOnCurrentDay || segmentSpansCurrentDay) {

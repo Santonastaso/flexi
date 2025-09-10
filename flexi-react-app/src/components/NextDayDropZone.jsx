@@ -6,6 +6,7 @@ const NextDayDropZone = ({ currentDate, onNavigateToNextDay, isDragOver }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [navigationTimer, setNavigationTimer] = useState(null);
   
+  // Use pure UTC date arithmetic - no timezone conversion
   const nextDay = addDays(currentDate, 1);
   const nextDayFormatted = format(nextDay, 'yyyy-MM-dd');
   

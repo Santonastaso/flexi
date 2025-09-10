@@ -67,7 +67,7 @@ export const useAddMachine = () => {
       
       // Automatically populate the new machine's calendar
       try {
-        const currentYear = new Date().getFullYear();
+        const currentYear = new Date().getUTCFullYear();
         const records = generateCalendarForYear([added], currentYear);
         if (records.length > 0) {
           await apiService.bulkUpsertMachineAvailability(records);
