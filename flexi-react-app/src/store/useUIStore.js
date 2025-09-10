@@ -34,6 +34,14 @@ export const useUIStore = create((set, get) => ({
     details: null
   },
 
+  // Drag preview state
+  dragPreview: {
+    isActive: false,
+    startSlot: null,
+    durationSlots: 0,
+    machineId: null
+  },
+
   // Selectors
   getLoadingState: () => get().isLoading,
   getInitializationState: () => get().isInitialized,
@@ -42,6 +50,7 @@ export const useUIStore = create((set, get) => ({
   getConfirmDialog: () => get().confirmDialog,
   getConflictDialog: () => get().conflictDialog,
   getSchedulingLoading: () => get().schedulingLoading,
+  getDragPreview: () => get().dragPreview,
 
   // Actions
   setLoading: (loading) => set({ isLoading: loading }),
@@ -97,6 +106,15 @@ export const useUIStore = create((set, get) => ({
     conflictDialog: { isOpen: false, details: null }
   }),
 
+  // Drag preview actions
+  setDragPreview: (previewData) => set({
+    dragPreview: previewData
+  }),
+  
+  clearDragPreview: () => set({
+    dragPreview: { isActive: false, startSlot: null, durationSlots: 0, machineId: null }
+  }),
+
   // Alert actions
   showAlert: (message, type = 'info') => {
     showToast(message, type);
@@ -109,6 +127,7 @@ export const useUIStore = create((set, get) => ({
     isEditMode: false,
     schedulingLoading: { isScheduling: false, isRescheduling: false, isShunting: false, isNavigating: false, operationType: null, taskId: null },
     confirmDialog: { isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' },
-    conflictDialog: { isOpen: false, details: null }
+    conflictDialog: { isOpen: false, details: null },
+    dragPreview: { isActive: false, startSlot: null, durationSlots: 0, machineId: null }
   }),
 }));

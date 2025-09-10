@@ -166,6 +166,34 @@
     50% { opacity: 1; transform: scale(1.02); }
 }
 
+/* ===== DRAG PREVIEW INDICATOR ===== */
+.drag-preview-indicator {
+    position: absolute !important;
+    top: 0px !important;
+    left: 0px !important;
+    right: 0px !important;
+    bottom: 0px !important;
+    background: rgba(59, 130, 246, 0.3) !important;
+    border: 2px solid #3b82f6 !important;
+    pointer-events: none !important;
+    z-index: 999 !important;
+    border-radius: 2px !important;
+    animation: dragPreviewPulse 1.2s ease-in-out infinite !important;
+}
+
+@keyframes dragPreviewPulse {
+    0%, 100% { 
+        opacity: 0.6; 
+        transform: scale(1); 
+        background: rgba(59, 130, 246, 0.3);
+    }
+    50% { 
+        opacity: 0.8; 
+        transform: scale(1.01); 
+        background: rgba(59, 130, 246, 0.4);
+    }
+}
+
 /* ===== SCHEDULER LAYOUT ===== */
 .section-controls {
     background: var(--content-bg);

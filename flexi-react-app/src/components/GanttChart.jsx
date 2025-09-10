@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 
 // A single 15-minute time slot on the calendar that can receive a dropped task
-const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasScheduledTask, dropTargetId, slotId }) => {
+const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasScheduledTask, dropTargetId, slotId, dragPreview }) => {
   const { setNodeRef } = useDroppable({
     id: `slot-${machine.id}-${hour}-${minute}`,
     data: { machine, hour, minute, type: 'slot', isUnavailable, hasScheduledTask },
@@ -21,6 +21,13 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
   // Optimize className construction
   const slotClass = `time-slot${isUnavailable ? ' unavailable' : ''}${hasScheduledTask ? ' has-scheduled-task' : ''}`;
   const isDropTarget = dropTargetId === slotId;
+  
+  // Check if this slot should show drag preview
+  const currentSlot = (hour - 6) * 4 + Math.floor(minute / 15);
+  const isInDragPreview = dragPreview?.isActive && 
+    dragPreview.machineId === machine.id &&
+    currentSlot >= dragPreview.startSlot && 
+    currentSlot < dragPreview.startSlot + dragPreview.durationSlots;
 
   return (
     <div 
@@ -45,6 +52,23 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
             pointerEvents: 'none',
             zIndex: 1000,
             borderRadius: '4px'
+          }}
+        />
+      )}
+      {isInDragPreview && (
+        <div 
+          className="drag-preview-indicator"
+          style={{
+            position: 'absolute',
+            top: '0px',
+            left: '0px',
+            right: '0px',
+            bottom: '0px',
+            background: 'rgba(59, 130, 246, 0.3)',
+            border: '2px solid #3b82f6',
+            pointerEvents: 'none',
+            zIndex: 999,
+            borderRadius: '2px'
           }}
         />
       )}
@@ -390,7 +414,7 @@ Note Libere: ${event.user_notes || 'Nessuna nota'}
 });
 
 // A single row in the Gantt chart, representing one machine
-const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavailableByMachine, dropTargetId, hideMachineLabel = false, queryClient }) => {
+const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavailableByMachine, dropTargetId, hideMachineLabel = false, queryClient, dragPreview }) => {
   // Memoize scheduled events for this machine - optimize filtering
   const machineScheduledEvents = useMemo(() =>
     scheduledEvents.filter(event => event.scheduled_machine_id === machine.id),
@@ -426,6 +450,7 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
               hasScheduledTask={false}
               dropTargetId={dropTargetId}
               slotId={slotId}
+              dragPreview={dragPreview}
             />
           );
         })}
@@ -453,7 +478,8 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
     prevProps.currentDate.getTime() === nextProps.currentDate.getTime() &&
     prevProps.unavailableByMachine === nextProps.unavailableByMachine &&
     prevProps.hideMachineLabel === nextProps.hideMachineLabel &&
-    prevProps.queryClient === nextProps.queryClient
+    prevProps.queryClient === nextProps.queryClient &&
+    prevProps.dragPreview === nextProps.dragPreview
     // Note: dropTargetId is intentionally excluded from comparison
   );
 });
@@ -583,7 +609,7 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
 });
 
 // The main Gantt Chart component - heavily optimized for performance
-const GanttChart = React.memo(({ machines, currentDate, dropTargetId, onNavigateToNextDay, onNavigateToPreviousDay }) => {
+const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPreview, onNavigateToNextDay, onNavigateToPreviousDay }) => {
   const [currentView, setCurrentView] = useState('Daily'); // Add view state
   
   const { odpOrders: tasks } = useOrderStore();
@@ -735,6 +761,7 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, onNavigate
                       dropTargetId={dropTargetId}
                       hideMachineLabel={true}
                       queryClient={queryClient}
+                      dragPreview={dragPreview}
                     />
                   ))}
                 </div>

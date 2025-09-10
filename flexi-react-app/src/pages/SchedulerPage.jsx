@@ -132,7 +132,7 @@ function SchedulerPage() {
   
   // Use Zustand store for selectors and client state
   const { getOdpOrdersByWorkCenter, getScheduledOrders } = useOrderStore();
-  const { selectedWorkCenter, isLoading, isInitialized, showAlert, isEditMode, toggleEditMode, showConflictDialog, schedulingLoading } = useUIStore();
+  const { selectedWorkCenter, isLoading, isInitialized, showAlert, isEditMode, toggleEditMode, showConflictDialog, schedulingLoading, setDragPreview, clearDragPreview, dragPreview } = useUIStore();
   const { scheduleTask, unscheduleTask, scheduleTaskFromSlot, rescheduleTaskToSlot, validateSlotAvailability } = useSchedulerStore();
   const { init, cleanup } = useMainStore();
   const queryClient = useQueryClient();
@@ -445,22 +445,40 @@ function SchedulerPage() {
       // Don't show indicator for unavailable or occupied slots
       if (isUnavailable || hasScheduledTask) {
         setDropTargetId(null);
+        clearDragPreview();
         return;
       }
       
       // Create a unique ID for the drop target
       const targetId = `${machine.id}-${hour}-${minute}`;
       setDropTargetId(targetId);
+      
+      // Calculate drag preview if we have an active drag item
+      if (activeDragItem) {
+        const durationHours = activeDragItem.time_remaining || activeDragItem.duration || 1;
+        const durationSlots = Math.ceil(durationHours * 4); // Convert hours to 15-minute slots
+        const startSlot = (hour - 6) * 4 + Math.floor(minute / 15); // Convert to slot index (0-based from 6 AM)
+        
+        setDragPreview({
+          isActive: true,
+          startSlot,
+          durationSlots,
+          machineId: machine.id
+        });
+      }
     } else if (over && over.data.current?.type === 'next-day') {
       // Set drop target for next day zone
       setDropTargetId('next-day-drop-zone');
+      clearDragPreview();
     } else if (over && over.data.current?.type === 'previous-day') {
       // Set drop target for previous day zone
       setDropTargetId('previous-day-drop-zone');
+      clearDragPreview();
     } else {
       setDropTargetId(null);
+      clearDragPreview();
     }
-  }, []);
+  }, [activeDragItem, setDragPreview, clearDragPreview]);
 
   const handleDragEnd = useCallback(async (event) => {
     const dragEndStartTime = performance.now();
@@ -477,6 +495,7 @@ function SchedulerPage() {
 
     setActiveDragItem(null);
     setDropTargetId(null);
+    clearDragPreview();
     
     const { over, active } = event;
 
@@ -782,6 +801,7 @@ function SchedulerPage() {
               machines={filteredMachines} 
               currentDate={currentDate} 
               dropTargetId={dropTargetId}
+              dragPreview={dragPreview}
               onNavigateToNextDay={() => navigateDate('next')}
               onNavigateToPreviousDay={() => navigateDate('prev')}
             />
