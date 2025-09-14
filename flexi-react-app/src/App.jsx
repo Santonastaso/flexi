@@ -25,7 +25,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 // This component creates the main layout with the sidebar
 const AppLayout = () => {
-  const { confirmDialog, hideConfirmDialog, conflictDialog, hideConflictDialog, showConflictDialog, schedulingLoading } = useUIStore();
+  const { confirmDialog, hideConfirmDialog, conflictDialog, hideConflictDialog, showConflictDialog, schedulingLoading, selectedWorkCenter } = useUIStore();
   const { cleanup } = useMainStore();
   const { resolveConflictByShunting, scheduleTaskFromSlot } = useSchedulerStore();
   const { user, signOut } = useAuth();
@@ -53,6 +53,9 @@ const AppLayout = () => {
             <div className="flex items-center space-x-4">
               {user && (
                 <>
+                  <button className="px-2 py-1 text-[10px] font-medium text-white bg-green-500 hover:bg-green-600 rounded transition-colors">
+                    {selectedWorkCenter}
+                  </button>
                   <span className="text-[10px] text-navy-200">{user.email}</span>
                   <button 
                     onClick={signOut}

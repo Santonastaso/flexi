@@ -6,7 +6,7 @@ export const useUIStore = create((set, get) => ({
   // State
   isLoading: false,
   isInitialized: false,
-  selectedWorkCenter: WORK_CENTERS.BOTH,
+  selectedWorkCenter: localStorage.getItem('selectedWorkCenter') || WORK_CENTERS.BOTH,
   isEditMode: false, // Global edit mode state
   
   // Scheduling operations loading state
@@ -57,7 +57,10 @@ export const useUIStore = create((set, get) => ({
   
   setInitialized: (initialized) => set({ isInitialized: initialized }),
   
-  setSelectedWorkCenter: (workCenter) => set({ selectedWorkCenter: workCenter }),
+  setSelectedWorkCenter: (workCenter) => {
+    localStorage.setItem('selectedWorkCenter', workCenter);
+    set({ selectedWorkCenter: workCenter });
+  },
   
   toggleEditMode: () => set((state) => ({ isEditMode: !state.isEditMode })),
   
