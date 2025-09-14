@@ -699,7 +699,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                     setCalculationResults(null);
                   }}
                 >
-                  <div className="font-medium">{phase.name}</div>
+                  <div className="text-[10px] font-medium">{phase.name}</div>
                   <div className="text-[10px] text-gray-600">{phase.contenuto_fase}</div>
                 </div>
               ))}

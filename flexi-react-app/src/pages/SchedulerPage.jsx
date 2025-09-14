@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense, laz
 import { DndContext, DragOverlay, PointerSensor, MouseSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { useOrderStore, useMachineStore, useUIStore, useSchedulerStore, useMainStore } from '../store';
 import { useOrders, useMachines } from '../hooks';
-import { format } from 'date-fns';
+import { format, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
 import { showError } from '../utils';
@@ -288,7 +288,7 @@ function SchedulerPage() {
   }, [machineData, filters]);
 
   // Memoize navigation functions to prevent unnecessary re-renders
-  const navigateDate = useCallback(async (direction) => {
+  const navigateDate = useCallback(async (direction, view = 'Daily') => {
     const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
     const { loadMachineAvailabilityForDate } = useSchedulerStore.getState();
     
@@ -307,17 +307,29 @@ function SchedulerPage() {
           newDate = new Date(Date.UTC(utcYear, utcMonth, utcDay));
           return newDate;
         } else if (direction === 'prev') {
-          // Navigate to previous UTC day - pure UTC
-          const newPrevDate = new Date(prevDate);
-          newPrevDate.setUTCDate(newPrevDate.getUTCDate() - 1);
-          newDate = newPrevDate;
-          return newDate;
+          if (view === 'Weekly') {
+            // Navigate to previous week (previous Monday)
+            newDate = startOfWeek(subWeeks(prevDate, 1), { weekStartsOn: 1 }); // 1 = Monday
+            return newDate;
+          } else {
+            // Navigate to previous UTC day - pure UTC
+            const newPrevDate = new Date(prevDate);
+            newPrevDate.setUTCDate(newPrevDate.getUTCDate() - 1);
+            newDate = newPrevDate;
+            return newDate;
+          }
         } else if (direction === 'next') {
-          // Navigate to next UTC day - pure UTC
-          const newNextDate = new Date(prevDate);
-          newNextDate.setUTCDate(newNextDate.getUTCDate() + 1);
-          newDate = newNextDate;
-          return newNextDate;
+          if (view === 'Weekly') {
+            // Navigate to next week (next Monday)
+            newDate = startOfWeek(addWeeks(prevDate, 1), { weekStartsOn: 1 }); // 1 = Monday
+            return newDate;
+          } else {
+            // Navigate to next UTC day - pure UTC
+            const newNextDate = new Date(prevDate);
+            newNextDate.setUTCDate(newNextDate.getUTCDate() + 1);
+            newDate = newNextDate;
+            return newNextDate;
+          }
         }
         newDate = prevDate;
         return prevDate;
@@ -802,8 +814,8 @@ function SchedulerPage() {
               currentDate={currentDate} 
               dropTargetId={dropTargetId}
               dragPreview={dragPreview}
-              onNavigateToNextDay={() => navigateDate('next')}
-              onNavigateToPreviousDay={() => navigateDate('prev')}
+              onNavigateToNextDay={(view) => navigateDate('next', view)}
+              onNavigateToPreviousDay={(view) => navigateDate('prev', view)}
             />
           </Suspense>
           {/* White cover during loading */}

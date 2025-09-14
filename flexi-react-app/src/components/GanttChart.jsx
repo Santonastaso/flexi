@@ -698,7 +698,7 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => onNavigateToPreviousDay && onNavigateToPreviousDay()}
+              onClick={() => onNavigateToPreviousDay && onNavigateToPreviousDay(currentView)}
             >
               &lt;
             </Button>
@@ -706,7 +706,7 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => onNavigateToNextDay && onNavigateToNextDay()}
+              onClick={() => onNavigateToNextDay && onNavigateToNextDay(currentView)}
             >
               &gt;
             </Button>
@@ -743,7 +743,7 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
               </div>
               <PreviousDayDropZone 
                 currentDate={currentDate}
-                onNavigateToPreviousDay={onNavigateToPreviousDay}
+                onNavigateToPreviousDay={() => onNavigateToPreviousDay && onNavigateToPreviousDay(currentView)}
                 isDragOver={dropTargetId === 'previous-day-drop-zone'}
               />
               <div className="time-grid-wrapper">
@@ -768,7 +768,7 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
               </div>
               <NextDayDropZone 
                 currentDate={currentDate}
-                onNavigateToNextDay={onNavigateToNextDay}
+                onNavigateToNextDay={() => onNavigateToNextDay && onNavigateToNextDay(currentView)}
                 isDragOver={dropTargetId === 'next-day-drop-zone'}
               />
             </div>

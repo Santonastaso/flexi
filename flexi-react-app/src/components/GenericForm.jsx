@@ -182,7 +182,7 @@ function GenericForm({
           <textarea
             {...baseInputProps}
             rows={field.rows || 3}
-            className={`w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-800 focus:border-transparent ${field.className || ''}`}
+            className={`w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-800 focus:border-transparent text-[10px] placeholder:text-muted-foreground ${field.className || ''}`}
           />
         );
 

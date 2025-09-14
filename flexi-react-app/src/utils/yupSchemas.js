@@ -129,10 +129,10 @@ export const orderSchema = yup.object({
   // Optional fields (NULL allowed in DB)
   production_lot: yup.string().nullable(),
   description: yup.string().nullable(),
-  bag_height: yup.number().nullable().min(0, 'L\'altezza busta deve essere maggiore o uguale a 0'),
-  bag_width: yup.number().nullable().min(0, 'La larghezza busta deve essere maggiore o uguale a 0'),
-  bag_step: yup.number().nullable().min(0, 'Il passo busta deve essere maggiore o uguale a 0'),
-  seal_sides: yup.number().nullable().oneOf([3, 4], 'I lati di sigillatura devono essere 3 o 4'),
+  bag_height: yup.number().nullable().transform((value) => (isNaN(value) ? null : value)).min(0, 'L\'altezza busta deve essere maggiore o uguale a 0'),
+  bag_width: yup.number().nullable().transform((value) => (isNaN(value) ? null : value)).min(0, 'La larghezza busta deve essere maggiore o uguale a 0'),
+  bag_step: yup.number().nullable().transform((value) => (isNaN(value) ? null : value)).min(0, 'Il passo busta deve essere maggiore o uguale a 0'),
+  seal_sides: yup.number().nullable().transform((value) => (isNaN(value) ? null : value)).oneOf([3, 4], 'I lati di sigillatura devono essere 3 o 4'),
   product_type: yup.string().nullable().oneOf(['CREMA', 'LIQUIDO', 'POLVERI'], 'Seleziona un tipo di prodotto valido'),
   internal_customer_code: yup.string().nullable().test('not-empty-if-provided', 'Il codice cliente interno non può essere vuoto', function(value) {
     return !value || value.trim().length > 0;
@@ -141,8 +141,8 @@ export const orderSchema = yup.object({
     return !value || value.trim().length > 0;
   }),
   fase: yup.string().nullable(),
-  duration: yup.number().nullable().min(0, 'La durata deve essere maggiore o uguale a 0'),
-  cost: yup.number().nullable().min(0, 'Il costo deve essere maggiore o uguale a 0'),
+  duration: yup.number().nullable().transform((value) => (isNaN(value) ? null : value)).min(0, 'La durata deve essere maggiore o uguale a 0'),
+  cost: yup.number().nullable().transform((value) => (isNaN(value) ? null : value)).min(0, 'Il costo deve essere maggiore o uguale a 0'),
   scheduled_start_time: yup.date().nullable(),
   scheduled_end_time: yup.date().nullable(),
   scheduled_machine_id: yup.string().nullable(),
