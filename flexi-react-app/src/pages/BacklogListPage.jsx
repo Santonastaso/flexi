@@ -135,6 +135,36 @@ function BacklogListPage() {
         return typeof value === 'number' ? value.toFixed(1) : value;
       }
     },
+    
+    // Material Availability
+    { 
+      header: 'Material ISP (%)', 
+      accessorKey: 'material_availability_isp',
+      cell: info => {
+        const value = info.getValue();
+        if (typeof value !== 'number') return value || 'N/A';
+        const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
+        return (
+          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[10px] font-medium`}>
+            {value}
+          </div>
+        );
+      }
+    },
+    { 
+      header: 'Material Lotti (%)', 
+      accessorKey: 'material_availability_lotti',
+      cell: info => {
+        const value = info.getValue();
+        if (typeof value !== 'number') return value || 'N/A';
+        const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
+        return (
+          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[10px] font-medium`}>
+            {value}
+          </div>
+        );
+      }
+    },
   ], []);
 
   const handleEditOrder = (order) => {

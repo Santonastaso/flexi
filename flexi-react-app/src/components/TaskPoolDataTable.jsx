@@ -194,6 +194,34 @@ function TaskPoolDataTable() {
       },
     },
     {
+      header: 'Material ISP (%)',
+      accessorKey: 'material_availability_isp',
+      cell: ({ row }) => {
+        const value = row.original.material_availability_isp;
+        if (typeof value !== 'number') return value || 'N/A';
+        const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
+        return (
+          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[10px] font-medium`}>
+            {value}
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Material Lotti (%)',
+      accessorKey: 'material_availability_lotti',
+      cell: ({ row }) => {
+        const value = row.original.material_availability_lotti;
+        if (typeof value !== 'number') return value || 'N/A';
+        const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
+        return (
+          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[10px] font-medium`}>
+            {value}
+          </div>
+        );
+      },
+    },
+    {
       header: 'Gantt',
       id: 'gantt_actions',
       cell: ({ row }) => (
