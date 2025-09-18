@@ -99,11 +99,25 @@ const FilterDropdown = ({ column, options, onFilterChange, isOpen, onToggle, act
   // Calculate position when dropdown opens
   useEffect(() => {
     if (isOpen && dropdownRef.current) {
-      const rect = dropdownRef.current.getBoundingClientRect();
+      const button = dropdownRef.current.querySelector('button');
+      if (button) {
+        const rect = button.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const dropdownWidth = 192; // w-48 = 12rem = 192px
+        
+        // Position below the button
+        let leftPosition = 0; // Relative to the button
+        
+        // If the dropdown would go off the right edge, position it to the left of the button
+        if (rect.left + dropdownWidth > viewportWidth) {
+          leftPosition = -dropdownWidth + rect.width;
+        }
+        
         setPosition({
-          top: rect.top + window.scrollY - 80, // Position below the button to avoid header overlap
-          left: rect.left + window.scrollX - 200, // Position to the left of the button with offset
+          top: rect.height + 5, // Position below the button with small gap
+          left: leftPosition,
         });
+      }
     }
   }, [isOpen]);
 
@@ -123,7 +137,7 @@ const FilterDropdown = ({ column, options, onFilterChange, isOpen, onToggle, act
       
       {isOpen && (
         <div 
-          className="fixed bg-white border border-gray-300 rounded-md shadow-lg z-[9999] w-48" 
+          className="absolute bg-white border border-gray-300 rounded-md shadow-lg z-[99999] w-48" 
           style={{
             top: position.top,
             left: position.left
