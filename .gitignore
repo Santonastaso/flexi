@@ -17,10 +17,13 @@ Desktop.ini
 *.swo
 
 # Logs
+logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # Runtime data
 pids
@@ -33,6 +36,11 @@ coverage/
 
 # Dependency directories
 node_modules/
+
+# Build outputs
+dist
+dist-ssr
+*.local
 
 # Optional npm cache directory
 .npm

@@ -1,0 +1,24 @@
+<svg width="80" height="40" viewBox="0 0 80 40" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .logo-text {
+        font-family: 'Arial', 'Helvetica', sans-serif;
+        font-size: 24px;
+        font-weight: 700;
+        text-transform: lowercase;
+      }
+      .flexi-part {
+        fill: #0ea5e9;
+      }
+      .x-part {
+        fill: #22c55e;
+      }
+      .i-part {
+        fill: #0ea5e9;
+      }
+    </style>
+  </defs>
+  <text x="8" y="28" class="logo-text">
+    <tspan class="flexi-part">fle</tspan><tspan class="x-part">x</tspan><tspan class="i-part">i</tspan>
+  </text>
+</svg>
