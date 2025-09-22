@@ -93,6 +93,8 @@ export const FORM_FIELDS = {
   QUANTITY_COMPLETED: 'quantity_completed',
   DELIVERY_DATE: 'delivery_date',
   USER_NOTES: 'user_notes',
+  ASD_NOTES: 'asd_notes',
+  MATERIAL_AVAILABILITY_GLOBAL: 'material_availability_global',
   
   // Off-time fields
   START_DATE: 'startDate',

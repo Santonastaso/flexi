@@ -147,6 +147,8 @@ export const orderSchema = yup.object({
   scheduled_end_time: yup.date().nullable(),
   scheduled_machine_id: yup.string().nullable(),
   user_notes: yup.string().nullable(),
+  asd_notes: yup.string().nullable(),
+  material_availability_global: yup.number().nullable().transform((value) => (isNaN(value) ? null : value)).min(0, 'Material availability must be between 0 and 100').max(100, 'Material availability must be between 0 and 100'),
   
   // Logical validations matching DB constraints
 }).test('bag-width-step-logic', 'La larghezza busta non può essere minore del passo busta', function(value) {

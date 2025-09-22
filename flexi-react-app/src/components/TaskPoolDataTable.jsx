@@ -53,6 +53,8 @@ Nome Cliente: ${task.nome_cliente || 'Non specificato'}
 Data Consegna: ${task.delivery_date ? format(new Date(task.delivery_date), 'yyyy-MM-dd') : 'Non impostata'}
 Quantità: ${task.quantity || 'Non specificata'}
 Note Libere: ${task.user_notes || 'Nessuna nota'}
+Note ASD: ${task.asd_notes || 'Nessuna nota'}
+Material Global: ${task.material_availability_global || 'N/A'}%
 ${task.scheduled_start_time ? `Inizio Programmato: ${task.scheduled_start_time.replace('+00:00', '')}` : 'Non programmato'}
 ${task.scheduled_end_time ? `Fine Programmata: ${task.scheduled_end_time.replace('+00:00', '')}` : 'Non programmato'}`}
       >
@@ -216,6 +218,33 @@ function TaskPoolDataTable() {
         const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
         return (
           <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[10px] font-medium`}>
+            {value}
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Material Global (%)',
+      accessorKey: 'material_availability_global',
+      cell: ({ row }) => {
+        const value = row.original.material_availability_global;
+        if (typeof value !== 'number') return value || 'N/A';
+        const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
+        return (
+          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[10px] font-medium`}>
+            {value}
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Note ASD',
+      accessorKey: 'asd_notes',
+      cell: ({ row }) => {
+        const value = row.original.asd_notes;
+        if (!value) return 'N/A';
+        return (
+          <div className="max-w-[200px] truncate text-[10px]" title={value}>
             {value}
           </div>
         );

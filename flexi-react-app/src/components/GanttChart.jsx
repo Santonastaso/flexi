@@ -315,6 +315,8 @@ Nome Cliente: ${event.nome_cliente || 'Non specificato'}
         Data Consegna: ${event.delivery_date ? format(new Date(event.delivery_date), 'yyyy-MM-dd') : 'Non impostata'}
 Quantità: ${event.quantity || 'Non specificata'}
 Note Libere: ${event.user_notes || 'Nessuna nota'}
+Note ASD: ${event.asd_notes || 'Nessuna nota'}
+Material Global: ${event.material_availability_global || 'N/A'}%
         ${event.scheduled_start_time ? `Inizio Programmato: ${event.scheduled_start_time.replace('+00:00', '')}` : 'Non programmato'}
         ${event.scheduled_end_time ? `Fine Programmata: ${event.scheduled_end_time.replace('+00:00', '')}` : 'Non programmato'}`}
                 >

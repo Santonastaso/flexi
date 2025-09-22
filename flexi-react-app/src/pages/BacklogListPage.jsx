@@ -165,6 +165,33 @@ function BacklogListPage() {
         );
       }
     },
+    { 
+      header: 'Material Global (%)', 
+      accessorKey: 'material_availability_global',
+      cell: info => {
+        const value = info.getValue();
+        if (typeof value !== 'number') return value || 'N/A';
+        const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
+        return (
+          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[10px] font-medium`}>
+            {value}
+          </div>
+        );
+      }
+    },
+    { 
+      header: 'Note ASD', 
+      accessorKey: 'asd_notes',
+      cell: info => {
+        const value = info.getValue();
+        if (!value) return 'N/A';
+        return (
+          <div className="max-w-[200px] truncate text-[10px]" title={value}>
+            {value}
+          </div>
+        );
+      }
+    },
   ], []);
 
   const handleEditOrder = (order) => {

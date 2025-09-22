@@ -68,6 +68,8 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     internal_customer_code: orderToEdit?.internal_customer_code || null, 
     external_customer_code: orderToEdit?.external_customer_code || null,
     user_notes: orderToEdit?.user_notes || null,
+    asd_notes: orderToEdit?.asd_notes || null,
+    material_availability_global: orderToEdit?.material_availability_global || null,
     fase: orderToEdit?.fase || null,
   }), [selectedWorkCenter, orderToEdit]);
 
@@ -164,6 +166,8 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         internal_customer_code: dbData.internal_customer_code === '' ? null : dbData.internal_customer_code,
         external_customer_code: dbData.external_customer_code === '' ? null : dbData.external_customer_code,
         user_notes: dbData.user_notes === '' ? null : dbData.user_notes,
+        asd_notes: dbData.asd_notes === '' ? null : dbData.asd_notes,
+        material_availability_global: dbData.material_availability_global === '' ? null : dbData.material_availability_global,
         // Optional numeric fields
         bag_height: dbData.bag_height === '' ? null : dbData.bag_height,
         bag_width: dbData.bag_width === '' ? null : dbData.bag_width,

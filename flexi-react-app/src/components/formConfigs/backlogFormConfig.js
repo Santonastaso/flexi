@@ -169,6 +169,14 @@ export const backlogFormConfig = {
           required: false,
           placeholder: 'Inserisci note libere per l\'ordine...',
           rows: 3
+        },
+        {
+          name: 'asd_notes',
+          label: 'Note ASD',
+          type: 'textarea',
+          required: false,
+          placeholder: 'Inserisci note ASD per l\'ordine...',
+          rows: 3
         }
       ],
       gridCols: 'grid-cols-2 md:grid-cols-3'
@@ -195,6 +203,20 @@ export const backlogFormConfig = {
           label: 'Data di Consegna',
           type: 'datetime-local',
           required: true
+        }
+      ]
+    },
+    {
+      title: 'Disponibilità Materiali',
+      fields: [
+        {
+          name: 'material_availability_global',
+          label: 'Disponibilità Materiale Globale (%)',
+          type: 'number',
+          required: false,
+          placeholder: 'Inserisci percentuale disponibilità (0-100)',
+          min: 0,
+          max: 100
         }
       ]
     }
