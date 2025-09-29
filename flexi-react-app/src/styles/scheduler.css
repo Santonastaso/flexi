@@ -1092,6 +1092,18 @@
     transform: translateY(-1px);
 }
 
+/* Progress bar overlay */
+.progress-bar-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: #374151; /* dark grey */
+    border-radius: var(--border-radius);
+    z-index: 1;
+    pointer-events: none;
+}
+
 .scheduled-event.dragging {
     opacity: 0.9;
     cursor: grabbing;
@@ -1149,6 +1161,8 @@
     font-weight: 400;
     text-align: center;
     width: 100%;
+    position: relative;
+    z-index: 10;
 }
 
 /* ===== TASK ITEMS (CONSOLIDATED) ===== */
@@ -1550,6 +1564,7 @@
     align-items: center;
     gap: 1px;
     margin-bottom: 1px;
+    position: relative;
 }
 
 /* ===== LOADING & EMPTY STATES ===== */

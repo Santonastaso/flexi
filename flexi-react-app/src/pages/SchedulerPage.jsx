@@ -290,7 +290,6 @@ function SchedulerPage() {
   // Memoize navigation functions to prevent unnecessary re-renders
   const navigateDate = useCallback(async (direction, view = 'Daily') => {
     const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
-    const { loadMachineAvailabilityForDate } = useSchedulerStore.getState();
     
     try {
       startSchedulingOperation('navigate');
@@ -335,14 +334,8 @@ function SchedulerPage() {
         return prevDate;
       });
       
-      // Load unavailable slots for the new date during the loading period
-      if (newDate) {
-        const newDateStr = format(newDate, 'yyyy-MM-dd');
-        await loadMachineAvailabilityForDate(newDateStr);
-      }
-      
-      // Add remaining delay for safety (if loading was fast)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // React Query will automatically fetch machine availability data when the date changes
+      // No need for manual loading or artificial delays
       
     } finally {
       stopSchedulingOperation();

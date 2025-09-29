@@ -7,6 +7,7 @@ import { AppConfig } from '../services/config';
 import NextDayDropZone from './NextDayDropZone';
 import PreviousDayDropZone from './PreviousDayDropZone';
 import { useQueryClient } from '@tanstack/react-query';
+import { useMachineAvailabilityForDateAllMachines } from '../hooks/useQueries';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
@@ -97,6 +98,12 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient })
         const currentDayStart = startOfDay(currentDate);
         const currentDayEnd = endOfDay(currentDate);
         
+        // Calculate overall task progress
+        const totalDuration = event.duration || 1;
+        const progressPercentage = event.progress || 0;
+        const completedDuration = totalDuration * (progressPercentage / 100);
+        const remainingDuration = totalDuration - completedDuration;
+        
         
         // If no segment info exists, create a single segment from the task data
         if (!segmentInfo || !segmentInfo.segments) {
@@ -169,15 +176,27 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient })
                     segmentWidth = 960; // Full day width (64 slots * 15px)
                 }
             
-            return [{ left: segmentLeft, width: segmentWidth, start: singleSegment.start, end: singleSegment.end }];
+            // Calculate progress for single segment
+            const singleSegmentProgress = progressPercentage;
+            
+            return [{ 
+                left: segmentLeft, 
+                width: segmentWidth, 
+                start: singleSegment.start, 
+                end: singleSegment.end,
+                progress: singleSegmentProgress,
+                duration: timeRemaining
+            }];
         }
         
         // Handle split tasks - render only segments that appear on current day
         const visibleSegments = [];
+        let cumulativeDuration = 0;
         
         for (const segment of segmentInfo.segments) {
             const segmentStart = new Date(segment.start);
             const segmentEnd = new Date(segment.end);
+            const segmentDuration = segment.duration || 0;
             
             // Check if this segment is visible on the current day - use UTC consistently
             const segmentStartsOnCurrentDay = isSameDay(segmentStart, currentDate);
@@ -228,12 +247,24 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient })
                     segmentWidth = 960; // Full day width (64 slots * 15px)
                 }
                 
+                // Calculate progress for this segment
+                let segmentProgress = 0;
+                if (completedDuration > cumulativeDuration) {
+                    // This segment has some completed work
+                    const segmentCompletedDuration = Math.min(segmentDuration, completedDuration - cumulativeDuration);
+                    segmentProgress = (segmentCompletedDuration / segmentDuration) * 100;
+                }
+                
                 visibleSegments.push({
                     left: segmentLeft,
                     width: segmentWidth,
                     start: segmentStart,
-                    end: segmentEnd
+                    end: segmentEnd,
+                    progress: segmentProgress,
+                    duration: segmentDuration
                 });
+                
+                cumulativeDuration += segmentDuration;
             }
         }
         
@@ -288,6 +319,16 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient })
                             })()}
                         </span>
                     </div>
+                    
+                    {/* Progress bar overlay */}
+                    {segment.progress && segment.progress > 0 && (
+                        <div 
+                            className="progress-bar-overlay"
+                            style={{
+                                width: `${Math.min(segment.progress, 100)}%`
+                            }}
+                        />
+                    )}
                     
                     {/* Only render controls on first segment */}
                     {index === 0 && (
@@ -620,44 +661,35 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
     [tasks]
   );
 
-  const { loadMachineAvailabilityForDate, machineAvailability } = useSchedulerStore();
   const queryClient = useQueryClient();
 
   // Use the exact same date that's displayed in the banner - no conversion needed
-        const dateStr = useMemo(() => format(currentDate, 'yyyy-MM-dd'), [currentDate]);
+  const dateStr = useMemo(() => format(currentDate, 'yyyy-MM-dd'), [currentDate]);
 
-
-
-  useEffect(() => {
-    // Only load if not already loading (to avoid duplicate loading during navigation)
-    if (currentView === 'Daily' && !machineAvailability[dateStr]?._loading) {
-      loadMachineAvailabilityForDate(dateStr);
-    }
-    
-    // Cleanup function for component unmount
-    return () => {
-      // No specific cleanup needed for this effect, but good practice to have
-    };
-  }, [dateStr, loadMachineAvailabilityForDate, currentView, machineAvailability]);
+  // Use React Query hook for machine availability data with caching and background updates
+  const { 
+    data: machineAvailabilityData = [], 
+    isLoading: isMachineAvailabilityLoading, 
+    error: machineAvailabilityError 
+  } = useMachineAvailabilityForDateAllMachines(dateStr);
 
   // Optimize unavailable hours processing with early returns
   const unavailableByMachine = useMemo(() => {
     if (currentView !== 'Daily') return {};
     
-    const dayData = machineAvailability[dateStr];
-    if (!Array.isArray(dayData) || dayData.length === 0) return {};
+    if (!Array.isArray(machineAvailabilityData) || machineAvailabilityData.length === 0) return {};
 
     const map = {};
 
-    for (let i = 0; i < dayData.length; i++) {
-      const row = dayData[i];
-              if (row.machine_id && row.unavailable_hours) {
-          map[row.machine_id] = new Set(row.unavailable_hours.map(h => h.toString()));
-        }
+    for (let i = 0; i < machineAvailabilityData.length; i++) {
+      const row = machineAvailabilityData[i];
+      if (row.machine_id && row.unavailable_hours) {
+        map[row.machine_id] = new Set(row.unavailable_hours.map(h => h.toString()));
+      }
     }
 
     return map;
-  }, [machineAvailability, dateStr, currentView]);
+  }, [machineAvailabilityData, currentView]);
 
   // Memoize the time header with optimized rendering - show only 6:00 AM to 10:00 PM
   const timeHeader = useMemo(() =>
