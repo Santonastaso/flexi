@@ -654,6 +654,7 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
 // The main Gantt Chart component - heavily optimized for performance
 const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPreview, onNavigateToNextDay, onNavigateToPreviousDay }) => {
   const [currentView, setCurrentView] = useState('Daily'); // Add view state
+  const [currentTimePosition, setCurrentTimePosition] = useState(null);
   
   const { odpOrders: tasks } = useOrderStore();
   const scheduledTasks = useMemo(() =>
@@ -707,6 +708,30 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
     }),
     []
   );
+
+  // Calculate current time position
+  useEffect(() => {
+    const updateCurrentTime = () => {
+      const now = new Date();
+      const hour = now.getHours();
+      const minute = now.getMinutes();
+      
+      // Only show if within visible range (6 AM to 10 PM local time)
+      if (hour >= 6 && hour < 22) {
+        const slot = (hour - 6) * 4 + Math.floor(minute / 15);
+        const minuteOffset = (minute % 15) / 15;
+        const position = slot * 15 + minuteOffset * 15;
+        setCurrentTimePosition(position);
+      } else {
+        setCurrentTimePosition(null);
+      }
+    };
+    
+    updateCurrentTime();
+    const interval = setInterval(updateCurrentTime, 60000); // Update every minute
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Early return for empty state
   if (!machines || machines.length === 0) {
@@ -784,7 +809,7 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
                 <div className="time-header-row sticky-header">
                   {timeHeader}
                 </div>
-                <div className="time-grid-body">
+                <div className="time-grid-body" style={{ position: 'relative' }}>
                   {machines.map(machine => (
                     <MachineRow
                       key={machine.id}
@@ -798,6 +823,20 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
                       dragPreview={dragPreview}
                     />
                   ))}
+                  {currentTimePosition !== null && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: `${currentTimePosition}px`,
+                        top: 0,
+                        bottom: 0,
+                        width: '2px',
+                        backgroundColor: '#ef4444',
+                        zIndex: 100,
+                        pointerEvents: 'none'
+                      }}
+                    />
+                  )}
                 </div>
               </div>
               <NextDayDropZone 
