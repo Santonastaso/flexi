@@ -355,6 +355,8 @@ Codice Articolo Esterno: ${event.external_article_code || 'Non specificato'}
 Nome Cliente: ${event.nome_cliente || 'Non specificato'}
         Data Consegna: ${event.delivery_date ? format(new Date(event.delivery_date), 'yyyy-MM-dd') : 'Non impostata'}
 Quantità: ${event.quantity || 'Non specificata'}
+Altezza Busta: ${event.bag_height || 'Non specificata'} mm
+Passo Busta: ${event.bag_step || 'Non specificato'} mm
 Note Libere: ${event.user_notes || 'Nessuna nota'}
 Note ASD: ${event.asd_notes || 'Nessuna nota'}
 Material Global: ${event.material_availability_global || 'N/A'}%
