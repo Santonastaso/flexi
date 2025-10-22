@@ -2,18 +2,18 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import PhasesForm from '../components/PhasesForm';
 import StickyHeader from '../components/StickyHeader';
-import { usePhaseStore, useUIStore, useMainStore } from '../store';
+import { useUIStore, useMainStore } from '../store';
+import { usePhase } from '../hooks';
 
 function PhasesFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getPhasesById } = usePhaseStore();
   const { selectedWorkCenter } = useUIStore();
   const { isLoading, isInitialized, init, cleanup } = useMainStore();
 
   // Check if this is edit mode (has ID) or add mode (no ID)
   const isEditMode = Boolean(id);
-  const phase = isEditMode ? getPhasesById(id) : null;
+  const { data: phase, isLoading: phaseLoading, error: phaseError } = usePhase(id);
 
   // Initialize store on component mount
   useEffect(() => {
@@ -29,17 +29,21 @@ function PhasesFormPage() {
 
   // Redirect if phase not found in edit mode
   useEffect(() => {
-    if (isEditMode && !isLoading && !phase) {
+    if (isEditMode && !isLoading && !phaseLoading && !phase && !phaseError) {
       navigate('/phases', { replace: true });
     }
-  }, [isEditMode, isLoading, phase, navigate]);
+  }, [isEditMode, isLoading, phaseLoading, phase, phaseError, navigate]);
 
-  if (isLoading) {
+  if (isLoading || (isEditMode && phaseLoading)) {
     return <div>Caricamento...</div>;
   }
 
+  if (isEditMode && phaseError) {
+    return <div className="text-center py-2 text-red-600 text-[10px]">Errore nel caricamento della fase: {phaseError.message}</div>;
+  }
+
   if (isEditMode && !phase) {
-           return <div className="text-center py-2 text-red-600 text-[10px]">Fase non trovata.</div>;
+    return <div className="text-center py-2 text-red-600 text-[10px]">Fase non trovata.</div>;
   }
 
   // Allow access if work center is selected or if BOTH is selected (which allows any work center)
