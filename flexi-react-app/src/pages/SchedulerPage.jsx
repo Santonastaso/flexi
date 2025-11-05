@@ -196,8 +196,23 @@ function SchedulerPage() {
   }
 
   const [filters, dispatch] = useReducer(filterReducer, () => {
-    const saved = localStorage.getItem('schedulerFilters');
-    return saved ? JSON.parse(saved) : initialFilterState;
+    try {
+      const saved = localStorage.getItem('schedulerFilters');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Ensure all required filter properties exist and are arrays
+        return {
+          workCenter: Array.isArray(parsed.workCenter) ? parsed.workCenter : [],
+          department: Array.isArray(parsed.department) ? parsed.department : [],
+          machineType: Array.isArray(parsed.machineType) ? parsed.machineType : [],
+          machineName: Array.isArray(parsed.machineName) ? parsed.machineName : []
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to parse saved filters, using defaults:', error);
+      localStorage.removeItem('schedulerFilters');
+    }
+    return initialFilterState;
   });
 
   // Initialize store on mount
@@ -277,22 +292,22 @@ function SchedulerPage() {
     let filtered = activeMachines;
 
     // Filter by work center (if selected)
-    if (filters.workCenter.length > 0) {
+    if (filters.workCenter && Array.isArray(filters.workCenter) && filters.workCenter.length > 0) {
       filtered = filtered.filter(machine => filters.workCenter.includes(machine.work_center));
     }
     
     // Filter by department (if selected)
-    if (filters.department.length > 0) {
+    if (filters.department && Array.isArray(filters.department) && filters.department.length > 0) {
       filtered = filtered.filter(machine => filters.department.includes(machine.department));
     }
 
     // Filter by machine type (if selected)
-    if (filters.machineType.length > 0) {
+    if (filters.machineType && Array.isArray(filters.machineType) && filters.machineType.length > 0) {
       filtered = filtered.filter(machine => filters.machineType.includes(machine.machine_type));
     }
 
     // Filter by machine name (if selected)
-    if (filters.machineName.length > 0) {
+    if (filters.machineName && Array.isArray(filters.machineName) && filters.machineName.length > 0) {
       filtered = filtered.filter(machine => filters.machineName.includes(machine.machine_name));
     }
 
