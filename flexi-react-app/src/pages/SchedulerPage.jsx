@@ -132,7 +132,7 @@ function SchedulerPage() {
   
   // Use Zustand store for selectors and client state
   const { getOdpOrdersByWorkCenter, getScheduledOrders } = useOrderStore();
-  const { selectedWorkCenter, isLoading, isInitialized, showAlert, isEditMode, toggleEditMode, showConflictDialog, schedulingLoading, setDragPreview, clearDragPreview, dragPreview } = useUIStore();
+  const { selectedWorkCenter, isLoading, isInitialized, showAlert, showConflictDialog, schedulingLoading, setDragPreview, clearDragPreview, dragPreview } = useUIStore();
   const { scheduleTask, unscheduleTask, scheduleTaskFromSlot, rescheduleTaskToSlot, validateSlotAvailability } = useSchedulerStore();
   const { init, cleanup } = useMainStore();
   const queryClient = useQueryClient();
@@ -652,21 +652,13 @@ function SchedulerPage() {
     <>
       <SchedulingLoadingOverlay schedulingLoading={schedulingLoading} />
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-        <div className={`content-section ${isEditMode ? 'edit-mode' : ''}`}>
+        <div className="content-section">
 
         
         {/* Task Pool Section */}
         <div className="task-pool-section">
           <div className="task-pool-header">
             <h2 className="text-[10px] font-semibold text-gray-900">Pool Lavori</h2>
-            <Button
-              variant={isEditMode ? 'destructive' : 'default'}
-              size="sm"
-              onClick={toggleEditMode}
-              title={isEditMode ? "Disabilita modalità modifica" : "Abilita modalità modifica"}
-            >
-              {isEditMode ? 'Disabilita Modalità Modifica' : 'Abilita Modalità Modifica'}
-            </Button>
           </div>
           <Suspense fallback={<LoadingFallback />}>
             <TaskPoolDataTable />
