@@ -191,6 +191,7 @@ function SchedulerPage() {
         return state;
     }
     // Save to localStorage whenever filters change
+    console.log('Saving filters to localStorage:', action.type, newState);
     localStorage.setItem('schedulerFilters', JSON.stringify(newState));
     return newState;
   }
@@ -198,20 +199,25 @@ function SchedulerPage() {
   const [filters, dispatch] = useReducer(filterReducer, () => {
     try {
       const saved = localStorage.getItem('schedulerFilters');
+      console.log('Loading saved filters:', saved);
       if (saved) {
         const parsed = JSON.parse(saved);
+        console.log('Parsed filters:', parsed);
         // Ensure all required filter properties exist and are arrays
-        return {
+        const restoredFilters = {
           workCenter: Array.isArray(parsed.workCenter) ? parsed.workCenter : [],
           department: Array.isArray(parsed.department) ? parsed.department : [],
           machineType: Array.isArray(parsed.machineType) ? parsed.machineType : [],
           machineName: Array.isArray(parsed.machineName) ? parsed.machineName : []
         };
+        console.log('Restored filters:', restoredFilters);
+        return restoredFilters;
       }
     } catch (error) {
       console.warn('Failed to parse saved filters, using defaults:', error);
       localStorage.removeItem('schedulerFilters');
     }
+    console.log('Using initial filter state:', initialFilterState);
     return initialFilterState;
   });
 
