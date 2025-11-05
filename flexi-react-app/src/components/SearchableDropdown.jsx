@@ -18,12 +18,15 @@ function SearchableDropdown({
   selectedOptions, 
   onSelectionChange, 
   searchPlaceholder, 
-  id,
+  id, 
   width = '200px' 
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const dropdownRef = useRef(null);
+  
+  // Ensure selectedOptions is always an array to prevent crashes
+  const safeSelectedOptions = Array.isArray(selectedOptions) ? selectedOptions : [];
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -44,7 +47,7 @@ function SearchableDropdown({
 
   // Check if all visible options are selected
   const allVisibleSelected = filteredOptions.length > 0 && 
-    filteredOptions.every(option => selectedOptions.includes(option));
+    filteredOptions.every(option => safeSelectedOptions.includes(option));
 
   // Handle "All" option selection
   const handleAllOptionClick = (e) => {
@@ -53,11 +56,11 @@ function SearchableDropdown({
     
     if (allVisibleSelected) {
       // Remove all visible options
-      const newSelection = selectedOptions.filter(option => !filteredOptions.includes(option));
+      const newSelection = safeSelectedOptions.filter(option => !filteredOptions.includes(option));
       onSelectionChange(newSelection);
     } else {
       // Add all visible options
-      const newSelection = [...new Set([...selectedOptions, ...filteredOptions])];
+      const newSelection = [...new Set([...safeSelectedOptions, ...filteredOptions])];
       onSelectionChange(newSelection);
     }
   };
@@ -67,13 +70,13 @@ function SearchableDropdown({
     e.preventDefault();
     e.stopPropagation();
     
-    if (selectedOptions.includes(option)) {
+    if (safeSelectedOptions.includes(option)) {
       // Remove option
-      const newSelection = selectedOptions.filter(selected => selected !== option);
+      const newSelection = safeSelectedOptions.filter(selected => selected !== option);
       onSelectionChange(newSelection);
     } else {
       // Add option
-      const newSelection = [...selectedOptions.filter(selected => selected !== ''), option];
+      const newSelection = [...safeSelectedOptions.filter(selected => selected !== ''), option];
       onSelectionChange(newSelection);
     }
   };
@@ -115,7 +118,7 @@ function SearchableDropdown({
           {filteredOptions.map(option => (
             <div 
               key={option} 
-              className={`px-3 py-1 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 ${selectedOptions.includes(option) ? 'bg-navy-50 text-navy-800' : ''}`}
+              className={`px-3 py-1 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0 ${safeSelectedOptions.includes(option) ? 'bg-navy-50 text-navy-800' : ''}`}
               onMouseDown={(e) => handleOptionClick(e, option)}
             >
               <div className="text-xs font-normal">{option}</div>
