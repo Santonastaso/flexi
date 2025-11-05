@@ -27,6 +27,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   const queryClient = useQueryClient();
   
   const [calculationResults, setCalculationResults] = useState(null);
+  const [additionalHours, setAdditionalHours] = useState(0);
   const isEditMode = Boolean(orderToEdit);
   
   // Create dynamic config based on selected work center
@@ -89,6 +90,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     setSelectedPhase(null);
     setEditablePhaseParams({});
     setCalculationResults(null);
+    setAdditionalHours(0);
   }, [setPhaseSearch, setSelectedPhase, setEditablePhaseParams]);
 
   // Handle article code changes to auto-determine department and work center
@@ -127,7 +129,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
           'bag_width': 'Larghezza Busta',
           'bag_step': 'Passo Busta',
           'seal_sides': 'Lati Sigillatura',
-          'product_type': 'Tipo Prodotto',
+          'product_type': 'Linea di Produzione',
           'internal_customer_code': 'Codice Cliente Interno',
           'external_customer_code': 'Codice Cliente Esterno'
         };
@@ -179,7 +181,8 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       let updatedOrder;
       if (isEditMode) {
         // 1. Store new duration and compute time_remaining
-        const newDuration = calculationResults?.totals?.duration || orderToEdit.duration;
+        const baseDuration = calculationResults?.totals?.duration || orderToEdit.duration;
+        const newDuration = baseDuration + (parseFloat(additionalHours) || 0);
         const progress = (orderToEdit.quantity_completed / orderToEdit.quantity) || 0;
         const newTimeRemaining = newDuration * (1 - progress);
         
@@ -325,7 +328,9 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         }
       } else {
         // New order
-        const orderData = { ...cleanedData, duration: calculationResults?.totals?.duration || null, cost: calculationResults?.totals?.cost || null, status: 'NOT SCHEDULED' };
+        const baseDuration = calculationResults?.totals?.duration || null;
+        const finalDuration = baseDuration ? baseDuration + (parseFloat(additionalHours) || 0) : null;
+        const orderData = { ...cleanedData, duration: finalDuration, cost: calculationResults?.totals?.cost || null, status: 'NOT SCHEDULED' };
         updatedOrder = await addOrderMutation.mutateAsync(orderData);
       }
 
@@ -746,18 +751,40 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     calculation_results: () => {
       if (!calculationResults?.totals) return null;
       
+      const finalDuration = calculationResults.totals.duration + (parseFloat(additionalHours) || 0);
+      
       return (
         <div className="space-y-2">
           <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">
             Risultati Calcolo Produzione
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div className="space-y-2">
-              <Label>Durata Totale (ore):</Label>
-              <div className="text-[10px] font-semibold text-navy-800">
+              <Label>Durata Calcolata (ore):</Label>
+              <div className="text-[10px] font-semibold text-gray-600">
                 {calculationResults.totals.duration.toFixed(2)}
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>Ore Aggiuntive:</Label>
+              <Input
+                type="number"
+                step="0.1"
+                min="0"
+                value={additionalHours}
+                onChange={(e) => setAdditionalHours(e.target.value)}
+                className="text-[10px]"
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Durata Finale (ore):</Label>
+              <div className="text-[10px] font-semibold text-navy-800">
+                {finalDuration.toFixed(2)}
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-2 mt-2">
             <div className="space-y-2">
               <Label>Costo Totale (€):</Label>
               <div className="text-[10px] font-semibold text-green-600">
@@ -768,7 +795,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         </div>
       );
     }
-  }), [phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, filteredPhases, handleBlur, handlePhaseSelect, selectedPhase, getPhaseParamValue, handlePhaseParamChange, getPhaseFields, calculationResults, handleArticleCodeChange]);
+  }), [phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, filteredPhases, handleBlur, handlePhaseSelect, selectedPhase, getPhaseParamValue, handlePhaseParamChange, getPhaseFields, calculationResults, additionalHours, handleArticleCodeChange]);
 
   // Custom actions (Calculate button)
   const customActions = useMemo(() => (

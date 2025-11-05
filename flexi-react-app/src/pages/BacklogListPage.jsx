@@ -94,7 +94,7 @@ function BacklogListPage() {
     { header: 'Centro di Lavoro', accessorKey: 'work_center' },
     { header: 'Reparto', accessorKey: 'department' },
     { header: 'Lati Sigillati', accessorKey: 'seal_sides' },
-    { header: 'Tipo Prodotto', accessorKey: 'product_type' },
+    { header: 'Linea di Produzione', accessorKey: 'product_type' },
     
     // Date e Tempi
     { 

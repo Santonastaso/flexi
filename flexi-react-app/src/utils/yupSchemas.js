@@ -133,7 +133,7 @@ export const orderSchema = yup.object({
   bag_width: yup.number().nullable().transform((value) => (isNaN(value) ? null : value)).min(0, 'La larghezza busta deve essere maggiore o uguale a 0'),
   bag_step: yup.number().nullable().transform((value) => (isNaN(value) ? null : value)).min(0, 'Il passo busta deve essere maggiore o uguale a 0'),
   seal_sides: yup.number().nullable().transform((value) => (isNaN(value) ? null : value)).oneOf([3, 4], 'I lati di sigillatura devono essere 3 o 4'),
-  product_type: yup.string().nullable().oneOf(['CREMA', 'LIQUIDO', 'POLVERI'], 'Seleziona un tipo di prodotto valido'),
+  product_type: yup.string().nullable(),
   internal_customer_code: yup.string().nullable().test('not-empty-if-provided', 'Il codice cliente interno non può essere vuoto', function(value) {
     return !value || value.trim().length > 0;
   }),

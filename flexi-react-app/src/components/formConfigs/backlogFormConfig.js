@@ -112,15 +112,10 @@ export const backlogFormConfig = {
         },
         {
           name: 'product_type',
-          label: 'Tipo Prodotto',
-          type: 'select',
+          label: 'Linea di Produzione',
+          type: 'text',
           required: false,
-          placeholder: 'Seleziona...',
-          options: [
-            { value: PRODUCT_TYPES.CREMA, label: PRODUCT_TYPES.CREMA },
-            { value: PRODUCT_TYPES.LIQUIDO, label: PRODUCT_TYPES.LIQUIDO },
-            { value: PRODUCT_TYPES.POLVERI, label: PRODUCT_TYPES.POLVERI }
-          ]
+          placeholder: 'Inserisci linea di produzione...'
         },
         {
           name: 'quantity',
