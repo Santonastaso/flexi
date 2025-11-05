@@ -162,11 +162,11 @@ function SchedulerPage() {
   // Combined loading state
   const isDataLoading = ordersLoading || machinesLoading || isLoading;
   const [dropTargetId, setDropTargetId] = useState(null);
-  const [taskLookup, setTaskLookup] = useState('');
-  const [articleCodeLookup, setArticleCodeLookup] = useState('');
-  const [customerNameLookup, setCustomerNameLookup] = useState('');
+  const [taskLookup, setTaskLookup] = useState(() => localStorage.getItem('schedulerTaskLookup') || '');
+  const [articleCodeLookup, setArticleCodeLookup] = useState(() => localStorage.getItem('schedulerArticleLookup') || '');
+  const [customerNameLookup, setCustomerNameLookup] = useState(() => localStorage.getItem('schedulerCustomerLookup') || '');
 
-  // Filter state management with useReducer
+  // Filter state management with useReducer and localStorage persistence
   const initialFilterState = { 
     workCenter: [], 
     department: [], 
@@ -175,18 +175,30 @@ function SchedulerPage() {
   };
 
   function filterReducer(state, action) {
+    let newState;
     switch (action.type) {
       case 'SET_FILTER':
         // payload: { filterName: 'workCenter', value: [...] }
-        return { ...state, [action.payload.filterName]: action.payload.value };
+        newState = { ...state, [action.payload.filterName]: action.payload.value };
+        break;
       case 'CLEAR_FILTERS':
-        return initialFilterState;
+        newState = initialFilterState;
+        break;
+      case 'LOAD_FILTERS':
+        newState = action.payload;
+        break;
       default:
         return state;
     }
+    // Save to localStorage whenever filters change
+    localStorage.setItem('schedulerFilters', JSON.stringify(newState));
+    return newState;
   }
 
-  const [filters, dispatch] = useReducer(filterReducer, initialFilterState);
+  const [filters, dispatch] = useReducer(filterReducer, () => {
+    const saved = localStorage.getItem('schedulerFilters');
+    return saved ? JSON.parse(saved) : initialFilterState;
+  });
 
   // Initialize store on mount
   useEffect(() => {
@@ -363,6 +375,12 @@ function SchedulerPage() {
 
   const clearFilters = useCallback(() => {
     dispatch({ type: 'CLEAR_FILTERS' });
+    setTaskLookup('');
+    setArticleCodeLookup('');
+    setCustomerNameLookup('');
+    localStorage.removeItem('schedulerTaskLookup');
+    localStorage.removeItem('schedulerArticleLookup');
+    localStorage.removeItem('schedulerCustomerLookup');
   }, []);
 
   // Generic lookup function that consolidates the three original lookup functions
@@ -691,9 +709,11 @@ function SchedulerPage() {
               onSelectionChange={(value) => {
                 if (value.length > 0) {
                   setTaskLookup(value[0]);
+                  localStorage.setItem('schedulerTaskLookup', value[0]);
                   handleLookup(value[0], 'odp_number', 'ODP');
                 } else {
                   setTaskLookup('');
+                  localStorage.removeItem('schedulerTaskLookup');
                 }
               }}
               searchPlaceholder="Cerca ODP..."
@@ -708,9 +728,11 @@ function SchedulerPage() {
               onSelectionChange={(value) => {
                 if (value.length > 0) {
                   setArticleCodeLookup(value[0]);
+                  localStorage.setItem('schedulerArticleLookup', value[0]);
                   handleLookup(value[0], 'article_code', 'codice articolo');
                 } else {
                   setArticleCodeLookup('');
+                  localStorage.removeItem('schedulerArticleLookup');
                 }
               }}
               searchPlaceholder="Cerca Articolo..."
@@ -725,9 +747,11 @@ function SchedulerPage() {
               onSelectionChange={(value) => {
                 if (value.length > 0) {
                   setCustomerNameLookup(value[0]);
+                  localStorage.setItem('schedulerCustomerLookup', value[0]);
                   handleLookup(value[0], 'nome_cliente', 'cliente');
                 } else {
                   setCustomerNameLookup('');
+                  localStorage.removeItem('schedulerCustomerLookup');
                 }
               }}
               searchPlaceholder="Cerca Cliente..."
