@@ -73,6 +73,7 @@ function MachineOverviewPage() {
     { header: 'Codice Articolo', accessorKey: 'article_code' },
     { header: 'Cliente', accessorKey: 'nome_cliente' },
     { header: 'Quantità', accessorKey: 'quantity' },
+    { header: 'Quantità Completata', accessorKey: 'quantity_completed' },
     { header: 'Durata (h)', accessorKey: 'duration', cell: ({ row }) => row.original.duration?.toFixed(1) || 'N/A' },
     { 
       header: 'Inizio Programmato', 
