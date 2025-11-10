@@ -281,6 +281,18 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient })
     // Early return if no segments are visible (AFTER all hooks are called)
     if (!eventSegments || eventSegments.length === 0) return null;
     
+    // ODP color logic based on materialGlobal
+    const getOdpColor = (materialGlobal) => {
+        if (materialGlobal > 70) {
+            return '#059669'; // verde (green)
+        } else if (materialGlobal >= 40 && materialGlobal <= 69) {
+            return '#d97706'; // giallo (yellow)
+        } else {
+            return '#dc2626'; // rosso (red)
+        }
+    };
+
+    const odpColor = getOdpColor(event.material_availability_global || 0);
 
     return (
         <>
@@ -296,6 +308,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient })
                         opacity: 1,
                         transition: 'opacity 0.1s ease',
                         pointerEvents: 'auto',
+                        background: odpColor,
                     }}
                     className={`scheduled-event ${isVerySmallTask ? 'very-small' : ''} ${isSmallTask ? 'small' : ''} ${isExtremelyNarrow ? 'extremely-narrow' : ''} ${eventSegments.length > 1 ? 'split-segment' : ''} ${schedulingLoading.taskId === event.id && (schedulingLoading.isScheduling || schedulingLoading.isRescheduling || schedulingLoading.isShunting) ? 'processing' : ''}`}
                 >
