@@ -9,6 +9,7 @@ import { SplitTaskManager } from './scheduling/splitTaskManager';
 import { SchedulingLogic } from './scheduling/schedulingLogic';
 import { ConflictResolution } from './scheduling/conflictResolution';
 import { MachineAvailabilityManager } from './scheduling/machineAvailability';
+import { QueueSchedulingLogic } from './scheduling/queueSchedulingLogic';
 
 export const useSchedulerStore = create((set, get) => {
   // Initialize helper classes
@@ -16,6 +17,7 @@ export const useSchedulerStore = create((set, get) => {
   const machineAvailabilityManager = new MachineAvailabilityManager(get, set);
   const schedulingLogic = new SchedulingLogic(get, set, splitTaskManager, machineAvailabilityManager);
   const conflictResolution = new ConflictResolution(get, set, schedulingLogic, splitTaskManager);
+  const queueSchedulingLogic = new QueueSchedulingLogic(get, set, schedulingLogic, splitTaskManager);
 
   return {
     // State
@@ -395,6 +397,16 @@ export const useSchedulerStore = create((set, get) => {
         return [];
       }
     },
+
+    // Queue scheduling methods (delegated to QueueSchedulingLogic)
+    getQueueForMachine: queueSchedulingLogic.getQueueForMachine,
+    calculateQueueStartTime: queueSchedulingLogic.calculateQueueStartTime,
+    scheduleTaskAtEndOfQueue: queueSchedulingLogic.scheduleTaskAtEndOfQueue,
+    recalculateQueueFromPosition: queueSchedulingLogic.recalculateQueueFromPosition,
+    reorderTaskInQueue: queueSchedulingLogic.reorderTaskInQueue,
+    createPauseTask: queueSchedulingLogic.createPauseTask,
+    removeTaskFromQueue: queueSchedulingLogic.removeTaskFromQueue,
+    insertTaskInQueue: queueSchedulingLogic.insertTaskInQueue,
 
     reset: () => set({ machineAvailability: {}, shuntPreview: null, splitTasksInfo: {} }),
   };

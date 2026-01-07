@@ -2400,4 +2400,30 @@
     }
 }
 
+/* ===== READ-ONLY MODE STYLES ===== */
+.read-only-notice {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border: 2px solid #3b82f6;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+  margin-bottom: 1rem;
+}
 
+.notice-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #1e40af;
+  font-size: 0.875rem;
+}
+
+.notice-content svg {
+  flex-shrink: 0;
+  color: #3b82f6;
+}
+
+.notice-content strong {
+  font-weight: 700;
+  color: #1e3a8a;
+}

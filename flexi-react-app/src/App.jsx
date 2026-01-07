@@ -10,6 +10,7 @@ import PhasesFormPage from './pages/PhasesFormPage';
 import BacklogListPage from './pages/BacklogListPage';
 import BacklogFormPage from './pages/BacklogFormPage';
 import SchedulerPage from './pages/SchedulerPage';
+import SpotifySchedulerPage from './pages/SpotifySchedulerPage';
 import MachineOverviewPage from './pages/MachineOverviewPage';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -198,6 +199,7 @@ function App() {
             <Route path="backlog/add" element={<BacklogFormPage />} />
             <Route path="backlog/:id/edit" element={<BacklogFormPage />} />
             <Route path="scheduler" element={<SchedulerPage />} />
+            <Route path="spotify-scheduler" element={<SpotifySchedulerPage />} />
             <Route path="machine-overview" element={<MachineOverviewPage />} />
           </Route>
         </Route>

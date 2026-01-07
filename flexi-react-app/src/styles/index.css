@@ -2,6 +2,9 @@
 /* These are complex enough to keep for now, will migrate later */
 @import './scheduler.css';
 
+/* ===== SPOTIFY SCHEDULER STYLES ===== */
+@import './spotify-scheduler.css';
+
 /* ===== FULLCALENDAR STYLES ===== */
 @import './fullcalendar.css';
 

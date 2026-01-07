@@ -111,7 +111,7 @@ ${task.scheduled_end_time ? `Fine Programmata: ${task.scheduled_end_time.replace
 };
 
 // Main Task Pool Data Table Component
-function TaskPoolDataTable() {
+function TaskPoolDataTable({ filterByCost = true }) {
   const navigate = useNavigate();
   const { selectedWorkCenter, conflictDialog, schedulingLoading, showConfirmDialog } = useUIStore();
   const { odpOrders: storeTasks, setOdpOrders } = useOrderStore();
@@ -151,17 +151,19 @@ function TaskPoolDataTable() {
 
   // Memoize unscheduled tasks filtering for better performance
   const unscheduledTasks = useMemo(() => {
-    let filtered = tasks.filter(task => 
-      task.status !== 'SCHEDULED' && 
-      task.duration > 0 && 
-      task.cost > 0
-    );
+    let filtered = tasks.filter(task => {
+      const isNotScheduled = task.status !== 'SCHEDULED';
+      const hasDuration = task.duration > 0;
+      const hasCost = filterByCost ? task.cost > 0 : true;
+      
+      return isNotScheduled && hasDuration && hasCost;
+    });
     if (selectedWorkCenter && selectedWorkCenter !== 'BOTH') {
       filtered = filtered.filter(task => task.work_center === selectedWorkCenter);
     }
     // Filtered unscheduled tasks ready for display
     return filtered;
-  }, [tasks, selectedWorkCenter]);
+  }, [tasks, selectedWorkCenter, filterByCost]);
 
   // Define columns for the DataTable
   const columns = useMemo(() => [

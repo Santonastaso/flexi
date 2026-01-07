@@ -687,19 +687,28 @@ function SchedulerPage() {
   return (
     <>
       <SchedulingLoadingOverlay schedulingLoading={schedulingLoading} />
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-        <div className="content-section">
+      <div className="content-section">
+        {/* Read-Only Notice */}
+        <div className="read-only-notice">
+          <div className="notice-content">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>Modalità Visualizzazione: Questa pagina è di sola lettura. Usa <strong>Spotify Scheduler</strong> per modificare la pianificazione.</span>
+          </div>
+        </div>
 
-        
-        {/* Task Pool Section */}
-        <div className="task-pool-section">
+        {/* Task Pool Section - HIDDEN (Read-only mode) */}
+        {/* <div className="task-pool-section">
           <div className="task-pool-header">
             <h2 className="text-[10px] font-semibold text-gray-900">Pool Lavori</h2>
           </div>
           <Suspense fallback={<LoadingFallback />}>
             <TaskPoolDataTable />
           </Suspense>
-        </div>
+        </div> */}
 
         {/* Filters Section */}
         <div className="section-controls">
@@ -839,10 +848,11 @@ function SchedulerPage() {
             <GanttChart 
               machines={filteredMachines} 
               currentDate={currentDate} 
-              dropTargetId={dropTargetId}
-              dragPreview={dragPreview}
+              dropTargetId={null}
+              dragPreview={null}
               onNavigateToNextDay={(view) => navigateDate('next', view)}
               onNavigateToPreviousDay={(view) => navigateDate('prev', view)}
+              readOnly={true}
             />
           </Suspense>
           {/* White cover during loading */}
@@ -851,36 +861,6 @@ function SchedulerPage() {
           )}
         </div>
       </div>
-
-      <DragOverlay>
-        {activeDragItem ? (
-          <div style={{
-            background: '#1e293b', // --sap-primary
-            color: '#ffffff', // --text-white
-            padding: '4px 8px',
-            borderRadius: '4px',
-            fontSize: '10px',
-            fontWeight: '400',
-            zIndex: 9999,
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%) rotate(3deg) scale(1.05)',
-            border: '1px solid #2d3a4b', // --sap-secondary
-            boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
-            pointerEvents: 'none',
-            minHeight: '15px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            userSelect: 'none',
-            whiteSpace: 'nowrap'
-          }}>
-            {activeDragItem.odp_number}
-          </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
     </>
   );
 }

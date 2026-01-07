@@ -78,7 +78,7 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
 });
 
 // A scheduled event that can be dragged to be rescheduled or unscheduled
-const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient }) => {
+const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, readOnly = false }) => {
     const navigate = useNavigate();
     const { getSplitTaskInfo, splitTasksInfo } = useSchedulerStore();
     const { schedulingLoading } = useUIStore();
@@ -88,7 +88,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient })
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: `event-${event.id}`,
         data: { event, type: 'event', machine },
-        disabled: false, // Always enabled
+        disabled: readOnly, // Disabled in read-only mode
     });
 
     // Calculate segments for ALL tasks using description column only
@@ -339,7 +339,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient })
                     )}
                     
                     {/* Only render controls on first segment */}
-                    {index === 0 && (
+                    {index === 0 && !readOnly && (
                         <div 
                             className={`event-controls ${shouldOverlayButtons ? 'overlay' : ''}`}
                 >
@@ -446,7 +446,7 @@ Material Global: ${event.material_availability_global || 'N/A'}%
 });
 
 // A single row in the Gantt chart, representing one machine
-const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavailableByMachine, dropTargetId, hideMachineLabel = false, queryClient, dragPreview }) => {
+const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavailableByMachine, dropTargetId, hideMachineLabel = false, queryClient, dragPreview, readOnly = false }) => {
   // Memoize scheduled events for this machine - optimize filtering
   const machineScheduledEvents = useMemo(() =>
     scheduledEvents.filter(event => event.scheduled_machine_id === machine.id),
@@ -494,6 +494,7 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
             machine={machine}
             currentDate={currentDate}
             queryClient={queryClient}
+            readOnly={readOnly}
           />
         ))}
       </div>
@@ -511,7 +512,8 @@ const MachineRow = React.memo(({ machine, scheduledEvents, currentDate, unavaila
     prevProps.unavailableByMachine === nextProps.unavailableByMachine &&
     prevProps.hideMachineLabel === nextProps.hideMachineLabel &&
     prevProps.queryClient === nextProps.queryClient &&
-    prevProps.dragPreview === nextProps.dragPreview
+    prevProps.dragPreview === nextProps.dragPreview &&
+    prevProps.readOnly === nextProps.readOnly
     // Note: dropTargetId is intentionally excluded from comparison
   );
 });
@@ -696,7 +698,7 @@ ${task.scheduled_end_time ? `Fine Programmata: ${task.scheduled_end_time.replace
 });
 
 // The main Gantt Chart component - heavily optimized for performance
-const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPreview, onNavigateToNextDay, onNavigateToPreviousDay }) => {
+const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPreview, onNavigateToNextDay, onNavigateToPreviousDay, readOnly = false }) => {
   const [currentView, setCurrentView] = useState(() => localStorage.getItem('schedulerView') || 'Daily');
   const [currentTimePosition, setCurrentTimePosition] = useState(null);
   
@@ -847,11 +849,13 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
                   ))}
                 </div>
               </div>
-              <PreviousDayDropZone 
-                currentDate={currentDate}
-                onNavigateToPreviousDay={() => onNavigateToPreviousDay && onNavigateToPreviousDay(currentView)}
-                isDragOver={dropTargetId === 'previous-day-drop-zone'}
-              />
+              {!readOnly && (
+                <PreviousDayDropZone 
+                  currentDate={currentDate}
+                  onNavigateToPreviousDay={() => onNavigateToPreviousDay && onNavigateToPreviousDay(currentView)}
+                  isDragOver={dropTargetId === 'previous-day-drop-zone'}
+                />
+              )}
               <div className="time-grid-wrapper">
                 <div className="time-header-row sticky-header">
                   {timeHeader}
@@ -868,6 +872,7 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
                       hideMachineLabel={true}
                       queryClient={queryClient}
                       dragPreview={dragPreview}
+                      readOnly={readOnly}
                     />
                   ))}
                   {currentTimePosition !== null && (
@@ -886,11 +891,13 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
                   )}
                 </div>
               </div>
-              <NextDayDropZone 
-                currentDate={currentDate}
-                onNavigateToNextDay={() => onNavigateToNextDay && onNavigateToNextDay(currentView)}
-                isDragOver={dropTargetId === 'next-day-drop-zone'}
-              />
+              {!readOnly && (
+                <NextDayDropZone 
+                  currentDate={currentDate}
+                  onNavigateToNextDay={() => onNavigateToNextDay && onNavigateToNextDay(currentView)}
+                  isDragOver={dropTargetId === 'next-day-drop-zone'}
+                />
+              )}
             </div>
           ) : (
             <WeeklyGanttView 

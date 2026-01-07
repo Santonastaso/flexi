@@ -35,6 +35,7 @@ function SideNav() {
       ]
     },
     { href: '/scheduler', label: 'Scheduler' },
+    { href: '/spotify-scheduler', label: 'Spotify Scheduler' },
     { href: '/machine-overview', label: 'Panoramica Macchina' }
   ];
 
