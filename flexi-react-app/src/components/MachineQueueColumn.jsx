@@ -14,16 +14,28 @@ function MachineQueueColumn({ machine, queryClient }) {
 
   // Handle creating a pause
   const handleCreatePause = async (machineId, durationHours) => {
-    const result = await createPauseTask(machineId, durationHours, true);
-    
-    if (result.error) {
-      console.error('Error creating pause:', result.error);
-      throw new Error(result.error);
-    }
-    
-    // Refresh the orders list
-    if (queryClient) {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    try {
+      const result = await createPauseTask(machineId, durationHours, true);
+      
+      if (result.error) {
+        console.error('Error creating pause:', result.error);
+        // Show error to user
+        const { showError } = await import('../utils/toast');
+        showError(result.error);
+        throw new Error(result.error);
+      }
+      
+      // Refresh the orders list
+      if (queryClient) {
+        await queryClient.invalidateQueries({ queryKey: ['orders'] });
+      }
+      
+      // Show success message
+      const { showSuccess } = await import('../utils/toast');
+      showSuccess('Pausa creata con successo');
+    } catch (error) {
+      console.error('Error creating pause:', error);
+      throw error;
     }
   };
 

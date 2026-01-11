@@ -12,6 +12,31 @@ export class QueueSchedulingLogic {
     this.set = set;
     this.schedulingLogic = schedulingLogic;
     this.splitTaskManager = splitTaskManager;
+    // Lock mechanism to prevent concurrent queue modifications
+    this.queueLocks = new Map(); // machineId -> boolean
+  }
+
+  /**
+   * Acquire a lock for a specific machine queue
+   * Prevents concurrent modifications
+   */
+  async acquireLock(machineId, timeout = 30000) {
+    const startTime = Date.now();
+    while (this.queueLocks.get(machineId)) {
+      if (Date.now() - startTime > timeout) {
+        throw new Error('Queue operation timeout: another operation is in progress');
+      }
+      // Wait 100ms before checking again
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    this.queueLocks.set(machineId, true);
+  }
+
+  /**
+   * Release a lock for a specific machine queue
+   */
+  releaseLock(machineId) {
+    this.queueLocks.delete(machineId);
   }
 
   /**
@@ -19,18 +44,47 @@ export class QueueSchedulingLogic {
    * Returns tasks sorted by scheduled_start_time
    */
   getQueueForMachine = (machineId) => {
-    const { getOdpOrders } = useOrderStore.getState();
-    return getOdpOrders()
-      .filter(task => 
-        task.scheduled_machine_id === machineId && 
-        task.status === 'SCHEDULED' &&
-        task.scheduled_start_time
-      )
-      .sort((a, b) => {
-        const aTime = new Date(a.scheduled_start_time).getTime();
-        const bTime = new Date(b.scheduled_start_time).getTime();
-        return aTime - bTime;
-      });
+    try {
+      const { getOdpOrders } = useOrderStore.getState();
+      const allOrders = getOdpOrders();
+      
+      if (!Array.isArray(allOrders)) {
+        console.error('❌ QUEUE: getOdpOrders did not return an array');
+        return [];
+      }
+      
+      return allOrders
+        .filter(task => {
+          // Defensive checks
+          if (!task || typeof task !== 'object') return false;
+          if (task.scheduled_machine_id !== machineId) return false;
+          if (task.status !== 'SCHEDULED') return false;
+          if (!task.scheduled_start_time) return false;
+          return true;
+        })
+        .sort((a, b) => {
+          try {
+            const aTime = new Date(a.scheduled_start_time).getTime();
+            const bTime = new Date(b.scheduled_start_time).getTime();
+            
+            // Handle invalid dates
+            if (isNaN(aTime) || isNaN(bTime)) {
+              console.warn('⚠️ QUEUE: Invalid date detected', { a: a.scheduled_start_time, b: b.scheduled_start_time });
+              if (isNaN(aTime)) return 1;
+              if (isNaN(bTime)) return -1;
+              return 0;
+            }
+            
+            return aTime - bTime;
+          } catch (error) {
+            console.error('❌ QUEUE: Error sorting tasks', error);
+            return 0;
+          }
+        });
+    } catch (error) {
+      console.error('❌ QUEUE: Error in getQueueForMachine', error);
+      return [];
+    }
   };
 
   /**
@@ -94,6 +148,9 @@ export class QueueSchedulingLogic {
    * Task automatically schedules starting from the last task's end time
    */
   scheduleTaskAtEndOfQueue = async (machineId, taskId) => {
+    // Acquire lock to prevent concurrent modifications
+    await this.acquireLock(machineId);
+    
     try {
       console.log('📋 QUEUE: Scheduling task at end of queue', { machineId, taskId });
       
@@ -104,9 +161,23 @@ export class QueueSchedulingLogic {
         return { error: 'Task not found' };
       }
       
+      // Validate task is not already scheduled
+      if (task.status === 'SCHEDULED' && task.scheduled_machine_id) {
+        if (task.scheduled_machine_id === machineId) {
+          return { error: 'Task already scheduled on this machine' };
+        } else {
+          return { error: 'Task already scheduled on another machine. Unschedule it first.' };
+        }
+      }
+      
+      // Validate task has valid duration
+      const duration = task.time_remaining || task.duration || 0;
+      if (duration <= 0) {
+        return { error: 'Task must have a duration greater than 0' };
+      }
+      
       // Calculate start time
       const startTime = this.calculateQueueStartTime(machineId);
-      const duration = task.time_remaining || task.duration || 1;
       
       console.log('📋 QUEUE: Calculated start time:', startTime.toISOString(), 'Duration:', duration);
       
@@ -166,6 +237,9 @@ export class QueueSchedulingLogic {
     } catch (error) {
       console.error('❌ QUEUE: Error scheduling task at end of queue:', error);
       return { error: error.message || 'Failed to schedule task' };
+    } finally {
+      // Always release the lock
+      this.releaseLock(machineId);
     }
   };
 
@@ -177,9 +251,23 @@ export class QueueSchedulingLogic {
     try {
       console.log('🔄 QUEUE: Recalculating queue from position', startPosition);
       
+      // Validate inputs
+      if (!machineId) {
+        return { error: 'Machine ID is required' };
+      }
+      
+      if (typeof startPosition !== 'number' || startPosition < 0) {
+        return { error: 'Start position must be a non-negative number' };
+      }
+      
       const queue = this.getQueueForMachine(machineId);
       
+      if (!Array.isArray(queue)) {
+        return { error: 'Failed to retrieve queue' };
+      }
+      
       if (queue.length === 0 || startPosition >= queue.length) {
+        console.log('🔄 QUEUE: Nothing to recalculate');
         return { success: true, rescheduledTasks: [] };
       }
       
@@ -296,6 +384,9 @@ export class QueueSchedulingLogic {
    * Moves task from oldIndex to newIndex, then recalculates affected range
    */
   reorderTaskInQueue = async (machineId, taskId, oldIndex, newIndex) => {
+    // Acquire lock to prevent concurrent modifications
+    await this.acquireLock(machineId);
+    
     try {
       console.log('🔄 QUEUE: Reordering task', { machineId, taskId, oldIndex, newIndex });
       
@@ -312,23 +403,108 @@ export class QueueSchedulingLogic {
       
       // Determine which part of the queue needs recalculation
       const startPosition = Math.min(oldIndex, newIndex);
+      const endPosition = Math.max(oldIndex, newIndex);
       
-      console.log(`🔄 QUEUE: Will recalculate from position ${startPosition}`);
+      console.log(`🔄 QUEUE: Will recalculate from position ${startPosition} to ${endPosition}`);
       
       // Create new order by moving the task
       const reorderedQueue = [...queue];
       const [movedTask] = reorderedQueue.splice(oldIndex, 1);
       reorderedQueue.splice(newIndex, 0, movedTask);
       
-      // Recalculate affected tasks
-      // We need to update the order, so we'll recalculate from the affected position
-      const result = await this.recalculateQueueFromPosition(machineId, startPosition);
+      // Calculate start time for first affected task
+      let currentStartTime;
+      if (startPosition === 0) {
+        currentStartTime = this.calculateQueueStartTime(machineId);
+      } else {
+        const previousTask = reorderedQueue[startPosition - 1];
+        if (!previousTask.scheduled_end_time) {
+          return { error: 'Previous task has no end time' };
+        }
+        currentStartTime = new Date(previousTask.scheduled_end_time);
+        const minutes = currentStartTime.getUTCMinutes();
+        const nextSlot = Math.ceil(minutes / 15) * 15;
+        if (nextSlot === 60) {
+          currentStartTime.setUTCHours(currentStartTime.getUTCHours() + 1, 0, 0, 0);
+        } else {
+          currentStartTime.setUTCMinutes(nextSlot, 0, 0);
+        }
+      }
       
-      return result;
+      // Reschedule tasks in new order
+      const rescheduledTasks = [];
+      for (let i = startPosition; i <= endPosition; i++) {
+        const task = reorderedQueue[i];
+        const duration = task.time_remaining || task.duration || 1;
+        
+        const schedulingResult = await this.schedulingLogic.scheduleTaskWithSplitting(
+          task.id,
+          currentStartTime,
+          duration,
+          machineId,
+          []
+        );
+        
+        if (!schedulingResult || schedulingResult.conflict) {
+          return { 
+            error: `Failed to reschedule task ${task.odp_number}`,
+            rescheduledTasks 
+          };
+        }
+        
+        const updates = {
+          scheduled_start_time: schedulingResult.startTime.toISOString(),
+          scheduled_end_time: schedulingResult.endTime.toISOString(),
+        };
+        
+        if (schedulingResult.segments) {
+          const segmentInfo = {
+            segments: schedulingResult.segments,
+            totalSegments: schedulingResult.segments.length,
+            originalDuration: schedulingResult.originalDuration || duration,
+            wasSplit: schedulingResult.wasSplit || false
+          };
+          updates.description = JSON.stringify(segmentInfo);
+          this.splitTaskManager.setSplitTaskInfo(task.id, segmentInfo);
+        }
+        
+        await apiService.updateOdpOrder(task.id, updates);
+        
+        rescheduledTasks.push({
+          id: task.id,
+          odp_number: task.odp_number,
+          new_start_time: schedulingResult.startTime.toISOString(),
+          new_end_time: schedulingResult.endTime.toISOString()
+        });
+        
+        currentStartTime = new Date(schedulingResult.endTime);
+        const nextMinutes = currentStartTime.getUTCMinutes();
+        const nextSlot = Math.ceil(nextMinutes / 15) * 15;
+        if (nextSlot === 60) {
+          currentStartTime.setUTCHours(currentStartTime.getUTCHours() + 1, 0, 0, 0);
+        } else {
+          currentStartTime.setUTCMinutes(nextSlot, 0, 0);
+        }
+      }
+      
+      // Recalculate remaining tasks if any
+      if (endPosition < queue.length - 1) {
+        await this.recalculateQueueFromPosition(machineId, endPosition + 1);
+      }
+      
+      console.log('✅ QUEUE: Successfully reordered and rescheduled', rescheduledTasks.length, 'tasks');
+      
+      return { 
+        success: true, 
+        rescheduledTasks 
+      };
       
     } catch (error) {
       console.error('❌ QUEUE: Error reordering task:', error);
       return { error: error.message || 'Failed to reorder task' };
+    } finally {
+      // Always release the lock
+      this.releaseLock(machineId);
     }
   };
 
@@ -340,13 +516,30 @@ export class QueueSchedulingLogic {
     try {
       console.log('⏸ QUEUE: Creating pause task', { machineId, durationHours });
       
+      // Validate inputs
+      if (!machineId) {
+        return { error: 'Machine ID is required' };
+      }
+      
+      if (typeof durationHours !== 'number' || durationHours <= 0) {
+        return { error: 'Duration must be a positive number' };
+      }
+      
+      if (durationHours > 24) {
+        return { error: 'Maximum pause duration is 24 hours' };
+      }
+      
       const { getOdpOrders } = useOrderStore.getState();
       
       // Calculate start time
       const startTime = this.calculateQueueStartTime(machineId);
       
+      if (!startTime || isNaN(startTime.getTime())) {
+        return { error: 'Failed to calculate valid start time for pause' };
+      }
+      
       // Create a unique pause task ID
-      const pauseId = `PAUSE-${Date.now()}`;
+      const pauseId = `PAUSE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
       // Calculate end time
       const endTime = new Date(startTime.getTime() + (durationHours * 60 * 60 * 1000));
@@ -396,6 +589,9 @@ export class QueueSchedulingLogic {
    * Then recalculate all subsequent tasks
    */
   removeTaskFromQueue = async (machineId, taskId) => {
+    // Acquire lock to prevent concurrent modifications
+    await this.acquireLock(machineId);
+    
     try {
       console.log('🗑️ QUEUE: Removing task from queue', { machineId, taskId });
       
@@ -431,6 +627,9 @@ export class QueueSchedulingLogic {
     } catch (error) {
       console.error('❌ QUEUE: Error removing task from queue:', error);
       return { error: error.message || 'Failed to remove task from queue' };
+    } finally {
+      // Always release the lock
+      this.releaseLock(machineId);
     }
   };
 

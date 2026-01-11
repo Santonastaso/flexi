@@ -76,14 +76,28 @@ function QueueTaskCard({ task, index, machineId }) {
 
   const cardColor = getOdpColor(task.material_availability_global || 0);
 
-  // Handle unschedule
+  // Handle unschedule with confirmation
   const handleUnschedule = async (e) => {
     e.stopPropagation();
     e.preventDefault();
+    
+    // Ask for confirmation
+    const confirmed = window.confirm(
+      isPauseTask 
+        ? `Sei sicuro di voler rimuovere questa pausa?`
+        : `Sei sicuro di voler rimuovere "${task.odp_number}" dalla coda?\n\nI task successivi verranno ricalcolati automaticamente.`
+    );
+    
+    if (!confirmed) return;
+    
     try {
       await unscheduleTask(task.id, queryClient);
+      // Refresh the queue
+      await queryClient.invalidateQueries({ queryKey: ['orders'] });
     } catch (error) {
       console.error('Error unscheduling task:', error);
+      const { showError } = await import('../utils/toast');
+      showError('Errore durante la rimozione del lavoro dalla coda');
     }
   };
 

@@ -8,6 +8,7 @@ import { showError } from '../utils';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 
 // Lazy load heavy components
 const TaskPoolDataTable = lazy(() => import('../components/TaskPoolDataTable'));
@@ -42,7 +43,65 @@ const SchedulingLoadingOverlay = ({ schedulingLoading }) => {
   );
 };
 
+// Password Protection Component
+const PasswordPrompt = ({ onAuthenticated }) => {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (password === '1234') {
+      localStorage.setItem('spotifySchedulerAuth', 'true');
+      onAuthenticated();
+    } else {
+      setError('Password non corretta');
+      setPassword('');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-8 shadow-2xl max-w-md w-full mx-4">
+        <div className="text-center mb-6">
+          <svg className="w-16 h-16 mx-auto mb-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <h2 className="text-2xl font-bold text-gray-900">Spotify Scheduler</h2>
+          <p className="text-sm text-gray-600 mt-2">Inserisci la password per accedere</p>
+        </div>
+        
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <Input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError('');
+              }}
+              className="w-full"
+              autoFocus
+            />
+            {error && (
+              <p className="text-red-600 text-sm mt-2">{error}</p>
+            )}
+          </div>
+          
+          <Button type="submit" className="w-full">
+            Accedi
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 function SpotifySchedulerPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('spotifySchedulerAuth') === 'true';
+  });
+
   // Use React Query for data fetching
   const { data: orders = [], isLoading: ordersLoading, error: ordersError } = useOrders();
   const { data: machines = [], isLoading: machinesLoading, error: machinesError } = useMachines();
@@ -52,16 +111,20 @@ function SpotifySchedulerPage() {
   const { init, cleanup } = useMainStore();
   const queryClient = useQueryClient();
 
-  // Configure drag and drop sensors
+  // Configure drag and drop sensors with activation constraint to prevent accidental drags
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 0,
+        distance: 5, // 5px threshold to prevent accidental drags
+        delay: 0,
+        tolerance: 0,
       },
     }),
     useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 0,
+        distance: 5, // 5px threshold
+        delay: 0,
+        tolerance: 0,
       },
     })
   );
@@ -231,6 +294,8 @@ function SpotifySchedulerPage() {
     const draggedData = active.data.current;
     const droppedData = over.data.current;
 
+    const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
+
     // Case 1: Dragging from task pool to a queue column
     if (draggedData?.type === 'task' && droppedData?.type === 'queue-column') {
       const taskId = draggedData.task.id;
@@ -238,16 +303,22 @@ function SpotifySchedulerPage() {
       
       console.log('📋 SPOTIFY: Dropping task into queue', { taskId, machineId });
       
-      const result = await scheduleTaskAtEndOfQueue(machineId, taskId);
-      
-      if (result.error) {
-        showError(result.error);
-      } else if (result.conflict) {
-        // Handle conflict if needed
-        showError('Conflitto rilevato durante la programmazione');
-      } else {
-        // Success - React Query will auto-refresh
-        queryClient.invalidateQueries({ queryKey: ['orders'] });
+      try {
+        startSchedulingOperation('schedule', taskId);
+        const result = await scheduleTaskAtEndOfQueue(machineId, taskId);
+        
+        if (result.error) {
+          showError(result.error);
+        } else if (result.conflict) {
+          showError('Conflitto rilevato durante la programmazione');
+        } else {
+          await queryClient.invalidateQueries({ queryKey: ['orders'] });
+        }
+      } catch (error) {
+        console.error('Error scheduling task:', error);
+        showError('Errore durante la programmazione del lavoro');
+      } finally {
+        stopSchedulingOperation();
       }
     }
     
@@ -259,7 +330,7 @@ function SpotifySchedulerPage() {
       
       // Only allow reordering within the same machine
       if (draggedMachineId !== droppedMachineId) {
-        console.log('Cannot move task between machines in queue view');
+        showError('Non è possibile spostare task tra macchine diverse');
         return;
       }
       
@@ -269,16 +340,29 @@ function SpotifySchedulerPage() {
       if (oldIndex !== newIndex) {
         console.log('🔄 SPOTIFY: Reordering task', { draggedTaskId, oldIndex, newIndex });
         
-        const result = await reorderTaskInQueue(draggedMachineId, draggedTaskId, oldIndex, newIndex);
-        
-        if (result.error) {
-          showError(result.error);
-        } else {
-          queryClient.invalidateQueries({ queryKey: ['orders'] });
+        try {
+          startSchedulingOperation('reschedule', draggedTaskId);
+          const result = await reorderTaskInQueue(draggedMachineId, draggedTaskId, oldIndex, newIndex);
+          
+          if (result.error) {
+            showError(result.error);
+          } else {
+            await queryClient.invalidateQueries({ queryKey: ['orders'] });
+          }
+        } catch (error) {
+          console.error('Error reordering task:', error);
+          showError('Errore durante il riordino del lavoro');
+        } finally {
+          stopSchedulingOperation();
         }
       }
     }
   }, [scheduleTaskAtEndOfQueue, reorderTaskInQueue, queryClient]);
+
+  // Show password prompt if not authenticated
+  if (!isAuthenticated) {
+    return <PasswordPrompt onAuthenticated={() => setIsAuthenticated(true)} />;
+  }
 
   // Show loading state during initial load
   if (isDataLoading) {
