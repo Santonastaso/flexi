@@ -20,7 +20,10 @@ export const usePhaseSearch = (department, workCenter, initialPhaseId = null) =>
         (!department || p.department === department) &&
         (!workCenter || p.work_center === workCenter)
       );
-      return relevantPhases.filter(p => p.name.toLowerCase().includes(phaseSearch.toLowerCase()));
+      return relevantPhases.filter(p => 
+        p.name.toLowerCase().includes(phaseSearch.toLowerCase()) ||
+        (p.contenuto_fase && p.contenuto_fase.toLowerCase().includes(phaseSearch.toLowerCase()))
+      );
     }
     return [];
   }, [phaseSearch, department, workCenter, phases]);

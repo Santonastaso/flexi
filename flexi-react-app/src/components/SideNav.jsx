@@ -34,7 +34,8 @@ function SideNav() {
         { href: '/backlog/add', label: 'Aggiungi' }
       ]
     },
-    { href: '/scheduler', label: 'Scheduler' }
+    { href: '/scheduler', label: 'Scheduler' },
+    { href: '/machine-overview', label: 'Panoramica Macchina' }
   ];
 
   if (!user) {

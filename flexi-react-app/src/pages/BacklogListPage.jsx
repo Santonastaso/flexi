@@ -53,24 +53,48 @@ function BacklogListPage() {
   const isLoading = ordersLoading || machinesLoading || phasesLoading;
 
   const columns = useMemo(() => [
-    // Identificazione
-    { header: 'Numero ODP', accessorKey: 'odp_number' },
+    // Primary columns - most important first
+    { 
+      header: 'Numero ODP', 
+      accessorKey: 'odp_number',
+      cell: info => {
+        const status = info.row.original.status;
+        const value = info.getValue();
+        const isScheduled = status === 'SCHEDULED';
+        return (
+          <span className={isScheduled ? 'text-green-600 font-medium' : ''}>
+            {value}
+          </span>
+        );
+      }
+    },
     { header: 'Codice Articolo', accessorKey: 'article_code' },
-    { header: 'Lotto Produzione', accessorKey: 'production_lot' },
-    { header: 'Centro di Lavoro', accessorKey: 'work_center' },
-    { header: 'Reparto', accessorKey: 'department' },
+    { 
+      header: 'Note ASD', 
+      accessorKey: 'asd_notes',
+      cell: info => {
+        const value = info.getValue();
+        if (!value) return 'N/A';
+        return (
+          <div className="max-w-[200px] truncate text-[10px]" title={value}>
+            {value}
+          </div>
+        );
+      }
+    },
     { header: 'Nome Cliente', accessorKey: 'nome_cliente' },
-    
-    // Specifiche Busta
+    { header: 'Quantità', accessorKey: 'quantity' },
+    { header: 'Quantità Completata', accessorKey: 'quantity_completed' },
     { header: 'Altezza Busta (mm)', accessorKey: 'bag_height' },
     { header: 'Larghezza Busta (mm)', accessorKey: 'bag_width' },
     { header: 'Passo Busta (mm)', accessorKey: 'bag_step' },
-    { header: 'Lati Sigillati', accessorKey: 'seal_sides' },
-    { header: 'Tipo Prodotto', accessorKey: 'product_type' },
     
-    // Quantità
-    { header: 'Quantità', accessorKey: 'quantity' },
-    { header: 'Quantità Completata', accessorKey: 'quantity_completed' },
+    // Secondary columns
+    { header: 'Lotto Produzione', accessorKey: 'production_lot' },
+    { header: 'Centro di Lavoro', accessorKey: 'work_center' },
+    { header: 'Reparto', accessorKey: 'department' },
+    { header: 'Lati Sigillati', accessorKey: 'seal_sides' },
+    { header: 'Linea di Produzione', accessorKey: 'product_type' },
     
     // Date e Tempi
     { 
@@ -165,7 +189,27 @@ function BacklogListPage() {
         );
       }
     },
+    { 
+      header: 'Material Global (%)', 
+      accessorKey: 'material_availability_global',
+      cell: info => {
+        const value = info.getValue();
+        if (typeof value !== 'number') return value || 'N/A';
+        const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
+        return (
+          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[10px] font-medium`}>
+            {value}
+          </div>
+        );
+      }
+    },
   ], []);
+
+  // Extract all filterable column keys
+  const filterableColumns = useMemo(() => 
+    columns.map(col => col.accessorKey),
+    [columns]
+  );
 
   const handleEditOrder = (order) => {
     navigate(`/backlog/${order.id}/edit`);
@@ -209,7 +253,7 @@ function BacklogListPage() {
           onDeleteRow={handleDeleteOrder}
           stickyColumns={['odp_number', 'article_code']}
           enableFiltering={true}
-          filterableColumns={['odp_number', 'article_code', 'nome_cliente', 'work_center', 'status', 'machine_name']}
+          filterableColumns={filterableColumns}
         />
       </div>
     </div>

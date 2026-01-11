@@ -772,6 +772,13 @@
     letter-spacing: 0.5px;
     text-align: center;
     border-bottom: 2px solid var(--border-color);
+    height: 32px;
+    min-height: 32px;
+    max-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 .machine-label-header.sticky-header {
@@ -796,7 +803,10 @@
     flex-direction: column;
     justify-content: center;
     background: var(--content-bg);
+    height: 60px;
     min-height: 60px;
+    max-height: 60px;
+    overflow: hidden;
 }
 
 .machine-label-only:nth-child(even) {
@@ -822,6 +832,10 @@
     background: var(--gray-light);
     border-bottom: 2px solid var(--border-color);
     flex-shrink: 0;
+    height: 32px;
+    min-height: 32px;
+    max-height: 32px;
+    align-items: center;
 }
 
 .time-header-row.sticky-header {
@@ -872,6 +886,15 @@
     left: 0;
     z-index: 20;
     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+    height: 32px;
+    min-height: 32px;
+    max-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    text-align: center;
+    border-bottom: 2px solid var(--border-color);
 }
 
 .machine-label {
@@ -927,6 +950,13 @@
     flex-shrink: 0;
     padding: 1px 1px;
     background: var(--gray-light);
+    height: 32px;
+    min-height: 32px;
+    max-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 .time-slot-header.hour-header {
@@ -938,6 +968,13 @@
     background: rgba(0,0,0,0.02);
     border-right: 2px solid rgba(0, 0, 0, 0.3);
     border-left: 1px solid rgba(0, 0, 0, 0.1);
+    height: 32px;
+    min-height: 32px;
+    max-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 /* Base time slot styles */
@@ -956,12 +993,14 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
+    height: 60px;
     min-height: 60px;
+    max-height: 60px;
 }
 
-.time-slot:nth-child(4n+1) {
-    border-right: 2px solid rgba(0, 0, 0, 0.3);
-    background: rgba(0,0,0,0.02);
+.time-slot:nth-child(4n) {
+  border-right: 2px solid rgba(0, 0, 0, 0.3);
+  background: rgba(0,0,0,0.02);
 }
 
 .time-slot:hover {
@@ -1011,11 +1050,12 @@
 
 .time-slot-content {
     width: 100%;
-    height: 100%;
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 60px;
+    max-height: 60px;
     box-sizing: border-box;
     font-size: 10px;
     font-weight: 400;
@@ -1027,7 +1067,9 @@
 .machine-row {
     display: flex;
     border-bottom: 2px solid #d1d5db;
+    height: 60px;
     min-height: 60px;
+    max-height: 60px;
     width: 100%;
     min-width: 960px;
     background: var(--content-bg);
@@ -1092,6 +1134,25 @@
     transform: translateY(-1px);
 }
 
+/* Progress bar overlay */
+.progress-bar-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: #374151; /* dark grey */
+    background-image: repeating-linear-gradient(
+        45deg,
+        #374151,
+        #374151 10px,
+        #4b5563 10px,
+        #4b5563 20px
+    );
+    border-radius: var(--border-radius);
+    z-index: 1;
+    pointer-events: none;
+}
+
 .scheduled-event.dragging {
     opacity: 0.9;
     cursor: grabbing;
@@ -1149,6 +1210,8 @@
     font-weight: 400;
     text-align: center;
     width: 100%;
+    position: relative;
+    z-index: 10;
 }
 
 /* ===== TASK ITEMS (CONSOLIDATED) ===== */
@@ -1341,6 +1404,7 @@
     gap: 2px;
     cursor: pointer;
     transition: all 0.2s ease;
+    position: relative;
 }
 
 .day-task-item:hover {
@@ -1359,6 +1423,39 @@
     border-radius: 2px;
     font-size: 11px;
     text-align: center;
+}
+
+.day-task-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.day-task-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    margin-top: 2px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.day-task-item:hover .day-task-controls {
+    opacity: 1;
+}
+
+.day-task-controls .event-btn {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+    max-width: 16px;
+    max-height: 16px;
+    font-size: 10px;
+    padding: 0;
+    border-radius: 2px;
 }
 
 .more-tasks-indicator {
@@ -1550,6 +1647,7 @@
     align-items: center;
     gap: 1px;
     margin-bottom: 1px;
+    position: relative;
 }
 
 /* ===== LOADING & EMPTY STATES ===== */

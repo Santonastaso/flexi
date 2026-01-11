@@ -132,7 +132,7 @@ function SchedulerPage() {
   
   // Use Zustand store for selectors and client state
   const { getOdpOrdersByWorkCenter, getScheduledOrders } = useOrderStore();
-  const { selectedWorkCenter, isLoading, isInitialized, showAlert, isEditMode, toggleEditMode, showConflictDialog, schedulingLoading, setDragPreview, clearDragPreview, dragPreview } = useUIStore();
+  const { selectedWorkCenter, isLoading, isInitialized, showAlert, showConflictDialog, schedulingLoading, setDragPreview, clearDragPreview, dragPreview } = useUIStore();
   const { scheduleTask, unscheduleTask, scheduleTaskFromSlot, rescheduleTaskToSlot, validateSlotAvailability } = useSchedulerStore();
   const { init, cleanup } = useMainStore();
   const queryClient = useQueryClient();
@@ -162,11 +162,11 @@ function SchedulerPage() {
   // Combined loading state
   const isDataLoading = ordersLoading || machinesLoading || isLoading;
   const [dropTargetId, setDropTargetId] = useState(null);
-  const [taskLookup, setTaskLookup] = useState('');
-  const [articleCodeLookup, setArticleCodeLookup] = useState('');
-  const [customerNameLookup, setCustomerNameLookup] = useState('');
+  const [taskLookup, setTaskLookup] = useState(() => localStorage.getItem('schedulerTaskLookup') || '');
+  const [articleCodeLookup, setArticleCodeLookup] = useState(() => localStorage.getItem('schedulerArticleLookup') || '');
+  const [customerNameLookup, setCustomerNameLookup] = useState(() => localStorage.getItem('schedulerCustomerLookup') || '');
 
-  // Filter state management with useReducer
+  // Filter state management with useReducer and localStorage persistence
   const initialFilterState = { 
     workCenter: [], 
     department: [], 
@@ -175,18 +175,48 @@ function SchedulerPage() {
   };
 
   function filterReducer(state, action) {
+    let newState;
     switch (action.type) {
       case 'SET_FILTER':
         // payload: { filterName: 'workCenter', value: [...] }
-        return { ...state, [action.payload.filterName]: action.payload.value };
+        newState = { ...state, [action.payload.filterName]: action.payload.value };
+        break;
       case 'CLEAR_FILTERS':
-        return initialFilterState;
+        newState = initialFilterState;
+        break;
+      case 'LOAD_FILTERS':
+        newState = action.payload;
+        break;
       default:
         return state;
     }
+    // Save to localStorage whenever filters change
+    localStorage.setItem('schedulerFilters', JSON.stringify(newState));
+    return newState;
   }
 
-  const [filters, dispatch] = useReducer(filterReducer, initialFilterState);
+  // Initialize filters from localStorage
+  const getInitialFilters = () => {
+    try {
+      const saved = localStorage.getItem('schedulerFilters');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Ensure all required filter properties exist and are arrays
+        return {
+          workCenter: Array.isArray(parsed.workCenter) ? parsed.workCenter : [],
+          department: Array.isArray(parsed.department) ? parsed.department : [],
+          machineType: Array.isArray(parsed.machineType) ? parsed.machineType : [],
+          machineName: Array.isArray(parsed.machineName) ? parsed.machineName : []
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to parse saved filters, using defaults:', error);
+      localStorage.removeItem('schedulerFilters');
+    }
+    return initialFilterState;
+  };
+
+  const [filters, dispatch] = useReducer(filterReducer, getInitialFilters());
 
   // Initialize store on mount
   useEffect(() => {
@@ -265,22 +295,22 @@ function SchedulerPage() {
     let filtered = activeMachines;
 
     // Filter by work center (if selected)
-    if (filters.workCenter.length > 0) {
+    if (filters.workCenter && Array.isArray(filters.workCenter) && filters.workCenter.length > 0) {
       filtered = filtered.filter(machine => filters.workCenter.includes(machine.work_center));
     }
     
     // Filter by department (if selected)
-    if (filters.department.length > 0) {
+    if (filters.department && Array.isArray(filters.department) && filters.department.length > 0) {
       filtered = filtered.filter(machine => filters.department.includes(machine.department));
     }
 
     // Filter by machine type (if selected)
-    if (filters.machineType.length > 0) {
+    if (filters.machineType && Array.isArray(filters.machineType) && filters.machineType.length > 0) {
       filtered = filtered.filter(machine => filters.machineType.includes(machine.machine_type));
     }
 
     // Filter by machine name (if selected)
-    if (filters.machineName.length > 0) {
+    if (filters.machineName && Array.isArray(filters.machineName) && filters.machineName.length > 0) {
       filtered = filtered.filter(machine => filters.machineName.includes(machine.machine_name));
     }
 
@@ -290,7 +320,6 @@ function SchedulerPage() {
   // Memoize navigation functions to prevent unnecessary re-renders
   const navigateDate = useCallback(async (direction, view = 'Daily') => {
     const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
-    const { loadMachineAvailabilityForDate } = useSchedulerStore.getState();
     
     try {
       startSchedulingOperation('navigate');
@@ -335,14 +364,8 @@ function SchedulerPage() {
         return prevDate;
       });
       
-      // Load unavailable slots for the new date during the loading period
-      if (newDate) {
-        const newDateStr = format(newDate, 'yyyy-MM-dd');
-        await loadMachineAvailabilityForDate(newDateStr);
-      }
-      
-      // Add remaining delay for safety (if loading was fast)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // React Query will automatically fetch machine availability data when the date changes
+      // No need for manual loading or artificial delays
       
     } finally {
       stopSchedulingOperation();
@@ -370,6 +393,12 @@ function SchedulerPage() {
 
   const clearFilters = useCallback(() => {
     dispatch({ type: 'CLEAR_FILTERS' });
+    setTaskLookup('');
+    setArticleCodeLookup('');
+    setCustomerNameLookup('');
+    localStorage.removeItem('schedulerTaskLookup');
+    localStorage.removeItem('schedulerArticleLookup');
+    localStorage.removeItem('schedulerCustomerLookup');
   }, []);
 
   // Generic lookup function that consolidates the three original lookup functions
@@ -659,21 +688,13 @@ function SchedulerPage() {
     <>
       <SchedulingLoadingOverlay schedulingLoading={schedulingLoading} />
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-        <div className={`content-section ${isEditMode ? 'edit-mode' : ''}`}>
+        <div className="content-section">
 
         
         {/* Task Pool Section */}
         <div className="task-pool-section">
           <div className="task-pool-header">
             <h2 className="text-[10px] font-semibold text-gray-900">Pool Lavori</h2>
-            <Button
-              variant={isEditMode ? 'destructive' : 'default'}
-              size="sm"
-              onClick={toggleEditMode}
-              title={isEditMode ? "Disabilita modalità modifica" : "Abilita modalità modifica"}
-            >
-              {isEditMode ? 'Disabilita Modalità Modifica' : 'Abilita Modalità Modifica'}
-            </Button>
           </div>
           <Suspense fallback={<LoadingFallback />}>
             <TaskPoolDataTable />
@@ -706,9 +727,11 @@ function SchedulerPage() {
               onSelectionChange={(value) => {
                 if (value.length > 0) {
                   setTaskLookup(value[0]);
+                  localStorage.setItem('schedulerTaskLookup', value[0]);
                   handleLookup(value[0], 'odp_number', 'ODP');
                 } else {
                   setTaskLookup('');
+                  localStorage.removeItem('schedulerTaskLookup');
                 }
               }}
               searchPlaceholder="Cerca ODP..."
@@ -723,9 +746,11 @@ function SchedulerPage() {
               onSelectionChange={(value) => {
                 if (value.length > 0) {
                   setArticleCodeLookup(value[0]);
+                  localStorage.setItem('schedulerArticleLookup', value[0]);
                   handleLookup(value[0], 'article_code', 'codice articolo');
                 } else {
                   setArticleCodeLookup('');
+                  localStorage.removeItem('schedulerArticleLookup');
                 }
               }}
               searchPlaceholder="Cerca Articolo..."
@@ -740,9 +765,11 @@ function SchedulerPage() {
               onSelectionChange={(value) => {
                 if (value.length > 0) {
                   setCustomerNameLookup(value[0]);
+                  localStorage.setItem('schedulerCustomerLookup', value[0]);
                   handleLookup(value[0], 'nome_cliente', 'cliente');
                 } else {
                   setCustomerNameLookup('');
+                  localStorage.removeItem('schedulerCustomerLookup');
                 }
               }}
               searchPlaceholder="Cerca Cliente..."

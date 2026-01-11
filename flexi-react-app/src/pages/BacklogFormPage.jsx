@@ -70,7 +70,10 @@ function BacklogFormPage() {
         </div>
       )}
       
-      <BacklogForm onSuccess={undefined} orderToEdit={order} />
+      <BacklogForm 
+        onSuccess={isEditMode ? () => navigate('/scheduler') : undefined} 
+        orderToEdit={order} 
+      />
     </div>
   );
 }

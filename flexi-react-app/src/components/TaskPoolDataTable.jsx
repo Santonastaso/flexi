@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 import DataTable from './DataTable';
 
 // Gantt Actions Cell Component
-const GanttActionsCell = ({ task, isEditMode, schedulingLoading, conflictDialog }) => {
+const GanttActionsCell = ({ task, schedulingLoading, conflictDialog }) => {
   const navigate = useNavigate();
   const { updateOdpOrder: _updateOdpOrder } = useOrderStore();
   const { handleAsync: _handleAsync } = useErrorHandler('TaskPoolDataTable');
@@ -23,7 +23,7 @@ const GanttActionsCell = ({ task, isEditMode, schedulingLoading, conflictDialog 
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: `task-${task.id}`,
     data: { task, type: 'task' },
-    disabled: !isEditMode, // Only allow dragging when edit mode is enabled
+    disabled: false, // Always enabled
   });
 
 
@@ -53,14 +53,15 @@ Nome Cliente: ${task.nome_cliente || 'Non specificato'}
 Data Consegna: ${task.delivery_date ? format(new Date(task.delivery_date), 'yyyy-MM-dd') : 'Non impostata'}
 Quantità: ${task.quantity || 'Non specificata'}
 Note Libere: ${task.user_notes || 'Nessuna nota'}
+Note ASD: ${task.asd_notes || 'Nessuna nota'}
+Material Global: ${task.material_availability_global || 'N/A'}%
 ${task.scheduled_start_time ? `Inizio Programmato: ${task.scheduled_start_time.replace('+00:00', '')}` : 'Non programmato'}
 ${task.scheduled_end_time ? `Fine Programmata: ${task.scheduled_end_time.replace('+00:00', '')}` : 'Non programmato'}`}
       >
         i
       </button>
 
-      {/* Drag Handle - only visible when edit mode is enabled */}
-      {isEditMode && (
+      {/* Drag Handle - always visible */}
         <div 
           ref={setNodeRef}
           className="drag-handle" 
@@ -98,7 +99,6 @@ ${task.scheduled_end_time ? `Fine Programmata: ${task.scheduled_end_time.replace
             <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
           </svg>
         </div>
-      )}
 
       {/* Loading indicator */}
       {isTaskBeingProcessed && (
@@ -113,7 +113,7 @@ ${task.scheduled_end_time ? `Fine Programmata: ${task.scheduled_end_time.replace
 // Main Task Pool Data Table Component
 function TaskPoolDataTable() {
   const navigate = useNavigate();
-  const { selectedWorkCenter, isEditMode, conflictDialog, schedulingLoading, showConfirmDialog } = useUIStore();
+  const { selectedWorkCenter, conflictDialog, schedulingLoading, showConfirmDialog } = useUIStore();
   const { odpOrders: storeTasks, setOdpOrders } = useOrderStore();
   const { setNodeRef } = useDroppable({
     id: 'task-pool',
@@ -178,6 +178,14 @@ function TaskPoolDataTable() {
       accessorKey: 'nome_cliente',
     },
     {
+      header: 'Quantità',
+      accessorKey: 'quantity',
+    },
+    {
+      header: 'Quantità Completata',
+      accessorKey: 'quantity_completed',
+    },
+    {
       header: 'Durata (h)',
       accessorKey: 'duration',
       cell: ({ row }) => {
@@ -222,18 +230,44 @@ function TaskPoolDataTable() {
       },
     },
     {
+      header: 'Material Global (%)',
+      accessorKey: 'material_availability_global',
+      cell: ({ row }) => {
+        const value = row.original.material_availability_global;
+        if (typeof value !== 'number') return value || 'N/A';
+        const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
+        return (
+          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[10px] font-medium`}>
+            {value}
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Note ASD',
+      accessorKey: 'asd_notes',
+      cell: ({ row }) => {
+        const value = row.original.asd_notes;
+        if (!value) return 'N/A';
+        return (
+          <div className="max-w-[200px] truncate text-[10px]" title={value}>
+            {value}
+          </div>
+        );
+      },
+    },
+    {
       header: 'Gantt',
       id: 'gantt_actions',
       cell: ({ row }) => (
         <GanttActionsCell 
           task={row.original}
-          isEditMode={isEditMode}
           schedulingLoading={schedulingLoading}
           conflictDialog={conflictDialog}
         />
       ),
     },
-  ], [isEditMode, schedulingLoading, conflictDialog]);
+  ], [schedulingLoading, conflictDialog]);
 
   const handleEditRow = (task) => {
     // Ensure the task data is available before navigation
