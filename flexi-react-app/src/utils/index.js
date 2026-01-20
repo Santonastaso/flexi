@@ -30,5 +30,12 @@ export {
   formatScheduledTime,
   formatDeliveryDate
 } from './dateFormatting';
+export {
+  getTaskSegments,
+  isTaskSplit,
+  getSegmentCount,
+  createSegmentInfo,
+  isPauseTask
+} from './taskSegments';
 
 // Legacy validation utilities removed - all validation now handled by Yup schemas

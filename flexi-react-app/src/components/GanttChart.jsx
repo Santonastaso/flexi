@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
-import { useOrderStore, useSchedulerStore, useUIStore } from '../store';
+import { useOrderStore, useUIStore } from '../store';
 import { format, startOfDay, endOfDay, startOfWeek, isSameDay, addDays } from 'date-fns';
 import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
+import { getTaskSegments } from '../utils/taskSegments';
 import { AppConfig } from '../services/config';
-import NextDayDropZone from './NextDayDropZone';
-import PreviousDayDropZone from './PreviousDayDropZone';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMachineAvailabilityForDateAllMachines } from '../hooks/useQueries';
 import { Button } from './ui/button';
@@ -81,7 +80,6 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
 // A scheduled event that can be dragged to be rescheduled or unscheduled
 const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, readOnly = false }) => {
     const navigate = useNavigate();
-    const { getSplitTaskInfo, splitTasksInfo } = useSchedulerStore();
     const { schedulingLoading } = useUIStore();
     
     // Note: updateOdpOrder and handleAsync are available if needed for future features
@@ -94,7 +92,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
 
     // Calculate segments for ALL tasks using description column only
     const eventSegments = useMemo(() => {
-        const segmentInfo = getSplitTaskInfo(event.id);
+        const segmentInfo = getTaskSegments(event);
         const currentDayStart = startOfDay(currentDate);
         const currentDayEnd = endOfDay(currentDate);
         
@@ -895,13 +893,6 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
                   )}
                 </div>
               </div>
-              {!readOnly && (
-              <NextDayDropZone 
-                currentDate={currentDate}
-                onNavigateToNextDay={() => onNavigateToNextDay && onNavigateToNextDay(currentView)}
-                isDragOver={dropTargetId === 'next-day-drop-zone'}
-              />
-              )}
             </div>
           ) : (
             <WeeklyGanttView 
