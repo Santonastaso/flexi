@@ -1,43 +1,12 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useOrderStore, useSchedulerStore } from '../store';
+import { useOrderStore } from '../store';
 import { format } from 'date-fns';
-import { Button } from './ui/button';
 import QueueTaskCard from './QueueTaskCard';
-import PauseDialog from './PauseDialog';
 
 function MachineQueueColumn({ machine, queryClient }) {
   const { odpOrders } = useOrderStore();
-  const { createPauseTask } = useSchedulerStore();
-  const [showPauseDialog, setShowPauseDialog] = useState(false);
-
-  // Handle creating a pause
-  const handleCreatePause = async (machineId, durationHours) => {
-    try {
-      const result = await createPauseTask(machineId, durationHours, true);
-      
-      if (result.error) {
-        console.error('Error creating pause:', result.error);
-        // Show error to user
-        const { showError } = await import('../utils/toast');
-        showError(result.error);
-        throw new Error(result.error);
-      }
-      
-      // Refresh the orders list
-      if (queryClient) {
-        await queryClient.invalidateQueries({ queryKey: ['orders'] });
-      }
-      
-      // Show success message
-      const { showSuccess } = await import('../utils/toast');
-      showSuccess('Pausa creata con successo');
-    } catch (error) {
-      console.error('Error creating pause:', error);
-      throw error;
-    }
-  };
 
   // Set up droppable zone for this machine column
   const { setNodeRef, isOver } = useDroppable({
@@ -134,27 +103,6 @@ function MachineQueueColumn({ machine, queryClient }) {
           </SortableContext>
         )}
       </div>
-
-      {/* Add Pause Button */}
-      <div className="queue-column-footer">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => setShowPauseDialog(true)}
-          className="w-full"
-        >
-          + Aggiungi Pausa
-        </Button>
-      </div>
-
-      {/* Pause Dialog */}
-      <PauseDialog
-        isOpen={showPauseDialog}
-        onClose={() => setShowPauseDialog(false)}
-        onCreatePause={handleCreatePause}
-        machineId={machine.id}
-        machineName={machine.machine_name}
-      />
     </div>
   );
 }

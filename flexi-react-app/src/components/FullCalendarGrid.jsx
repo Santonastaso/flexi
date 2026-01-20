@@ -244,12 +244,13 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
     locale: 'it',
     timeZone: 'UTC', // Force UTC timezone
     firstDay: AppConfig.APP.FIRST_DAY_OF_WEEK, // Monday as first day of week
+    hiddenDays: [0], // Hide Sunday (0 = Sunday)
     slotMinTime: '06:00:00',
     slotMaxTime: '22:00:00',
     slotDuration: '01:00:00',
     slotLabelInterval: '01:00:00',
     allDaySlot: false,
-    weekends: true,
+    weekends: false, // Don't show weekends (Sunday already hidden above)
     editable: false,
     selectable: true,
     selectMirror: true,

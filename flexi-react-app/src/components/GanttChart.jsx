@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { useOrderStore, useSchedulerStore, useUIStore } from '../store';
 import { format, startOfDay, endOfDay, startOfWeek, isSameDay, addDays } from 'date-fns';
+import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
 import { AppConfig } from '../services/config';
 import NextDayDropZone from './NextDayDropZone';
 import PreviousDayDropZone from './PreviousDayDropZone';
@@ -338,107 +339,110 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
                         />
                     )}
                     
-                    {/* Only render controls on first segment */}
-                    {index === 0 && !readOnly && (
-                        <div 
-                            className={`event-controls ${shouldOverlayButtons ? 'overlay' : ''}`}
-                >
-                {/* Info Button - Always functional */}
-                <button 
-                    className="event-btn info-btn" 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }}
-                    onMouseDown={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }}
-                    onPointerDown={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }}
-                    title={`Codice Articolo: ${event.article_code || 'Non specificato'}
+                    {/* Info Button - Always visible on ALL segments */}
+                    <div 
+                        className={`event-controls ${shouldOverlayButtons ? 'overlay' : ''}`}
+                        style={{ position: 'relative', zIndex: 20 }}
+                    >
+                        <button 
+                            className="event-btn info-btn" 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                }}
+                                onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                }}
+                                onPointerDown={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                }}
+                                title={`Codice Articolo: ${event.article_code || 'Non specificato'}
 Codice Articolo Esterno: ${event.external_article_code || 'Non specificato'}
 Nome Cliente: ${event.nome_cliente || 'Non specificato'}
-        Data Consegna: ${event.delivery_date ? format(new Date(event.delivery_date), 'yyyy-MM-dd') : 'Non impostata'}
+Data Consegna: ${event.delivery_date ? formatDeliveryDate(event.delivery_date) : 'Non impostata'}
 Quantità: ${event.quantity || 'Non specificata'}
 Altezza Busta: ${event.bag_height || 'Non specificata'} mm
 Passo Busta: ${event.bag_step || 'Non specificato'} mm
 Note Libere: ${event.user_notes || 'Nessuna nota'}
 Note ASD: ${event.asd_notes || 'Nessuna nota'}
 Material Global: ${event.material_availability_global || 'N/A'}%
-        ${event.scheduled_start_time ? `Inizio Programmato: ${event.scheduled_start_time.replace('+00:00', '')}` : 'Non programmato'}
-        ${event.scheduled_end_time ? `Fine Programmata: ${event.scheduled_end_time.replace('+00:00', '')}` : 'Non programmato'}`}
-                >
-                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>i</span>
-                </button>
+${event.scheduled_start_time ? `Inizio Programmato: ${formatScheduledTime(event.scheduled_start_time)}` : 'Non programmato'}
+${event.scheduled_end_time ? `Fine Programmata: ${formatScheduledTime(event.scheduled_end_time)}` : 'Non programmato'}`}
+                            >
+                                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>i</span>
+                            </button>
 
-                {/* Edit Button - Always functional */}
-                <button 
-                    className="event-btn edit-btn"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        navigate(`/backlog/${event.id}/edit`);
-                    }}
-                    onMouseDown={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }}
-                    onPointerDown={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }}
-                    title="Modifica e ricalcola"
-                >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                    </svg>
-                </button>
-                
-                {/* Drag Handle - always active */}
-                <div 
-                    className="drag-handle" 
-                    {...listeners} 
-                    {...attributes}
-                    style={{
-                        transform: isDragging ? `translate3d(${transform?.x || 0}px, ${transform?.y || 0}px, 0)` : 'none',
-                        zIndex: isDragging ? 1001 : 20,
-                    }}
-                    title="Trascina per riprogrammare"
-                >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-                    </svg>
-                </div>
-                
-                {/* Unschedule Button - always active */}
-                <button 
-                    className="event-btn unschedule-btn"
-                    onClick={async (e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        try {
-                            await useSchedulerStore.getState().unscheduleTask(event.id, queryClient);
-                        } catch (error) {
-                            console.error('Error unscheduling task:', error);
-                        }
-                    }}
-                    onMouseDown={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }}
-                    onPointerDown={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }}
-                    title="Annulla programmazione e riporta al pool"
-                >
-                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'white' }}>×</span>
-                </button>
-                        </div>
-                    )}
+                        {/* Edit, Drag, and Unschedule buttons - Only on first segment and only in edit mode */}
+                        {index === 0 && !readOnly && (
+                                <>
+                                    {/* Edit Button */}
+                                    <button 
+                                        className="event-btn edit-btn"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            navigate(`/backlog/${event.id}/edit`);
+                                        }}
+                                        onMouseDown={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                        }}
+                                        onPointerDown={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                        }}
+                                        title="Modifica e ricalcola"
+                                    >
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                                        </svg>
+                                    </button>
+                                    
+                                    {/* Drag Handle */}
+                                    <div 
+                                        className="drag-handle" 
+                                        {...listeners} 
+                                        {...attributes}
+                                        style={{
+                                            transform: isDragging ? `translate3d(${transform?.x || 0}px, ${transform?.y || 0}px, 0)` : 'none',
+                                            zIndex: isDragging ? 1001 : 20,
+                                        }}
+                                        title="Trascina per riprogrammare"
+                                    >
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                                        </svg>
+                                    </div>
+                                    
+                                    {/* Unschedule Button */}
+                                    <button 
+                                        className="event-btn unschedule-btn"
+                                        onClick={async (e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            try {
+                                                await useSchedulerStore.getState().unscheduleTask(event.id, queryClient);
+                                            } catch (error) {
+                                                console.error('Error unscheduling task:', error);
+                                            }
+                                        }}
+                                        onMouseDown={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                        }}
+                                        onPointerDown={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                        }}
+                                        title="Annulla programmazione e riporta al pool"
+                                    >
+                                        <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'white' }}>×</span>
+                                    </button>
+                                </>
+                            )}
+                    </div>
                 </div>
             ))}
         </>
@@ -642,7 +646,7 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
                               title={`Codice Articolo: ${task.article_code || 'Non specificato'}
 Codice Articolo Esterno: ${task.external_article_code || 'Non specificato'}
 Nome Cliente: ${task.nome_cliente || 'Non specificato'}
-Data Consegna: ${task.delivery_date ? format(new Date(task.delivery_date), 'yyyy-MM-dd') : 'Non impostata'}
+Data Consegna: ${task.delivery_date ? formatDeliveryDate(task.delivery_date) : 'Non impostata'}
 Quantità: ${task.quantity || 'Non specificata'}
 Altezza Busta: ${task.bag_height || 'Non specificata'} mm
 Passo Busta: ${task.bag_step || 'Non specificato'} mm
@@ -650,7 +654,7 @@ Note Libere: ${task.user_notes || 'Nessuna nota'}
 Note ASD: ${task.asd_notes || 'Nessuna nota'}
 Material Global: ${task.material_availability_global || 'N/A'}%
 
-${task.scheduled_end_time ? `Fine Programmata: ${task.scheduled_end_time.replace('+00:00', '')}` : 'Non programmato'}`}
+${task.scheduled_end_time ? `Fine Programmata: ${formatScheduledTime(task.scheduled_end_time)}` : 'Non programmato'}`}
                             >
                               <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#374151' }}>i</span>
                             </button>
@@ -850,11 +854,11 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
                 </div>
               </div>
               {!readOnly && (
-                <PreviousDayDropZone 
-                  currentDate={currentDate}
-                  onNavigateToPreviousDay={() => onNavigateToPreviousDay && onNavigateToPreviousDay(currentView)}
-                  isDragOver={dropTargetId === 'previous-day-drop-zone'}
-                />
+              <PreviousDayDropZone 
+                currentDate={currentDate}
+                onNavigateToPreviousDay={() => onNavigateToPreviousDay && onNavigateToPreviousDay(currentView)}
+                isDragOver={dropTargetId === 'previous-day-drop-zone'}
+              />
               )}
               <div className="time-grid-wrapper">
                 <div className="time-header-row sticky-header">
@@ -892,11 +896,11 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
                 </div>
               </div>
               {!readOnly && (
-                <NextDayDropZone 
-                  currentDate={currentDate}
-                  onNavigateToNextDay={() => onNavigateToNextDay && onNavigateToNextDay(currentView)}
-                  isDragOver={dropTargetId === 'next-day-drop-zone'}
-                />
+              <NextDayDropZone 
+                currentDate={currentDate}
+                onNavigateToNextDay={() => onNavigateToNextDay && onNavigateToNextDay(currentView)}
+                isDragOver={dropTargetId === 'next-day-drop-zone'}
+              />
               )}
             </div>
           ) : (

@@ -4,11 +4,12 @@ import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-ki
 import { useOrderStore, useMachineStore, useUIStore, useSchedulerStore, useMainStore } from '../store';
 import { useOrders, useMachines } from '../hooks';
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
-import { showError } from '../utils';
+import { showError, showSuccess } from '../utils';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Select } from '../components/ui/select';
 
 // Lazy load heavy components
 const TaskPoolDataTable = lazy(() => import('../components/TaskPoolDataTable'));
@@ -130,6 +131,11 @@ function SpotifySchedulerPage() {
   );
 
   const [activeDragItem, setActiveDragItem] = useState(null);
+  
+  // Pause creation state
+  const [pauseHours, setPauseHours] = useState('1');
+  const [pauseMachine, setPauseMachine] = useState('');
+  const [isCreatingPause, setIsCreatingPause] = useState(false);
   
   // Combined loading state
   const isDataLoading = ordersLoading || machinesLoading || isLoading;
@@ -268,6 +274,40 @@ function SpotifySchedulerPage() {
   const clearFilters = useCallback(() => {
     dispatch({ type: 'CLEAR_FILTERS' });
   }, []);
+
+  // Handle pause creation
+  const handleCreatePause = async () => {
+    if (!pauseMachine || !pauseHours) {
+      showError('Seleziona macchina e durata pausa');
+      return;
+    }
+
+    const hours = parseFloat(pauseHours);
+    if (isNaN(hours) || hours <= 0) {
+      showError('Durata pausa non valida');
+      return;
+    }
+
+    setIsCreatingPause(true);
+    try {
+      const { createPauseTask } = useSchedulerStore.getState();
+      const result = await createPauseTask(pauseMachine, hours);
+      
+      if (result.error) {
+        showError(result.error);
+      } else {
+        showSuccess('Pausa creata con successo');
+        await queryClient.invalidateQueries({ queryKey: ['orders'] });
+        setPauseHours('1');
+        setPauseMachine('');
+      }
+    } catch (error) {
+      showError('Errore nella creazione della pausa');
+      console.error('Error creating pause:', error);
+    } finally {
+      setIsCreatingPause(false);
+    }
+  };
 
   // Drag handlers
   const { scheduleTaskAtEndOfQueue, reorderTaskInQueue } = useSchedulerStore();
@@ -424,12 +464,55 @@ function SpotifySchedulerPage() {
             </Suspense>
           </div>
 
-          {/* Filters Section */}
+          {/* Filters and Pause Creation Section */}
           <div className="section-controls">
             <div className="task-pool-header">
-              <h2 className="text-[10px] font-semibold text-gray-900">Filtri Macchine</h2>
+              <h2 className="text-[10px] font-semibold text-gray-900">Filtri Macchine & Aggiungi Pausa</h2>
             </div>
             <div className="filters-grid">
+              {/* Pause Creation Controls */}
+              <div className="pause-creation-controls">
+                <select
+                  value={pauseMachine}
+                  onChange={(e) => setPauseMachine(e.target.value)}
+                  className="pause-select"
+                  disabled={isCreatingPause}
+                >
+                  <option value="">Seleziona Macchina</option>
+                  {filteredMachines.map(machine => (
+                    <option key={machine.id} value={machine.id}>
+                      {machine.machine_name}
+                    </option>
+                  ))}
+                </select>
+                
+                <select
+                  value={pauseHours}
+                  onChange={(e) => setPauseHours(e.target.value)}
+                  className="pause-select"
+                  disabled={isCreatingPause}
+                >
+                  <option value="0.5">0.5h</option>
+                  <option value="1">1h</option>
+                  <option value="2">2h</option>
+                  <option value="4">4h</option>
+                  <option value="8">8h</option>
+                  <option value="12">12h</option>
+                  <option value="16">16h</option>
+                  <option value="24">24h</option>
+                </select>
+                
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleCreatePause}
+                  disabled={isCreatingPause || !pauseMachine}
+                  className="pause-create-btn"
+                >
+                  {isCreatingPause ? 'Creazione...' : '+ Pausa'}
+                </Button>
+              </div>
+
               <div className="filters-actions-left">
                 <Button
                   variant="secondary"

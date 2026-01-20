@@ -9,7 +9,7 @@ import { SplitTaskManager } from './scheduling/splitTaskManager';
 import { SchedulingLogic } from './scheduling/schedulingLogic';
 import { ConflictResolution } from './scheduling/conflictResolution';
 import { MachineAvailabilityManager } from './scheduling/machineAvailability';
-import { QueueSchedulingLogic } from './scheduling/queueSchedulingLogic';
+import { SpotifyQueueScheduler } from './scheduling/spotifyQueueScheduler';
 
 export const useSchedulerStore = create((set, get) => {
   // Initialize helper classes
@@ -17,7 +17,7 @@ export const useSchedulerStore = create((set, get) => {
   const machineAvailabilityManager = new MachineAvailabilityManager(get, set);
   const schedulingLogic = new SchedulingLogic(get, set, splitTaskManager, machineAvailabilityManager);
   const conflictResolution = new ConflictResolution(get, set, schedulingLogic, splitTaskManager);
-  const queueSchedulingLogic = new QueueSchedulingLogic(get, set, schedulingLogic, splitTaskManager);
+  const spotifyScheduler = new SpotifyQueueScheduler(get, set, machineAvailabilityManager);
 
   return {
     // State
@@ -398,15 +398,13 @@ export const useSchedulerStore = create((set, get) => {
       }
     },
 
-    // Queue scheduling methods (delegated to QueueSchedulingLogic)
-    getQueueForMachine: queueSchedulingLogic.getQueueForMachine,
-    calculateQueueStartTime: queueSchedulingLogic.calculateQueueStartTime,
-    scheduleTaskAtEndOfQueue: queueSchedulingLogic.scheduleTaskAtEndOfQueue,
-    recalculateQueueFromPosition: queueSchedulingLogic.recalculateQueueFromPosition,
-    reorderTaskInQueue: queueSchedulingLogic.reorderTaskInQueue,
-    createPauseTask: queueSchedulingLogic.createPauseTask,
-    removeTaskFromQueue: queueSchedulingLogic.removeTaskFromQueue,
-    insertTaskInQueue: queueSchedulingLogic.insertTaskInQueue,
+    // Queue scheduling methods (delegated to SpotifyQueueScheduler)
+    getQueueForMachine: spotifyScheduler.getQueue,
+    calculateQueueStartTime: spotifyScheduler.calculateNextStartTime,
+    scheduleTaskAtEndOfQueue: spotifyScheduler.scheduleTaskAtEnd,
+    reorderTaskInQueue: spotifyScheduler.reorderQueue,
+    createPauseTask: spotifyScheduler.createPauseTask,
+    removeTaskFromQueue: spotifyScheduler.removeFromQueue,
 
     reset: () => set({ machineAvailability: {}, shuntPreview: null, splitTasksInfo: {} }),
   };

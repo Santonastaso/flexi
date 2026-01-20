@@ -1487,6 +1487,8 @@
     gap: var(--button-gap);
     margin-top: 1px;
     justify-content: center;
+    position: relative;
+    z-index: 10;
 }
 
 .event-controls.overlay {

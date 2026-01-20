@@ -24,5 +24,11 @@ export {
   safeAsync,
   withRetry
 } from './errorHandling';
+export { 
+  formatInItalyTimezone, 
+  parseFromItalyTimezone,
+  formatScheduledTime,
+  formatDeliveryDate
+} from './dateFormatting';
 
 // Legacy validation utilities removed - all validation now handled by Yup schemas

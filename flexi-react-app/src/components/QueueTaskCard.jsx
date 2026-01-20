@@ -3,13 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { format } from 'date-fns';
-import { useSchedulerStore } from '../store';
+import { useSchedulerStore, usePhaseStore } from '../store';
 import { useQueryClient } from '@tanstack/react-query';
+import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
 
 function QueueTaskCard({ task, index, machineId }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { unscheduleTask } = useSchedulerStore();
+  const { getPhaseById } = usePhaseStore();
+  
+  // Get phase name if available
+  const phaseName = useMemo(() => {
+    if (!task.fase) return null;
+    const phase = getPhaseById(task.fase);
+    return phase?.name || null;
+  }, [task.fase, getPhaseById]);
 
   // Set up sortable functionality
   const {
@@ -58,9 +67,9 @@ function QueueTaskCard({ task, index, machineId }) {
   // Get task duration
   const duration = task.time_remaining || task.duration || 0;
 
-  // Format times
-  const startTime = task.scheduled_start_time ? format(new Date(task.scheduled_start_time), 'dd/MM HH:mm') : '—';
-  const endTime = task.scheduled_end_time ? format(new Date(task.scheduled_end_time), 'dd/MM HH:mm') : '—';
+  // Format times in Italy timezone
+  const startTime = task.scheduled_start_time ? formatScheduledTime(task.scheduled_start_time) : '—';
+  const endTime = task.scheduled_end_time ? formatScheduledTime(task.scheduled_end_time) : '—';
 
   // Get color based on material availability
   const getOdpColor = (materialGlobal) => {
@@ -150,6 +159,44 @@ function QueueTaskCard({ task, index, machineId }) {
             <div className="queue-task-pause-label">⏸ Pausa</div>
           )}
         </div>
+
+        {/* Additional Details - Phase, Delivery Date and Bag Step */}
+        {!isPauseTask && (phaseName || task.delivery_date || task.bag_step) && (
+          <div className="queue-task-details">
+            {phaseName && (
+              <div className="queue-task-detail-item">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
+                </svg>
+                <span className="detail-label">Fase:</span>
+                <span className="detail-value">{phaseName}</span>
+              </div>
+            )}
+            {task.delivery_date && (
+              <div className="queue-task-detail-item">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span className="detail-label">Consegna:</span>
+                <span className="detail-value">{formatDeliveryDate(task.delivery_date)}</span>
+              </div>
+            )}
+            {task.bag_step && (
+              <div className="queue-task-detail-item">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                </svg>
+                <span className="detail-label">Passo:</span>
+                <span className="detail-value">{task.bag_step} mm</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Duration */}
         <div className="queue-task-duration">

@@ -687,7 +687,7 @@ function SchedulerPage() {
   return (
     <>
       <SchedulingLoadingOverlay schedulingLoading={schedulingLoading} />
-      <div className="content-section">
+        <div className="content-section">
         {/* Read-Only Notice */}
         <div className="read-only-notice">
           <div className="notice-content">
@@ -699,7 +699,7 @@ function SchedulerPage() {
             <span>Modalità Visualizzazione: Questa pagina è di sola lettura. Usa <strong>Spotify Scheduler</strong> per modificare la pianificazione.</span>
           </div>
         </div>
-
+        
         {/* Task Pool Section - HIDDEN (Read-only mode) */}
         {/* <div className="task-pool-section">
           <div className="task-pool-header">
