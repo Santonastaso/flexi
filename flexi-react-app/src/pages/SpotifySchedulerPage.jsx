@@ -395,7 +395,18 @@ function SpotifySchedulerPage() {
       if (oldIndex !== newIndex) {
         try {
           startSchedulingOperation('reschedule', draggedTaskId);
-          const result = await reorderTaskInQueue(draggedMachineId, draggedTaskId, oldIndex, newIndex, orders);
+          
+          // Refetch orders immediately to ensure we have the latest data
+          await queryClient.refetchQueries({ 
+            queryKey: ['orders'],
+            exact: true,
+            type: 'active'
+          });
+          
+          // Get fresh orders from cache
+          const freshOrders = queryClient.getQueryData(['orders']) || [];
+          
+          const result = await reorderTaskInQueue(draggedMachineId, draggedTaskId, oldIndex, newIndex, freshOrders);
           
           if (result.error) {
             // If cache is stale, refetch and inform user
