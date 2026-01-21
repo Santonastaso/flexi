@@ -45,21 +45,33 @@ export class SpotifyQueueScheduler {
   calculateNextStartTime = (machineId, allOrders, excludeTaskId = null) => {
     let queue = this.getQueue(machineId, allOrders);
     
+    console.log('🟢 calculateNextStartTime - Initial queue length:', queue.length, 'excludeTaskId:', excludeTaskId?.substring(0, 8));
+    console.log('🟢 Queue tasks:', queue.map(t => ({
+      id: t.id.substring(0, 8),
+      odp: t.odp_number,
+      start: t.scheduled_start_time,
+      end: t.scheduled_end_time
+    })));
+    
     // Exclude the task being scheduled to avoid stale cache issues
     if (excludeTaskId) {
       queue = queue.filter(t => t.id !== excludeTaskId);
+      console.log('🟢 After exclude - queue length:', queue.length);
     }
     
     if (queue.length === 0) {
       // Queue is empty, start from now
       const now = new Date();
+      console.log('🟢 Queue empty, starting from now:', now.toISOString());
       return this.roundToNext15Min(now);
     }
     
     // Start after the last task in queue
     const lastTask = queue[queue.length - 1];
     const lastEndTime = new Date(lastTask.scheduled_end_time);
-    return this.roundToNext15Min(lastEndTime);
+    const nextStart = this.roundToNext15Min(lastEndTime);
+    console.log('🟢 Starting after last task:', lastTask.odp_number, 'ends at:', lastEndTime.toISOString(), 'next start:', nextStart.toISOString());
+    return nextStart;
   };
 
   /**

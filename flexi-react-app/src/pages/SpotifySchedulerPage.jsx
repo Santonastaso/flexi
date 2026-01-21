@@ -340,6 +340,14 @@ function SpotifySchedulerPage() {
 
     const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
 
+    // Check if any scheduling operation is in progress
+    const currentSchedulingState = useUIStore.getState().schedulingLoading;
+    if (currentSchedulingState.isScheduling || currentSchedulingState.isRescheduling) {
+      console.log('⚠️ Scheduling operation already in progress, blocking new operation');
+      showError('Operazione in corso, attendere...');
+      return;
+    }
+    
     // Case 1: Dragging from task pool to a queue column
     if (draggedData?.type === 'task' && droppedData?.type === 'queue-column') {
       const taskId = draggedData.task.id;
@@ -390,11 +398,13 @@ function SpotifySchedulerPage() {
             exact: true,
             type: 'active'
           });
+          console.log('✅ Scheduling complete, cache refreshed');
         }
       } catch (error) {
         showError('Errore durante la programmazione del lavoro');
       } finally {
         stopSchedulingOperation();
+        console.log('🔓 Scheduling operation unlocked');
       }
     }
     

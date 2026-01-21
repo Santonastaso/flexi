@@ -228,16 +228,16 @@ export class MachineAvailabilityManager {
         const taskStart = new Date(task.scheduled_start_time);
         const taskEnd = new Date(task.scheduled_end_time);
         
-        // Check if any unavailable hour overlaps with scheduled task
-        for (const hour of unavailableHours) {
+          // Check if any unavailable hour overlaps with scheduled task
+          for (const hour of unavailableHours) {
           const hourInt = parseInt(hour);
           
           // Convert CET hour to UTC using centralized utility function
           const hourStart = convertCETHourToUTC(dateStr, hourInt);
-          const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
-          
-          if (hourStart < taskEnd && hourEnd > taskStart) {
-            throw new AppError(`Cannot set machine unavailable during scheduled task: ${task.odp_number}`, ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, null, 'MachineAvailabilityManager.setMachineUnavailability');
+            const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
+            
+            if (hourStart < taskEnd && hourEnd > taskStart) {
+              throw new AppError(`Cannot set machine unavailable during scheduled task: ${task.odp_number}`, ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, null, 'MachineAvailabilityManager.setMachineUnavailability');
           }
         }
       }
