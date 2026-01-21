@@ -7,6 +7,7 @@ import { useOrders, useMachines, usePhases, useRemoveOrder } from '../hooks';
 import { showError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
 import { format } from 'date-fns';
+import { formatScheduledTime } from '../utils/dateFormatting';
 
 function BacklogListPage() {
   const { selectedWorkCenter, showConfirmDialog } = useUIStore();
@@ -102,12 +103,12 @@ function BacklogListPage() {
     { 
       header: 'Inizio Programmato', 
       accessorKey: 'scheduled_start_time',
-      cell: info => info.getValue() ? new Date(info.getValue()).toISOString().replace('T', ' ').replace('.000Z', '') : 'Non programmato'
+      cell: info => info.getValue() ? formatScheduledTime(info.getValue()) : 'Non programmato'
     },
     { 
       header: 'Fine Programmata', 
       accessorKey: 'scheduled_end_time',
-      cell: info => info.getValue() ? new Date(info.getValue()).toISOString().replace('T', ' ').replace('.000Z', '') : 'Non programmato'
+      cell: info => info.getValue() ? formatScheduledTime(info.getValue()) : 'Non programmato'
     },
     
     // Codici Cliente

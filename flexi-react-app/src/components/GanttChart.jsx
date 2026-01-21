@@ -4,6 +4,7 @@ import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { useUIStore } from '../store';
 import { useOrders } from '../hooks';
 import { format, startOfDay, endOfDay, startOfWeek, isSameDay, addDays } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
 import { getTaskSegments } from '../utils/taskSegments';
 import { AppConfig } from '../services/config';
@@ -136,11 +137,13 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
             let segmentLeft, segmentWidth;
             
                             if (segmentStartsOnCurrentDay && segmentEndsOnCurrentDay) {
-                    // Segment starts and ends on current day - use UTC time (no conversion needed)
-                    const startHour = singleSegment.start.getUTCHours();
-                    const startMinute = singleSegment.start.getUTCMinutes();
-                    const endHour = singleSegment.end.getUTCHours();
-                    const endMinute = singleSegment.end.getUTCMinutes();
+                    // Segment starts and ends on current day - convert UTC to CET timezone
+                    const startInCET = toZonedTime(singleSegment.start, 'Europe/Rome');
+                    const endInCET = toZonedTime(singleSegment.end, 'Europe/Rome');
+                    const startHour = startInCET.getHours();
+                    const startMinute = startInCET.getMinutes();
+                    const endHour = endInCET.getHours();
+                    const endMinute = endInCET.getMinutes();
                     
                     // Adjust for 6 AM start time
                     const adjustedStartHour = Math.max(6, startHour);
@@ -152,18 +155,20 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
                     segmentLeft = startSlot * 15;
                     segmentWidth = (endSlot - startSlot) * 15;
                 } else if (segmentStartsOnCurrentDay) {
-                    // Segment starts on current day but ends later - use UTC time (no conversion needed)
-                    const startHour = singleSegment.start.getUTCHours();
-                    const startMinute = singleSegment.start.getUTCMinutes();
+                    // Segment starts on current day but ends later - convert UTC to CET timezone
+                    const startInCET = toZonedTime(singleSegment.start, 'Europe/Rome');
+                    const startHour = startInCET.getHours();
+                    const startMinute = startInCET.getMinutes();
                     const adjustedStartHour = Math.max(6, startHour);
                     const startSlot = (adjustedStartHour - 6) * 4 + Math.floor(startMinute / 15);
                     
                     segmentLeft = startSlot * 15;
                     segmentWidth = (64 - startSlot) * 15; // Rest of the day (64 slots from 6 AM to 10 PM)
                 } else if (segmentEndsOnCurrentDay) {
-                    // Segment starts earlier but ends on current day - use UTC time (no conversion needed)
-                    const endHour = singleSegment.end.getUTCHours();
-                    const endMinute = singleSegment.end.getUTCMinutes();
+                    // Segment starts earlier but ends on current day - convert UTC to CET timezone
+                    const endInCET = toZonedTime(singleSegment.end, 'Europe/Rome');
+                    const endHour = endInCET.getHours();
+                    const endMinute = endInCET.getMinutes();
                     const adjustedEndHour = Math.min(22, endHour);
                     const endSlot = (adjustedEndHour - 6) * 4 + Math.ceil(endMinute / 15);
                     
@@ -207,11 +212,13 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
                 let segmentLeft, segmentWidth;
                 
                 if (segmentStartsOnCurrentDay && segmentEndsOnCurrentDay) {
-                    // Segment starts and ends on current day - use UTC time (no conversion needed)
-                    const startHour = segmentStart.getUTCHours();
-                    const startMinute = segmentStart.getUTCMinutes();
-                    const endHour = segmentEnd.getUTCHours();
-                    const endMinute = segmentEnd.getUTCMinutes();
+                    // Segment starts and ends on current day - convert UTC to CET timezone
+                    const startInCET = toZonedTime(segmentStart, 'Europe/Rome');
+                    const endInCET = toZonedTime(segmentEnd, 'Europe/Rome');
+                    const startHour = startInCET.getHours();
+                    const startMinute = startInCET.getMinutes();
+                    const endHour = endInCET.getHours();
+                    const endMinute = endInCET.getMinutes();
                     
                     // Adjust for 6 AM start time
                     const adjustedStartHour = Math.max(6, startHour);
@@ -223,18 +230,20 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
                     segmentLeft = startSlot * 15;
                     segmentWidth = (endSlot - startSlot) * 15;
                 } else if (segmentStartsOnCurrentDay) {
-                    // Segment starts on current day but ends later - use UTC time (no conversion needed)
-                    const startHour = segmentStart.getUTCHours();
-                    const startMinute = segmentStart.getUTCMinutes();
+                    // Segment starts on current day but ends later - convert UTC to CET timezone
+                    const startInCET = toZonedTime(segmentStart, 'Europe/Rome');
+                    const startHour = startInCET.getHours();
+                    const startMinute = startInCET.getMinutes();
                     const adjustedStartHour = Math.max(6, startHour);
                     const startSlot = (adjustedStartHour - 6) * 4 + Math.floor(startMinute / 15);
                     
                     segmentLeft = startSlot * 15;
                     segmentWidth = (64 - startSlot) * 15; // Rest of the day (64 slots from 6 AM to 10 PM)
                 } else if (segmentEndsOnCurrentDay) {
-                    // Segment starts earlier but ends on current day - use UTC time (no conversion needed)
-                    const endHour = segmentEnd.getUTCHours();
-                    const endMinute = segmentEnd.getUTCMinutes();
+                    // Segment starts earlier but ends on current day - convert UTC to CET timezone
+                    const endInCET = toZonedTime(segmentEnd, 'Europe/Rome');
+                    const endHour = endInCET.getHours();
+                    const endMinute = endInCET.getMinutes();
                     const adjustedEndHour = Math.min(22, endHour);
                     const endSlot = (adjustedEndHour - 6) * 4 + Math.ceil(endMinute / 15);
                     
@@ -758,14 +767,15 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
     []
   );
 
-  // Calculate current time position
+  // Calculate current time position - hardcoded to CET/Europe/Rome timezone
   useEffect(() => {
     const updateCurrentTime = () => {
-      const now = new Date();
-      const hour = now.getHours();
-      const minute = now.getMinutes();
+      // Get current time in Italian timezone (Europe/Rome - CET/CEST)
+      const nowInItaly = toZonedTime(new Date(), 'Europe/Rome');
+      const hour = nowInItaly.getHours();
+      const minute = nowInItaly.getMinutes();
       
-      // Only show if within visible range (6 AM to 10 PM local time)
+      // Only show if within visible range (6 AM to 10 PM CET time)
       if (hour >= 6 && hour < 22) {
         const slot = (hour - 6) * 4 + Math.floor(minute / 15);
         const minuteOffset = (minute % 15) / 15;

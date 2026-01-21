@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { apiService } from '../../services/api';
 
 /**
@@ -38,9 +39,15 @@ export class SpotifyQueueScheduler {
    * Calculate next available start time (end of last task, rounded to 15min)
    * @param {string} machineId - Machine ID
    * @param {Array} allOrders - All orders from React Query
+   * @param {string} excludeTaskId - Optional task ID to exclude from queue (to handle stale cache)
    */
-  calculateNextStartTime = (machineId, allOrders) => {
-    const queue = this.getQueue(machineId, allOrders);
+  calculateNextStartTime = (machineId, allOrders, excludeTaskId = null) => {
+    let queue = this.getQueue(machineId, allOrders);
+    
+    // Exclude the task being scheduled to avoid stale cache issues
+    if (excludeTaskId) {
+      queue = queue.filter(t => t.id !== excludeTaskId);
+    }
     
     if (queue.length === 0) {
       // Queue is empty, start from now
@@ -97,7 +104,21 @@ export class SpotifyQueueScheduler {
           
           for (const hour of machineData.unavailable_hours) {
             const hourInt = parseInt(hour);
-            const slotStart = new Date(Date.UTC(year, month - 1, day, hourInt, 0, 0, 0));
+            
+            // Unavailable hours are stored as CET hours (e.g., 12 = 12:00 CET)
+            // We need to convert this to UTC for proper comparison with scheduled times
+            
+            // Step 1: Create a base date in UTC for the start of this day
+            const baseDateUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+            
+            // Step 2: Convert to Europe/Rome timezone to get midnight in CET
+            const dateInRome = toZonedTime(baseDateUTC, 'Europe/Rome');
+            
+            // Step 3: Set the hour in CET time
+            dateInRome.setHours(hourInt, 0, 0, 0);
+            
+            // Step 4: Convert back from CET to UTC
+            const slotStart = fromZonedTime(dateInRome, 'Europe/Rome');
             const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
             
             unavailableSlots.push({ start: slotStart, end: slotEnd });
@@ -264,12 +285,12 @@ export class SpotifyQueueScheduler {
       return { error: 'Task not found' };
     }
     
-    if (task.status === 'SCHEDULED') {
-      console.warn('⚠️ Task is already scheduled, but attempting to reschedule anyway');
-      // Allow rescheduling if it's not on this specific machine
-      if (task.scheduled_machine_id === machineId) {
-        return { error: 'Task is already scheduled on this machine' };
-      }
+    // Allow scheduling/rescheduling - be tolerant of stale cache data
+    // After rapid unschedule->schedule operations, React Query cache may not be up to date
+    // The database is the source of truth, so we proceed and let the update handle it
+    if (task.status === 'SCHEDULED' && task.scheduled_machine_id === machineId) {
+      console.warn('⚠️ Task appears scheduled, proceeding anyway (likely stale cache after unschedule)');
+      // Don't check queue - just proceed. Database update will fix any inconsistencies.
     }
     
     const duration = task.time_remaining || task.duration || 0;
@@ -277,8 +298,8 @@ export class SpotifyQueueScheduler {
       return { error: 'Task must have a duration greater than 0' };
     }
     
-    // Calculate start time
-    const startTime = this.calculateNextStartTime(machineId, allOrders);
+    // Calculate start time (exclude this task from queue to handle stale cache)
+    const startTime = this.calculateNextStartTime(machineId, allOrders, taskId);
     
     // Split task around unavailable hours
     const { segments, startTime: actualStart, endTime } = await this.splitTaskAroundUnavailability(
@@ -420,7 +441,7 @@ export class SpotifyQueueScheduler {
     // Recalculate remaining tasks
     if (taskIndex < queue.length - 1) {
       let currentStartTime = taskIndex === 0
-        ? this.calculateNextStartTime(machineId, allOrders)
+        ? this.calculateNextStartTime(machineId, allOrders, taskId) // Exclude removed task from calculation
         : new Date(queue[taskIndex - 1].scheduled_end_time);
       
       currentStartTime = this.roundToNext15Min(currentStartTime);

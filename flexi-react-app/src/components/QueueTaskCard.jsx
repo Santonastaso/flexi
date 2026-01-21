@@ -104,8 +104,19 @@ function QueueTaskCard({ task, index, machineId }) {
         const { showError } = await import('../utils/toast');
         showError(result.error);
       } else {
-        // Refresh the queue and WAIT for it to complete
-        await queryClient.refetchQueries({ queryKey: ['orders'] });
+        // Invalidate cache immediately and force refetch
+        queryClient.invalidateQueries({ queryKey: ['orders'], exact: true, refetchType: 'all' });
+        
+        // Add a small delay to ensure database has propagated
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Force refetch and wait for it
+        await queryClient.refetchQueries({ 
+          queryKey: ['orders'],
+          exact: true,
+          type: 'active'
+        });
+        
         const { showSuccess } = await import('../utils/toast');
         showSuccess('Lavoro rimosso dalla coda');
       }

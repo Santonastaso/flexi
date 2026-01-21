@@ -12,6 +12,7 @@ import {
 import { useUIStore } from '../store';
 import { useOrders, useRemoveOrder } from '../hooks';
 import { format } from 'date-fns';
+import { formatScheduledTime } from '../utils/dateFormatting';
 import DataTable from './DataTable';
 
 // Gantt Actions Cell Component
@@ -53,8 +54,8 @@ Quantità: ${task.quantity || 'Non specificata'}
 Note Libere: ${task.user_notes || 'Nessuna nota'}
 Note ASD: ${task.asd_notes || 'Nessuna nota'}
 Material Global: ${task.material_availability_global || 'N/A'}%
-${task.scheduled_start_time ? `Inizio Programmato: ${task.scheduled_start_time.replace('+00:00', '')}` : 'Non programmato'}
-${task.scheduled_end_time ? `Fine Programmata: ${task.scheduled_end_time.replace('+00:00', '')}` : 'Non programmato'}`}
+${task.scheduled_start_time ? `Inizio Programmato: ${formatScheduledTime(task.scheduled_start_time)}` : 'Non programmato'}
+${task.scheduled_end_time ? `Fine Programmata: ${formatScheduledTime(task.scheduled_end_time)}` : 'Non programmato'}`}
       >
         i
       </button>

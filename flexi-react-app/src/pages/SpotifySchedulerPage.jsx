@@ -297,7 +297,12 @@ function SpotifySchedulerPage() {
         showError(result.error);
       } else {
         showSuccess('Pausa creata con successo');
-        await queryClient.invalidateQueries({ queryKey: ['orders'] });
+        // Force immediate refetch to update cache
+        await queryClient.refetchQueries({ 
+          queryKey: ['orders'],
+          exact: true,
+          type: 'active'
+        });
         setPauseHours('1');
         setPauseMachine('');
       }
@@ -366,7 +371,12 @@ function SpotifySchedulerPage() {
         } else if (result.conflict) {
           showError('Conflitto rilevato durante la programmazione');
         } else {
-          await queryClient.invalidateQueries({ queryKey: ['orders'] });
+          // Force immediate refetch to update cache
+          await queryClient.refetchQueries({ 
+            queryKey: ['orders'],
+            exact: true,
+            type: 'active'
+          });
         }
       } catch (error) {
         console.error('Error scheduling task:', error);
@@ -401,7 +411,12 @@ function SpotifySchedulerPage() {
           if (result.error) {
             showError(result.error);
           } else {
-            await queryClient.invalidateQueries({ queryKey: ['orders'] });
+            // Force immediate refetch to update cache
+            await queryClient.refetchQueries({ 
+              queryKey: ['orders'],
+              exact: true,
+              type: 'active'
+            });
           }
         } catch (error) {
           console.error('Error reordering task:', error);

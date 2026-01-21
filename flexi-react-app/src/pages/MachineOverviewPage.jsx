@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useMachines, useOrders, useRemoveOrder } from '../hooks/useQueries';
 import { useMainStore, useUIStore } from '../store';
 import { showError, showSuccess } from '../utils';
+import { formatScheduledTime } from '../utils/dateFormatting';
 
 function MachineOverviewPage() {
   const [selectedMachineId, setSelectedMachineId] = useState('');
@@ -75,14 +76,14 @@ function MachineOverviewPage() {
       header: 'Inizio Programmato', 
       accessorKey: 'scheduled_start_time',
       cell: ({ row }) => row.original.scheduled_start_time 
-        ? format(new Date(row.original.scheduled_start_time), 'dd/MM/yyyy HH:mm')
+        ? formatScheduledTime(row.original.scheduled_start_time)
         : 'N/A'
     },
     { 
       header: 'Fine Programmata', 
       accessorKey: 'scheduled_end_time',
       cell: ({ row }) => row.original.scheduled_end_time 
-        ? format(new Date(row.original.scheduled_end_time), 'dd/MM/yyyy HH:mm')
+        ? formatScheduledTime(row.original.scheduled_end_time)
         : 'N/A'
     },
   ], []);

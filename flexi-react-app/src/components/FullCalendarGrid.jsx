@@ -7,6 +7,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { useSchedulerStore, useUIStore } from '../store';
 import { useMachines, useOrders } from '../hooks';
 import { format, parseISO } from 'date-fns';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { showError } from '../utils';
 import { AppConfig } from '../services/config';
 
@@ -116,12 +117,14 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
               return;
             }
             
-            // Simple date creation - same logic as Gantt chart
-            const startTime = new Date(dateStr);
-            startTime.setUTCHours(hourInt, 0, 0, 0);
+            // Unavailable hours are stored as CET hours - convert to UTC for FullCalendar
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const baseDateUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+            const dateInRome = toZonedTime(baseDateUTC, 'Europe/Rome');
+            dateInRome.setHours(hourInt, 0, 0, 0);
+            const startTime = fromZonedTime(dateInRome, 'Europe/Rome');
             
-            const endTime = new Date(startTime);
-            endTime.setUTCHours(hourInt + 1, 0, 0, 0);
+            const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
             
             events.push({
               id: `availability-${dateStr}-${hour}`,
@@ -177,9 +180,10 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
   const handleDateClick = useCallback(async (arg) => {
     const clickedDate = arg.date;
     
-    // Use the same simple logic as Gantt chart - just get the hour directly
-    const dateStr = format(clickedDate, 'yyyy-MM-dd');
-    const hour = clickedDate.getUTCHours();
+    // Convert clicked date to CET timezone to get the correct hour
+    const clickedDateInCET = toZonedTime(clickedDate, 'Europe/Rome');
+    const dateStr = format(clickedDateInCET, 'yyyy-MM-dd');
+    const hour = clickedDateInCET.getHours();
     
     // Check if there are scheduled tasks at this time
     const hasScheduledTask = scheduledEvents.some(event => {
@@ -234,7 +238,7 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
   const calendarOptions = useMemo(() => ({
     plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
     initialView: 'dayGridMonth',
-    initialDate: new Date(), // FullCalendar will handle UTC conversion with timeZone: 'UTC'
+    initialDate: new Date(),
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',
@@ -242,7 +246,8 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
     },
     height: 'auto',
     locale: 'it',
-    timeZone: 'UTC', // Force UTC timezone
+    timeZone: 'Europe/Rome', // Italian timezone for all times and now indicator
+    nowIndicator: true, // Enable the now indicator (red line)
     firstDay: AppConfig.APP.FIRST_DAY_OF_WEEK, // Monday as first day of week
     hiddenDays: [0], // Hide Sunday (0 = Sunday)
     slotMinTime: '06:00:00',

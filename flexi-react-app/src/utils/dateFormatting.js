@@ -49,8 +49,8 @@ export function parseFromItalyTimezone(dateString, formatString = 'dd/MM/yyyy HH
 
 /**
  * Format scheduled start/end times consistently
- * @param {string} isoString - ISO datetime string from database
- * @returns {string} Formatted string in Italy timezone (dd/MM HH:mm)
+ * @param {string} isoString - ISO datetime string from database (UTC)
+ * @returns {string} Formatted string in Italian timezone (dd/MM HH:mm)
  */
 export function formatScheduledTime(isoString) {
   return formatInItalyTimezone(isoString, 'dd/MM HH:mm');
@@ -58,8 +58,8 @@ export function formatScheduledTime(isoString) {
 
 /**
  * Format delivery dates
- * @param {string} isoString - ISO date string
- * @returns {string} Formatted string in Italy timezone (dd/MM/yyyy)
+ * @param {string} isoString - ISO date string (UTC)
+ * @returns {string} Formatted string in Italian timezone (dd/MM/yyyy)
  */
 export function formatDeliveryDate(isoString) {
   return formatInItalyTimezone(isoString, 'dd/MM/yyyy');
