@@ -153,12 +153,12 @@ export class SpotifyQueueScheduler {
       
       // Check if this hour overlaps with any unavailable slot
       // Two time ranges overlap if: start1 < end2 AND end1 > start2
-      const isUnavailable = unavailableSlots.some(slot => 
+      const overlappingSlot = unavailableSlots.find(slot => 
         hourStart < slot.end && hourEnd > slot.start
       );
       
-      if (!isUnavailable) {
-        // Available hour - add to current segment or create new one
+      if (!overlappingSlot) {
+        // Fully available hour - add to current segment or create new one
         if (segments.length === 0 || segments[segments.length - 1].end.getTime() !== hourStart.getTime()) {
           // New segment
           segments.push({
@@ -173,6 +173,35 @@ export class SpotifyQueueScheduler {
         }
         
         remainingDuration -= 1;
+      } else {
+        // Partial overlap - use only the available portion before the unavailability
+        if (hourStart < overlappingSlot.start) {
+          // There's available time before the unavailable slot starts
+          const availableEnd = overlappingSlot.start;
+          const partialDuration = (availableEnd.getTime() - hourStart.getTime()) / (60 * 60 * 1000);
+          
+          if (partialDuration > 0) {
+            if (segments.length === 0 || segments[segments.length - 1].end.getTime() !== hourStart.getTime()) {
+              // New segment
+              segments.push({
+                start: new Date(hourStart),
+                end: new Date(availableEnd),
+                duration: partialDuration
+              });
+            } else {
+              // Extend current segment
+              segments[segments.length - 1].end = new Date(availableEnd);
+              segments[segments.length - 1].duration += partialDuration;
+            }
+            
+            remainingDuration -= partialDuration;
+          }
+          
+          // Jump to the end of the unavailable slot
+          currentTime = new Date(overlappingSlot.end);
+          hoursProcessed++;
+          continue;
+        }
       }
       
       // Move to next hour
