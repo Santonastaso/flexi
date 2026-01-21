@@ -348,10 +348,19 @@ function SpotifySchedulerPage() {
       try {
         startSchedulingOperation('schedule', taskId);
         
+        // Refetch orders immediately to ensure we have the latest data
+        await queryClient.refetchQueries({ 
+          queryKey: ['orders'],
+          exact: true,
+          type: 'active'
+        });
+        
+        // Get fresh orders from cache
+        let ordersToUse = queryClient.getQueryData(['orders']) || [];
+        
         // If task doesn't exist in orders cache, add it temporarily for scheduling
-        let ordersToUse = orders;
-        if (!orders.some(o => o.id === taskId)) {
-          ordersToUse = [...orders, draggedData.task];
+        if (!ordersToUse.some(o => o.id === taskId)) {
+          ordersToUse = [...ordersToUse, draggedData.task];
         }
         
         const result = await scheduleTaskAtEndOfQueue(machineId, taskId, ordersToUse);
