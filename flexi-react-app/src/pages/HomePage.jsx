@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { useMachineStore, useOrderStore, useUIStore, useMainStore } from '../store';
+import { useUIStore, useMainStore } from '../store';
 import { useMachines, useOrders } from '../hooks';
 import { MACHINE_STATUSES } from '../constants';
 import StickyHeader from '../components/StickyHeader';

@@ -9,6 +9,3 @@ export { usePhaseSearch } from './usePhaseSearch';
 
 // React Query hooks
 export * from './useQueries';
-
-// Store sync hook
-export { useStoreSync } from './useStoreSync';

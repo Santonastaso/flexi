@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useMachineStore, useUIStore, useMainStore } from '../store';
+import { useUIStore, useMainStore } from '../store';
+import { useMachine } from '../hooks';
 import OffTimeForm from '../components/OffTimeForm';
 import FullCalendarGrid from '../components/FullCalendarGrid';
 import StickyHeader from '../components/StickyHeader';
@@ -9,12 +10,10 @@ function MachineCalendarPage() {
   const { machineId } = useParams();
   const [refreshKey, setRefreshKey] = useState(0);
   
-  // Use modern slice stores instead of legacy useStore
-  const { getMachineById } = useMachineStore();
+  // Use React Query for data fetching
+  const { data: machine, isLoading: machineLoading } = useMachine(machineId);
   const { isLoading, isInitialized } = useUIStore();
   const { init, cleanup } = useMainStore();
-  
-  const machine = getMachineById(machineId);
   
 
   useEffect(() => {
@@ -39,7 +38,7 @@ function MachineCalendarPage() {
   }, [init, isInitialized, cleanup]);
 
   // Show loading only if we're actively loading, not if just not initialized
-  if (isLoading) {
+  if (isLoading || machineLoading) {
     return (
       <div className="p-1 bg-white rounded shadow-sm border">
         <div className="text-center py-1 text-gray-500 text-[10px]">

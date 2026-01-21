@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 
-import { usePhaseStore, useUIStore, useMainStore } from '../store';
+import { useUIStore, useMainStore } from '../store';
 import { usePhases, useRemovePhase } from '../hooks';
 import { showError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';

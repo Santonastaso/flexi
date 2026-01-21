@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useReducer, Suspense, lazy } from 'react';
 import { DndContext, DragOverlay, PointerSensor, MouseSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useOrderStore, useMachineStore, useUIStore, useSchedulerStore, useMainStore } from '../store';
+import { useUIStore, useSchedulerStore, useMainStore } from '../store';
 import { useOrders, useMachines } from '../hooks';
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
 import { showError, showSuccess } from '../utils';

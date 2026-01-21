@@ -1,6 +1,4 @@
 import { format } from 'date-fns';
-import { useOrderStore } from '../useOrderStore';
-import { useMachineStore } from '../useMachineStore';
 import { apiService } from '../../services/api';
 
 /**
@@ -19,11 +17,10 @@ export class SpotifyQueueScheduler {
 
   /**
    * Get the sorted queue of tasks for a machine
+   * @param {string} machineId - Machine ID
+   * @param {Array} allOrders - All orders from React Query
    */
-  getQueue = (machineId) => {
-    const { getOdpOrders } = useOrderStore.getState();
-    const allOrders = getOdpOrders();
-    
+  getQueue = (machineId, allOrders) => {
     return allOrders
       .filter(task => 
         task.scheduled_machine_id === machineId &&
@@ -39,9 +36,11 @@ export class SpotifyQueueScheduler {
 
   /**
    * Calculate next available start time (end of last task, rounded to 15min)
+   * @param {string} machineId - Machine ID
+   * @param {Array} allOrders - All orders from React Query
    */
-  calculateNextStartTime = (machineId) => {
-    const queue = this.getQueue(machineId);
+  calculateNextStartTime = (machineId, allOrders) => {
+    const queue = this.getQueue(machineId, allOrders);
     
     if (queue.length === 0) {
       // Queue is empty, start from now
@@ -210,10 +209,12 @@ export class SpotifyQueueScheduler {
 
   /**
    * Schedule a task at the end of the queue
+   * @param {string} machineId - Machine ID
+   * @param {string} taskId - Task ID
+   * @param {Array} allOrders - All orders from React Query
    */
-  scheduleTaskAtEnd = async (machineId, taskId) => {
-    const { getOrderById } = useOrderStore.getState();
-    const task = getOrderById(taskId);
+  scheduleTaskAtEnd = async (machineId, taskId, allOrders) => {
+    const task = allOrders.find(o => o.id === taskId);
     
     if (!task) {
       return { error: 'Task not found' };
@@ -229,7 +230,7 @@ export class SpotifyQueueScheduler {
     }
     
     // Calculate start time
-    const startTime = this.calculateNextStartTime(machineId);
+    const startTime = this.calculateNextStartTime(machineId, allOrders);
     
     // Split task around unavailable hours
     const { segments, startTime: actualStart, endTime } = await this.splitTaskAroundUnavailability(
@@ -262,13 +263,18 @@ export class SpotifyQueueScheduler {
 
   /**
    * Reorder a task in the queue
+   * @param {string} machineId - Machine ID
+   * @param {string} taskId - Task ID
+   * @param {number} oldIndex - Old position
+   * @param {number} newIndex - New position
+   * @param {Array} allOrders - All orders from React Query
    */
-  reorderQueue = async (machineId, taskId, oldIndex, newIndex) => {
+  reorderQueue = async (machineId, taskId, oldIndex, newIndex, allOrders) => {
     if (oldIndex === newIndex) {
       return { success: true, message: 'No change in position' };
     }
     
-    const queue = this.getQueue(machineId);
+    const queue = this.getQueue(machineId, allOrders);
     
     if (oldIndex < 0 || oldIndex >= queue.length || newIndex < 0 || newIndex >= queue.length) {
       return { error: 'Invalid position' };
@@ -282,7 +288,7 @@ export class SpotifyQueueScheduler {
     // Recalculate from the affected position
     const startPosition = Math.min(oldIndex, newIndex);
     let currentStartTime = startPosition === 0 
-      ? this.calculateNextStartTime(machineId)
+      ? this.calculateNextStartTime(machineId, allOrders)
       : new Date(reordered[startPosition - 1].scheduled_end_time);
     
     currentStartTime = this.roundToNext15Min(currentStartTime);
@@ -324,9 +330,12 @@ export class SpotifyQueueScheduler {
 
   /**
    * Remove a task from the queue
+   * @param {string} machineId - Machine ID
+   * @param {string} taskId - Task ID
+   * @param {Array} allOrders - All orders from React Query
    */
-  removeFromQueue = async (machineId, taskId) => {
-    const queue = this.getQueue(machineId);
+  removeFromQueue = async (machineId, taskId, allOrders) => {
+    const queue = this.getQueue(machineId, allOrders);
     const taskIndex = queue.findIndex(t => t.id === taskId);
     
     if (taskIndex === -1) {
@@ -345,7 +354,7 @@ export class SpotifyQueueScheduler {
     // Recalculate remaining tasks
     if (taskIndex < queue.length - 1) {
       let currentStartTime = taskIndex === 0
-        ? this.calculateNextStartTime(machineId)
+        ? this.calculateNextStartTime(machineId, allOrders)
         : new Date(queue[taskIndex - 1].scheduled_end_time);
       
       currentStartTime = this.roundToNext15Min(currentStartTime);
@@ -382,8 +391,12 @@ export class SpotifyQueueScheduler {
 
   /**
    * Create a pause task (fictitious task)
+   * @param {string} machineId - Machine ID
+   * @param {number} durationHours - Duration in hours
+   * @param {Array} allMachines - All machines from React Query
+   * @param {Array} allOrders - All orders from React Query
    */
-  createPauseTask = async (machineId, durationHours) => {
+  createPauseTask = async (machineId, durationHours, allMachines, allOrders) => {
     if (!machineId) {
       return { error: 'Machine ID is required' };
     }
@@ -392,8 +405,7 @@ export class SpotifyQueueScheduler {
       return { error: 'Duration must be between 0 and 24 hours' };
     }
     
-    const { getMachineById } = useMachineStore.getState();
-    const machine = getMachineById(machineId);
+    const machine = allMachines.find(m => m.id === machineId);
     
     if (!machine) {
       return { error: 'Machine not found' };
@@ -420,8 +432,9 @@ export class SpotifyQueueScheduler {
     // Create in database
     const createdTask = await apiService.addOdpOrder(pauseTask);
     
-    // Schedule at end of queue
-    const result = await this.scheduleTaskAtEnd(machineId, createdTask.id);
+    // Schedule at end of queue (need to include newly created task in orders array)
+    const updatedOrders = [...allOrders, createdTask];
+    const result = await this.scheduleTaskAtEnd(machineId, createdTask.id, updatedOrders);
     
     if (result.error) {
       // Clean up - delete the task if scheduling failed

@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import DataTable from '../components/DataTable';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { useMachines, useRemoveOrder } from '../hooks/useQueries';
-import { useOrderStore, useMainStore, useUIStore } from '../store';
+import { useMachines, useOrders, useRemoveOrder } from '../hooks/useQueries';
+import { useMainStore, useUIStore } from '../store';
 import { showError, showSuccess } from '../utils';
 
 function MachineOverviewPage() {
@@ -12,7 +12,7 @@ function MachineOverviewPage() {
   const navigate = useNavigate();
   
   const { data: machines = [], isLoading: machinesLoading } = useMachines();
-  const { odpOrders } = useOrderStore();
+  const { data: odpOrders = [], isLoading: ordersLoading } = useOrders();
   const { isLoading: storeLoading, isInitialized, init, cleanup } = useMainStore();
   const { showConfirmDialog } = useUIStore();
   const removeOrderMutation = useRemoveOrder();

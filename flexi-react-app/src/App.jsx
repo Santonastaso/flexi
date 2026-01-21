@@ -21,7 +21,6 @@ import ProtectedRoute from './auth/ProtectedRoute';
 import ConfirmDialog from './components/ui/confirm-dialog';
 import { useUIStore, useMainStore } from './store';
 import { useAuth } from './auth/AuthContext';
-import { useStoreSync } from './hooks';
 
 
 // This component creates the main layout with the sidebar
@@ -29,9 +28,6 @@ const AppLayout = () => {
   const { confirmDialog, hideConfirmDialog, selectedWorkCenter } = useUIStore();
   const { cleanup } = useMainStore();
   const { user, signOut } = useAuth();
-  
-  // Sync React Query data with Zustand stores
-  useStoreSync();
   
   // Cleanup store when app unmounts
   useEffect(() => {

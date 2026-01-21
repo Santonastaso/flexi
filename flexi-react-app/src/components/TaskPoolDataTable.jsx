@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from './ui/table';
-import { useOrderStore, useUIStore } from '../store';
+import { useUIStore } from '../store';
 import { useOrders, useRemoveOrder } from '../hooks';
 import { format } from 'date-fns';
 import DataTable from './DataTable';
@@ -112,7 +112,6 @@ ${task.scheduled_end_time ? `Fine Programmata: ${task.scheduled_end_time.replace
 function TaskPoolDataTable({ filterByCost = true }) {
   const navigate = useNavigate();
   const { selectedWorkCenter, conflictDialog, schedulingLoading, showConfirmDialog } = useUIStore();
-  const { odpOrders: storeTasks, setOdpOrders } = useOrderStore();
   const { setNodeRef } = useDroppable({
     id: 'task-pool',
     data: { type: 'pool' },
@@ -121,13 +120,6 @@ function TaskPoolDataTable({ filterByCost = true }) {
   // Use React Query to fetch orders data
   const { data: queryTasks = [], isLoading, error, refetch } = useOrders();
   const removeOrderMutation = useRemoveOrder();
-
-  // Sync React Query data with Zustand store
-  useEffect(() => {
-    if (queryTasks.length > 0) {
-      setOdpOrders(queryTasks);
-    }
-  }, [queryTasks, setOdpOrders]);
 
   // Refetch data when returning from edit page (window focus)
   useEffect(() => {

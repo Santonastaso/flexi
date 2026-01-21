@@ -4,7 +4,8 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
-import { useMachineStore, useOrderStore, useSchedulerStore, useUIStore } from '../store';
+import { useSchedulerStore, useUIStore } from '../store';
+import { useMachines, useOrders } from '../hooks';
 import { format, parseISO } from 'date-fns';
 import { showError } from '../utils';
 import { AppConfig } from '../services/config';
@@ -14,8 +15,9 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
   const [updatingSlots, setUpdatingSlots] = useState({});
   const calendarRef = React.useRef(null);
   
-  const { machines } = useMachineStore();
-  const { odpOrders } = useOrderStore();
+  // Use React Query for data
+  const { data: machines = [] } = useMachines();
+  const { data: odpOrders = [] } = useOrders();
   const { machineAvailability, loadMachineAvailabilityForDateRange, toggleMachineHourAvailability, getTaskOccupiedSegments } = useSchedulerStore();
   const { showAlert } = useUIStore();
   

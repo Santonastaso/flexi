@@ -379,3 +379,22 @@ export const useBulkUpsertMachineAvailability = () => {
     },
   });
 };
+
+// ===== DERIVED QUERY HOOKS =====
+// These replace Zustand store selectors
+
+export const useScheduledOrders = () => {
+  const { data: orders = [] } = useOrders();
+  return orders.filter(o => o.status === 'SCHEDULED');
+};
+
+export const useUnscheduledOrders = () => {
+  const { data: orders = [] } = useOrders();
+  return orders.filter(o => o.status === 'NOT SCHEDULED');
+};
+
+export const useOrdersByWorkCenter = (workCenter) => {
+  const { data: orders = [] } = useOrders();
+  if (workCenter === 'BOTH') return orders;
+  return orders.filter(o => o.work_center === workCenter);
+};

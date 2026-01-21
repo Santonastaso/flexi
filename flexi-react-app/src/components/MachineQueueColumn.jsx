@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useOrderStore } from '../store';
+import { useOrders } from '../hooks';
 import { format } from 'date-fns';
 import QueueTaskCard from './QueueTaskCard';
 
 function MachineQueueColumn({ machine, queryClient }) {
-  const { odpOrders } = useOrderStore();
+  // Use React Query for orders
+  const { data: odpOrders = [] } = useOrders();
 
   // Set up droppable zone for this machine column
   const { setNodeRef, isOver } = useDroppable({

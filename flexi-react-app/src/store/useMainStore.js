@@ -1,9 +1,6 @@
 import { create } from 'zustand';
 import { apiService } from '../services';
 import { handleApiError, AppError } from '../utils/errorHandling';
-import { useMachineStore } from './useMachineStore';
-import { useOrderStore } from './useOrderStore';
-import { usePhaseStore } from './usePhaseStore';
 import { useSchedulerStore } from './useSchedulerStore';
 import { useUIStore } from './useUIStore';
 
@@ -48,35 +45,7 @@ const cleanupGlobalListeners = () => {
   }
 };
 
-// Handle ODP Orders changes - now invalidates React Query cache
-const handleOdpOrdersChange = (payload, _set, _get) => {
-  const { eventType, newRecord, oldRecord } = payload;
-  
-  // Note: Split task info is now managed directly in task.description field
-  // No need for separate in-memory tracking
-  
-  // Note: Data updates are now handled by React Query invalidation
-  // The actual data fetching and cache updates are managed by React Query
-  console.log(`Orders ${eventType.toLowerCase()}:`, newRecord || oldRecord);
-};
-
-// Handle Machines changes - now invalidates React Query cache
-const handleMachinesChange = (payload, _set, _get) => {
-  const { eventType, newRecord, oldRecord } = payload;
-  
-  // Note: Data updates are now handled by React Query invalidation
-  // The actual data fetching and cache updates are managed by React Query
-  console.log(`Machines ${eventType.toLowerCase()}:`, newRecord || oldRecord);
-};
-
-// Handle Phases changes - now invalidates React Query cache
-const handlePhasesChange = (payload, _set, _get) => {
-  const { eventType, newRecord, oldRecord } = payload;
-  
-  // Note: Data updates are now handled by React Query invalidation
-  // The actual data fetching and cache updates are managed by React Query
-  console.log(`Phases ${eventType.toLowerCase()}:`, newRecord || oldRecord);
-};
+// Realtime subscription handlers removed - React Query handles cache invalidation automatically
 
 export const useMainStore = create((set, get) => ({
   // State
@@ -248,16 +217,10 @@ export const useMainStore = create((set, get) => ({
     // Cleanup real-time subscriptions
     cleanupRealtimeSubscriptions(get, set);
     
-    // Reset all stores
-    const { reset: resetMachineStore } = useMachineStore.getState();
-    const { reset: resetOrderStore } = useOrderStore.getState();
-    const { reset: resetPhaseStore } = usePhaseStore.getState();
+    // Reset remaining stores
     const { reset: resetSchedulerStore } = useSchedulerStore.getState();
     const { reset: resetUIStore } = useUIStore.getState();
     
-    resetMachineStore();
-    resetOrderStore();
-    resetPhaseStore();
     resetSchedulerStore();
     resetUIStore();
     
@@ -271,18 +234,12 @@ export const useMainStore = create((set, get) => ({
     cleanupGlobalListeners();
   },
 
-  // Get combined state from all stores
+  // Get combined state from stores
   // Note: Data fetching is now handled by React Query hooks
   getState: () => {
-    const { getMachines } = useMachineStore.getState();
-    const { getOdpOrders } = useOrderStore.getState();
-    const { getPhases } = usePhaseStore.getState();
     const { getLoadingState, getInitializationState } = useUIStore.getState();
     
     return {
-      machines: getMachines(),
-      odpOrders: getOdpOrders(),
-      phases: getPhases(),
       machineAvailability: useSchedulerStore.getState().getMachineAvailabilityState(),
       isLoading: getLoadingState(),
       isInitialized: getInitializationState(),

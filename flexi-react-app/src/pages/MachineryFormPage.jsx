@@ -2,18 +2,18 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import MachineForm from '../components/MachineForm';
 import StickyHeader from '../components/StickyHeader';
-import { useMachineStore, useUIStore, useMainStore } from '../store';
+import { useUIStore, useMainStore } from '../store';
+import { useMachine } from '../hooks';
 
 function MachineryFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getMachineById } = useMachineStore();
   const { selectedWorkCenter } = useUIStore();
   const { isLoading, isInitialized, init, cleanup } = useMainStore();
-
+  
   // Check if this is edit mode (has ID) or add mode (no ID)
   const isEditMode = Boolean(id);
-  const machine = isEditMode ? getMachineById(id) : null;
+  const { data: machine, isLoading: machineLoading } = useMachine(id);
 
   // Initialize store on component mount
   useEffect(() => {
@@ -29,12 +29,12 @@ function MachineryFormPage() {
 
   // Redirect if machine not found in edit mode
   useEffect(() => {
-    if (isEditMode && !isLoading && !machine) {
+    if (isEditMode && !isLoading && !machineLoading && !machine) {
       navigate('/machinery', { replace: true });
     }
-  }, [isEditMode, isLoading, machine, navigate]);
+  }, [isEditMode, isLoading, machineLoading, machine, navigate]);
 
-  if (isLoading) {
+  if (isLoading || machineLoading) {
     return <div>Caricamento...</div>;
   }
 

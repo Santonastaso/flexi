@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
-import { useOrderStore, useUIStore } from '../store';
+import { useUIStore } from '../store';
+import { useOrders } from '../hooks';
 import { format, startOfDay, endOfDay, startOfWeek, isSameDay, addDays } from 'date-fns';
 import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
 import { getTaskSegments } from '../utils/taskSegments';
@@ -703,7 +704,8 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
   const [currentView, setCurrentView] = useState(() => localStorage.getItem('schedulerView') || 'Daily');
   const [currentTimePosition, setCurrentTimePosition] = useState(null);
   
-  const { odpOrders: tasks } = useOrderStore();
+  // Use React Query for orders
+  const { data: tasks = [] } = useOrders();
   const scheduledTasks = useMemo(() =>
     tasks.filter(task => task.status === 'SCHEDULED'),
     [tasks]

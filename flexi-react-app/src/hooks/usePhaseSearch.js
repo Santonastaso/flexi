@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { usePhaseStore } from '../store';
+import { usePhases } from './useQueries';
 
 export const usePhaseSearch = (department, workCenter, initialPhaseId = null) => {
-  const { phases } = usePhaseStore();
+  const { data: phases = [] } = usePhases();
   const [phaseSearch, setPhaseSearch] = useState('');
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [selectedPhase, setSelectedPhase] = useState(null);

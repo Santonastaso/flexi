@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { format } from 'date-fns';
-import { useSchedulerStore, usePhaseStore } from '../store';
+import { useSchedulerStore } from '../store';
+import { usePhase } from '../hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
 
@@ -11,14 +12,10 @@ function QueueTaskCard({ task, index, machineId }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { unscheduleTask } = useSchedulerStore();
-  const { getPhaseById } = usePhaseStore();
   
-  // Get phase name if available
-  const phaseName = useMemo(() => {
-    if (!task.fase) return null;
-    const phase = getPhaseById(task.fase);
-    return phase?.name || null;
-  }, [task.fase, getPhaseById]);
+  // Get phase name if available using React Query
+  const { data: phase } = usePhase(task.fase);
+  const phaseName = phase?.name || null;
 
   // Set up sortable functionality
   const {

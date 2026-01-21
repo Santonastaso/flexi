@@ -1,7 +1,6 @@
 import { apiService } from '../../services';
 import { format, addDays } from 'date-fns';
 import { handleApiError, AppError, ERROR_TYPES } from '../../utils/errorHandling';
-import { useOrderStore } from '../useOrderStore';
 import { useUIStore } from '../useUIStore';
 
 /**
@@ -209,14 +208,14 @@ export class MachineAvailabilityManager {
   };
 
   // Set machine availability for a specific date
-  setMachineAvailability = async (machineId, dateStr, unavailableHours) => {
+  // @param {Array} allOrders - All orders from React Query (optional, for overlap checking)
+  setMachineAvailability = async (machineId, dateStr, unavailableHours, allOrders = []) => {
     // Acquire lock to prevent concurrent updates
     const releaseLock = await this.acquireLock(machineId, dateStr);
     
     try {
       // Check for overlaps with existing scheduled tasks on the same machine and date
-      const { getOdpOrders } = useOrderStore.getState();
-      const existingTasks = getOdpOrders().filter(o => 
+      const existingTasks = allOrders.filter(o => 
         o.scheduled_machine_id === machineId && 
         o.status === 'SCHEDULED' &&
         o.scheduled_start_time && 
@@ -409,7 +408,6 @@ export class MachineAvailabilityManager {
 
   // Initialize empty machine availability
   initializeEmptyMachineAvailability = () => {
-    // const { machines } = useMachineStore.getState();
     const { machineAvailability } = this.get();
     const next = { ...machineAvailability };
     // Ensure structure is keyed by date string, not machine id

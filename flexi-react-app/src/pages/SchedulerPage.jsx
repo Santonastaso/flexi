@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense, lazy, useReducer } from 'react';
 import { DndContext, DragOverlay, PointerSensor, MouseSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { useOrderStore, useMachineStore, useUIStore, useMainStore } from '../store';
-import { useOrders, useMachines } from '../hooks';
+import { useUIStore, useMainStore } from '../store';
+import { useOrders, useMachines, useScheduledOrders, useOrdersByWorkCenter } from '../hooks';
 import { format, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
@@ -106,8 +106,7 @@ function SchedulerPage() {
   const { data: orders = [], isLoading: ordersLoading, error: ordersError } = useOrders();
   const { data: machines = [], isLoading: machinesLoading, error: machinesError } = useMachines();
   
-  // Use Zustand store for selectors and client state
-  const { getOdpOrdersByWorkCenter, getScheduledOrders } = useOrderStore();
+  // Use Zustand store for client state only
   const { selectedWorkCenter, isLoading, isInitialized, showAlert, setDragPreview, clearDragPreview, dragPreview } = useUIStore();
   // Note: All scheduling methods removed - Gantt is now read-only, use Spotify Scheduler for task management
   const { init, cleanup } = useMainStore();
