@@ -271,12 +271,16 @@ export class SpotifyQueueScheduler {
     // Calculate start time (exclude this task from queue to handle stale cache)
     const startTime = this.calculateNextStartTime(machineId, allOrders, taskId);
     
+    console.log('🟡 scheduleTaskAtEnd - Task:', taskId.substring(0, 8), 'Duration:', duration, 'Start time:', startTime.toISOString());
+    
     // Split task around unavailable hours
     const { segments, startTime: actualStart, endTime } = await this.splitTaskAroundUnavailability(
       startTime,
       duration,
       machineId
     );
+    
+    console.log('🟡 scheduleTaskAtEnd - After split - Actual start:', actualStart.toISOString(), 'End:', endTime.toISOString());
     
     // Prepare task update
     const updates = {

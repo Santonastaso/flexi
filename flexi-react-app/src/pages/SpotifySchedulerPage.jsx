@@ -348,6 +348,8 @@ function SpotifySchedulerPage() {
       try {
         startSchedulingOperation('schedule', taskId);
         
+        console.log('🔵 BEFORE REFETCH - Scheduling task:', taskId);
+        
         // Refetch orders immediately to ensure we have the latest data
         await queryClient.refetchQueries({ 
           queryKey: ['orders'],
@@ -357,6 +359,18 @@ function SpotifySchedulerPage() {
         
         // Get fresh orders from cache
         let ordersToUse = queryClient.getQueryData(['orders']) || [];
+        
+        console.log('🔵 AFTER REFETCH - Orders count:', ordersToUse.length);
+        console.log('🔵 AFTER REFETCH - Machine queue:', ordersToUse.filter(o => 
+          o.scheduled_machine_id === machineId && 
+          o.status === 'SCHEDULED' && 
+          o.scheduled_start_time
+        ).map(o => ({
+          id: o.id.substring(0, 8),
+          odp: o.odp_number,
+          start: o.scheduled_start_time,
+          end: o.scheduled_end_time
+        })));
         
         // If task doesn't exist in orders cache, add it temporarily for scheduling
         if (!ordersToUse.some(o => o.id === taskId)) {
