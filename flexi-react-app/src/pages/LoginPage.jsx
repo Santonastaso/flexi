@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useUIStore } from '../store';
 import { WORK_CENTERS } from '../constants';
-import { useErrorHandler } from '../hooks';
 import {
   Button,
   Input,
@@ -31,9 +30,6 @@ function LoginPage() {
   const { signIn, error: authError } = useAuth();
   const { setSelectedWorkCenter } = useUIStore();
   const navigate = useNavigate();
-  
-  // Use unified error handling
-  const { handleAsync } = useErrorHandler('LoginPage');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -77,24 +73,19 @@ function LoginPage() {
 
     setIsSubmitting(true);
     
-    await handleAsync(
-      async () => {
-        const result = await signIn(formData.email, formData.password);
-        
-        if (result.success) {
-          // Set the selected work center
-          setSelectedWorkCenter(formData.workCenter);
-          navigate('/', { replace: true });
-        } else {
-          // Handle login failure silently
-        }
-      },
-      { 
-        context: 'Login', 
-        fallbackMessage: 'Accesso fallito. Riprova.',
-        onFinally: () => setIsSubmitting(false)
+    try {
+      const result = await signIn(formData.email, formData.password);
+      
+      if (result.success) {
+        // Set the selected work center
+        setSelectedWorkCenter(formData.workCenter);
+        navigate('/', { replace: true });
       }
-    );
+    } catch (error) {
+      // Error is already handled by AuthContext and displayed via authError
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getFieldError = (fieldName) => {

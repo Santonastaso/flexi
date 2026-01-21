@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 
 import { usePhaseStore, useUIStore, useMainStore } from '../store';
-import { useErrorHandler, usePhases, useRemovePhase } from '../hooks';
+import { usePhases, useRemovePhase } from '../hooks';
 import { showError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
 
@@ -24,9 +24,6 @@ function PhasesListPage() {
     if (selectedWorkCenter === WORK_CENTERS.BOTH) return phases;
     return phases.filter(phase => phase.work_center === selectedWorkCenter);
   }, [phases, selectedWorkCenter]);
-
-  // Use unified error handling
-  const { handleAsync } = useErrorHandler('PhasesListPage');
 
   // Initialize store on component mount
   useEffect(() => {

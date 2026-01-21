@@ -13,22 +13,5 @@ export const usePhaseStore = create((set, get) => ({
   // Actions - only for client-side state management
   setPhases: (phases) => set({ phases: phases || [] }),
 
-  // Utility actions
-  cleanupDuplicatePhases: () => {
-    const state = get();
-    
-    // Remove duplicate phases (keep first occurrence)
-    const uniquePhases = [];
-    const seenIds = new Set();
-    state.phases.forEach(phase => {
-      if (!seenIds.has(phase.id)) {
-        seenIds.add(phase.id);
-        uniquePhases.push(phase);
-      }
-    });
-    
-    set({ phases: uniquePhases });
-  },
-
   reset: () => set({ phases: [] }),
 }));

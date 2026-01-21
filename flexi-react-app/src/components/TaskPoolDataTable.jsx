@@ -10,7 +10,7 @@ import {
   TableRow,
 } from './ui/table';
 import { useOrderStore, useUIStore } from '../store';
-import { useErrorHandler, useOrders, useRemoveOrder } from '../hooks';
+import { useOrders, useRemoveOrder } from '../hooks';
 import { format } from 'date-fns';
 import DataTable from './DataTable';
 
@@ -121,9 +121,6 @@ function TaskPoolDataTable({ filterByCost = true }) {
   // Use React Query to fetch orders data
   const { data: queryTasks = [], isLoading, error, refetch } = useOrders();
   const removeOrderMutation = useRemoveOrder();
-  
-  // Use unified error handling
-  const { handleAsync } = useErrorHandler('TaskPoolDataTable');
 
   // Sync React Query data with Zustand store
   useEffect(() => {
@@ -285,15 +282,12 @@ function TaskPoolDataTable({ filterByCost = true }) {
       'Elimina Ordine',
       `Sei sicuro di voler eliminare "${taskToDelete.odp_number}"? Questa azione non può essere annullata.`,
       async () => {
-        await handleAsync(
-          async () => {
-            await removeOrderMutation.mutateAsync(taskToDelete.id);
-          },
-          { 
-            context: 'Delete Order', 
-            fallbackMessage: 'Eliminazione ordine fallita'
-          }
-        );
+        try {
+          await removeOrderMutation.mutateAsync(taskToDelete.id);
+          showSuccess(`Ordine "${taskToDelete.odp_number}" eliminato con successo`);
+        } catch (error) {
+          showError(error.message || 'Eliminazione ordine fallita');
+        }
       },
       'danger'
     );

@@ -29,22 +29,5 @@ export const useOrderStore = create((set, get) => ({
   // Actions - only for client-side state management
   setOdpOrders: (orders) => set({ odpOrders: orders || [] }),
 
-  // Utility actions
-  cleanupDuplicateOrders: () => {
-    const state = get();
-    
-    // Remove duplicate orders (keep first occurrence)
-    const uniqueOrders = [];
-    const seenIds = new Set();
-    state.odpOrders.forEach(order => {
-      if (!seenIds.has(order.id)) {
-        seenIds.add(order.id);
-        uniqueOrders.push(order);
-      }
-    });
-    
-    set({ odpOrders: uniqueOrders });
-  },
-
   reset: () => set({ odpOrders: [] }),
 }));

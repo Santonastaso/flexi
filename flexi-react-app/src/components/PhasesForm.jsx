@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useUIStore } from '../store';
-import { useErrorHandler, useAddPhase, useUpdatePhase } from '../hooks';
-import { showSuccess } from '../utils';
+import { useAddPhase, useUpdatePhase } from '../hooks';
+import { showError, showSuccess } from '../utils';
 import { WORK_CENTERS, DEPARTMENT_TYPES } from '../constants';
 import GenericForm from './GenericForm';
 import { phaseFormConfig } from './formConfigs';
@@ -12,8 +12,6 @@ function PhasesForm({ phaseToEdit, onSuccess }) {
   // React Query mutations
   const addPhaseMutation = useAddPhase();
   const updatePhaseMutation = useUpdatePhase();
-  
-  const { handleAsync } = useErrorHandler('PhasesForm');
   
   const isEditMode = Boolean(phaseToEdit);
   
@@ -46,23 +44,19 @@ function PhasesForm({ phaseToEdit, onSuccess }) {
   }), [selectedWorkCenter, phaseToEdit]);
 
   const handleSubmit = async (data) => {
-    await handleAsync(
-      async () => {
-        if (isEditMode) {
-          await updatePhaseMutation.mutateAsync({ id: phaseToEdit.id, updates: data });
-        } else {
-          await addPhaseMutation.mutateAsync(data);
-        }
-        if (onSuccess) {
-          onSuccess();
-        }
-        showSuccess(isEditMode ? 'Fase aggiornata con successo' : 'Fase aggiunta con successo');
-      },
-      { 
-        context: isEditMode ? 'Update Phase' : 'Add Phase', 
-        fallbackMessage: isEditMode ? 'Aggiornamento fase fallito' : 'Aggiunta fase fallita'
+    try {
+      if (isEditMode) {
+        await updatePhaseMutation.mutateAsync({ id: phaseToEdit.id, updates: data });
+      } else {
+        await addPhaseMutation.mutateAsync(data);
       }
-    );
+      if (onSuccess) {
+        onSuccess();
+      }
+      showSuccess(isEditMode ? 'Fase aggiornata con successo' : 'Fase aggiunta con successo');
+    } catch (error) {
+      showError(error.message || (isEditMode ? 'Aggiornamento fase fallito' : 'Aggiunta fase fallita'));
+    }
   };
 
   return (

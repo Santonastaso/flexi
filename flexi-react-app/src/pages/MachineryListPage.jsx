@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 
 import { useUIStore } from '../store';
-import { useErrorHandler, useMachinesByWorkCenter, useRemoveMachine } from '../hooks';
+import { useMachinesByWorkCenter, useRemoveMachine } from '../hooks';
 import { showError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
 
@@ -14,9 +14,6 @@ function MachineryListPage() {
   // React Query hooks
   const { data: machines = [], isLoading, error } = useMachinesByWorkCenter(selectedWorkCenter);
   const removeMachineMutation = useRemoveMachine();
-  
-  // Use unified error handling
-  const { handleAsync } = useErrorHandler('MachineryListPage');
 
   // Show error if query failed
   if (error) {
@@ -69,15 +66,12 @@ function MachineryListPage() {
       'Elimina Macchina',
       `Sei sicuro di voler eliminare "${machineToDelete.machine_name}"? Questa azione non può essere annullata.`,
       async () => {
-        await handleAsync(
-          async () => {
-            await removeMachineMutation.mutateAsync(machineToDelete.id);
-          },
-          { 
-            context: 'Delete Machine', 
-            fallbackMessage: 'Eliminazione macchina fallita'
-          }
-        );
+        try {
+          await removeMachineMutation.mutateAsync(machineToDelete.id);
+          showSuccess(`Macchina "${machineToDelete.machine_name}" eliminata con successo`);
+        } catch (error) {
+          showError(error.message || 'Eliminazione macchina fallita');
+        }
       },
       'danger'
     );

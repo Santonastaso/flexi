@@ -5,7 +5,7 @@ import DataTable from '../components/DataTable';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { useMachines, useRemoveOrder } from '../hooks/useQueries';
 import { useOrderStore, useMainStore, useUIStore } from '../store';
-import { useErrorHandler } from '../hooks';
+import { showError, showSuccess } from '../utils';
 
 function MachineOverviewPage() {
   const [selectedMachineId, setSelectedMachineId] = useState('');
@@ -16,7 +16,6 @@ function MachineOverviewPage() {
   const { isLoading: storeLoading, isInitialized, init, cleanup } = useMainStore();
   const { showConfirmDialog } = useUIStore();
   const removeOrderMutation = useRemoveOrder();
-  const { handleAsync } = useErrorHandler('MachineOverviewPage');
 
   // Initialize store on component mount
   useEffect(() => {
@@ -52,15 +51,12 @@ function MachineOverviewPage() {
       'Elimina Ordine',
       `Sei sicuro di voler eliminare "${orderToDelete.odp_number}"? Questa azione non può essere annullata.`,
       async () => {
-        await handleAsync(
-          async () => {
-            await removeOrderMutation.mutateAsync(orderToDelete.id);
-          },
-          { 
-            context: 'Delete Order', 
-            fallbackMessage: 'Eliminazione ordine fallita'
-          }
-        );
+        try {
+          await removeOrderMutation.mutateAsync(orderToDelete.id);
+          showSuccess(`Ordine "${orderToDelete.odp_number}" eliminato con successo`);
+        } catch (error) {
+          showError(error.message || 'Eliminazione ordine fallita');
+        }
       },
       'danger'
     );

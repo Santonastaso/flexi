@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 
 import { useUIStore } from '../store';
-import { useErrorHandler, useOrders, useMachines, usePhases, useRemoveOrder } from '../hooks';
-import { showSuccess } from '../utils';
+import { useOrders, useMachines, usePhases, useRemoveOrder } from '../hooks';
+import { showError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
 import { format } from 'date-fns';
 
@@ -17,9 +17,6 @@ function BacklogListPage() {
   const { data: machines = [], isLoading: machinesLoading } = useMachines();
   const { data: phases = [], isLoading: phasesLoading } = usePhases();
   const removeOrderMutation = useRemoveOrder();
-  
-  // Use unified error handling
-  const { handleAsync } = useErrorHandler('BacklogListPage');
 
   // Show error if query failed
   if (ordersError) {
@@ -220,15 +217,12 @@ function BacklogListPage() {
       'Elimina Ordine',
       `Sei sicuro di voler eliminare "${orderToDelete.odp_number}"? Questa azione non può essere annullata.`,
       async () => {
-        await handleAsync(
-          async () => {
-            await removeOrderMutation.mutateAsync(orderToDelete.id);
-          },
-          { 
-            context: 'Delete Order', 
-            fallbackMessage: 'Eliminazione ordine fallita'
-          }
-        );
+        try {
+          await removeOrderMutation.mutateAsync(orderToDelete.id);
+          showSuccess(`Ordine "${orderToDelete.odp_number}" eliminato con successo`);
+        } catch (error) {
+          showError(error.message || 'Eliminazione ordine fallita');
+        }
       },
       'danger'
     );

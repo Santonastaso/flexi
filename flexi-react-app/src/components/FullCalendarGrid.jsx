@@ -6,7 +6,7 @@ import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import { useMachineStore, useOrderStore, useSchedulerStore, useUIStore } from '../store';
 import { format, parseISO } from 'date-fns';
-import { useErrorHandler } from '../hooks';
+import { showError } from '../utils';
 import { AppConfig } from '../services/config';
 
 function FullCalendarGrid({ machineId, refreshTrigger }) {
@@ -18,8 +18,6 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
   const { odpOrders } = useOrderStore();
   const { machineAvailability, loadMachineAvailabilityForDateRange, toggleMachineHourAvailability, getTaskOccupiedSegments } = useSchedulerStore();
   const { showAlert } = useUIStore();
-  
-  const { handleAsync } = useErrorHandler('FullCalendarGrid');
   
   const machine = machines.find(m => m.id === machineId);
 

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { useErrorHandler } from '../hooks';
 import {
   Button,
   Input,
@@ -19,9 +18,6 @@ function ForgotPasswordPage() {
   const [error, setError] = useState('');
 
   const { resetPassword } = useAuth();
-  
-  // Use unified error handling
-  const { handleAsync } = useErrorHandler('ForgotPasswordPage');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,22 +35,19 @@ function ForgotPasswordPage() {
     setIsSubmitting(true);
     setError('');
 
-    await handleAsync(
-      async () => {
-        const result = await resetPassword(email);
-        
-        if (result.success) {
-          setIsSuccess(true);
-        } else {
-          setError(result.error || 'Invio email di reset fallito');
-        }
-      },
-      { 
-        context: 'Password Reset', 
-        fallbackMessage: 'Invio email di reset fallito. Riprova.',
-        onFinally: () => setIsSubmitting(false)
+    try {
+      const result = await resetPassword(email);
+      
+      if (result.success) {
+        setIsSuccess(true);
+      } else {
+        setError(result.error || 'Invio email di reset fallito');
       }
-    );
+    } catch (error) {
+      setError(error.message || 'Invio email di reset fallito. Riprova.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSuccess) {

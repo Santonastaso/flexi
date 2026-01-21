@@ -19,22 +19,5 @@ export const useMachineStore = create((set, get) => ({
   // Actions - only for client-side state management
   setMachines: (machines) => set({ machines: machines || [] }),
 
-  // Utility actions
-  cleanupDuplicateMachines: () => {
-    const state = get();
-    
-    // Remove duplicate machines (keep first occurrence)
-    const uniqueMachines = [];
-    const seenIds = new Set();
-    state.machines.forEach(machine => {
-      if (!seenIds.has(machine.id)) {
-        seenIds.add(machine.id);
-        uniqueMachines.push(machine);
-      }
-    });
-    
-    set({ machines: uniqueMachines });
-  },
-
   reset: () => set({ machines: [] }),
 }));

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { useErrorHandler, useValidation } from '../hooks';
-import { showValidationError } from '../utils';
+import { useValidation } from '../hooks';
+import { showValidationError, showError } from '../utils';
 import {
   Input,
   Select,
@@ -57,7 +57,6 @@ function GenericForm({
   customFieldRenderers = {},
   className = "p-1 bg-white rounded-lg shadow-sm border"
 }) {
-  const { handleAsync } = useErrorHandler('GenericForm');
   const { validate } = useValidation();
   
   // Create initial form data from config and provided data
@@ -114,17 +113,14 @@ function GenericForm({
     }
     
     // Submit the form
-    await handleAsync(
-      async () => {
-        await onSubmit(data);
-        if (onSuccess) onSuccess();
-        reset(initialFormData);
-      },
-      { 
-        context: isEditMode ? config.editContext : config.addContext, 
-        fallbackMessage: isEditMode ? config.editErrorMessage : config.addErrorMessage
-      }
-    );
+    try {
+      await onSubmit(data);
+      if (onSuccess) onSuccess();
+      reset(initialFormData);
+    } catch (error) {
+      const fallbackMessage = isEditMode ? config.editErrorMessage : config.addErrorMessage;
+      showError(error.message || fallbackMessage || 'Form submission failed');
+    }
   };
 
   // Render a single field based on its configuration

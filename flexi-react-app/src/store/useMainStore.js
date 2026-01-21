@@ -51,14 +51,9 @@ const cleanupGlobalListeners = () => {
 // Handle ODP Orders changes - now invalidates React Query cache
 const handleOdpOrdersChange = (payload, _set, _get) => {
   const { eventType, newRecord, oldRecord } = payload;
-  const { updateSplitTaskInfo } = useSchedulerStore.getState();
   
-  // Update split task info for scheduled orders
-  if (eventType === 'INSERT' && newRecord.status === 'SCHEDULED') {
-    updateSplitTaskInfo(newRecord.id, newRecord);
-  } else if (eventType === 'UPDATE') {
-    updateSplitTaskInfo(newRecord.id, newRecord);
-  }
+  // Note: Split task info is now managed directly in task.description field
+  // No need for separate in-memory tracking
   
   // Note: Data updates are now handled by React Query invalidation
   // The actual data fetching and cache updates are managed by React Query
@@ -247,37 +242,6 @@ export const useMainStore = create((set, get) => ({
   refreshData: () => {
     // This method is deprecated - use React Query's invalidateQueries instead
     console.warn('refreshData is deprecated. Use React Query invalidation instead.');
-  },
-
-  // Debug function to check for duplicate data
-  debugData: () => {
-    const { getMachines } = useMachineStore.getState();
-    const { getOdpOrders } = useOrderStore.getState();
-    const { getPhases } = usePhaseStore.getState();
-    
-    // Check for duplicate IDs
-    const machineIds = getMachines().map(m => m.id);
-    const _duplicateMachineIds = machineIds.filter((id, index) => machineIds.indexOf(id) !== index);
-    // Duplicate machine IDs handled silently
-    
-    const orderIds = getOdpOrders().map(o => o.id);
-    const _duplicateOrderIds = orderIds.filter((id, index) => orderIds.indexOf(id) !== index);
-    // Duplicate order IDs handled silently
-    
-    const phaseIds = getPhases().map(p => p.id);
-    const _duplicatePhaseIds = phaseIds.filter((id, index) => phaseIds.indexOf(id) !== index);
-    // Duplicate phase IDs handled silently
-  },
-
-  // Clean up duplicate data
-  cleanupDuplicates: () => {
-    const { cleanupDuplicateMachines } = useMachineStore.getState();
-    const { cleanupDuplicateOrders } = useOrderStore.getState();
-    const { cleanupDuplicatePhases } = usePhaseStore.getState();
-    
-    cleanupDuplicateMachines();
-    cleanupDuplicateOrders();
-    cleanupDuplicatePhases();
   },
 
   reset: () => {
