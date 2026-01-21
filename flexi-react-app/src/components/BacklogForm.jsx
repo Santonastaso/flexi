@@ -216,7 +216,6 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       if (onSuccess) onSuccess();
       resetFormAndPhaseState();
     } catch (error) {
-      console.error('❌ Error in form submission:', error);
       showValidationError(['Si è verificato un errore durante il salvataggio dell\'ordine']);
     }
   };
@@ -252,7 +251,6 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       showSuccess("Calcolo completato con successo!");
     } catch (error) {
       showWarning("Errore durante il calcolo delle metriche.");
-      console.error(error);
     }
   };
 

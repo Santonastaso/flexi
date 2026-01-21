@@ -262,7 +262,6 @@ function TaskPoolDataTable({ filterByCost = true }) {
   const handleEditRow = (task) => {
     // Ensure the task data is available before navigation
     if (!task || !task.id) {
-      console.error('Invalid task data for editing:', task);
       return;
     }
     

@@ -19,7 +19,6 @@ function MachineCalendarPage() {
   useEffect(() => {
     // Only initialize once
     if (!isInitialized) {
-      console.log('Initializing main store...');
       // Add timeout to prevent hanging
       const initPromise = init();
       const timeoutPromise = new Promise((_, reject) => 
@@ -27,7 +26,7 @@ function MachineCalendarPage() {
       );
       
       Promise.race([initPromise, timeoutPromise]).catch(error => {
-        console.error('Initialization failed or timed out:', error);
+        // Initialization handled
       });
     }
     

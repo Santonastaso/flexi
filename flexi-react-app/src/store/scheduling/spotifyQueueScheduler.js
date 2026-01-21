@@ -236,7 +236,7 @@ export class SpotifyQueueScheduler {
     }
     
     if (hoursProcessed >= maxHours) {
-      console.warn('Task splitting reached max iterations - task may be very long or availability data may be incomplete');
+      // Task splitting reached max iterations
     }
     
     return {
@@ -255,31 +255,13 @@ export class SpotifyQueueScheduler {
   scheduleTaskAtEnd = async (machineId, taskId, allOrders) => {
     const task = allOrders.find(o => o.id === taskId);
     
-    console.log('📋 SCHEDULE DEBUG:', {
-      taskId,
-      machineId,
-      allOrdersCount: allOrders.length,
-      taskExists: allOrders.some(o => o.id === taskId),
-      taskStatus: task?.status,
-      taskScheduledMachine: task?.scheduled_machine_id,
-      taskScheduledStart: task?.scheduled_start_time
-    });
-    
     if (!task) {
-      console.error('❌ Task not found in allOrders:', {
-        taskId,
-        availableIds: allOrders.slice(0, 10).map(o => ({ id: o.id, status: o.status }))
-      });
       return { error: 'Task not found' };
     }
     
     // Allow scheduling/rescheduling - be tolerant of stale cache data
     // After rapid unschedule->schedule operations, React Query cache may not be up to date
     // The database is the source of truth, so we proceed and let the update handle it
-    if (task.status === 'SCHEDULED' && task.scheduled_machine_id === machineId) {
-      console.warn('⚠️ Task appears scheduled, proceeding anyway (likely stale cache after unschedule)');
-      // Don't check queue - just proceed. Database update will fix any inconsistencies.
-    }
     
     const duration = task.time_remaining || task.duration || 0;
     if (duration <= 0) {
@@ -332,22 +314,12 @@ export class SpotifyQueueScheduler {
     // Find the actual current indices in case they've changed
     const actualOldIndex = queue.findIndex(t => t.id === taskId);
     
-    console.log('🎯 REORDER DEBUG:', {
-      taskId,
-      passedOldIndex: oldIndex,
-      actualOldIndex,
-      newIndex,
-      queueLength: queue.length,
-      queueTaskIds: queue.map(t => t.id)
-    });
-    
     if (actualOldIndex === -1) {
       return { error: 'Task not found in queue' };
     }
     
     // Validate new index
     if (newIndex < 0 || newIndex >= queue.length) {
-      console.error('❌ Invalid new index:', { newIndex, queueLength: queue.length });
       return { error: 'Invalid target position' };
     }
     

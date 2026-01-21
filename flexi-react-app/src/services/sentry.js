@@ -12,7 +12,6 @@ export const initSentry = () => {
   
   // Only initialize Sentry if DSN is provided
   if (!dsn) {
-    console.log('Sentry not initialized: VITE_SENTRY_DSN not provided');
     return;
   }
   
@@ -49,7 +48,6 @@ export const initSentry = () => {
 export const reportError = (error, context = {}) => {
   // Check if Sentry is initialized
   if (!import.meta.env.VITE_SENTRY_DSN) {
-    console.warn('Sentry not configured, error not reported:', error);
     return;
   }
   

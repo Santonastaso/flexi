@@ -209,8 +209,7 @@ export const useMainStore = create((set, get) => ({
 
   // Manual refresh function - now handled by React Query invalidation
   refreshData: () => {
-    // This method is deprecated - use React Query's invalidateQueries instead
-    console.warn('refreshData is deprecated. Use React Query invalidation instead.');
+    // No-op: Use React Query invalidation instead
   },
 
   reset: () => {

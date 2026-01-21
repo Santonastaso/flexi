@@ -308,7 +308,6 @@ function SpotifySchedulerPage() {
       }
     } catch (error) {
       showError('Errore nella creazione della pausa');
-      console.error('Error creating pause:', error);
     } finally {
       setIsCreatingPause(false);
     }
@@ -346,21 +345,12 @@ function SpotifySchedulerPage() {
       const taskId = draggedData.task.id;
       const machineId = droppedData.machineId;
       
-      console.log('📋 SPOTIFY: Dropping task into queue', { 
-        taskId, 
-        machineId,
-        task: draggedData.task,
-        ordersCount: orders.length,
-        taskExistsInOrders: orders.some(o => o.id === taskId)
-      });
-      
       try {
         startSchedulingOperation('schedule', taskId);
         
         // If task doesn't exist in orders cache, add it temporarily for scheduling
         let ordersToUse = orders;
         if (!orders.some(o => o.id === taskId)) {
-          console.warn('⚠️ Task not in orders cache, using drag data');
           ordersToUse = [...orders, draggedData.task];
         }
         
@@ -379,7 +369,6 @@ function SpotifySchedulerPage() {
           });
         }
       } catch (error) {
-        console.error('Error scheduling task:', error);
         showError('Errore durante la programmazione del lavoro');
       } finally {
         stopSchedulingOperation();
@@ -419,7 +408,6 @@ function SpotifySchedulerPage() {
             });
           }
         } catch (error) {
-          console.error('Error reordering task:', error);
           showError('Errore durante il riordino del lavoro');
         } finally {
           stopSchedulingOperation();

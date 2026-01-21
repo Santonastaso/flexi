@@ -25,7 +25,6 @@ export function formatInItalyTimezone(date, formatString = 'dd/MM HH:mm') {
     // Format in Italy timezone
     return formatInTimeZone(dateObj, ITALY_TIMEZONE, formatString);
   } catch (error) {
-    console.error('Error formatting date in Italy timezone:', error);
     return '—';
   }
 }
@@ -43,7 +42,6 @@ export function parseFromItalyTimezone(dateString, formatString = 'dd/MM/yyyy HH
     const zonedDate = toZonedTime(dateString, ITALY_TIMEZONE);
     return zonedDate;
   } catch (error) {
-    console.error('Error parsing date from Italy timezone:', error);
     return new Date();
   }
 }

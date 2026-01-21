@@ -108,8 +108,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
         
         // If no segment info exists, create a single segment from the task data
         if (!segmentInfo || !segmentInfo.segments) {
-            console.warn(`⚠️ No segment info for task ${event.odp_number}, creating fallback`);
-            // This should not happen in the new system, but create a single segment as fallback
+            // Create a single segment as fallback
             if (!event.scheduled_start_time) {
                 return null; // No start time, can't render
             }
@@ -434,7 +433,7 @@ ${event.scheduled_end_time ? `Fine Programmata: ${formatScheduledTime(event.sche
                                             try {
                                                 await useSchedulerStore.getState().unscheduleTask(event.id, queryClient);
                                             } catch (error) {
-                                                console.error('Error unscheduling task:', error);
+                                                // Error handled by unscheduleTask
                                             }
                                         }}
                                         onMouseDown={(e) => {

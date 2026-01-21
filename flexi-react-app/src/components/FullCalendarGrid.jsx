@@ -46,7 +46,6 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
       
       return [];
     } catch (error) {
-      console.warn('Failed to get task segments:', error);
       return [];
     }
   }, [getTaskOccupiedSegments]);
@@ -165,7 +164,7 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
           format(endDate, 'yyyy-MM-dd')
         );
       } catch (error) {
-        console.error('Failed to load machine availability data:', error);
+        // Data loading handled by React Query
       } finally {
         setIsLoading(false);
       }
@@ -205,7 +204,6 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
     try {
       await toggleMachineHourAvailability(machine.id, dateStr, hour);
     } catch (error) {
-      console.error('Failed to toggle machine hour availability:', error);
       showAlert('An unexpected error occurred.', 'error');
     } finally {
       setUpdatingSlots(prev => ({ ...prev, [slotKey]: false }));
@@ -219,16 +217,8 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
     
     if (props.type === 'availability') {
       // Handle availability event click
-      console.log('Availability event clicked:', props);
     } else {
       // Handle scheduled task event click
-      console.log('Scheduled task clicked:', {
-        odpNumber: props.odpNumber,
-        articleCode: props.articleCode,
-        quantity: props.quantity,
-        start: event.start,
-        end: event.end
-      });
     }
   }, []);
 

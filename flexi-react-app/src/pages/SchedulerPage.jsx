@@ -182,7 +182,6 @@ function SchedulerPage() {
         };
       }
     } catch (error) {
-      console.warn('Failed to parse saved filters, using defaults:', error);
       localStorage.removeItem('schedulerFilters');
     }
     return initialFilterState;
