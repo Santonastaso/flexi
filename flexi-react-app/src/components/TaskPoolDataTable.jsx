@@ -133,8 +133,8 @@ function TaskPoolDataTable({ filterByCost = true }) {
     };
   }, [refetch]);
 
-  // Use query data if available, fallback to store data
-  const tasks = queryTasks.length > 0 ? queryTasks : storeTasks;
+  // Use query data directly (no fallback needed after refactoring)
+  const tasks = queryTasks;
 
   // Memoize unscheduled tasks filtering for better performance
   const unscheduledTasks = useMemo(() => {

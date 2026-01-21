@@ -214,9 +214,21 @@ export class SpotifyQueueScheduler {
    * @param {Array} allOrders - All orders from React Query
    */
   scheduleTaskAtEnd = async (machineId, taskId, allOrders) => {
+    console.log('📋 SCHEDULE DEBUG:', {
+      taskId,
+      machineId,
+      allOrdersCount: allOrders.length,
+      allOrderIds: allOrders.map(o => o.id),
+      taskExists: allOrders.some(o => o.id === taskId)
+    });
+    
     const task = allOrders.find(o => o.id === taskId);
     
     if (!task) {
+      console.error('❌ Task not found in allOrders:', {
+        taskId,
+        availableIds: allOrders.slice(0, 10).map(o => ({ id: o.id, status: o.status }))
+      });
       return { error: 'Task not found' };
     }
     
