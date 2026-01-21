@@ -7,9 +7,11 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { useSchedulerStore, useUIStore } from '../store';
 import { useMachines, useOrders } from '../hooks';
 import { format, parseISO } from 'date-fns';
-import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 import { showError } from '../utils';
 import { AppConfig } from '../services/config';
+import { convertCETHourToUTC, ITALY_TIMEZONE } from '../utils/dateFormatting';
+import { CALENDAR_CONSTANTS, isWithinWorkHours } from '../utils/calendarConstants';
 
 function FullCalendarGrid({ machineId, refreshTrigger }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -113,17 +115,13 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
             const hourInt = parseInt(hour);
             
             // Only render hours between 6:00 and 22:00 (same as Gantt chart)
-            if (hourInt < 6 || hourInt >= 22) {
+            // Only show slots within work hours
+            if (!isWithinWorkHours(hourInt)) {
               return;
             }
             
             // Unavailable hours are stored as CET hours - convert to UTC for FullCalendar
-            const [year, month, day] = dateStr.split('-').map(Number);
-            const baseDateUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-            const dateInRome = toZonedTime(baseDateUTC, 'Europe/Rome');
-            dateInRome.setHours(hourInt, 0, 0, 0);
-            const startTime = fromZonedTime(dateInRome, 'Europe/Rome');
-            
+            const startTime = convertCETHourToUTC(dateStr, hourInt);
             const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
             
             events.push({
@@ -246,7 +244,7 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
     },
     height: 'auto',
     locale: 'it',
-    timeZone: 'Europe/Rome', // Italian timezone for all times and now indicator
+    timeZone: ITALY_TIMEZONE, // Italian timezone for all times and now indicator
     nowIndicator: true, // Enable the now indicator (red line)
     firstDay: AppConfig.APP.FIRST_DAY_OF_WEEK, // Monday as first day of week
     hiddenDays: [0], // Hide Sunday (0 = Sunday)

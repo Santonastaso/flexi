@@ -5,13 +5,14 @@ import { useUIStore } from '../store';
 import { useOrders } from '../hooks';
 import { format, startOfDay, endOfDay, startOfWeek, isSameDay, addDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
+import { formatScheduledTime, formatDeliveryDate, ITALY_TIMEZONE } from '../utils/dateFormatting';
 import { getTaskSegments } from '../utils/taskSegments';
 import { AppConfig } from '../services/config';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMachineAvailabilityForDateAllMachines } from '../hooks/useQueries';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { CALENDAR_CONSTANTS } from '../utils/calendarConstants';
 
 
 // A single 15-minute time slot on the calendar that can receive a dropped task
@@ -26,7 +27,7 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
   const isDropTarget = dropTargetId === slotId;
   
   // Check if this slot should show drag preview
-  const currentSlot = (hour - 6) * 4 + Math.floor(minute / 15);
+  const currentSlot = (hour - CALENDAR_CONSTANTS.WORK_START_HOUR) * CALENDAR_CONSTANTS.SLOTS_PER_HOUR + Math.floor(minute / CALENDAR_CONSTANTS.MINUTES_PER_SLOT);
   const isInDragPreview = dragPreview?.isActive && 
     dragPreview.machineId === machine.id &&
     currentSlot >= dragPreview.startSlot && 
@@ -767,19 +768,19 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
     []
   );
 
-  // Calculate current time position - hardcoded to CET/Europe/Rome timezone
+  // Calculate current time position - hardcoded to CET timezone
   useEffect(() => {
     const updateCurrentTime = () => {
-      // Get current time in Italian timezone (Europe/Rome - CET/CEST)
-      const nowInItaly = toZonedTime(new Date(), 'Europe/Rome');
+      // Get current time in Italian timezone
+      const nowInItaly = toZonedTime(new Date(), ITALY_TIMEZONE);
       const hour = nowInItaly.getHours();
       const minute = nowInItaly.getMinutes();
       
-      // Only show if within visible range (6 AM to 10 PM CET time)
-      if (hour >= 6 && hour < 22) {
-        const slot = (hour - 6) * 4 + Math.floor(minute / 15);
-        const minuteOffset = (minute % 15) / 15;
-        const position = slot * 15 + minuteOffset * 15;
+      // Only show if within work hours
+      if (hour >= CALENDAR_CONSTANTS.WORK_START_HOUR && hour < CALENDAR_CONSTANTS.WORK_END_HOUR) {
+        const slot = (hour - CALENDAR_CONSTANTS.WORK_START_HOUR) * CALENDAR_CONSTANTS.SLOTS_PER_HOUR + Math.floor(minute / CALENDAR_CONSTANTS.MINUTES_PER_SLOT);
+        const minuteOffset = (minute % CALENDAR_CONSTANTS.MINUTES_PER_SLOT) / CALENDAR_CONSTANTS.MINUTES_PER_SLOT;
+        const position = slot * CALENDAR_CONSTANTS.SLOT_WIDTH_PX + minuteOffset * CALENDAR_CONSTANTS.SLOT_WIDTH_PX;
         setCurrentTimePosition(position);
       } else {
         setCurrentTimePosition(null);

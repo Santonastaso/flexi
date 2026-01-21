@@ -1,8 +1,8 @@
 import { apiService } from '../../services';
 import { format, addDays } from 'date-fns';
-import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { handleApiError, AppError, ERROR_TYPES } from '../../utils/errorHandling';
 import { useUIStore } from '../useUIStore';
+import { convertCETHourToUTC } from '../../utils/dateFormatting';
 
 /**
  * Machine Availability Manager
@@ -224,8 +224,6 @@ export class MachineAvailabilityManager {
       );
 
       // Unavailable hours are in CET timezone - convert properly for overlap checking
-      const [year, month, day] = dateStr.split('-').map(Number);
-
       for (const task of existingTasks) {
         const taskStart = new Date(task.scheduled_start_time);
         const taskEnd = new Date(task.scheduled_end_time);
@@ -234,18 +232,8 @@ export class MachineAvailabilityManager {
         for (const hour of unavailableHours) {
           const hourInt = parseInt(hour);
           
-          // Convert CET hour to UTC for proper comparison
-          // Step 1: Create base UTC date for this day
-          const baseDateUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-          
-          // Step 2: Convert to Europe/Rome timezone
-          const dateInRome = toZonedTime(baseDateUTC, 'Europe/Rome');
-          
-          // Step 3: Set the hour in CET time
-          dateInRome.setHours(hourInt, 0, 0, 0);
-          
-          // Step 4: Convert back to UTC
-          const hourStart = fromZonedTime(dateInRome, 'Europe/Rome');
+          // Convert CET hour to UTC using centralized utility function
+          const hourStart = convertCETHourToUTC(dateStr, hourInt);
           const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
           
           if (hourStart < taskEnd && hourEnd > taskStart) {

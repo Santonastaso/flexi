@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
-import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { apiService } from '../../services/api';
+import { convertCETHourToUTC } from '../../utils/dateFormatting';
+import { CALENDAR_CONSTANTS } from '../../utils/calendarConstants';
 
 /**
  * Spotify Queue Scheduler
@@ -100,25 +101,12 @@ export class SpotifyQueueScheduler {
         const machineData = dateAvailability.find(ma => ma.machine_id === machineId);
         
         if (machineData && Array.isArray(machineData.unavailable_hours)) {
-          const [year, month, day] = dateStr.split('-').map(Number);
-          
           for (const hour of machineData.unavailable_hours) {
             const hourInt = parseInt(hour);
             
             // Unavailable hours are stored as CET hours (e.g., 12 = 12:00 CET)
-            // We need to convert this to UTC for proper comparison with scheduled times
-            
-            // Step 1: Create a base date in UTC for the start of this day
-            const baseDateUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-            
-            // Step 2: Convert to Europe/Rome timezone to get midnight in CET
-            const dateInRome = toZonedTime(baseDateUTC, 'Europe/Rome');
-            
-            // Step 3: Set the hour in CET time
-            dateInRome.setHours(hourInt, 0, 0, 0);
-            
-            // Step 4: Convert back from CET to UTC
-            const slotStart = fromZonedTime(dateInRome, 'Europe/Rome');
+            // Convert to UTC using centralized utility function
+            const slotStart = convertCETHourToUTC(dateStr, hourInt);
             const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
             
             unavailableSlots.push({ start: slotStart, end: slotEnd });

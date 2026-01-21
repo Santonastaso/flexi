@@ -3,7 +3,7 @@ import { DndContext, DragOverlay, PointerSensor, MouseSensor, useSensor, useSens
 import { useUIStore, useMainStore } from '../store';
 import { useOrders, useMachines, useScheduledOrders, useOrdersByWorkCenter } from '../hooks';
 import { format, startOfWeek, addWeeks, subWeeks } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
+import { getTodayInCET, getDateInCET } from '../utils/dateFormatting';
 
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
 import { showError } from '../utils';
@@ -127,12 +127,7 @@ function SchedulerPage() {
   );
 
   // Initialize with CET today
-  const [currentDate, setCurrentDate] = useState(() => {
-    const now = new Date();
-    const nowInCET = toZonedTime(now, 'Europe/Rome');
-    // Create a UTC date object representing midnight CET on the current CET day
-    return new Date(Date.UTC(nowInCET.getFullYear(), nowInCET.getMonth(), nowInCET.getDate()));
-  });
+  const [currentDate, setCurrentDate] = useState(() => getTodayInCET());
   const [activeDragItem, setActiveDragItem] = useState(null);
   
   
@@ -306,10 +301,7 @@ function SchedulerPage() {
       setCurrentDate(prevDate => {
         if (direction === 'today') {
           // Use CET today
-          const now = new Date();
-          const nowInCET = toZonedTime(now, 'Europe/Rome');
-          // Create a UTC date object representing midnight CET on the current CET day
-          newDate = new Date(Date.UTC(nowInCET.getFullYear(), nowInCET.getMonth(), nowInCET.getDate()));
+          newDate = getTodayInCET();
           return newDate;
         } else if (direction === 'prev') {
           if (view === 'Weekly') {
@@ -350,9 +342,7 @@ function SchedulerPage() {
 
   const formatDateDisplay = useCallback(() => {
     // Use CET today for comparison
-    const now = new Date();
-    const nowInCET = toZonedTime(now, 'Europe/Rome');
-    const cetToday = new Date(Date.UTC(nowInCET.getFullYear(), nowInCET.getMonth(), nowInCET.getDate()));
+    const cetToday = getTodayInCET();
     
     // currentDate represents a CET day, so compare directly
     const isToday = currentDate.getTime() === cetToday.getTime();
@@ -416,9 +406,7 @@ function SchedulerPage() {
     // Navigate to the start date of the task in CET timezone
     if (task.scheduled_start_time) {
       const taskDate = new Date(task.scheduled_start_time);
-      const taskDateInCET = toZonedTime(taskDate, 'Europe/Rome');
-      // Create a UTC date object representing midnight CET on the task's CET day
-      setCurrentDate(new Date(Date.UTC(taskDateInCET.getFullYear(), taskDateInCET.getMonth(), taskDateInCET.getDate())));
+      setCurrentDate(getDateInCET(taskDate));
     }
     
     // Clear the appropriate search input based on field
