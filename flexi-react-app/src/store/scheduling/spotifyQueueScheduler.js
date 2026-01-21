@@ -315,7 +315,14 @@ export class SpotifyQueueScheduler {
     const actualOldIndex = queue.findIndex(t => t.id === taskId);
     
     if (actualOldIndex === -1) {
-      return { error: 'Task not found in queue' };
+      // Task not in filtered queue - check if it exists in allOrders
+      const task = allOrders.find(t => t.id === taskId);
+      if (!task) {
+        return { error: 'Task not found in orders' };
+      }
+      // Task exists but not in queue - likely stale cache or task state changed
+      // Try to refresh from DB by returning error that UI can handle
+      return { error: 'Task not found in queue - cache may be stale' };
     }
     
     // Validate new index

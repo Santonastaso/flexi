@@ -398,7 +398,17 @@ function SpotifySchedulerPage() {
           const result = await reorderTaskInQueue(draggedMachineId, draggedTaskId, oldIndex, newIndex, orders);
           
           if (result.error) {
-            showError(result.error);
+            // If cache is stale, refetch and inform user
+            if (result.error.includes('cache may be stale')) {
+              await queryClient.refetchQueries({ 
+                queryKey: ['orders'],
+                exact: true,
+                type: 'active'
+              });
+              showError('Cache non aggiornata. Riprova l\'operazione.');
+            } else {
+              showError(result.error);
+            }
           } else {
             // Force immediate refetch to update cache
             await queryClient.refetchQueries({ 
