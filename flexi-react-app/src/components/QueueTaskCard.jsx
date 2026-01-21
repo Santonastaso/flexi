@@ -104,8 +104,8 @@ function QueueTaskCard({ task, index, machineId }) {
         const { showError } = await import('../utils/toast');
         showError(result.error);
       } else {
-        // Refresh the queue
-        await queryClient.invalidateQueries({ queryKey: ['orders'] });
+        // Refresh the queue and WAIT for it to complete
+        await queryClient.refetchQueries({ queryKey: ['orders'] });
         const { showSuccess } = await import('../utils/toast');
         showSuccess('Lavoro rimosso dalla coda');
       }

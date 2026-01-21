@@ -244,15 +244,17 @@ export class SpotifyQueueScheduler {
    * @param {Array} allOrders - All orders from React Query
    */
   scheduleTaskAtEnd = async (machineId, taskId, allOrders) => {
+    const task = allOrders.find(o => o.id === taskId);
+    
     console.log('📋 SCHEDULE DEBUG:', {
       taskId,
       machineId,
       allOrdersCount: allOrders.length,
-      allOrderIds: allOrders.map(o => o.id),
-      taskExists: allOrders.some(o => o.id === taskId)
+      taskExists: allOrders.some(o => o.id === taskId),
+      taskStatus: task?.status,
+      taskScheduledMachine: task?.scheduled_machine_id,
+      taskScheduledStart: task?.scheduled_start_time
     });
-    
-    const task = allOrders.find(o => o.id === taskId);
     
     if (!task) {
       console.error('❌ Task not found in allOrders:', {
@@ -263,7 +265,11 @@ export class SpotifyQueueScheduler {
     }
     
     if (task.status === 'SCHEDULED') {
-      return { error: 'Task is already scheduled' };
+      console.warn('⚠️ Task is already scheduled, but attempting to reschedule anyway');
+      // Allow rescheduling if it's not on this specific machine
+      if (task.scheduled_machine_id === machineId) {
+        return { error: 'Task is already scheduled on this machine' };
+      }
     }
     
     const duration = task.time_remaining || task.duration || 0;
