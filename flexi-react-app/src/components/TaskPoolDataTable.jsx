@@ -15,10 +15,8 @@ import { format } from 'date-fns';
 import DataTable from './DataTable';
 
 // Gantt Actions Cell Component
-const GanttActionsCell = ({ task, schedulingLoading, conflictDialog }) => {
+const GanttActionsCell = ({ task, schedulingLoading }) => {
   const navigate = useNavigate();
-  const { updateOdpOrder: _updateOdpOrder } = useOrderStore();
-  const { handleAsync: _handleAsync } = useErrorHandler('TaskPoolDataTable');
 
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: `task-${task.id}`,

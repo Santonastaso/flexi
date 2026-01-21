@@ -167,13 +167,6 @@ export const useMainStore = create((set, get) => ({
         // Initialize empty machine availability
         initializeEmptyMachineAvailability();
         
-        // Restore split task information from database
-        const { restoreSplitTaskInfo, migrateExistingTasksToSegmentFormat } = useSchedulerStore.getState();
-        restoreSplitTaskInfo();
-        
-        // Migrate existing tasks to new bulletproof segment format
-        await migrateExistingTasksToSegmentFormat();
-        
         // Step 3: Setup real-time subscriptions with error handling
         const { realtimeChannel: existingChannel } = get();
         if (!existingChannel) {

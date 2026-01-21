@@ -27,12 +27,6 @@ export const useUIStore = create((set, get) => ({
     onConfirm: null,
     type: 'danger'
   },
-  
-  // Conflict resolution dialog state
-  conflictDialog: {
-    isOpen: false,
-    details: null
-  },
 
   // Drag preview state
   dragPreview: {
@@ -48,7 +42,6 @@ export const useUIStore = create((set, get) => ({
   getSelectedWorkCenter: () => get().selectedWorkCenter,
   getEditMode: () => get().isEditMode,
   getConfirmDialog: () => get().confirmDialog,
-  getConflictDialog: () => get().conflictDialog,
   getSchedulingLoading: () => get().schedulingLoading,
   getDragPreview: () => get().dragPreview,
 
@@ -99,15 +92,6 @@ export const useUIStore = create((set, get) => ({
   hideConfirmDialog: () => set({
     confirmDialog: { isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' }
   }),
-  
-  // Conflict dialog actions
-  showConflictDialog: (details) => set({
-    conflictDialog: { isOpen: true, details }
-  }),
-  
-  hideConflictDialog: () => set({
-    conflictDialog: { isOpen: false, details: null }
-  }),
 
   // Drag preview actions
   setDragPreview: (previewData) => set({
@@ -130,7 +114,6 @@ export const useUIStore = create((set, get) => ({
     isEditMode: false,
     schedulingLoading: { isScheduling: false, isRescheduling: false, isShunting: false, isNavigating: false, operationType: null, taskId: null },
     confirmDialog: { isOpen: false, title: '', message: '', onConfirm: null, type: 'danger' },
-    conflictDialog: { isOpen: false, details: null },
     dragPreview: { isActive: false, startSlot: null, durationSlots: 0, machineId: null }
   }),
 }));

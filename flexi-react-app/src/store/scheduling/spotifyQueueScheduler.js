@@ -425,7 +425,7 @@ export class SpotifyQueueScheduler {
     
     if (result.error) {
       // Clean up - delete the task if scheduling failed
-      await apiService.deleteOdpOrder(createdTask.id);
+      await apiService.removeOdpOrder(createdTask.id);
       return { error: result.error };
     }
     

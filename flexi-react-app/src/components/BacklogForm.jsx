@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { useUIStore, useSchedulerStore, useOrderStore } from '../store';
+import { useUIStore, useOrderStore } from '../store';
 import { useProductionCalculations, useValidation, useAddOrder, useUpdateOrder } from '../hooks';
 import { usePhaseSearch } from '../hooks/usePhaseSearch';
-import { showValidationError, showSuccess, showWarning, showError } from '../utils';
+import { showValidationError, showSuccess, showWarning, showInfo } from '../utils';
 import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES } from '../constants';
-import { useErrorHandler } from '../hooks';
 import { backlogFormConfig } from './formConfigs';
 import GenericForm from './GenericForm';
 import {
@@ -15,10 +14,8 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 
 const BacklogForm = ({ onSuccess, orderToEdit }) => {
-  const { selectedWorkCenter, showConflictDialog } = useUIStore();
-  const { scheduleTaskFromSlot, unscheduleTask } = useSchedulerStore();
+  const { selectedWorkCenter } = useUIStore();
   const { calculateProductionMetrics, validatePhaseParameters, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
-  const { handleAsync } = useErrorHandler('BacklogForm');
   const { validateOrder } = useValidation();
   
   // React Query mutations
@@ -98,16 +95,13 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     if (articleCode) {
       const dept = autoDetermineDepartment(articleCode);
       setValue('department', dept);
-      if (selectedWorkCenter === WORK_CENTERS.BOTH) {
-        setValue('work_center', autoDetermineWorkCenter(articleCode));
-      }
-      setValue('fase', '');
-      setPhaseSearch('');
-      setSelectedPhase(null);
-      setEditablePhaseParams({});
-      setCalculationResults(null);
+      setDepartment(dept);
+      
+      const wc = autoDetermineWorkCenter(articleCode);
+      setValue('work_center', wc);
+      setWorkCenter(wc);
     }
-  }, [autoDetermineDepartment, autoDetermineWorkCenter, selectedWorkCenter, setPhaseSearch, setSelectedPhase, setEditablePhaseParams]);
+  }, [autoDetermineDepartment, autoDetermineWorkCenter]);
 
   const handleSubmit = async (data) => {
     const validation = validateOrder(data);
@@ -153,7 +147,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       return;
     }
 
-    await handleAsync(async () => {
+    try {
       // Filter out UI-only fields that shouldn't be sent to the database
       const { phase_search, ...dbData } = data;
       
@@ -178,166 +172,53 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         product_type: dbData.product_type === '' ? null : dbData.product_type
       };
       
-      let updatedOrder;
       if (isEditMode) {
-        // 1. Store new duration and compute time_remaining
+        // Calculate new duration
         const baseDuration = calculationResults?.totals?.duration || orderToEdit.duration;
         const newDuration = baseDuration + (parseFloat(additionalHours) || 0);
         const progress = (orderToEdit.quantity_completed / orderToEdit.quantity) || 0;
         const newTimeRemaining = newDuration * (1 - progress);
         
-        // 2. If already scheduled, handle duration changes intelligently
+        // Update order data only (no scheduling)
+        const orderData = { 
+          ...cleanedData, 
+          duration: newDuration,
+          time_remaining: newTimeRemaining,
+          cost: calculationResults?.totals?.cost || null
+        };
+        
+        // Show warning if task is scheduled
         if (orderToEdit.scheduled_machine_id && orderToEdit.scheduled_start_time) {
-          console.log('🔄 EDIT FLOW: Starting rescheduling for task', orderToEdit.id);
-          console.log('📊 EDIT FLOW: Original duration:', orderToEdit.duration, 'New duration:', newDuration);
-          
-          const originalDuration = orderToEdit.duration;
-          const durationDifference = newDuration - originalDuration;
-          
-          if (Math.abs(durationDifference) < 0.01) {
-            // SCENARIO X: Duration stays the same - do nothing, no scheduling
-            console.log('📊 SCENARIO X: Duration unchanged, skipping rescheduling');
-            
-            // Just update the order data without any scheduling changes
-            const orderData = { 
-              ...cleanedData, 
-              duration: newDuration, 
-              cost: calculationResults?.totals?.cost || null
-            };
-            updatedOrder = await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
-          } else if (durationDifference > 0) {
-            // SCENARIO Y: Duration increase - keep the code exactly as it is
-            console.log('📈 SCENARIO Y: Duration increased, using standard rescheduling');
-            
-            const startDate = new Date(orderToEdit.scheduled_start_time);
-            const hour = startDate.getUTCHours();
-            const minute = startDate.getUTCMinutes();
-            const currentDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
-            
-            console.log('📅 EDIT FLOW: Start date:', startDate.toISOString());
-            console.log('⏰ EDIT FLOW: Hour:', hour, 'Minute:', minute);
-            console.log('📆 EDIT FLOW: Current date:', currentDate.toISOString());
-            
-            // First update the task with new duration so scheduleTaskFromSlot can use it
-            const tempUpdateData = { duration: newDuration };
-            console.log('💾 EDIT FLOW: Updating task with new duration:', tempUpdateData);
-            await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: tempUpdateData });
-            
-            // Wait a moment for the store to be updated
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // Verify the task was updated in the store
-            const { getOrderById } = useOrderStore.getState();
-            const updatedTaskBeforeScheduling = getOrderById(orderToEdit.id);
-            console.log('🔍 EDIT FLOW: Task duration after update:', updatedTaskBeforeScheduling?.duration);
-            
-            // Unschedule the task first (like removing it from the Gantt)
-            console.log('🔄 EDIT FLOW: Unscheduling task first');
-            await unscheduleTask(orderToEdit.id, queryClient);
-            
-            // Wait a moment for unscheduling to complete
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // 3. Now reschedule it with the new time remaining (like dropping it fresh)
-            const machine = { id: orderToEdit.scheduled_machine_id };
-            console.log('🎯 EDIT FLOW: Calling scheduleTaskFromSlot with:', {
-              taskId: orderToEdit.id,
-              machine: machine,
-              currentDate: currentDate.toISOString(),
-              hour,
-              minute,
-              timeRemaining: newTimeRemaining
-            });
-            
-            const result = await scheduleTaskFromSlot(orderToEdit.id, machine, currentDate, hour, minute, newTimeRemaining, queryClient);
-            console.log('📋 EDIT FLOW: scheduleTaskFromSlot result:', result);
-            
-            if (result?.conflict) {
-              console.log('⚠️ EDIT FLOW: Conflict detected, showing dialog');
-              // Add scheduling parameters to the conflict details so the dialog can retry
-              const conflictWithParams = {
-                ...result,
-                schedulingParams: {
-                  taskId: orderToEdit.id,
-                  machine: machine,
-                  currentDate: currentDate,
-                  hour: hour,
-                  minute: minute,
-                  newDuration: newTimeRemaining,
-                  originalConflict: result
-                }
-              };
-              showConflictDialog(conflictWithParams);
-              return; // Don't continue if there's a conflict
-            } else if (result?.error) {
-              console.log('❌ EDIT FLOW: Error:', result.error);
-              showError(result.error);
-              return; // Don't continue if there's an error
-            } else {
-              console.log('✅ EDIT FLOW: Scheduling successful');
-            }
-            
-            // 4. Use the updated task data from the scheduling result
-            const updatedTask = result?.updatedTask;
-            console.log('📋 EDIT FLOW: Updated task from scheduling result:', updatedTask);
-            
-            // Update database with form fields + new scheduling info from the updated task
-            const orderData = { 
-              ...cleanedData, 
-              duration: newDuration, 
-              cost: calculationResults?.totals?.cost || null,
-              scheduled_start_time: updatedTask?.scheduled_start_time || startDate.toISOString(),
-              scheduled_end_time: updatedTask?.scheduled_end_time || new Date(startDate.getTime() + newDuration * 3600000).toISOString(),
-              description: updatedTask?.description || orderToEdit.description
-            };
-            
-            console.log('💾 EDIT FLOW: Final order data to save:', orderData);
-            updatedOrder = await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
-            console.log('✅ EDIT FLOW: Final update completed:', updatedOrder);
-          } else {
-            // SCENARIO Z: Duration decrease - new function with adjacent task detection
-            console.log('📉 SCENARIO Z: Duration decreased, using adjacent task rescheduling');
-            
-            const result = await handleDurationDecreaseRescheduling(
-              orderToEdit.id, 
-              newDuration, 
-              newTimeRemaining, 
-              cleanedData, 
-              calculationResults?.totals?.cost || null,
-              queryClient,
-              updateOrderMutation,
-              scheduleTaskFromSlot,
-              unscheduleTask,
-              showConflictDialog,
-              showError
-            );
-            
-            if (result?.error) {
-              console.log('❌ SCENARIO Z: Error:', result.error);
-              showError(result.error);
-              return;
-            }
-            
-            updatedOrder = result.updatedOrder;
-            console.log('✅ SCENARIO Z: Duration decrease rescheduling completed:', updatedOrder);
-          }
-        } else {
-          // Not scheduled, just update the order data
-          const orderData = { ...cleanedData, duration: newDuration, cost: calculationResults?.totals?.cost || null };
-          updatedOrder = await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
+          showInfo('⚠️ Attenzione: Il task è già schedulato. Le modifiche ai dati sono state salvate, ma dovrai riposizionarlo nella coda Spotify se la durata è cambiata.');
         }
+        
+        await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
+        showSuccess('Ordine aggiornato con successo');
       } else {
-        // New order
+        // New order - create with PENDING status
         const baseDuration = calculationResults?.totals?.duration || null;
         const finalDuration = baseDuration ? baseDuration + (parseFloat(additionalHours) || 0) : null;
-        const orderData = { ...cleanedData, duration: finalDuration, cost: calculationResults?.totals?.cost || null, status: 'NOT SCHEDULED' };
-        updatedOrder = await addOrderMutation.mutateAsync(orderData);
+        const orderData = { 
+          ...cleanedData, 
+          duration: finalDuration, 
+          time_remaining: finalDuration,
+          cost: calculationResults?.totals?.cost || null, 
+          status: 'PENDING' 
+        };
+        
+        await addOrderMutation.mutateAsync(orderData);
+        showSuccess('✅ Ordine creato con successo! Vai alla pagina Spotify Scheduler per aggiungerlo alla coda di una macchina.');
       }
 
+      // Invalidate React Query cache
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      
       if (onSuccess) onSuccess();
       resetFormAndPhaseState();
-      showSuccess(isEditMode ? 'Ordine aggiornato con successo' : 'Ordine aggiunto con successo');
-    }, { context: isEditMode ? 'Aggiorna Ordine' : 'Aggiungi Ordine', fallbackMessage: isEditMode ? 'Aggiornamento ordine fallito' : 'Aggiunta ordine fallita' });
+    } catch (error) {
+      console.error('❌ Error in form submission:', error);
+      showValidationError(['Si è verificato un errore durante il salvataggio dell\'ordine']);
+    }
   };
 
   const handleCalculate = () => {
@@ -359,284 +240,35 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     
     const phaseForCalculation = { ...selectedPhase, ...editablePhaseParams };
     const validation = validatePhaseParameters(phaseForCalculation);
+    
     if (!validation.isValid) {
-      showError(validation.error);
-      setCalculationResults(null);
+      showWarning(`Parametri fase non validi: ${Object.values(validation.errors).join(', ')}`);
       return;
     }
     
-    // For CONFEZIONAMENTO, bagStep is not needed, so we can pass null
-    const bagStepForCalculation = selectedPhase.department === DEPARTMENT_TYPES.PRINTING ? bagStep : null;
-    const results = calculateProductionMetrics(phaseForCalculation, quantity, bagStepForCalculation);
-    if (!results || typeof results.totals?.duration !== 'number' || typeof results.totals?.cost !== 'number') {
-      showError("Errore nel calcolo. Verifica i parametri della fase.");
-      setCalculationResults(null);
-      return;
+    try {
+      const results = calculateProductionMetrics(phaseForCalculation, quantity, bagStep);
+      setCalculationResults(results);
+      showSuccess("Calcolo completato con successo!");
+    } catch (error) {
+      showWarning("Errore durante il calcolo delle metriche.");
+      console.error(error);
     }
-    setCalculationResults(results);
   };
+
+  const getPhaseFields = useCallback(() => {
+    if (!selectedPhase) return [];
+    
+    const phaseParams = [
+      { name: 'produzione_oraria', label: 'Produzione Oraria', unit: 'pz/h' },
+      { name: 'costo_orario', label: 'Costo Orario', unit: '€/h' },
+      { name: 'tempo_setup', label: 'Tempo Setup', unit: 'min' },
+    ];
+    
+    return phaseParams;
+  }, [selectedPhase]);
 
   const getPhaseParamValue = (paramName) => editablePhaseParams[paramName] ?? selectedPhase[paramName] ?? '';
-
-  // SCENARIO Z: Handle duration decrease with adjacent task detection and rescheduling
-  const handleDurationDecreaseRescheduling = async (taskId, newDuration, newTimeRemaining, cleanedData, cost, queryClient, updateOrderMutation, scheduleTaskFromSlot, unscheduleTask, showConflictDialog, showError) => {
-    try {
-      console.log('📉 SCENARIO Z: Starting duration decrease rescheduling for task', taskId);
-      
-      const { getOrderById, getOdpOrders } = useOrderStore.getState();
-      
-      // Get current task data
-      const currentTask = getOrderById(taskId);
-      if (!currentTask) {
-        return { error: 'Task not found' };
-      }
-      
-      const startDate = new Date(currentTask.scheduled_start_time);
-      const hour = startDate.getUTCHours();
-      const minute = startDate.getUTCMinutes();
-      const currentDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
-      const machine = { id: currentTask.scheduled_machine_id };
-      
-      console.log('📅 SCENARIO Z: Current task start:', startDate.toISOString());
-      console.log('📅 SCENARIO Z: New time remaining:', newTimeRemaining);
-      
-      // STEP 1: Find ENTIRE CHAIN of adjacent tasks BEFORE any rescheduling
-      // Use the ACTUAL scheduled end time from the database (handles split tasks correctly)
-      const currentEndTime = new Date(currentTask.scheduled_end_time);
-      console.log('📅 SCENARIO Z: Current end time for task A (from DB):', currentEndTime.toISOString());
-      
-      // Find the complete chain of adjacent tasks BEFORE any rescheduling
-      const allTasks = getOdpOrders();
-      const adjacentTasksChain = [];
-      let currentEndTimeForChain = currentEndTime;
-      
-      console.log('🔍 SCENARIO Z: Starting to find chain of adjacent tasks...');
-      
-      // Find continuous chain of adjacent tasks starting from task A's current end time
-      while (true) {
-        const nextAdjacentTask = allTasks.find(task => {
-          if (task.id === taskId || !task.scheduled_machine_id || !task.scheduled_start_time || task.status !== 'SCHEDULED') {
-            return false;
-          }
-          
-          // Check if task is on the same machine
-          if (task.scheduled_machine_id !== currentTask.scheduled_machine_id) {
-            return false;
-          }
-          
-          // Check if this task is already in our chain
-          if (adjacentTasksChain.some(chainTask => chainTask.id === task.id)) {
-            return false;
-          }
-          
-          const taskStartTime = new Date(task.scheduled_start_time);
-          const timeDifferenceMinutes = Math.abs(taskStartTime.getTime() - currentEndTimeForChain.getTime()) / (1000 * 60);
-          
-          console.log('🔍 SCENARIO Z: Checking task', task.odp_number, 'start:', taskStartTime.toISOString(), 'diff:', timeDifferenceMinutes, 'minutes', 'against end time:', currentEndTimeForChain.toISOString());
-          
-          return timeDifferenceMinutes <= 120; // Within 2 hours (to catch longer gaps)
-        });
-        
-        if (nextAdjacentTask) {
-          console.log('🔗 SCENARIO Z: Found adjacent task in chain:', nextAdjacentTask.odp_number);
-          adjacentTasksChain.push(nextAdjacentTask);
-          
-          // Update the end time for the next iteration (use actual scheduled end time)
-          currentEndTimeForChain = new Date(nextAdjacentTask.scheduled_end_time);
-          
-          console.log('📅 SCENARIO Z: Next task end time for chain:', currentEndTimeForChain.toISOString());
-          console.log('🔄 SCENARIO Z: Continuing to search for more adjacent tasks...');
-        } else {
-          console.log('🛑 SCENARIO Z: No more adjacent tasks found, stopping chain search');
-          break; // No more adjacent tasks found
-        }
-      }
-      
-      if (adjacentTasksChain.length > 0) {
-        console.log('🔗 SCENARIO Z: Found chain of', adjacentTasksChain.length, 'adjacent tasks:', adjacentTasksChain.map(t => t.odp_number));
-        
-        // STEP 2: Reschedule task A using scenario Y code
-        console.log('🔄 SCENARIO Z: Step 2 - Rescheduling task A');
-        
-        // First update the task with new duration
-        const tempUpdateData = { duration: newDuration };
-        await updateOrderMutation.mutateAsync({ id: taskId, updates: tempUpdateData });
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Unschedule task A
-        await unscheduleTask(taskId, queryClient);
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Reschedule task A with new time remaining
-        const resultA = await scheduleTaskFromSlot(taskId, machine, currentDate, hour, minute, newTimeRemaining, queryClient);
-        
-        if (resultA?.conflict) {
-          console.log('⚠️ SCENARIO Z: Conflict detected for task A, showing dialog');
-          const conflictWithParams = {
-            ...resultA,
-            schedulingParams: {
-              taskId: taskId,
-              machine: machine,
-              currentDate: currentDate,
-              hour: hour,
-              minute: minute,
-              newDuration: newTimeRemaining,
-              originalConflict: resultA
-            }
-          };
-          showConflictDialog(conflictWithParams);
-          return { error: 'Conflict detected for task A' };
-        } else if (resultA?.error) {
-          console.log('❌ SCENARIO Z: Error rescheduling task A:', resultA.error);
-          return { error: resultA.error };
-        }
-        
-        console.log('✅ SCENARIO Z: Task A rescheduled successfully');
-        
-        // STEP 3: Reschedule all tasks in the chain sequentially
-        console.log('🔄 SCENARIO Z: Step 3 - Rescheduling chain of', adjacentTasksChain.length, 'tasks');
-        
-        // Use the scheduling result from task A to get its new end time
-        let currentEndTimeForRescheduling = new Date(resultA.schedulingResult.endTime);
-        const reschedulingResults = [];
-        
-        // Reschedule each task in the chain sequentially
-        for (let i = 0; i < adjacentTasksChain.length; i++) {
-          const chainTask = adjacentTasksChain[i];
-          console.log(`🔄 SCENARIO Z: Rescheduling chain task ${i + 1}/${adjacentTasksChain.length}:`, chainTask.odp_number);
-          
-          // Calculate new start time for this chain task (at end of previous task)
-          const newStartHour = currentEndTimeForRescheduling.getUTCHours();
-          const newStartMinute = currentEndTimeForRescheduling.getUTCMinutes();
-          const newStartDate = new Date(Date.UTC(currentEndTimeForRescheduling.getUTCFullYear(), currentEndTimeForRescheduling.getUTCMonth(), currentEndTimeForRescheduling.getUTCDate()));
-          
-          console.log('📅 SCENARIO Z: Chain task new start time:', currentEndTimeForRescheduling.toISOString());
-          console.log('⏰ SCENARIO Z: Chain task new hour:', newStartHour, 'minute:', newStartMinute);
-          
-          // Get chain task's time remaining
-          const chainTaskTimeRemaining = chainTask.time_remaining || chainTask.duration || 1;
-          console.log('📊 SCENARIO Z: Chain task time remaining:', chainTaskTimeRemaining);
-          
-          // Unschedule chain task
-          await unscheduleTask(chainTask.id, queryClient);
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          // Reschedule chain task using scenario Y code
-          const resultChainTask = await scheduleTaskFromSlot(chainTask.id, machine, newStartDate, newStartHour, newStartMinute, chainTaskTimeRemaining, queryClient);
-          
-          if (resultChainTask?.conflict) {
-            console.log('⚠️ SCENARIO Z: Conflict detected for chain task', chainTask.odp_number, ', showing dialog');
-            const conflictWithParams = {
-              ...resultChainTask,
-              schedulingParams: {
-                taskId: chainTask.id,
-                machine: machine,
-                currentDate: newStartDate,
-                hour: newStartHour,
-                minute: newStartMinute,
-                newDuration: chainTaskTimeRemaining,
-                originalConflict: resultChainTask
-              }
-            };
-            showConflictDialog(conflictWithParams);
-            return { error: `Conflict detected for chain task ${chainTask.odp_number}` };
-          } else if (resultChainTask?.error) {
-            console.log('❌ SCENARIO Z: Error rescheduling chain task', chainTask.odp_number, ':', resultChainTask.error);
-            return { error: `Error rescheduling chain task ${chainTask.odp_number}: ${resultChainTask.error}` };
-          }
-          
-          console.log('✅ SCENARIO Z: Chain task', chainTask.odp_number, 'rescheduled successfully');
-          reschedulingResults.push(resultChainTask);
-          
-          // Update the end time for the next iteration (this task's new end time)
-          currentEndTimeForRescheduling = new Date(resultChainTask.schedulingResult.endTime);
-          console.log('📅 SCENARIO Z: Updated end time for next chain task:', currentEndTimeForRescheduling.toISOString());
-        }
-        
-        console.log('✅ SCENARIO Z: All', adjacentTasksChain.length, 'chain tasks rescheduled successfully');
-        
-        // Update database with form fields + new scheduling info
-        const finalUpdatedTaskA = resultA?.updatedTask;
-        const orderData = { 
-          ...cleanedData, 
-          duration: newDuration, 
-          cost: cost,
-          scheduled_start_time: finalUpdatedTaskA?.scheduled_start_time || startDate.toISOString(),
-          scheduled_end_time: finalUpdatedTaskA?.scheduled_end_time || new Date(startDate.getTime() + newDuration * 3600000).toISOString(),
-          description: finalUpdatedTaskA?.description || currentTask.description
-        };
-        
-        const updatedOrder = await updateOrderMutation.mutateAsync({ id: taskId, updates: orderData });
-        console.log('✅ SCENARIO Z: Task A and', adjacentTasksChain.length, 'chain tasks rescheduled successfully');
-        
-        return { updatedOrder };
-      } else {
-        console.log('📊 SCENARIO Z: No adjacent task found, using standard rescheduling');
-        
-        // No adjacent task found, use standard rescheduling (scenario Y code)
-        const tempUpdateData = { duration: newDuration };
-        await updateOrderMutation.mutateAsync({ id: taskId, updates: tempUpdateData });
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        await unscheduleTask(taskId, queryClient);
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const result = await scheduleTaskFromSlot(taskId, machine, currentDate, hour, minute, newTimeRemaining, queryClient);
-        
-        if (result?.conflict) {
-          console.log('⚠️ SCENARIO Z: Conflict detected, showing dialog');
-          const conflictWithParams = {
-            ...result,
-            schedulingParams: {
-              taskId: taskId,
-              machine: machine,
-              currentDate: currentDate,
-              hour: hour,
-              minute: minute,
-              newDuration: newTimeRemaining,
-              originalConflict: result
-            }
-          };
-          showConflictDialog(conflictWithParams);
-          return { error: 'Conflict detected' };
-        } else if (result?.error) {
-          console.log('❌ SCENARIO Z: Error:', result.error);
-          return { error: result.error };
-        }
-        
-        const updatedTask = result?.updatedTask;
-        const orderData = { 
-          ...cleanedData, 
-          duration: newDuration, 
-          cost: cost,
-          scheduled_start_time: updatedTask?.scheduled_start_time || startDate.toISOString(),
-          scheduled_end_time: updatedTask?.scheduled_end_time || new Date(startDate.getTime() + newDuration * 3600000).toISOString(),
-          description: updatedTask?.description || currentTask.description
-        };
-        
-        const updatedOrder = await updateOrderMutation.mutateAsync({ id: taskId, updates: orderData });
-        return { updatedOrder };
-      }
-    } catch (error) {
-      console.error('❌ SCENARIO Z: Error in handleDurationDecreaseRescheduling:', error);
-      return { error: error.message || 'Error during duration decrease rescheduling' };
-    }
-  };
-
-  const getPhaseFields = () => {
-    if (!selectedPhase) return [];
-    return selectedPhase.department === DEPARTMENT_TYPES.PRINTING
-      ? [
-          { name: 'v_stampa', label: 'Velocità Stampa:', unit: 'mt/h' },
-          { name: 't_setup_stampa', label: 'Setup Stampa:', unit: 'h' },
-          { name: 'costo_h_stampa', label: 'Costo Stampa:', unit: '€/h' },
-        ]
-      : [
-          { name: 'v_conf', label: 'Velocità Confezionamento:', unit: 'pz/h' },
-          { name: 't_setup_conf', label: 'Setup Confezionamento:', unit: 'h' },
-          { name: 'costo_h_conf', label: 'Costo Confezionamento:', unit: '€/h' },
-        ];
-  };
 
   // Custom field renderers for the backlog form
   const customFieldRenderers = useMemo(() => ({
@@ -795,7 +427,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         </div>
       );
     }
-  }), [phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, filteredPhases, handleBlur, handlePhaseSelect, selectedPhase, getPhaseParamValue, handlePhaseParamChange, getPhaseFields, calculationResults, additionalHours, handleArticleCodeChange]);
+  }), [phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, filteredPhases, handleBlur, handlePhaseSelect, selectedPhase, getPhaseParamValue, handlePhaseParamChange, getPhaseFields, calculationResults, additionalHours, handleArticleCodeChange, department, workCenter, quantity, bagStep]);
 
   // Custom actions (Calculate button)
   const customActions = useMemo(() => (
@@ -817,8 +449,8 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       onSuccess={onSuccess}
       isEditMode={isEditMode}
       isLoading={isLoading}
-      customActions={customActions}
       customFieldRenderers={customFieldRenderers}
+      customActions={customActions}
     />
   );
 };

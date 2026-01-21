@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense, lazy, useReducer } from 'react';
 import { DndContext, DragOverlay, PointerSensor, MouseSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { useOrderStore, useMachineStore, useUIStore, useSchedulerStore, useMainStore } from '../store';
+import { useOrderStore, useMachineStore, useUIStore, useMainStore } from '../store';
 import { useOrders, useMachines } from '../hooks';
 import { format, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
 import { showError } from '../utils';
 import SearchableDropdown from '../components/SearchableDropdown';
-import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../components/ui/button';
 
 import TaskLookupInput from '../components/TaskLookupInput';
@@ -21,29 +20,6 @@ const LoadingFallback = () => (
   <div className="loading">Caricamento componenti scheduler...</div>
 );
 
-// Scheduling operation loading overlay
-const SchedulingLoadingOverlay = ({ schedulingLoading }) => {
-  if (!schedulingLoading.isScheduling && !schedulingLoading.isRescheduling && !schedulingLoading.isShunting && !schedulingLoading.isNavigating) {
-    return null;
-  }
-
-  const getOperationText = () => {
-    if (schedulingLoading.isScheduling) return 'Programmazione lavoro...';
-    if (schedulingLoading.isRescheduling) return 'Riprogrammazione lavoro...';
-    if (schedulingLoading.isShunting) return 'Risoluzione conflitti...';
-    if (schedulingLoading.isNavigating) return 'Navigazione...';
-    return 'Operazione in corso...';
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 shadow-lg flex items-center space-x-3">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-        <span className="text-gray-700 font-medium">{getOperationText()}</span>
-      </div>
-    </div>
-  );
-};
 
 // Utility function to download Gantt chart as HTML
 const downloadGanttAsHTML = (ganttElementSelector, dateDisplay) => {
@@ -132,10 +108,9 @@ function SchedulerPage() {
   
   // Use Zustand store for selectors and client state
   const { getOdpOrdersByWorkCenter, getScheduledOrders } = useOrderStore();
-  const { selectedWorkCenter, isLoading, isInitialized, showAlert, showConflictDialog, schedulingLoading, setDragPreview, clearDragPreview, dragPreview } = useUIStore();
-  const { scheduleTask, unscheduleTask, scheduleTaskFromSlot, rescheduleTaskToSlot, validateSlotAvailability } = useSchedulerStore();
+  const { selectedWorkCenter, isLoading, isInitialized, showAlert, setDragPreview, clearDragPreview, dragPreview } = useUIStore();
+  // Note: All scheduling methods removed - Gantt is now read-only, use Spotify Scheduler for task management
   const { init, cleanup } = useMainStore();
-  const queryClient = useQueryClient();
 
   // Configure drag and drop sensors
   const sensors = useSensors(
@@ -522,121 +497,12 @@ function SchedulerPage() {
   }, [activeDragItem, setDragPreview, clearDragPreview]);
 
   const handleDragEnd = useCallback(async (event) => {
-    const dragEndStartTime = performance.now();
-
-    // Clear any pending drag operations
-    if (dragTimeoutRef.current) {
-      clearTimeout(dragTimeoutRef.current);
-    }
-
-    // Prevent multiple rapid drag operations
-    if (isDragOperationRef.current) {
-      return;
-    }
-
+    // Read-only mode - no drag and drop operations allowed
     setActiveDragItem(null);
     setDropTargetId(null);
     clearDragPreview();
-    
-    const { over, active } = event;
-
-    if (!over) {
-      return;
-    }
-
-    const draggedItem = active.data.current;
-    const dropZone = over.data.current;
-
-    // Drag end processing
-
-    // Quick validation before async operation
-    if (!draggedItem || !dropZone) {
-      return;
-    }
-
-    isDragOperationRef.current = true;
-
-    try {
-      // Use requestAnimationFrame to defer heavy operations
-      await new Promise(resolve => {
-        requestAnimationFrame(async () => {
-          const operationStartTime = performance.now();
-
-          // Case 1: Dragging a task from the pool to a machine slot
-          if (draggedItem.type === 'task' && dropZone.type === 'slot') {
-            const task = draggedItem.task;
-            const { machine, hour, minute, isUnavailable, hasScheduledTask } = dropZone;
-
-            // Note: Removed unavailable slot check - tasks can now be split across available slots
-            // The scheduling logic will handle splitting automatically
-
-            if (hasScheduledTask) {
-              showAlert('Impossibile pianificare il lavoro su uno slot temporale occupato', 'error');
-              return resolve();
-            }
-
-            // Use consolidated method from store
-            const result = await scheduleTaskFromSlot(task.id, machine, currentDate, hour, minute, null, queryClient);
-            if (result?.error) {
-              showAlert(result.error, 'error');
-            } else if (result?.conflict) {
-              // Show conflict resolution dialog
-              showConflictDialog(result);
-            }
-          }
-
-          // Case 2: Dragging an existing scheduled event to a new slot (rescheduling)
-          else if (draggedItem.type === 'event' && dropZone.type === 'slot') {
-            const eventItem = draggedItem.event;
-            const { machine, hour, minute, isUnavailable, hasScheduledTask } = dropZone;
-
-            // Note: Removed unavailable slot check - tasks can now be split across available slots
-            // The rescheduling logic will handle splitting automatically
-
-            if (hasScheduledTask) {
-              showAlert('Impossibile riprogrammare il lavoro su uno slot temporale occupato', 'error');
-              return resolve();
-            }
-
-            // Use consolidated method from store
-            const result = await rescheduleTaskToSlot(eventItem.id, machine, currentDate, hour, minute, queryClient);
-            if (result?.error) {
-              showAlert(result.error, 'error');
-            } else if (result?.conflict) {
-              // Show conflict resolution dialog
-              showConflictDialog(result);
-            }
-          }
-
-          // Case 3: Dragging an event back to the task pool (unscheduling)
-          else if (draggedItem.type === 'event' && dropZone.type === 'pool') {
-            const eventToUnschedule = draggedItem.event;
-            unscheduleTask(eventToUnschedule.id, queryClient);
-          }
-
-          // Case 4: Dragging a task or event to the next day zone
-          else if ((draggedItem.type === 'task' || draggedItem.type === 'event') && dropZone.type === 'next-day') {
-            // Navigation is handled by the NextDayDropZone component with timer
-            // This case is now handled automatically by the drag over effect
-            showAlert('Navigazione al giorno successivo completata', 'success');
-          }
-
-          // Case 5: Dragging a task or event to the previous day zone
-          else if ((draggedItem.type === 'task' || draggedItem.type === 'event') && dropZone.type === 'previous-day') {
-            // Navigation is handled by the PreviousDayDropZone component with timer
-            // This case is now handled automatically by the drag over effect
-            showAlert('Navigazione al giorno precedente completata', 'success');
-          }
-
-          resolve();
-        });
-      });
-    } catch (error) {
-      showAlert('Si è verificato un errore durante l\'operazione di trascinamento', 'error');
-    } finally {
-      isDragOperationRef.current = false;
-    }
-  }, [currentDate, scheduleTaskFromSlot, rescheduleTaskToSlot, unscheduleTask, showAlert, showConflictDialog]);
+    return;
+  }, [clearDragPreview]);
 
 
   // Show loading state during initial load
@@ -686,7 +552,6 @@ function SchedulerPage() {
 
   return (
     <>
-      <SchedulingLoadingOverlay schedulingLoading={schedulingLoading} />
         <div className="content-section">
         {/* Read-Only Notice */}
         <div className="read-only-notice">
@@ -855,10 +720,6 @@ function SchedulerPage() {
               readOnly={true}
             />
           </Suspense>
-          {/* White cover during loading */}
-          {(schedulingLoading.isScheduling || schedulingLoading.isRescheduling || schedulingLoading.isShunting || schedulingLoading.isNavigating) && (
-            <div className="absolute inset-0 bg-white z-40"></div>
-          )}
         </div>
       </div>
     </>
