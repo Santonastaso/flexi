@@ -270,23 +270,41 @@ export class SpotifyQueueScheduler {
    * @param {Array} allOrders - All orders from React Query
    */
   reorderQueue = async (machineId, taskId, oldIndex, newIndex, allOrders) => {
-    if (oldIndex === newIndex) {
+    const queue = this.getQueue(machineId, allOrders);
+    
+    // Find the actual current indices in case they've changed
+    const actualOldIndex = queue.findIndex(t => t.id === taskId);
+    
+    console.log('🎯 REORDER DEBUG:', {
+      taskId,
+      passedOldIndex: oldIndex,
+      actualOldIndex,
+      newIndex,
+      queueLength: queue.length,
+      queueTaskIds: queue.map(t => t.id)
+    });
+    
+    if (actualOldIndex === -1) {
+      return { error: 'Task not found in queue' };
+    }
+    
+    // Validate new index
+    if (newIndex < 0 || newIndex >= queue.length) {
+      console.error('❌ Invalid new index:', { newIndex, queueLength: queue.length });
+      return { error: 'Invalid target position' };
+    }
+    
+    if (actualOldIndex === newIndex) {
       return { success: true, message: 'No change in position' };
     }
     
-    const queue = this.getQueue(machineId, allOrders);
-    
-    if (oldIndex < 0 || oldIndex >= queue.length || newIndex < 0 || newIndex >= queue.length) {
-      return { error: 'Invalid position' };
-    }
-    
-    // Reorder the array
+    // Reorder the array using the actual current index
     const reordered = [...queue];
-    const [movedTask] = reordered.splice(oldIndex, 1);
+    const [movedTask] = reordered.splice(actualOldIndex, 1);
     reordered.splice(newIndex, 0, movedTask);
     
     // Recalculate from the affected position
-    const startPosition = Math.min(oldIndex, newIndex);
+    const startPosition = Math.min(actualOldIndex, newIndex);
     let currentStartTime = startPosition === 0 
       ? this.calculateNextStartTime(machineId, allOrders)
       : new Date(reordered[startPosition - 1].scheduled_end_time);

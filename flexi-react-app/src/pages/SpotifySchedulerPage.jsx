@@ -377,9 +377,9 @@ function SpotifySchedulerPage() {
       const oldIndex = draggedData.index;
       const newIndex = droppedData.index;
       
+      console.log('🔄 SPOTIFY: Reordering task', { draggedTaskId, oldIndex, newIndex });
+      
       if (oldIndex !== newIndex) {
-        console.log('🔄 SPOTIFY: Reordering task', { draggedTaskId, oldIndex, newIndex });
-        
         try {
           startSchedulingOperation('reschedule', draggedTaskId);
           const result = await reorderTaskInQueue(draggedMachineId, draggedTaskId, oldIndex, newIndex, orders);
@@ -396,6 +396,13 @@ function SpotifySchedulerPage() {
           stopSchedulingOperation();
         }
       }
+    }
+    
+    // Case 3: Dropping task from pool or reordering to end of queue column
+    else if (draggedData?.type === 'queue-task' && droppedData?.type === 'queue-column') {
+      // This happens when dragging within queue but dropping on empty space
+      // We can ignore this as it's handled by the sortable context
+      return;
     }
   }, [scheduleTaskAtEndOfQueue, reorderTaskInQueue, queryClient]);
 
