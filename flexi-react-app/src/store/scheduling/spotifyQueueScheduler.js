@@ -151,9 +151,10 @@ export class SpotifyQueueScheduler {
       const hourStart = new Date(currentTime);
       const hourEnd = new Date(currentTime.getTime() + 60 * 60 * 1000);
       
-      // Check if this hour is unavailable
+      // Check if this hour overlaps with any unavailable slot
+      // Two time ranges overlap if: start1 < end2 AND end1 > start2
       const isUnavailable = unavailableSlots.some(slot => 
-        hourStart >= slot.start && hourStart < slot.end
+        hourStart < slot.end && hourEnd > slot.start
       );
       
       if (!isUnavailable) {
