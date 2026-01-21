@@ -291,7 +291,7 @@ function SpotifySchedulerPage() {
     setIsCreatingPause(true);
     try {
       const { createPauseTask } = useSchedulerStore.getState();
-      const result = await createPauseTask(pauseMachine, hours);
+      const result = await createPauseTask(pauseMachine, hours, machines, orders);
       
       if (result.error) {
         showError(result.error);
@@ -345,7 +345,7 @@ function SpotifySchedulerPage() {
       
       try {
         startSchedulingOperation('schedule', taskId);
-        const result = await scheduleTaskAtEndOfQueue(machineId, taskId);
+        const result = await scheduleTaskAtEndOfQueue(machineId, taskId, orders);
         
         if (result.error) {
           showError(result.error);
@@ -382,7 +382,7 @@ function SpotifySchedulerPage() {
         
         try {
           startSchedulingOperation('reschedule', draggedTaskId);
-          const result = await reorderTaskInQueue(draggedMachineId, draggedTaskId, oldIndex, newIndex);
+          const result = await reorderTaskInQueue(draggedMachineId, draggedTaskId, oldIndex, newIndex, orders);
           
           if (result.error) {
             showError(result.error);

@@ -4,14 +4,15 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { format } from 'date-fns';
 import { useSchedulerStore } from '../store';
-import { usePhase } from '../hooks';
+import { usePhase, useOrders } from '../hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
 
 function QueueTaskCard({ task, index, machineId }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { unscheduleTask } = useSchedulerStore();
+  const { removeTaskFromQueue } = useSchedulerStore();
+  const { data: allOrders = [] } = useOrders();
   
   // Get phase name if available using React Query
   const { data: phase } = usePhase(task.fase);
@@ -97,9 +98,17 @@ function QueueTaskCard({ task, index, machineId }) {
     if (!confirmed) return;
     
     try {
-      await unscheduleTask(task.id, queryClient);
-      // Refresh the queue
-      await queryClient.invalidateQueries({ queryKey: ['orders'] });
+      const result = await removeTaskFromQueue(machineId, task.id, allOrders);
+      
+      if (result.error) {
+        const { showError } = await import('../utils/toast');
+        showError(result.error);
+      } else {
+        // Refresh the queue
+        await queryClient.invalidateQueries({ queryKey: ['orders'] });
+        const { showSuccess } = await import('../utils/toast');
+        showSuccess('Lavoro rimosso dalla coda');
+      }
     } catch (error) {
       console.error('Error unscheduling task:', error);
       const { showError } = await import('../utils/toast');
