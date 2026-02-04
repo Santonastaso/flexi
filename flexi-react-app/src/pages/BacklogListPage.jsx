@@ -33,6 +33,9 @@ function BacklogListPage() {
       filteredOrders = orders.filter(order => order.work_center === selectedWorkCenter);
     }
     
+    // Hide orders with PAUSE in odp_number
+    filteredOrders = filteredOrders.filter(order => !order.odp_number?.includes('PAUSE'));
+    
     // Join with machine and phase data
     return filteredOrders.map(order => ({
       ...order,
