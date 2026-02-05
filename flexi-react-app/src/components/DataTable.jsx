@@ -136,8 +136,8 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
   });
 
   return (
-    <div className="rounded-md border overflow-x-auto" style={{ maxHeight: '95vh' }}>
-      <table className="w-full caption-bottom text-[10px] !text-[10px] relative">
+    <div className="table-container">
+      <table className="caption-bottom text-[10px] !text-[10px] relative" style={{ width: 'max-content', minWidth: '100%' }}>
         <thead className="sticky top-0 z-20 bg-gray-50 border-b border-gray-200">
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>

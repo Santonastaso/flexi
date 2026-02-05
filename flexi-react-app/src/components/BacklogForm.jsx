@@ -3,7 +3,7 @@ import { useUIStore } from '../store';
 import { useProductionCalculations, useValidation, useAddOrder, useUpdateOrder } from '../hooks';
 import { usePhaseSearch } from '../hooks/usePhaseSearch';
 import { showValidationError, showSuccess, showWarning, showInfo } from '../utils';
-import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES } from '../constants';
+import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES, TASK_STATUSES } from '../constants';
 import { backlogFormConfig } from './formConfigs';
 import GenericForm from './GenericForm';
 import {
@@ -195,17 +195,22 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
         showSuccess('Ordine aggiornato con successo');
       } else {
-        // New order - create with PENDING status
+        // New order - create with NOT SCHEDULED status
+        // Note: time_remaining should NOT be set for new orders as it's a generated column
         const baseDuration = calculationResults?.totals?.duration || null;
         const finalDuration = baseDuration ? baseDuration + (parseFloat(additionalHours) || 0) : null;
         const orderData = { 
           ...cleanedData, 
           duration: finalDuration, 
-          time_remaining: finalDuration,
           cost: calculationResults?.totals?.cost || null, 
-          status: 'PENDING' 
+          status: TASK_STATUSES.NOT_SCHEDULED 
         };
         
+        // Remove any fields that shouldn't be in the insert
+        delete orderData.time_remaining;
+        delete orderData.progress;
+        
+        console.log('Creating new order with data:', orderData);
         await addOrderMutation.mutateAsync(orderData);
         showSuccess('✅ Ordine creato con successo! Vai alla pagina Spotify Scheduler per aggiungerlo alla coda di una macchina.');
       }
@@ -216,7 +221,9 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       if (onSuccess) onSuccess();
       resetFormAndPhaseState();
     } catch (error) {
-      showValidationError(['Si è verificato un errore durante il salvataggio dell\'ordine']);
+      console.error('Error saving order:', error);
+      const errorMessage = error?.message || error?.error?.message || 'Si è verificato un errore durante il salvataggio dell\'ordine';
+      showValidationError([errorMessage]);
     }
   };
 
@@ -257,13 +264,22 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   const getPhaseFields = useCallback(() => {
     if (!selectedPhase) return [];
     
-    const phaseParams = [
-      { name: 'produzione_oraria', label: 'Produzione Oraria', unit: 'pz/h' },
-      { name: 'costo_orario', label: 'Costo Orario', unit: '€/h' },
-      { name: 'tempo_setup', label: 'Tempo Setup', unit: 'min' },
-    ];
+    // Return different fields based on department
+    if (selectedPhase.department === DEPARTMENT_TYPES.PRINTING) {
+      return [
+        { name: 'v_stampa', label: 'Velocità Stampa', unit: 'm/h' },
+        { name: 'costo_h_stampa', label: 'Costo Orario', unit: '€/h' },
+        { name: 't_setup_stampa', label: 'Tempo Setup', unit: 'h' },
+      ];
+    } else if (selectedPhase.department === DEPARTMENT_TYPES.PACKAGING) {
+      return [
+        { name: 'v_conf', label: 'Velocità Confezionamento', unit: 'pz/h' },
+        { name: 'costo_h_conf', label: 'Costo Orario', unit: '€/h' },
+        { name: 't_setup_conf', label: 'Tempo Setup', unit: 'h' },
+      ];
+    }
     
-    return phaseParams;
+    return [];
   }, [selectedPhase]);
 
   const getPhaseParamValue = (paramName) => editablePhaseParams[paramName] ?? selectedPhase[paramName] ?? '';

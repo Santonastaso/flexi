@@ -43,8 +43,9 @@ export const SEAL_SIDES = {
 };
 
 // ===== TASK STATUSES =====
+// Note: These must match the database check constraint on odp_orders.status
 export const TASK_STATUSES = {
-  NOT_SCHEDULED: 'NOT SCHEDULED',
+  NOT_SCHEDULED: 'NOT SCHEDULED',  // Default status for new orders
   SCHEDULED: 'SCHEDULED',
   IN_PROGRESS: 'IN PROGRESS',
   COMPLETED: 'COMPLETED',

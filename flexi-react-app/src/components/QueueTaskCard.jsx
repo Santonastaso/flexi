@@ -69,8 +69,11 @@ function QueueTaskCard({ task, index, machineId }) {
   const startTime = task.scheduled_start_time ? formatScheduledTime(task.scheduled_start_time) : '—';
   const endTime = task.scheduled_end_time ? formatScheduledTime(task.scheduled_end_time) : '—';
 
-  // Get color based on material availability
-  const getOdpColor = (materialGlobal) => {
+  // Get color based on status and material availability
+  const getOdpColor = (taskStatus, materialGlobal) => {
+    // If task is completed, show light green
+    if (taskStatus === 'COMPLETED') return '#10b981'; // Light green for completed tasks
+    
     if (isPauseTask) return '#6b7280'; // Gray for pause tasks
     if (materialGlobal > 70) {
       return '#059669'; // green
@@ -81,7 +84,7 @@ function QueueTaskCard({ task, index, machineId }) {
     }
   };
 
-  const cardColor = getOdpColor(task.material_availability_global || 0);
+  const cardColor = getOdpColor(task.status, task.material_availability_global || 0);
 
   // Handle unschedule with confirmation
   const handleUnschedule = async (e) => {
@@ -136,11 +139,14 @@ function QueueTaskCard({ task, index, machineId }) {
     }
   };
 
+  // Check if task is completed
+  const isCompleted = task.status === 'COMPLETED';
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`queue-task-card ${isPauseTask ? 'pause-task' : ''} ${isDragging ? 'dragging' : ''}`}
+      className={`queue-task-card ${isPauseTask ? 'pause-task' : ''} ${isCompleted ? 'completed-task' : ''} ${isDragging ? 'dragging' : ''}`}
     >
       {/* Drag Handle */}
       <div className="queue-task-drag-handle" {...attributes} {...listeners}>
@@ -163,6 +169,11 @@ function QueueTaskCard({ task, index, machineId }) {
         <div className="queue-task-main">
           <div className="queue-task-odp">
             {task.odp_number}
+            {isCompleted && (
+              <span className="completed-badge" title="Lavoro completato">
+                ✓ Completato
+              </span>
+            )}
             {splitInfo && splitInfo.wasSplit && (
               <span className="split-badge" title={`Task split into ${splitInfo.totalSegments} segments due to machine unavailability`}>
                 ✂️ {splitInfo.totalSegments}
@@ -209,6 +220,23 @@ function QueueTaskCard({ task, index, machineId }) {
                 <span className="detail-value">{task.bag_step}mm</span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Note ASD */}
+        {!isPauseTask && task.asd_notes && (
+          <div className="queue-task-notes">
+            <div className="queue-task-note-label">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+              <span>Note ASD:</span>
+            </div>
+            <div className="queue-task-note-text">{task.asd_notes}</div>
           </div>
         )}
 
