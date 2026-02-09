@@ -49,9 +49,14 @@ function MachineOverviewPage() {
       });
   }, [selectedMachineId, odpOrders]);
 
+  const scheduledKey = useMemo(
+    () => scheduledOdps.map(order => order.id).join('|'),
+    [scheduledOdps]
+  );
+
   useEffect(() => {
     setOrderedOdps(scheduledOdps);
-  }, [scheduledOdps]);
+  }, [scheduledKey]);
 
   const handleEditOrder = (order) => {
     navigate(`/backlog/${order.id}/edit`);
