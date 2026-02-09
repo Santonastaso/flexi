@@ -75,6 +75,76 @@ export class SpotifyQueueScheduler {
   };
 
   /**
+   * Get anchor time and queue for greedy scheduling
+   * If a task is in progress, anchor starts after it ends.
+   */
+  getGreedyAnchor = (machineId, allOrders, excludeTaskId = null) => {
+    let queue = this.getQueue(machineId, allOrders);
+
+    if (excludeTaskId) {
+      queue = queue.filter(t => t.id !== excludeTaskId);
+    }
+
+    const now = new Date();
+    const runningIndex = queue.findIndex(task => {
+      if (!task.scheduled_start_time || !task.scheduled_end_time) return false;
+      const start = new Date(task.scheduled_start_time);
+      const end = new Date(task.scheduled_end_time);
+      return start <= now && end > now;
+    });
+
+    if (runningIndex >= 0) {
+      const runningTask = queue[runningIndex];
+      const anchor = this.roundToNext15Min(new Date(runningTask.scheduled_end_time));
+      return {
+        anchor,
+        fixedPrefixLength: runningIndex + 1,
+        queue
+      };
+    }
+
+    return {
+      anchor: this.roundToNext15Min(now),
+      fixedPrefixLength: 0,
+      queue
+    };
+  };
+
+  /**
+   * Greedy reschedule tasks sequentially from anchor
+   */
+  rescheduleFromAnchor = async (machineId, tasks, anchorTime) => {
+    let currentStartTime = this.roundToNext15Min(anchorTime);
+
+    for (const task of tasks) {
+      const duration = task.time_remaining || task.duration || 1;
+      const { segments, startTime: actualStart, endTime } = await this.splitTaskAroundUnavailability(
+        currentStartTime,
+        duration,
+        machineId
+      );
+
+      const updates = {
+        scheduled_machine_id: machineId,
+        scheduled_start_time: actualStart.toISOString(),
+        scheduled_end_time: endTime.toISOString(),
+        status: 'SCHEDULED',
+        description: JSON.stringify({
+          segments: segments.map(s => ({
+            start: s.start.toISOString(),
+            end: s.end.toISOString(),
+            duration: s.duration
+          })),
+          is_pause: this.isPauseTask(task)
+        })
+      };
+
+      await apiService.updateOdpOrder(task.id, updates);
+      currentStartTime = this.roundToNext15Min(new Date(endTime));
+    }
+  };
+
+  /**
    * Round time to next 15-minute slot
    */
   roundToNext15Min = (date) => {
@@ -280,40 +350,18 @@ export class SpotifyQueueScheduler {
       return { error: 'Task must have a duration greater than 0' };
     }
     
-    // Calculate start time (exclude this task from queue to handle stale cache)
-    const startTime = this.calculateNextStartTime(machineId, allOrders, taskId);
-    
-    console.log('🟡 scheduleTaskAtEnd - Task:', taskId.substring(0, 8), 'Duration:', duration, 'Start time:', startTime.toISOString());
-    
-    // Split task around unavailable hours
-    const { segments, startTime: actualStart, endTime } = await this.splitTaskAroundUnavailability(
-      startTime,
-      duration,
-      machineId
-    );
-    
-    console.log('🟡 scheduleTaskAtEnd - After split - Actual start:', actualStart.toISOString(), 'End:', endTime.toISOString());
-    
-    // Prepare task update
-    const updates = {
-      scheduled_machine_id: machineId,
-      scheduled_start_time: actualStart.toISOString(),
-      scheduled_end_time: endTime.toISOString(),
-      status: 'SCHEDULED',
-      description: JSON.stringify({
-        segments: segments.map(s => ({
-          start: s.start.toISOString(),
-          end: s.end.toISOString(),
-          duration: s.duration
-        })),
-        is_pause: this.isPauseTask(task)
-      })
-    };
-    
-    // Update database
-    await apiService.updateOdpOrder(taskId, updates);
-    
-    return { success: true, task: { ...task, ...updates } };
+    const { anchor, fixedPrefixLength, queue } = this.getGreedyAnchor(machineId, allOrders, taskId);
+
+    // Build greedy queue: keep fixed prefix (running task), append rest + new task
+    const fixedPrefix = queue.slice(0, fixedPrefixLength);
+    const remainingQueue = queue.slice(fixedPrefixLength);
+    const updatedQueue = [...remainingQueue, task];
+
+    console.log('🟡 scheduleTaskAtEnd - Task:', taskId.substring(0, 8), 'Duration:', duration, 'Start time:', anchor.toISOString());
+
+    await this.rescheduleFromAnchor(machineId, updatedQueue, anchor);
+
+    return { success: true };
   };
 
   /**
@@ -355,46 +403,14 @@ export class SpotifyQueueScheduler {
     const [movedTask] = reordered.splice(actualOldIndex, 1);
     reordered.splice(newIndex, 0, movedTask);
     
-    // Recalculate from the affected position
-    const startPosition = Math.min(actualOldIndex, newIndex);
-    let currentStartTime = startPosition === 0 
-      ? this.calculateNextStartTime(machineId, allOrders)
-      : new Date(reordered[startPosition - 1].scheduled_end_time);
-    
-    currentStartTime = this.roundToNext15Min(currentStartTime);
-    
-    // Reschedule affected tasks
-    for (let i = startPosition; i < reordered.length; i++) {
-      const task = reordered[i];
-      const duration = task.time_remaining || task.duration || 1;
-      
-      // Split around unavailability
-      const { segments, startTime: actualStart, endTime } = await this.splitTaskAroundUnavailability(
-        currentStartTime,
-        duration,
-        machineId
-      );
-      
-      // Update task
-      const updates = {
-        scheduled_start_time: actualStart.toISOString(),
-        scheduled_end_time: endTime.toISOString(),
-        description: JSON.stringify({
-          segments: segments.map(s => ({
-            start: s.start.toISOString(),
-            end: s.end.toISOString(),
-            duration: s.duration
-          })),
-          is_pause: this.isPauseTask(task)
-        })
-      };
-      
-      await apiService.updateOdpOrder(task.id, updates);
-      
-      // Next task starts after this one
-      currentStartTime = this.roundToNext15Min(new Date(endTime));
+    const { anchor, fixedPrefixLength } = this.getGreedyAnchor(machineId, allOrders);
+    if (fixedPrefixLength > 0 && (actualOldIndex < fixedPrefixLength || newIndex < fixedPrefixLength)) {
+      return { error: 'Task in corso non spostabile' };
     }
-    
+
+    const reorderedQueue = reordered.slice(fixedPrefixLength);
+    await this.rescheduleFromAnchor(machineId, reorderedQueue, anchor);
+
     return { success: true };
   };
 
@@ -421,40 +437,9 @@ export class SpotifyQueueScheduler {
       description: ''
     });
     
-    // Recalculate remaining tasks
-    if (taskIndex < queue.length - 1) {
-      let currentStartTime = taskIndex === 0
-        ? this.calculateNextStartTime(machineId, allOrders, taskId) // Exclude removed task from calculation
-        : new Date(queue[taskIndex - 1].scheduled_end_time);
-      
-      currentStartTime = this.roundToNext15Min(currentStartTime);
-      
-      for (let i = taskIndex + 1; i < queue.length; i++) {
-        const task = queue[i];
-        const duration = task.time_remaining || task.duration || 1;
-        
-        const { segments, startTime: actualStart, endTime } = await this.splitTaskAroundUnavailability(
-          currentStartTime,
-          duration,
-          machineId
-        );
-        
-        await apiService.updateOdpOrder(task.id, {
-          scheduled_start_time: actualStart.toISOString(),
-          scheduled_end_time: endTime.toISOString(),
-          description: JSON.stringify({
-            segments: segments.map(s => ({
-              start: s.start.toISOString(),
-              end: s.end.toISOString(),
-              duration: s.duration
-            })),
-            is_pause: this.isPauseTask(task)
-          })
-        });
-        
-        currentStartTime = this.roundToNext15Min(new Date(endTime));
-      }
-    }
+    const { anchor, fixedPrefixLength, queue: freshQueue } = this.getGreedyAnchor(machineId, allOrders, taskId);
+    const remaining = freshQueue.slice(fixedPrefixLength);
+    await this.rescheduleFromAnchor(machineId, remaining, anchor);
     
     return { success: true };
   };

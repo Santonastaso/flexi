@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import DataTable from '../components/DataTable';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Button } from '../components/ui/button';
 import { useMachines, useOrders, useRemoveOrder } from '../hooks/useQueries';
 import { useMainStore, useSchedulerStore, useUIStore } from '../store';
 import { normalizeOdpNumber, showError, showSuccess } from '../utils';
 import { formatScheduledTime } from '../utils/dateFormatting';
 import { useQueryClient } from '@tanstack/react-query';
+import { arrayMove } from '@dnd-kit/sortable';
 
 function MachineOverviewPage() {
   const [selectedMachineId, setSelectedMachineId] = useState('');
@@ -22,6 +22,7 @@ function MachineOverviewPage() {
   const { reorderTaskInQueue } = useSchedulerStore();
   const queryClient = useQueryClient();
   const [reorderingId, setReorderingId] = useState(null);
+  const [orderedOdps, setOrderedOdps] = useState([]);
 
   // Initialize store on component mount
   useEffect(() => {
@@ -48,6 +49,10 @@ function MachineOverviewPage() {
       });
   }, [selectedMachineId, odpOrders]);
 
+  useEffect(() => {
+    setOrderedOdps(scheduledOdps);
+  }, [scheduledOdps]);
+
   const handleEditOrder = (order) => {
     navigate(`/backlog/${order.id}/edit`);
   };
@@ -68,22 +73,17 @@ function MachineOverviewPage() {
     );
   };
 
-  const orderIndexMap = useMemo(() => {
-    return new Map(scheduledOdps.map((order, index) => [order.id, index]));
-  }, [scheduledOdps]);
+  const handleRowReorder = useCallback(async ({ oldIndex, newIndex, activeId }) => {
+    if (!selectedMachineId || reorderingId) return;
+    if (oldIndex === newIndex) return;
 
-  const handleReorder = useCallback(async (order, direction) => {
-    if (!selectedMachineId) return;
-    const oldIndex = orderIndexMap.get(order.id);
-    if (oldIndex === undefined) return;
-    const newIndex = direction === 'up' ? oldIndex - 1 : oldIndex + 1;
-    if (newIndex < 0 || newIndex >= scheduledOdps.length) return;
+    setReorderingId(activeId);
+    setOrderedOdps((prev) => arrayMove(prev, oldIndex, newIndex));
 
-    setReorderingId(order.id);
     try {
       await queryClient.refetchQueries({ queryKey: ['orders'], exact: true, type: 'active' });
       const freshOrders = queryClient.getQueryData(['orders']) || [];
-      const result = await reorderTaskInQueue(selectedMachineId, order.id, oldIndex, newIndex, freshOrders);
+      const result = await reorderTaskInQueue(selectedMachineId, activeId, oldIndex, newIndex, freshOrders);
       if (result?.error) {
         showError(result.error);
       } else {
@@ -95,7 +95,7 @@ function MachineOverviewPage() {
     } finally {
       setReorderingId(null);
     }
-  }, [orderIndexMap, queryClient, reorderTaskInQueue, scheduledOdps.length, selectedMachineId]);
+  }, [queryClient, reorderTaskInQueue, selectedMachineId, reorderingId]);
 
   // Reuse columns from BacklogListPage but minimal set
   const columns = useMemo(() => [
@@ -135,11 +135,6 @@ function MachineOverviewPage() {
   ], []);
 
   const renderRowActions = useCallback((order) => {
-    const orderIndex = orderIndexMap.get(order.id) ?? -1;
-    const isFirst = orderIndex <= 0;
-    const isLast = orderIndex === scheduledOdps.length - 1;
-    const isBusy = reorderingId === order.id;
-
     return (
       <>
         <button 
@@ -159,27 +154,9 @@ Material Global: ${order.material_availability_global || 'N/A'}%`}
         >
           i
         </button>
-        <Button
-          size="xs"
-          variant="outline"
-          onClick={() => handleReorder(order, 'up')}
-          disabled={isFirst || isBusy}
-          title="Sposta su"
-        >
-          ↑
-        </Button>
-        <Button
-          size="xs"
-          variant="outline"
-          onClick={() => handleReorder(order, 'down')}
-          disabled={isLast || isBusy}
-          title="Sposta giù"
-        >
-          ↓
-        </Button>
       </>
     );
-  }, [handleReorder, orderIndexMap, reorderingId, scheduledOdps.length]);
+  }, []);
 
   if (machinesLoading || storeLoading) {
     return <div className="text-center py-4 text-[10px]">Caricamento...</div>;
@@ -209,11 +186,13 @@ Material Global: ${order.material_availability_global || 'N/A'}%`}
             ODPs su {machines && Array.isArray(machines) ? machines.find(m => m.id.toString() === selectedMachineId)?.machine_name || 'Macchina' : 'Macchina'} ({scheduledOdps?.length || 0})
           </h2>
           <DataTable 
-            data={scheduledOdps || []}
+            data={orderedOdps || []}
             columns={columns}
             onEditRow={handleEditOrder}
             onDeleteRow={handleDeleteOrder}
             renderRowActions={renderRowActions}
+            enableRowReorder={true}
+            onRowReorder={handleRowReorder}
           />
         </div>
       ) : (

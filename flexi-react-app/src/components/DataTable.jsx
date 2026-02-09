@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useReactTable, getCoreRowModel, flexRender, getSortedRowModel } from '@tanstack/react-table';
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   Table,
   TableBody,
@@ -11,7 +14,7 @@ import {
 import { Button } from './ui/button';
 import FilterDropdown from './FilterDropdown';
 
-function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = false, filterableColumns = [], stickyColumns = [], renderRowActions }) {
+function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = false, filterableColumns = [], stickyColumns = [], renderRowActions, enableRowReorder = false, onRowReorder }) {
   // Filter state management
   const [filters, setFilters] = useState({});
   const [openFilter, setOpenFilter] = useState(null);
@@ -65,6 +68,12 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
       onEditRow(row.original);
     };
 
+    const dragColumn = enableRowReorder ? [{
+      id: '__drag',
+      header: '',
+      cell: () => null
+    }] : [];
+
     const actionColumn = {
       id: 'actions',
       header: 'Azioni',
@@ -83,8 +92,8 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
         );
       },
     };
-    return [...columns, actionColumn];
-  }, [columns, onEditRow, onDeleteRow, renderRowActions]);
+    return [...dragColumn, ...columns, actionColumn];
+  }, [columns, enableRowReorder, onEditRow, onDeleteRow, renderRowActions]);
 
   // Calculate sticky column positions
   const getStickyLeftPosition = (columnId, columnIndex) => {
@@ -137,74 +146,161 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
     getSortedRowModel: getSortedRowModel()
   });
 
-  return (
-    <div className="table-container">
-      <table className="caption-bottom text-[10px] !text-[10px] relative" style={{ width: 'max-content', minWidth: '100%' }}>
-        <thead className="sticky top-0 z-20 bg-gray-50 border-b border-gray-200">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header, headerIndex) => {
-                const headerKey = `${headerGroup.id}_${header.id}_${headerIndex}`;
-                const columnId = header.column.id;
-                const isFilterable = enableFiltering && filterableColumns.includes(columnId);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 }
+    })
+  );
+
+  const rowIds = table.getRowModel().rows.map((row) => row.original.id ?? row.id);
+
+  const handleDragEnd = (event) => {
+    if (!onRowReorder) return;
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = rowIds.indexOf(active.id);
+    const newIndex = rowIds.indexOf(over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    onRowReorder({ oldIndex, newIndex, activeId: active.id });
+  };
+
+  const DraggableRow = ({ row }) => {
+    const sortableId = row.original.id ?? row.id;
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition
+    } = useSortable({ id: sortableId });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition
+    };
+
+    return (
+      <TableRow ref={setNodeRef} style={style}>
+        {row.getVisibleCells().map((cell, cellIndex) => {
+          const cellKey = `${row.id}_${cell.column.id}_${cellIndex}`;
+          const columnId = cell.column.id;
+          const isSticky = stickyColumns.includes(columnId);
+
+          if (columnId === '__drag') {
+            return (
+              <TableCell key={cellKey} className="w-8">
+                <div
+                  className="inline-flex items-center justify-center w-6 h-6 rounded bg-gray-100 text-gray-600"
+                  {...attributes}
+                  {...listeners}
+                  title="Trascina per riordinare"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                  </svg>
+                </div>
+              </TableCell>
+            );
+          }
+
+          return (
+            <TableCell
+              key={cellKey}
+              className={isSticky ? 'sticky z-10 bg-white shadow-sm' : ''}
+              style={isSticky ? { left: `${getStickyLeftPosition(columnId, cellIndex)}px` } : {}}
+            >
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </TableCell>
+          );
+        })}
+      </TableRow>
+    );
+  };
+
+  const tableMarkup = (
+    <table className="caption-bottom text-[10px] !text-[10px] relative" style={{ width: 'max-content', minWidth: '100%' }}>
+      <thead className="sticky top-0 z-20 bg-gray-50 border-b border-gray-200">
+        {table.getHeaderGroups().map((headerGroup) => (
+          <TableRow key={headerGroup.id}>
+            {headerGroup.headers.map((header, headerIndex) => {
+              const headerKey = `${headerGroup.id}_${header.id}_${headerIndex}`;
+              const columnId = header.column.id;
+              const isFilterable = enableFiltering && filterableColumns.includes(columnId);
+              const isSticky = stickyColumns.includes(columnId);
+              
+              return (
+                <TableHead 
+                  key={headerKey} 
+                  onClick={header.column.getToggleSortingHandler()}
+                  className={isSticky ? 'sticky top-0 z-30 bg-gray-50 shadow-sm' : ''}
+                  style={isSticky ? { 
+                    left: `${getStickyLeftPosition(columnId, headerIndex)}px`
+                  } : {}}
+                >
+                  <div className="flex items-center gap-2">
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                    {{ asc: ' 🔼', desc: ' 🔽' }[header.column.getIsSorted()] ?? null}
+                    {isFilterable && (
+                      <FilterDropdown
+                        column={columnId}
+                        options={filterOptions[columnId] || []}
+                        onFilterChange={handleFilterChange}
+                        isOpen={openFilter === columnId}
+                        onToggle={() => toggleFilter(columnId)}
+                        activeFilter={filters[columnId]}
+                      />
+                    )}
+                  </div>
+                </TableHead>
+              );
+            })}
+          </TableRow>
+        ))}
+      </thead>
+      <tbody className="bg-white">
+        {table.getRowModel().rows.map((row) => {
+          const rowKey = row.original.id || row.id;
+          return enableRowReorder ? (
+            <DraggableRow key={rowKey} row={row} />
+          ) : (
+            <TableRow key={rowKey}>
+              {row.getVisibleCells().map((cell, cellIndex) => {
+                const cellKey = `${rowKey}_${cell.column.id}_${cellIndex}`;
+                const columnId = cell.column.id;
                 const isSticky = stickyColumns.includes(columnId);
                 
                 return (
-                  <TableHead 
-                    key={headerKey} 
-                    onClick={header.column.getToggleSortingHandler()}
-                    className={isSticky ? 'sticky top-0 z-30 bg-gray-50 shadow-sm' : ''}
+                  <TableCell 
+                    key={cellKey}
+                    className={isSticky ? 'sticky z-10 bg-white shadow-sm' : ''}
                     style={isSticky ? { 
-                      left: `${getStickyLeftPosition(columnId, headerIndex)}px`
+                      left: `${getStickyLeftPosition(columnId, cellIndex)}px`
                     } : {}}
                   >
-                    <div className="flex items-center gap-2">
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                      {{ asc: ' 🔼', desc: ' 🔽' }[header.column.getIsSorted()] ?? null}
-                      {isFilterable && (
-                        <FilterDropdown
-                          column={columnId}
-                          options={filterOptions[columnId] || []}
-                          onFilterChange={handleFilterChange}
-                          isOpen={openFilter === columnId}
-                          onToggle={() => toggleFilter(columnId)}
-                          activeFilter={filters[columnId]}
-                        />
-                      )}
-                    </div>
-                  </TableHead>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
                 );
               })}
             </TableRow>
-          ))}
-        </thead>
-        <tbody className="bg-white">
-          {table.getRowModel().rows.map((row) => {
-            const rowKey = row.original.id || row.id;
-            return (
-              <TableRow key={rowKey}>
-                {row.getVisibleCells().map((cell, cellIndex) => {
-                  const cellKey = `${rowKey}_${cell.column.id}_${cellIndex}`;
-                  const columnId = cell.column.id;
-                  const isSticky = stickyColumns.includes(columnId);
-                  
-                  return (
-                    <TableCell 
-                      key={cellKey}
-                      className={isSticky ? 'sticky z-10 bg-white shadow-sm' : ''}
-                      style={isSticky ? { 
-                        left: `${getStickyLeftPosition(columnId, cellIndex)}px`
-                      } : {}}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            );
-          })}
-        </tbody>
-      </table>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+
+  return (
+    <div className="table-container">
+      {enableRowReorder ? (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={rowIds} strategy={verticalListSortingStrategy}>
+            {tableMarkup}
+          </SortableContext>
+        </DndContext>
+      ) : (
+        tableMarkup
+      )}
     </div>
   );
 }

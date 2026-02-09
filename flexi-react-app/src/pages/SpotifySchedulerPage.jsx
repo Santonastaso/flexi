@@ -6,6 +6,7 @@ import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
 import { normalizeOdpNumber, showError, showSuccess } from '../utils';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { useQueryClient } from '@tanstack/react-query';
+import { apiService } from '../services';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select } from '../components/ui/select';
@@ -357,17 +358,10 @@ function SpotifySchedulerPage() {
         
         console.log('🔵 BEFORE REFETCH - Scheduling task:', taskId);
         
-        // Refetch orders immediately to ensure we have the latest data
-        await queryClient.refetchQueries({ 
-          queryKey: ['orders'],
-          exact: true,
-          type: 'active'
-        });
+        // Fetch orders directly to avoid stale cache
+        let ordersToUse = await apiService.getOdpOrders();
         
-        // Get fresh orders from cache
-        let ordersToUse = queryClient.getQueryData(['orders']) || [];
-        
-        console.log('🔵 AFTER REFETCH - Orders count:', ordersToUse.length);
+        console.log('🔵 AFTER REFRESH - Orders count:', ordersToUse.length);
         console.log('🔵 AFTER REFETCH - Machine queue:', ordersToUse.filter(o => 
           o.scheduled_machine_id === machineId && 
           o.status === 'SCHEDULED' && 
