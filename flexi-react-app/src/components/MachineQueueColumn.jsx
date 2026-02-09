@@ -98,6 +98,7 @@ function MachineQueueColumn({ machine, queryClient }) {
                   task={task} 
                   index={index}
                   machineId={machine.id}
+                  enableReorder={false}
                 />
               ))}
             </div>

@@ -10,7 +10,6 @@ import { showError } from '../utils';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { Button } from '../components/ui/button';
 
-import TaskLookupInput from '../components/TaskLookupInput';
 
 // Lazy load heavy components to improve initial load time
 const TaskPoolDataTable = lazy(() => import('../components/TaskPoolDataTable'));

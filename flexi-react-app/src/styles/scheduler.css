@@ -247,87 +247,6 @@
     text-align: center;
 }
 
-/* ===== TASK LOOKUP ===== */
-.task-lookup {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-}
-
-.task-lookup-input-container {
-    flex: 1;
-    position: relative;
-}
-
-.task-lookup-input {
-    width: 100%;
-    padding: 6px 10px;
-    border: 1px solid var(--sap-primary);
-    border-radius: var(--border-radius);
-    font-size: 10px;
-    background: var(--sap-primary);
-    color: white;
-}
-
-.task-lookup-input:focus {
-    outline: none;
-    border-color: var(--sap-accent);
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-}
-
-.task-lookup-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: var(--content-bg);
-    border: 1px solid var(--sap-primary);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-md);
-    z-index: 1000;
-    max-height: 200px;
-    overflow-y: auto;
-    margin-top: 2px;
-}
-
-.task-lookup-option {
-    padding: 6px 10px;
-    cursor: pointer;
-    border-bottom: 1px solid var(--border-light);
-    transition: background-color 0.2s;
-}
-
-.task-lookup-option:last-child {
-    border-bottom: none;
-}
-
-.task-lookup-option:hover {
-    background-color: var(--hover-bg);
-}
-
-.task-lookup-odp {
-    display: block;
-    font-weight: 500;
-    color: var(--text-dark);
-    font-size: 10px;
-}
-
-.task-lookup-product {
-    display: block;
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-top: 2px;
-}
-
-.task-lookup-workcenter {
-    display: block;
-    font-size: 10px;
-    color: var(--sap-accent);
-    font-weight: 500;
-    margin-top: 2px;
-    text-transform: uppercase;
-}
-
 /* ===== FILTERS GRID ===== */
 .filters-grid {
     display: flex;
@@ -353,12 +272,6 @@
     padding-bottom: 0;
 }
 
-
-.task-lookup-item {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
 
 
 
@@ -759,26 +672,6 @@
     left: 0;
     z-index: 80;
     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-}
-
-.machine-label-header {
-    width: 100%;
-    padding: 4px;
-    font-weight: 400;
-    background: var(--gray-light);
-    color: var(--text-dark);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    text-align: center;
-    border-bottom: 2px solid var(--border-color);
-    height: 32px;
-    min-height: 32px;
-    max-height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
 }
 
 .machine-label-header.sticky-header {

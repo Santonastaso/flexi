@@ -25,10 +25,3 @@ export const getTaskSegments = (task) => {
   return null;
 };
 
-/**
- * Check if a task is split across multiple segments
- */
-export const isTaskSplit = (task) => {
-  const segments = getTaskSegments(task);
-  return segments && segments.segments && segments.segments.length > 1;
-};

@@ -30,8 +30,7 @@ function SideNav() {
       href: '/backlog', 
       label: 'Backlog',
       subLinks: [
-        { href: '/backlog', label: 'Lista' },
-        { href: '/backlog/add', label: 'Aggiungi' }
+        { href: '/backlog', label: 'Lista' }
       ]
     },
     { href: '/scheduler', label: 'Scheduler' },

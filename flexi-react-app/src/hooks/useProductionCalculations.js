@@ -145,64 +145,12 @@ export const useProductionCalculations = () => {
     return validTypes[department] || [];
   }, []);
 
-  /**
-   * Generate machine ID based on type and work center
-   */
-  const generateMachineId = useCallback((machineType, workCenter) => {
-    const prefixes = {
-      'DIGITAL_PRINT': 'DIGI',
-      'FLEXO_PRINT': 'FLEX',
-      'ROTOGRAVURE': 'ROTO',
-      'DOYPACK': 'DOYP',
-      'PLURI_PIU': 'PLUR',
-      'MONO_PIU': 'MONO',
-      'CONFEZIONAMENTO_TRADIZIONALE': 'CONFTRAD',
-      'CONFEZIONAMENTO_POLVERI': 'CONFPOL'
-    };
-    
-    const prefix = prefixes[machineType] || 'MACH';
-    const workCenterCode = workCenter === 'BUSTO_GAROLFO' ? 'BGF' : 'ZAN';
-    const timestamp = Date.now().toString(36);
-    
-    return `${prefix}_${workCenterCode}_${timestamp}`;
-  }, []);
-
-  /**
-   * Validate quantity completed against total quantity
-   */
-  const validateQuantityCompleted = useCallback((quantity, quantityCompleted) => {
-    if (quantityCompleted < 0) return false;
-    if (quantityCompleted > quantity) return false;
-    return true;
-  }, []);
-
-  /**
-   * Calculate completion rate
-   */
-  const calculateCompletionRate = useCallback((quantity, quantityCompleted) => {
-    if (!quantity || quantity === 0) return 0;
-    return Math.round((quantityCompleted * 100.0) / quantity);
-  }, []);
-
-  /**
-   * Calculate time remaining based on duration and progress
-   */
-  const calculateTimeRemaining = useCallback((duration, progressPercentage) => {
-    if (!duration || duration === 0) return 0;
-    if (!progressPercentage || progressPercentage === 0) return duration;
-    return Math.round((duration * (1 - (progressPercentage / 100))) * 100) / 100;
-  }, []);
-
   return {
     calculateProductionMetrics,
     validatePhaseParameters,
     autoDetermineWorkCenter,
     autoDetermineDepartment,
-    getValidMachineTypes,
-    generateMachineId,
-    validateQuantityCompleted,
-    calculateCompletionRate,
-    calculateTimeRemaining
+    getValidMachineTypes
   };
 };
 

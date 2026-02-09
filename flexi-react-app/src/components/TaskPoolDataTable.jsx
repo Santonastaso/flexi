@@ -13,6 +13,7 @@ import { useUIStore } from '../store';
 import { useOrders, useRemoveOrder } from '../hooks';
 import { format } from 'date-fns';
 import { formatScheduledTime } from '../utils/dateFormatting';
+import { normalizeOdpNumber } from '../utils';
 import DataTable from './DataTable';
 
 // Gantt Actions Cell Component
@@ -158,6 +159,7 @@ function TaskPoolDataTable({ filterByCost = true }) {
     {
       header: 'ODP',
       accessorKey: 'odp_number',
+      cell: ({ row }) => normalizeOdpNumber(row.original.odp_number),
     },
     {
       header: 'Codice Articolo',
@@ -174,6 +176,14 @@ function TaskPoolDataTable({ filterByCost = true }) {
     {
       header: 'Quantità Completata',
       accessorKey: 'quantity_completed',
+    },
+    {
+      header: 'Altezza Busta (mm)',
+      accessorKey: 'bag_height',
+    },
+    {
+      header: 'Passo Busta (mm)',
+      accessorKey: 'bag_step',
     },
     {
       header: 'Durata (h)',

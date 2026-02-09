@@ -139,9 +139,10 @@ class ApiService {
 
   async updateOdpOrder(id, updates) {
     try {
+      const { time_remaining, ...safeUpdates } = updates || {};
       const { data, error } = await supabase
         .from('odp_orders')
-        .update(updates)
+        .update(safeUpdates)
         .eq('id', id)
         .select()
         .single();

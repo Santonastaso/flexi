@@ -1,4 +1,4 @@
-import { format as formatDate, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { AppConfig } from '../services/config';
 
@@ -26,23 +26,6 @@ export function formatInItalyTimezone(date, formatString = 'dd/MM HH:mm') {
     return formatInTimeZone(dateObj, ITALY_TIMEZONE, formatString);
   } catch (error) {
     return '—';
-  }
-}
-
-/**
- * Parse a date from Italy timezone and convert to UTC Date object
- * Useful for parsing user input that's in Italy time
- * @param {string} dateString - Date string in Italy timezone
- * @param {string} formatString - Format string used to parse
- * @returns {Date} UTC Date object
- */
-export function parseFromItalyTimezone(dateString, formatString = 'dd/MM/yyyy HH:mm') {
-  try {
-    // Create a date in Italy timezone
-    const zonedDate = toZonedTime(dateString, ITALY_TIMEZONE);
-    return zonedDate;
-  } catch (error) {
-    return new Date();
   }
 }
 

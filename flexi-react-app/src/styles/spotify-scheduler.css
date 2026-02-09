@@ -21,6 +21,10 @@
   flex-shrink: 0; /* Don't shrink */
 }
 
+.task-pool-table-container {
+  overflow-x: auto;
+}
+
 .task-pool-header {
   margin-bottom: 0.375rem;
 }

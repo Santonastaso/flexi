@@ -1,12 +1,14 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import DataTable from '../components/DataTable';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Button } from '../components/ui/button';
 import { useMachines, useOrders, useRemoveOrder } from '../hooks/useQueries';
-import { useMainStore, useUIStore } from '../store';
-import { showError, showSuccess } from '../utils';
+import { useMainStore, useSchedulerStore, useUIStore } from '../store';
+import { normalizeOdpNumber, showError, showSuccess } from '../utils';
 import { formatScheduledTime } from '../utils/dateFormatting';
+import { useQueryClient } from '@tanstack/react-query';
 
 function MachineOverviewPage() {
   const [selectedMachineId, setSelectedMachineId] = useState('');
@@ -17,6 +19,9 @@ function MachineOverviewPage() {
   const { isLoading: storeLoading, isInitialized, init, cleanup } = useMainStore();
   const { showConfirmDialog } = useUIStore();
   const removeOrderMutation = useRemoveOrder();
+  const { reorderTaskInQueue } = useSchedulerStore();
+  const queryClient = useQueryClient();
+  const [reorderingId, setReorderingId] = useState(null);
 
   // Initialize store on component mount
   useEffect(() => {
@@ -63,14 +68,55 @@ function MachineOverviewPage() {
     );
   };
 
+  const orderIndexMap = useMemo(() => {
+    return new Map(scheduledOdps.map((order, index) => [order.id, index]));
+  }, [scheduledOdps]);
+
+  const handleReorder = useCallback(async (order, direction) => {
+    if (!selectedMachineId) return;
+    const oldIndex = orderIndexMap.get(order.id);
+    if (oldIndex === undefined) return;
+    const newIndex = direction === 'up' ? oldIndex - 1 : oldIndex + 1;
+    if (newIndex < 0 || newIndex >= scheduledOdps.length) return;
+
+    setReorderingId(order.id);
+    try {
+      await queryClient.refetchQueries({ queryKey: ['orders'], exact: true, type: 'active' });
+      const freshOrders = queryClient.getQueryData(['orders']) || [];
+      const result = await reorderTaskInQueue(selectedMachineId, order.id, oldIndex, newIndex, freshOrders);
+      if (result?.error) {
+        showError(result.error);
+      } else {
+        await queryClient.refetchQueries({ queryKey: ['orders'], exact: true, type: 'active' });
+        showSuccess('Sequenza aggiornata');
+      }
+    } catch (error) {
+      showError('Errore durante il riordino');
+    } finally {
+      setReorderingId(null);
+    }
+  }, [orderIndexMap, queryClient, reorderTaskInQueue, scheduledOdps.length, selectedMachineId]);
+
   // Reuse columns from BacklogListPage but minimal set
   const columns = useMemo(() => [
-    { header: 'ODP', accessorKey: 'odp_number' },
-    { header: 'Status', accessorKey: 'status' },
+    { 
+      header: 'ODP', 
+      accessorKey: 'odp_number',
+      cell: ({ row }) => normalizeOdpNumber(row.original.odp_number)
+    },
     { header: 'Codice Articolo', accessorKey: 'article_code' },
     { header: 'Cliente', accessorKey: 'nome_cliente' },
     { header: 'Quantità', accessorKey: 'quantity' },
     { header: 'Quantità Completata', accessorKey: 'quantity_completed' },
+    { header: 'Passo Busta (mm)', accessorKey: 'bag_step' },
+    { header: 'Altezza Busta (mm)', accessorKey: 'bag_height' },
+    { 
+      header: 'Data Consegna', 
+      accessorKey: 'delivery_date',
+      cell: ({ row }) => row.original.delivery_date
+        ? format(new Date(row.original.delivery_date), 'yyyy-MM-dd')
+        : 'Non impostata'
+    },
     { header: 'Durata (h)', accessorKey: 'duration', cell: ({ row }) => row.original.duration?.toFixed(1) || 'N/A' },
     { 
       header: 'Inizio Programmato', 
@@ -87,6 +133,53 @@ function MachineOverviewPage() {
         : 'N/A'
     },
   ], []);
+
+  const renderRowActions = useCallback((order) => {
+    const orderIndex = orderIndexMap.get(order.id) ?? -1;
+    const isFirst = orderIndex <= 0;
+    const isLast = orderIndex === scheduledOdps.length - 1;
+    const isBusy = reorderingId === order.id;
+
+    return (
+      <>
+        <button 
+          className="inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          title={`Codice Articolo: ${order.article_code || 'Non specificato'}
+Codice Articolo Esterno: ${order.external_article_code || 'Non specificato'}
+Nome Cliente: ${order.nome_cliente || 'Non specificato'}
+Data Consegna: ${order.delivery_date ? format(new Date(order.delivery_date), 'yyyy-MM-dd') : 'Non impostata'}
+Quantità: ${order.quantity || 'Non specificata'}
+Note Libere: ${order.user_notes || 'Nessuna nota'}
+Note ASD: ${order.asd_notes || 'Nessuna nota'}
+Material Global: ${order.material_availability_global || 'N/A'}%`}
+        >
+          i
+        </button>
+        <Button
+          size="xs"
+          variant="outline"
+          onClick={() => handleReorder(order, 'up')}
+          disabled={isFirst || isBusy}
+          title="Sposta su"
+        >
+          ↑
+        </Button>
+        <Button
+          size="xs"
+          variant="outline"
+          onClick={() => handleReorder(order, 'down')}
+          disabled={isLast || isBusy}
+          title="Sposta giù"
+        >
+          ↓
+        </Button>
+      </>
+    );
+  }, [handleReorder, orderIndexMap, reorderingId, scheduledOdps.length]);
 
   if (machinesLoading || storeLoading) {
     return <div className="text-center py-4 text-[10px]">Caricamento...</div>;
@@ -120,6 +213,7 @@ function MachineOverviewPage() {
             columns={columns}
             onEditRow={handleEditOrder}
             onDeleteRow={handleDeleteOrder}
+            renderRowActions={renderRowActions}
           />
         </div>
       ) : (

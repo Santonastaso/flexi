@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DataTable from '../components/DataTable';
+import { Button } from '../components/ui/button';
 
 import { useUIStore } from '../store';
 import { useOrders, useMachines, usePhases, useRemoveOrder } from '../hooks';
-import { showError, showSuccess } from '../utils';
+import { normalizeOdpNumber, showError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
 import { format } from 'date-fns';
 import { formatScheduledTime } from '../utils/dateFormatting';
@@ -39,6 +40,7 @@ function BacklogListPage() {
     // Join with machine and phase data
     return filteredOrders.map(order => ({
       ...order,
+      odp_number: normalizeOdpNumber(order.odp_number),
       machine_name: order.scheduled_machine_id 
         ? machines.find(m => m.id === order.scheduled_machine_id)?.machine_name || 'Macchina non trovata'
         : 'Non programmato',
@@ -64,7 +66,7 @@ function BacklogListPage() {
         const isScheduled = status === 'SCHEDULED';
         return (
           <span className={isScheduled ? 'text-green-600 font-medium' : ''}>
-            {value}
+            {normalizeOdpNumber(value)}
           </span>
         );
       }
@@ -216,6 +218,106 @@ function BacklogListPage() {
     navigate(`/backlog/${order.id}/edit`);
   };
 
+  const handleExportCsv = useCallback(() => {
+    if (!filteredOrders.length) {
+      showError('Nessun ordine da esportare');
+      return;
+    }
+
+    const startDateInput = window.prompt('Data inizio (YYYY-MM-DD):');
+    if (!startDateInput) return;
+    const endDateInput = window.prompt('Data fine (YYYY-MM-DD):');
+    if (!endDateInput) return;
+
+    const startDate = new Date(`${startDateInput}T00:00:00`);
+    const endDate = new Date(`${endDateInput}T23:59:59`);
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      showError('Formato data non valido');
+      return;
+    }
+
+    if (startDate > endDate) {
+      showError('La data inizio deve essere precedente alla data fine');
+      return;
+    }
+
+    const rowsToExport = filteredOrders.filter(order => {
+      if (!order.delivery_date) return false;
+      const deliveryDate = new Date(order.delivery_date);
+      return deliveryDate >= startDate && deliveryDate <= endDate;
+    });
+
+    if (!rowsToExport.length) {
+      showError('Nessun ordine nel range selezionato');
+      return;
+    }
+
+    const headers = [
+      'Numero ODP',
+      'Codice Articolo',
+      'Nome Cliente',
+      'Quantità',
+      'Quantità Completata',
+      'Altezza Busta (mm)',
+      'Larghezza Busta (mm)',
+      'Passo Busta (mm)',
+      'Data Consegna',
+      'Stato',
+      'Centro di Lavoro',
+      'Reparto',
+      'Nome Macchina',
+      'Nome Fase',
+      'Durata (ore)',
+      'Costo (€)',
+      'Note Libere',
+      'Note ASD'
+    ];
+
+    const escapeValue = (value) => {
+      if (value === null || value === undefined) return '';
+      const stringValue = String(value);
+      const needsQuotes = /[",\n]/.test(stringValue);
+      const escaped = stringValue.replace(/"/g, '""');
+      return needsQuotes ? `"${escaped}"` : escaped;
+    };
+
+    const csvRows = [
+      headers.join(','),
+      ...rowsToExport.map(order => [
+        normalizeOdpNumber(order.odp_number),
+        order.article_code,
+        order.nome_cliente,
+        order.quantity,
+        order.quantity_completed,
+        order.bag_height,
+        order.bag_width,
+        order.bag_step,
+        order.delivery_date ? format(new Date(order.delivery_date), 'yyyy-MM-dd') : '',
+        order.status,
+        order.work_center,
+        order.department,
+        order.machine_name,
+        order.phase_name,
+        typeof order.duration === 'number' ? order.duration.toFixed(1) : order.duration,
+        typeof order.cost === 'number' ? order.cost.toFixed(1) : order.cost,
+        order.user_notes,
+        order.asd_notes
+      ].map(escapeValue).join(','))
+    ];
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `odp_backlog_${startDateInput.replaceAll('-', '')}_${endDateInput.replaceAll('-', '')}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  }, [filteredOrders]);
+
   const handleDeleteOrder = async (orderToDelete) => {
     showConfirmDialog(
       'Elimina Ordine',
@@ -242,6 +344,11 @@ function BacklogListPage() {
 
   return (
     <div className="p-1 bg-white rounded shadow-sm border min-w-0">
+      <div className="flex items-center justify-end mb-2">
+        <Button size="sm" variant="outline" onClick={handleExportCsv}>
+          Export CSV
+        </Button>
+      </div>
       
       <div className="overflow-x-auto">
         <DataTable

@@ -30,26 +30,6 @@ export const CALENDAR_CONSTANTS = {
   },
 };
 
-/**
- * Calculate slot index from hour and minute
- * @param {number} hour - Hour (0-23)
- * @param {number} minute - Minute (0-59)
- * @returns {number} Slot index (0-based)
- */
-export function getSlotIndex(hour, minute) {
-  const adjustedHour = hour - CALENDAR_CONSTANTS.WORK_START_HOUR;
-  return adjustedHour * CALENDAR_CONSTANTS.SLOTS_PER_HOUR + Math.floor(minute / CALENDAR_CONSTANTS.MINUTES_PER_SLOT);
-}
-
-/**
- * Calculate pixel position from hour and minute
- * @param {number} hour - Hour (0-23)
- * @param {number} minute - Minute (0-59)
- * @returns {number} Pixel position
- */
-export function getPixelPosition(hour, minute) {
-  return getSlotIndex(hour, minute) * CALENDAR_CONSTANTS.SLOT_WIDTH_PX;
-}
 
 /**
  * Check if hour is within work hours
@@ -65,6 +45,3 @@ export function isWithinWorkHours(hour) {
  * @param {number} hour - Hour to clamp (0-23)
  * @returns {number} Clamped hour
  */
-export function clampToWorkHours(hour) {
-  return Math.max(CALENDAR_CONSTANTS.WORK_START_HOUR, Math.min(CALENDAR_CONSTANTS.WORK_END_HOUR, hour));
-}

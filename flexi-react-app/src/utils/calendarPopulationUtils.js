@@ -88,12 +88,3 @@ export function generateCalendarForYear(machines, year) {
     return records;
 }
 
-/**
- * Generates machine_availability records for a single machine for a specific year.
- * @param {Object} machine - The machine object.
- * @param {number} year - The year to generate the calendar for.
- * @returns {Array} An array of records ready for database insertion.
- */
-export function generateCalendarForMachine(machine, year) {
-    return generateCalendarForYear([machine], year);
-}

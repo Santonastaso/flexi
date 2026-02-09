@@ -112,65 +112,6 @@ export const handleApiError = (error, context = {}) => {
 };
 
 /**
- * Handle form validation errors
- */
-export const handleValidationError = (errors, context = {}) => {
-  const errorMessage = Array.isArray(errors) 
-    ? errors.join('\n') 
-    : errors;
-
-  addBreadcrumb('Validation error occurred', 'validation', 'error', {
-    errors: errorMessage,
-    context,
-  });
-
-  reportError(new Error(errorMessage), {
-    type: 'validation_error',
-    ...context,
-  });
-
-  return new AppError(errorMessage, ERROR_TYPES.VALIDATION_ERROR, 400, context);
-};
-
-/**
- * Handle business logic errors
- */
-export const handleBusinessError = (message, context = {}) => {
-  addBreadcrumb('Business logic error occurred', 'business', 'error', {
-    message,
-    context,
-  });
-
-  reportError(new Error(message), {
-    type: 'business_error',
-    ...context,
-  });
-
-  showError(message);
-  return new AppError(message, ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, context);
-};
-
-/**
- * Create error handler for async operations
- */
-export const createErrorHandler = (componentName) => {
-  return (error, context = {}) => {
-    const enhancedContext = {
-      component: componentName,
-      ...context,
-    };
-
-    if (error instanceof AppError) {
-      reportError(error, enhancedContext);
-      showError(error.userMessage);
-      return error;
-    }
-
-    return handleApiError(error, enhancedContext);
-  };
-};
-
-/**
  * Safe async wrapper with error handling
  */
 export const safeAsync = async (asyncFn, context = {}) => {
@@ -181,30 +122,3 @@ export const safeAsync = async (asyncFn, context = {}) => {
   }
 };
 
-/**
- * Retry mechanism for failed operations
- */
-export const withRetry = async (fn, maxRetries = 3, delay = 1000) => {
-  let lastError;
-  
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-      
-      if (i < maxRetries - 1) {
-        addBreadcrumb(`Retry attempt ${i + 1}`, 'retry', 'info', {
-          error: error.message,
-          attempt: i + 1,
-          maxRetries,
-        });
-        
-        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
-      }
-    }
-  }
-  
-  reportError(lastError, { type: 'retry_exhausted', maxRetries });
-  throw lastError;
-};

@@ -11,7 +11,7 @@ import {
 import { Button } from './ui/button';
 import FilterDropdown from './FilterDropdown';
 
-function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = false, filterableColumns = [], stickyColumns = [] }) {
+function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = false, filterableColumns = [], stickyColumns = [], renderRowActions }) {
   // Filter state management
   const [filters, setFilters] = useState({});
   const [openFilter, setOpenFilter] = useState(null);
@@ -69,8 +69,10 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
       id: 'actions',
       header: 'Azioni',
       cell: ({ row }) => {
+        const extraActions = renderRowActions ? renderRowActions(row.original) : null;
         return (
           <div className="flex flex-row gap-1 items-center justify-start">
+            {extraActions}
             <Button size="xs" variant="outline" onClick={() => handleEdit(row)}>
               Modifica
             </Button>
@@ -82,7 +84,7 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
       },
     };
     return [...columns, actionColumn];
-  }, [columns, onEditRow, onDeleteRow]);
+  }, [columns, onEditRow, onDeleteRow, renderRowActions]);
 
   // Calculate sticky column positions
   const getStickyLeftPosition = (columnId, columnIndex) => {

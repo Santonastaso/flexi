@@ -862,13 +862,6 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
                   ))}
                 </div>
               </div>
-              {!readOnly && (
-              <PreviousDayDropZone 
-                currentDate={currentDate}
-                onNavigateToPreviousDay={() => onNavigateToPreviousDay && onNavigateToPreviousDay(currentView)}
-                isDragOver={dropTargetId === 'previous-day-drop-zone'}
-              />
-              )}
               <div className="time-grid-wrapper">
                 <div className="time-header-row sticky-header">
                   {timeHeader}

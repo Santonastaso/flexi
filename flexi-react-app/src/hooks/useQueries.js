@@ -275,6 +275,7 @@ export const useUpdatePhase = () => {
     mutationFn: ({ id, updates }) => apiService.updatePhase(id, updates),
     onSuccess: (updatedPhase, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.phases });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders });
       
       // Update cache optimistically
       queryClient.setQueryData(queryKeys.phases, (oldData) => {
@@ -386,11 +387,6 @@ export const useBulkUpsertMachineAvailability = () => {
 export const useScheduledOrders = () => {
   const { data: orders = [] } = useOrders();
   return orders.filter(o => o.status === 'SCHEDULED');
-};
-
-export const useUnscheduledOrders = () => {
-  const { data: orders = [] } = useOrders();
-  return orders.filter(o => o.status === 'NOT SCHEDULED');
 };
 
 export const useOrdersByWorkCenter = (workCenter) => {

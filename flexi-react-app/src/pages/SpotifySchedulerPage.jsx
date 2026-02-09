@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback, useReducer, Suspense, lazy } from 'react';
 import { DndContext, DragOverlay, PointerSensor, MouseSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
-import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useUIStore, useSchedulerStore, useMainStore } from '../store';
 import { useOrders, useMachines } from '../hooks';
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
-import { showError, showSuccess } from '../utils';
+import { normalizeOdpNumber, showError, showSuccess } from '../utils';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../components/ui/button';
@@ -314,7 +313,7 @@ function SpotifySchedulerPage() {
   };
 
   // Drag handlers
-  const { scheduleTaskAtEndOfQueue, reorderTaskInQueue } = useSchedulerStore();
+  const { scheduleTaskAtEndOfQueue } = useSchedulerStore();
 
   const handleDragStart = useCallback((event) => {
     const draggedItem = event.active.data.current;
@@ -408,74 +407,13 @@ function SpotifySchedulerPage() {
       }
     }
     
-    // Case 2: Reordering within a queue
-    else if (draggedData?.type === 'queue-task' && droppedData?.type === 'queue-task') {
-      const draggedTaskId = draggedData.task.id;
-      const draggedMachineId = draggedData.machineId;
-      const droppedMachineId = droppedData.machineId;
-      
-      // Only allow reordering within the same machine
-      if (draggedMachineId !== droppedMachineId) {
-        showError('Non è possibile spostare task tra macchine diverse');
-        return;
-      }
-      
-      const oldIndex = draggedData.index;
-      const newIndex = droppedData.index;
-      
-      console.log('🔄 SPOTIFY: Reordering task', { draggedTaskId, oldIndex, newIndex });
-      
-      if (oldIndex !== newIndex) {
-        try {
-          startSchedulingOperation('reschedule', draggedTaskId);
-          
-          // Refetch orders immediately to ensure we have the latest data
-          await queryClient.refetchQueries({ 
-            queryKey: ['orders'],
-            exact: true,
-            type: 'active'
-          });
-          
-          // Get fresh orders from cache
-          const freshOrders = queryClient.getQueryData(['orders']) || [];
-          
-          const result = await reorderTaskInQueue(draggedMachineId, draggedTaskId, oldIndex, newIndex, freshOrders);
-          
-          if (result.error) {
-            // If cache is stale, refetch and inform user
-            if (result.error.includes('cache may be stale')) {
-              await queryClient.refetchQueries({ 
-                queryKey: ['orders'],
-                exact: true,
-                type: 'active'
-              });
-              showError('Cache non aggiornata. Riprova l\'operazione.');
-            } else {
-              showError(result.error);
-            }
-          } else {
-            // Force immediate refetch to update cache
-            await queryClient.refetchQueries({ 
-              queryKey: ['orders'],
-              exact: true,
-              type: 'active'
-            });
-          }
-        } catch (error) {
-          showError('Errore durante il riordino del lavoro');
-        } finally {
-          stopSchedulingOperation();
-        }
-      }
-    }
-    
-    // Case 3: Dropping task from pool or reordering to end of queue column
+    // Case 2: Dropping task from pool or reordering to end of queue column
     else if (draggedData?.type === 'queue-task' && droppedData?.type === 'queue-column') {
       // This happens when dragging within queue but dropping on empty space
       // We can ignore this as it's handled by the sortable context
       return;
     }
-  }, [scheduleTaskAtEndOfQueue, reorderTaskInQueue, queryClient]);
+  }, [scheduleTaskAtEndOfQueue, queryClient]);
 
   // Show password prompt if not authenticated
   if (!isAuthenticated) {
@@ -691,7 +629,7 @@ function SpotifySchedulerPage() {
               userSelect: 'none',
               whiteSpace: 'nowrap'
             }}>
-              {activeDragItem.odp_number}
+              {normalizeOdpNumber(activeDragItem.odp_number)}
             </div>
           ) : null}
         </DragOverlay>

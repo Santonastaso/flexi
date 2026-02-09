@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useUIStore } from '../store';
 import { useProductionCalculations, useValidation, useAddOrder, useUpdateOrder } from '../hooks';
 import { usePhaseSearch } from '../hooks/usePhaseSearch';
-import { showValidationError, showSuccess, showWarning, showInfo } from '../utils';
+import { normalizeOdpNumber, showValidationError, showSuccess, showWarning, showInfo } from '../utils';
 import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES, TASK_STATUSES } from '../constants';
 import { backlogFormConfig } from './formConfigs';
 import GenericForm from './GenericForm';
@@ -171,19 +171,18 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         seal_sides: dbData.seal_sides === '' ? null : dbData.seal_sides,
         product_type: dbData.product_type === '' ? null : dbData.product_type
       };
+
+      cleanedData.odp_number = normalizeOdpNumber(cleanedData.odp_number);
       
       if (isEditMode) {
         // Calculate new duration
         const baseDuration = calculationResults?.totals?.duration || orderToEdit.duration;
         const newDuration = baseDuration + (parseFloat(additionalHours) || 0);
         const progress = (orderToEdit.quantity_completed / orderToEdit.quantity) || 0;
-        const newTimeRemaining = newDuration * (1 - progress);
-        
         // Update order data only (no scheduling)
         const orderData = { 
           ...cleanedData, 
           duration: newDuration,
-          time_remaining: newTimeRemaining,
           cost: calculationResults?.totals?.cost || null
         };
         

@@ -49,5 +49,3 @@ export const showSuccess = toast.success;
 export const showError = toast.error;
 export const showWarning = toast.warning;
 export const showInfo = toast.info;
-export const dismissAll = toast.dismiss;
-export const dismiss = toast.dismiss;

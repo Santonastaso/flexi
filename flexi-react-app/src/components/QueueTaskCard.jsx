@@ -7,8 +7,9 @@ import { useSchedulerStore } from '../store';
 import { usePhase, useOrders } from '../hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
+import { normalizeOdpNumber } from '../utils';
 
-function QueueTaskCard({ task, index, machineId }) {
+function QueueTaskCard({ task, index, machineId, enableReorder = true }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { removeTaskFromQueue } = useSchedulerStore();
@@ -33,7 +34,8 @@ function QueueTaskCard({ task, index, machineId }) {
       task,
       machineId,
       index
-    }
+    },
+    disabled: !enableReorder,
   });
 
   const style = {
@@ -64,6 +66,7 @@ function QueueTaskCard({ task, index, machineId }) {
 
   // Get task duration
   const duration = task.time_remaining || task.duration || 0;
+  const displayOdpNumber = normalizeOdpNumber(task.odp_number);
 
   // Format times in Italy timezone
   const startTime = task.scheduled_start_time ? formatScheduledTime(task.scheduled_start_time) : '—';
@@ -95,7 +98,7 @@ function QueueTaskCard({ task, index, machineId }) {
     const confirmed = window.confirm(
       isPauseTask 
         ? `Sei sicuro di voler rimuovere questa pausa?`
-        : `Sei sicuro di voler rimuovere "${task.odp_number}" dalla coda?\n\nI task successivi verranno ricalcolati automaticamente.`
+        : `Sei sicuro di voler rimuovere "${displayOdpNumber}" dalla coda?\n\nI task successivi verranno ricalcolati automaticamente.`
     );
     
     if (!confirmed) return;
@@ -149,7 +152,12 @@ function QueueTaskCard({ task, index, machineId }) {
       className={`queue-task-card ${isPauseTask ? 'pause-task' : ''} ${isCompleted ? 'completed-task' : ''} ${isDragging ? 'dragging' : ''}`}
     >
       {/* Drag Handle */}
-      <div className="queue-task-drag-handle" {...attributes} {...listeners}>
+      <div 
+        className={`queue-task-drag-handle ${enableReorder ? '' : 'opacity-40 cursor-not-allowed'}`}
+        {...(enableReorder ? attributes : {})}
+        {...(enableReorder ? listeners : {})}
+        title={enableReorder ? 'Trascina per riordinare' : 'Riordino disponibile in Panoramica Macchina'}
+      >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
         </svg>
@@ -168,7 +176,7 @@ function QueueTaskCard({ task, index, machineId }) {
         {/* Main Info */}
         <div className="queue-task-main">
           <div className="queue-task-odp">
-            {task.odp_number}
+            {displayOdpNumber}
             {isCompleted && (
               <span className="completed-badge" title="Lavoro completato">
                 ✓ Completato
