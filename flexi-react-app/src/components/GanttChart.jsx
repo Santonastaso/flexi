@@ -5,6 +5,7 @@ import { useUIStore } from '../store';
 import { useOrders } from '../hooks';
 import { format, startOfDay, endOfDay, startOfWeek, isSameDay, addDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
+import { normalizeOdpNumber } from '../utils';
 import { formatScheduledTime, formatDeliveryDate, ITALY_TIMEZONE } from '../utils/dateFormatting';
 import { getTaskSegments } from '../utils/taskSegments';
 import { AppConfig } from '../services/config';
@@ -325,7 +326,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
                         className={`event-content`}
                     >
                         <span className="event-label">
-                            {event.odp_number}
+                            {normalizeOdpNumber(event.odp_number)}
                             {index === 0 && (() => {
                                 const segmentInfo = getTaskSegments(event);
                                 return segmentInfo && segmentInfo.wasSplit ? (
@@ -627,10 +628,10 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
                         <div 
                           key={task.id} 
                           className="day-task-item"
-                          title={`${task.odp_number} - ${task.article_code || 'Codice articolo FLEXI'} - ${task.time_remaining ? Number(task.time_remaining).toFixed(1) : (task.duration || 1).toFixed(1)}h`}
+                          title={`${normalizeOdpNumber(task.odp_number)} - ${task.article_code || 'Codice articolo FLEXI'} - ${task.time_remaining ? Number(task.time_remaining).toFixed(1) : (task.duration || 1).toFixed(1)}h`}
                         >
                           <div className="day-task-content">
-                            <span className="task-odp">{task.odp_number}</span>
+                            <span className="task-odp">{normalizeOdpNumber(task.odp_number)}</span>
                             <span className="task-duration">
                               {task.time_remaining ? Number(task.time_remaining).toFixed(1) : (task.duration || 1).toFixed(1)}h
                             </span>

@@ -65,11 +65,11 @@ function MachineOverviewPage() {
   const handleDeleteOrder = async (orderToDelete) => {
     showConfirmDialog(
       'Elimina Ordine',
-      `Sei sicuro di voler eliminare "${orderToDelete.odp_number}"? Questa azione non può essere annullata.`,
+        `Sei sicuro di voler eliminare "${normalizeOdpNumber(orderToDelete.odp_number)}"? Questa azione non può essere annullata.`,
       async () => {
         try {
           await removeOrderMutation.mutateAsync(orderToDelete.id);
-          showSuccess(`Ordine "${orderToDelete.odp_number}" eliminato con successo`);
+          showSuccess(`Ordine "${normalizeOdpNumber(orderToDelete.odp_number)}" eliminato con successo`);
         } catch (error) {
           showError(error.message || 'Eliminazione ordine fallita');
         }

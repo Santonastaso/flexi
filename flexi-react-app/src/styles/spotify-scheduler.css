@@ -3,22 +3,23 @@
 .spotify-scheduler-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 60px); /* Fit within viewport minus header */
+  height: calc(100vh - 60px);
   padding: 0.5rem;
   gap: 0.5rem;
   background-color: #f9fafb;
   overflow: visible;
 }
 
-/* Task Pool Section */
+/* Task Pool Section - persistent horizontal scrollbar */
 .task-pool-section {
   background: white;
   border-radius: 6px;
   padding: 0.5rem;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  max-height: 25vh; /* Limit task pool height */
-  overflow-y: auto; /* Allow scrolling within task pool */
-  flex-shrink: 0; /* Don't shrink */
+  max-height: 25vh;
+  flex-shrink: 0;
+  overflow-x: scroll;
+  overflow-y: auto;
 }
 
 .task-pool-table-container {

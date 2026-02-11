@@ -8,7 +8,7 @@ import { useSchedulerStore, useUIStore } from '../store';
 import { useMachines, useOrders } from '../hooks';
 import { format, parseISO } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { showError } from '../utils';
+import { showError, normalizeOdpNumber } from '../utils';
 import { AppConfig } from '../services/config';
 import { convertCETHourToUTC, ITALY_TIMEZONE } from '../utils/dateFormatting';
 import { CALENDAR_CONSTANTS, isWithinWorkHours } from '../utils/calendarConstants';
@@ -73,7 +73,7 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
           const isSplitTask = segments.length > 1;
           events.push({
             id: `${task.id}-segment-${index}`,
-            title: `${task.odp_number} - ${task.article_code}${isSplitTask ? ` (${index + 1}/${segments.length})` : ''}`,
+            title: `${normalizeOdpNumber(task.odp_number)} - ${task.article_code}${isSplitTask ? ` (${index + 1}/${segments.length})` : ''}`,
             start: segment.start,
             end: segment.end,
             backgroundColor: isSplitTask ? '#8b5cf6' : '#3b82f6', // Purple for split tasks, blue for single

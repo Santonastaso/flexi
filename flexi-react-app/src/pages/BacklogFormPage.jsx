@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import BacklogForm from '../components/BacklogForm';
 import StickyHeader from '../components/StickyHeader';
+import { normalizeOdpNumber } from '../utils';
 import { Button } from '../components/ui';
 import { useUIStore, useMainStore } from '../store';
 import { useOrder } from '../hooks';
@@ -54,24 +55,24 @@ function BacklogFormPage() {
 
   return (
     <div className="p-1 bg-white rounded shadow-sm border">
-      <StickyHeader title={isEditMode ? `Modifica Ordine: ${order?.odp_number}` : 'Aggiungi Nuovo Ordine'} />
+      <StickyHeader title={isEditMode ? `Modifica Ordine: ${order?.odp_number ? normalizeOdpNumber(order.odp_number) : ''}` : 'Aggiungi Nuovo Ordine'} />
       
-      {/* Back to Scheduler Button - only show in edit mode */}
+      {/* Back to Backlog Button - only show in edit mode */}
       {isEditMode && (
         <div className="mb-4 flex justify-start">
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => navigate('/scheduler')}
+            onClick={() => navigate('/backlog')}
             className="text-[10px]"
           >
-            ← Torna al Programmatore
+            ← Torna alla Lista Backlog
           </Button>
         </div>
       )}
       
       <BacklogForm 
-        onSuccess={isEditMode ? () => navigate('/scheduler') : undefined} 
+        onSuccess={isEditMode ? () => navigate('/backlog') : undefined} 
         orderToEdit={order} 
       />
     </div>

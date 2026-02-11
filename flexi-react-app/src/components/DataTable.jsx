@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useReactTable, getCoreRowModel, flexRender, getSortedRowModel } from '@tanstack/react-table';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -14,10 +14,28 @@ import {
 import { Button } from './ui/button';
 import FilterDropdown from './FilterDropdown';
 
-function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = false, filterableColumns = [], stickyColumns = [], renderRowActions, enableRowReorder = false, onRowReorder }) {
-  // Filter state management
-  const [filters, setFilters] = useState({});
+const loadStoredFilters = (key) => {
+  try {
+    const stored = sessionStorage.getItem(key);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return typeof parsed === 'object' && parsed !== null ? parsed : {};
+    }
+  } catch (_) {}
+  return {};
+};
+
+function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = false, filterableColumns = [], stickyColumns = [], renderRowActions, enableRowReorder = false, onRowReorder, filterStorageKey }) {
+  const [filters, setFilters] = useState(() =>
+    filterStorageKey ? loadStoredFilters(filterStorageKey) : {}
+  );
   const [openFilter, setOpenFilter] = useState(null);
+
+  useEffect(() => {
+    if (filterStorageKey) {
+      sessionStorage.setItem(filterStorageKey, JSON.stringify(filters));
+    }
+  }, [filterStorageKey, filters]);
 
   // Apply column filters
   const filteredData = useMemo(() => {

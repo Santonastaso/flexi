@@ -280,13 +280,14 @@ function TaskPoolDataTable({ filterByCost = true }) {
   };
 
   const handleDeleteRow = async (taskToDelete) => {
+    const displayOdp = normalizeOdpNumber(taskToDelete.odp_number);
     showConfirmDialog(
       'Elimina Ordine',
-      `Sei sicuro di voler eliminare "${taskToDelete.odp_number}"? Questa azione non può essere annullata.`,
+      `Sei sicuro di voler eliminare "${displayOdp}"? Questa azione non può essere annullata.`,
       async () => {
         try {
           await removeOrderMutation.mutateAsync(taskToDelete.id);
-          showSuccess(`Ordine "${taskToDelete.odp_number}" eliminato con successo`);
+          showSuccess(`Ordine "${displayOdp}" eliminato con successo`);
         } catch (error) {
           showError(error.message || 'Eliminazione ordine fallita');
         }

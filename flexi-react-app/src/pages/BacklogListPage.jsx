@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import DataTable from '../components/DataTable';
 import { Button } from '../components/ui/button';
 
@@ -40,7 +41,6 @@ function BacklogListPage() {
     // Join with machine and phase data
     return filteredOrders.map(order => ({
       ...order,
-      odp_number: normalizeOdpNumber(order.odp_number),
       machine_name: order.scheduled_machine_id 
         ? machines.find(m => m.id === order.scheduled_machine_id)?.machine_name || 'Macchina non trovata'
         : 'Non programmato',
@@ -218,7 +218,7 @@ function BacklogListPage() {
     navigate(`/backlog/${order.id}/edit`);
   };
 
-  const handleExportCsv = useCallback(() => {
+  const handleExportXlsx = useCallback(() => {
     if (!filteredOrders.length) {
       showError('Nessun ordine da esportare');
       return;
@@ -274,58 +274,47 @@ function BacklogListPage() {
       'Note ASD'
     ];
 
-    const escapeValue = (value) => {
+    const toValue = (value) => {
       if (value === null || value === undefined) return '';
-      const stringValue = String(value);
-      const needsQuotes = /[",\n]/.test(stringValue);
-      const escaped = stringValue.replace(/"/g, '""');
-      return needsQuotes ? `"${escaped}"` : escaped;
+      return value;
     };
 
-    const csvRows = [
-      headers.join(','),
-      ...rowsToExport.map(order => [
-        normalizeOdpNumber(order.odp_number),
-        order.article_code,
-        order.nome_cliente,
-        order.quantity,
-        order.quantity_completed,
-        order.bag_height,
-        order.bag_width,
-        order.bag_step,
-        order.delivery_date ? format(new Date(order.delivery_date), 'yyyy-MM-dd') : '',
-        order.status,
-        order.work_center,
-        order.department,
-        order.machine_name,
-        order.phase_name,
-        typeof order.duration === 'number' ? order.duration.toFixed(1) : order.duration,
-        typeof order.cost === 'number' ? order.cost.toFixed(1) : order.cost,
-        order.user_notes,
-        order.asd_notes
-      ].map(escapeValue).join(','))
-    ];
+    const rows = rowsToExport.map(order => [
+      toValue(normalizeOdpNumber(order.odp_number)),
+      toValue(order.article_code),
+      toValue(order.nome_cliente),
+      toValue(order.quantity),
+      toValue(order.quantity_completed),
+      toValue(order.bag_height),
+      toValue(order.bag_width),
+      toValue(order.bag_step),
+      order.delivery_date ? format(new Date(order.delivery_date), 'yyyy-MM-dd') : '',
+      toValue(order.status),
+      toValue(order.work_center),
+      toValue(order.department),
+      toValue(order.machine_name),
+      toValue(order.phase_name),
+      typeof order.duration === 'number' ? order.duration.toFixed(1) : toValue(order.duration),
+      typeof order.cost === 'number' ? order.cost.toFixed(1) : toValue(order.cost),
+      toValue(order.user_notes),
+      toValue(order.asd_notes)
+    ]);
 
-    const csvContent = csvRows.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `odp_backlog_${startDateInput.replaceAll('-', '')}_${endDateInput.replaceAll('-', '')}.csv`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Backlog');
+    XLSX.writeFile(wb, `odp_backlog_${startDateInput.replaceAll('-', '')}_${endDateInput.replaceAll('-', '')}.xlsx`);
   }, [filteredOrders]);
 
   const handleDeleteOrder = async (orderToDelete) => {
+    const displayOdp = normalizeOdpNumber(orderToDelete.odp_number);
     showConfirmDialog(
       'Elimina Ordine',
-      `Sei sicuro di voler eliminare "${orderToDelete.odp_number}"? Questa azione non può essere annullata.`,
+      `Sei sicuro di voler eliminare "${displayOdp}"? Questa azione non può essere annullata.`,
       async () => {
         try {
           await removeOrderMutation.mutateAsync(orderToDelete.id);
-          showSuccess(`Ordine "${orderToDelete.odp_number}" eliminato con successo`);
+          showSuccess(`Ordine "${displayOdp}" eliminato con successo`);
         } catch (error) {
           showError(error.message || 'Eliminazione ordine fallita');
         }
@@ -345,8 +334,8 @@ function BacklogListPage() {
   return (
     <div className="p-1 bg-white rounded shadow-sm border min-w-0">
       <div className="flex items-center justify-end mb-2">
-        <Button size="sm" variant="outline" onClick={handleExportCsv}>
-          Export CSV
+        <Button size="sm" variant="outline" onClick={handleExportXlsx}>
+          Export XLSX
         </Button>
       </div>
       
@@ -359,6 +348,7 @@ function BacklogListPage() {
           stickyColumns={['odp_number', 'article_code']}
           enableFiltering={true}
           filterableColumns={filterableColumns}
+          filterStorageKey="backlogListFilters"
         />
       </div>
     </div>
