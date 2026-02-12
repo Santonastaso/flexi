@@ -172,7 +172,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         product_type: dbData.product_type === '' ? null : dbData.product_type
       };
 
-      cleanedData.odp_number = normalizeOdpNumber(cleanedData.odp_number);
+      // cleanedData.odp_number = normalizeOdpNumber(cleanedData.odp_number); // Removed to avoid changing the ODP number which causes duplication issues
       
       if (isEditMode) {
         // Calculate new duration
