@@ -46,7 +46,6 @@ export const machineFormConfig = {
           required: true,
           placeholder: 'Seleziona tipo macchina',
           options: [], // Will be populated dynamically based on department
-          conditional: (department) => department === DEPARTMENT_TYPES.PRINTING || department === DEPARTMENT_TYPES.PACKAGING
         },
         {
           name: 'machine_name',

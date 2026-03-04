@@ -356,7 +356,6 @@
     transform: scale(1.01);
 }
 
-/* ===== TASK POOL TABLE CONTAINER ===== */
 .task-pool-table-container {
     width: 100%;
     min-width: 100%;
@@ -366,10 +365,7 @@
     background: white;
     border-radius: 0;
     border: none;
-    min-height: 220px; /* Minimum height for 4 tasks + header */
-    overflow-y: auto;
-    overflow-x: visible; /* Allow horizontal overflow for dropdowns */
-    contain: layout style; /* Remove paint containment to allow dropdowns */
+    min-height: 220px;
 }
 
 .task-pool-table-container.drag-over {
