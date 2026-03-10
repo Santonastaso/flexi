@@ -122,6 +122,8 @@ function MachineOverviewPage() {
         ? format(new Date(row.original.delivery_date), 'yyyy-MM-dd')
         : 'Non impostata'
     },
+    { header: '%ISP', accessorKey: 'material_availability_isp', cell: ({ row }) => row.original.material_availability_isp != null ? `${row.original.material_availability_isp}%` : 'N/A' },
+    { header: '%Mat. Globale', accessorKey: 'material_availability_global', cell: ({ row }) => row.original.material_availability_global != null ? `${row.original.material_availability_global}%` : 'N/A' },
     { header: 'Durata (h)', accessorKey: 'duration', cell: ({ row }) => row.original.duration?.toFixed(1) || 'N/A' },
     { 
       header: 'Inizio Programmato', 

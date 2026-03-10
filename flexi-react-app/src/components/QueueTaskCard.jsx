@@ -248,6 +248,18 @@ function QueueTaskCard({ task, index, machineId, enableReorder = true }) {
           </div>
         )}
 
+        {/* Material Availability */}
+        {!isPauseTask && (
+          <div className="queue-task-details">
+            <div className="queue-task-detail-item">
+              <span className="detail-value">ISP: {task.material_availability_isp != null ? `${task.material_availability_isp}%` : 'N/A'}</span>
+            </div>
+            <div className="queue-task-detail-item">
+              <span className="detail-value">Mat: {task.material_availability_global != null ? `${task.material_availability_global}%` : 'N/A'}</span>
+            </div>
+          </div>
+        )}
+
         {/* Duration */}
         <div className="queue-task-duration">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
