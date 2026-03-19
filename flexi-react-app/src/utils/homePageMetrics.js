@@ -25,7 +25,7 @@ export const calculateHomeMetrics = (machines, orders) => {
   const now = new Date();
   const startOfWeek = new Date(now);
   // Adjust for Monday as first day: if today is Sunday (0), go back 6 days; otherwise go back (day - 1) days
-  const dayOfWeek = now.getDay();
+  const dayOfWeek = now.getUTCDay();
   const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   startOfWeek.setUTCDate(now.getUTCDate() - daysToSubtract);
   startOfWeek.setUTCHours(0, 0, 0, 0);
@@ -37,8 +37,8 @@ export const calculateHomeMetrics = (machines, orders) => {
   }).length;
 
   // Tasks currently in work in progress
-  const tasksInWip = orders.filter(order => 
-    order.status === 'IN PROGRESS' || order.status === 'SCHEDULED'
+  const tasksInWip = orders.filter(order =>
+    order.status === 'SCHEDULED'
   ).length;
 
   // Delayed tasks (past delivery_date and not completed)

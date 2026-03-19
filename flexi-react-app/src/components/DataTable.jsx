@@ -46,7 +46,7 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
         if (!filterValue) return true;
         
         const itemValue = item[column];
-        if (!itemValue) return false;
+        if (itemValue == null) return false;
         
         // Handle array of selected values (multi-selection)
         if (Array.isArray(filterValue)) {
@@ -130,32 +130,7 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
     return leftPosition;
   };
 
-  const tableData = useMemo(() => {
-    // Check for duplicate IDs
-    if (filteredData && filteredData.length > 0) {
-      const ids = filteredData.map(item => item.id);
-      const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
-      if (duplicateIds.length > 0) {
-        // Duplicate IDs detected but not logged
-      }
-      
-      // Check for duplicate objects (same ID, same data)
-      const seenIds = new Set();
-      const duplicates = [];
-      filteredData.forEach((item, index) => {
-        if (seenIds.has(item.id)) {
-          duplicates.push({ id: item.id, index, item });
-        } else {
-          seenIds.add(item.id);
-        }
-      });
-      
-      if (duplicates.length > 0) {
-        // Duplicate objects detected but not logged
-      }
-    }
-    return filteredData;
-  }, [filteredData]);
+  const tableData = useMemo(() => filteredData, [filteredData]);
 
   const table = useReactTable({
     data: tableData,

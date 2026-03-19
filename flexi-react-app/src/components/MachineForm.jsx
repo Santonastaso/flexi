@@ -17,7 +17,13 @@ function MachineForm({ machineToEdit, onSuccess }) {
   
   // Create dynamic config with machine types based on department
   const dynamicConfig = useMemo(() => {
-    const config = { ...machineFormConfig };
+    const config = {
+      ...machineFormConfig,
+      sections: machineFormConfig.sections.map(s => ({
+        ...s,
+        fields: s.fields.map(f => ({ ...f }))
+      }))
+    };
     
     // Update machine type options dynamically
     config.sections[0].fields[1].options = [

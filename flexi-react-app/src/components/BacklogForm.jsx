@@ -209,7 +209,6 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         delete orderData.time_remaining;
         delete orderData.progress;
         
-        console.log('Creating new order with data:', orderData);
         await addOrderMutation.mutateAsync(orderData);
         showSuccess('✅ Ordine creato con successo! Vai alla pagina Spotify Scheduler per aggiungerlo alla coda di una macchina.');
       }

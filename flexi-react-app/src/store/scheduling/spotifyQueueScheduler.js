@@ -37,44 +37,6 @@ export class SpotifyQueueScheduler {
   };
 
   /**
-   * Calculate next available start time (end of last task, rounded to 15min)
-   * @param {string} machineId - Machine ID
-   * @param {Array} allOrders - All orders from React Query
-   * @param {string} excludeTaskId - Optional task ID to exclude from queue (to handle stale cache)
-   */
-  calculateNextStartTime = (machineId, allOrders, excludeTaskId = null) => {
-    let queue = this.getQueue(machineId, allOrders);
-    
-    console.log('🟢 calculateNextStartTime - Initial queue length:', queue.length, 'excludeTaskId:', excludeTaskId?.substring(0, 8));
-    console.log('🟢 Queue tasks:', queue.map(t => ({
-      id: t.id.substring(0, 8),
-      odp: t.odp_number,
-      start: t.scheduled_start_time,
-      end: t.scheduled_end_time
-    })));
-    
-    // Exclude the task being scheduled to avoid stale cache issues
-    if (excludeTaskId) {
-      queue = queue.filter(t => t.id !== excludeTaskId);
-      console.log('🟢 After exclude - queue length:', queue.length);
-    }
-    
-    if (queue.length === 0) {
-      // Queue is empty, start from now
-      const now = new Date();
-      console.log('🟢 Queue empty, starting from now:', now.toISOString());
-      return this.roundToNext15Min(now);
-    }
-    
-    // Start after the last task in queue
-    const lastTask = queue[queue.length - 1];
-    const lastEndTime = new Date(lastTask.scheduled_end_time);
-    const nextStart = this.roundToNext15Min(lastEndTime);
-    console.log('🟢 Starting after last task:', lastTask.odp_number, 'ends at:', lastEndTime.toISOString(), 'next start:', nextStart.toISOString());
-    return nextStart;
-  };
-
-  /**
    * Get anchor time and queue for greedy scheduling
    * If a task is in progress, anchor starts after it ends.
    */
@@ -117,7 +79,7 @@ export class SpotifyQueueScheduler {
     let currentStartTime = this.roundToNext15Min(anchorTime);
 
     for (const task of tasks) {
-      const duration = task.time_remaining || task.duration || 1;
+      const duration = (task.time_remaining != null && task.time_remaining > 0) ? task.time_remaining : (task.duration || 1);
       const { segments, startTime: actualStart, endTime } = await this.splitTaskAroundUnavailability(
         currentStartTime,
         duration,
@@ -345,7 +307,7 @@ export class SpotifyQueueScheduler {
     // After rapid unschedule->schedule operations, React Query cache may not be up to date
     // The database is the source of truth, so we proceed and let the update handle it
     
-    const duration = task.time_remaining || task.duration || 0;
+    const duration = (task.time_remaining != null && task.time_remaining > 0) ? task.time_remaining : (task.duration || 0);
     if (duration <= 0) {
       return { error: 'Task must have a duration greater than 0' };
     }
@@ -505,12 +467,27 @@ export class SpotifyQueueScheduler {
    */
   isPauseTask = (task) => {
     if (!task.description) return false;
-    
+
     try {
       const desc = JSON.parse(task.description);
       return desc.is_pause === true;
     } catch {
       return false;
     }
+  };
+
+  /**
+   * Remove a task from the queue (unschedule it, return it to the pool)
+   * @param {string} taskId - Task ID
+   */
+  removeFromQueue = async (taskId) => {
+    await apiService.updateOdpOrder(taskId, {
+      status: 'NOT SCHEDULED',
+      scheduled_machine_id: null,
+      scheduled_start_time: null,
+      scheduled_end_time: null,
+      description: null,
+    });
+    return { success: true };
   };
 }

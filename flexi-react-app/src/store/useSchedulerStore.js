@@ -33,7 +33,6 @@ export const useSchedulerStore = create((set, get) => {
 
     // Queue scheduling methods (delegated to SpotifyQueueScheduler)
     getQueueForMachine: spotifyScheduler.getQueue,
-    calculateQueueStartTime: spotifyScheduler.calculateNextStartTime,
     scheduleTaskAtEndOfQueue: spotifyScheduler.scheduleTaskAtEnd,
     reorderTaskInQueue: spotifyScheduler.reorderQueue,
     createPauseTask: spotifyScheduler.createPauseTask,

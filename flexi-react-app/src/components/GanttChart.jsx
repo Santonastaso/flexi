@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
-import { useUIStore } from '../store';
+import { useUIStore, useSchedulerStore } from '../store';
 import { useOrders } from '../hooks';
 import { format, startOfDay, endOfDay, startOfWeek, isSameDay, addDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
@@ -432,9 +432,10 @@ ${event.scheduled_end_time ? `Fine Programmata: ${formatScheduledTime(event.sche
                                             e.stopPropagation();
                                             e.preventDefault();
                                             try {
-                                                await useSchedulerStore.getState().unscheduleTask(event.id, queryClient);
+                                                await useSchedulerStore.getState().removeTaskFromQueue(event.id);
+                                                await queryClient.refetchQueries({ queryKey: ['orders'], exact: true, type: 'active' });
                                             } catch (error) {
-                                                // Error handled by unscheduleTask
+                                                // Error handled by removeTaskFromQueue
                                             }
                                         }}
                                         onMouseDown={(e) => {

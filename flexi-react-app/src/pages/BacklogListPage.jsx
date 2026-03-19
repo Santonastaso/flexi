@@ -276,6 +276,7 @@ function BacklogListPage() {
 
     const toValue = (value) => {
       if (value === null || value === undefined) return '';
+      if (typeof value === 'number' && !isFinite(value)) return '';
       return value;
     };
 
@@ -288,7 +289,7 @@ function BacklogListPage() {
       toValue(order.bag_height),
       toValue(order.bag_width),
       toValue(order.bag_step),
-      order.delivery_date ? format(new Date(order.delivery_date), 'yyyy-MM-dd') : '',
+      (() => { if (!order.delivery_date) return ''; try { return format(new Date(order.delivery_date), 'yyyy-MM-dd'); } catch { return ''; } })(),
       toValue(order.status),
       toValue(order.work_center),
       toValue(order.department),

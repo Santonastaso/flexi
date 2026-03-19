@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import { formatScheduledTime } from '../utils/dateFormatting';
 import { normalizeOdpNumber } from '../utils';
 import DataTable from './DataTable';
+import { showSuccess, showError } from '../utils/toast';
 
 // Gantt Actions Cell Component
 const GanttActionsCell = ({ task, schedulingLoading }) => {
@@ -145,7 +146,8 @@ function TaskPoolDataTable({ filterByCost = true }) {
       const hasDuration = task.duration > 0;
       const hasCost = filterByCost ? task.cost > 0 : true;
       
-      return isNotScheduled && hasDuration && hasCost;
+      const isNotComplete = (task.progress ?? 0) < 100;
+      return isNotScheduled && hasDuration && hasCost && isNotComplete;
     });
     if (selectedWorkCenter && selectedWorkCenter !== 'BOTH') {
       filtered = filtered.filter(task => task.work_center === selectedWorkCenter);

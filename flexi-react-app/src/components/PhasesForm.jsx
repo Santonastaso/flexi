@@ -17,7 +17,13 @@ function PhasesForm({ phaseToEdit, onSuccess }) {
   
   // Create dynamic config based on selected work center
   const dynamicConfig = useMemo(() => {
-    const config = { ...phaseFormConfig };
+    const config = {
+      ...phaseFormConfig,
+      sections: phaseFormConfig.sections.map(s => ({
+        ...s,
+        fields: s.fields.map(f => ({ ...f }))
+      }))
+    };
     
     // Update work center field based on selected work center
     if (selectedWorkCenter !== WORK_CENTERS.BOTH) {
