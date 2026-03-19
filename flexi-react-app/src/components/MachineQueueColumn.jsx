@@ -62,7 +62,7 @@ function MachineQueueColumn({ machine, queryClient }) {
       <div className="queue-column-header">
         <div className="queue-column-title">
           <h3 className="text-sm font-semibold text-gray-900">{machine.machine_name}</h3>
-          <span className="text-[10px] text-gray-500">{machine.work_center}</span>
+          <span className="text-[11px] text-gray-500">{machine.work_center}</span>
         </div>
         <div className="queue-column-stats">
           <div className="stat-item">
@@ -87,7 +87,7 @@ function MachineQueueColumn({ machine, queryClient }) {
         {queueTasks.length === 0 ? (
           <div className="queue-empty-state">
             <p className="text-xs text-gray-500">Nessun lavoro in coda</p>
-            <p className="text-[10px] text-gray-400">Trascina un lavoro qui per iniziare</p>
+            <p className="text-xs text-gray-400">Trascina un lavoro qui per iniziare</p>
           </div>
         ) : (
           <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>

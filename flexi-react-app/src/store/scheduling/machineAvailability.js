@@ -1,5 +1,5 @@
 import { apiService } from '../../services';
-import { format, addDays } from 'date-fns';
+import { addDays } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { handleApiError, AppError, ERROR_TYPES } from '../../utils/errorHandling';
 import { useUIStore } from '../useUIStore';

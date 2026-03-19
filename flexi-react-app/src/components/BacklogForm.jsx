@@ -191,7 +191,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         
         // Show warning if task is scheduled
         if (orderToEdit.scheduled_machine_id && orderToEdit.scheduled_start_time) {
-          showInfo('⚠️ Attenzione: Il task è già schedulato. Le modifiche ai dati sono state salvate, ma dovrai riposizionarlo nella coda Spotify se la durata è cambiata.');
+          showInfo('⚠️ Attenzione: Il task è già schedulato. Le modifiche ai dati sono state salvate, ma dovrai riposizionarlo nella coda se la durata è cambiata.');
         }
         
         await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
@@ -213,7 +213,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         delete orderData.progress;
         
         await addOrderMutation.mutateAsync(orderData);
-        showSuccess('✅ Ordine creato con successo! Vai alla pagina Spotify Scheduler per aggiungerlo alla coda di una macchina.');
+        showSuccess('✅ Ordine creato con successo! Vai alla pagina Pianificazione per aggiungerlo alla coda di una macchina.');
       }
 
       // Invalidate React Query cache
@@ -356,8 +356,8 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                     setCalculationResults(null);
                   }}
                 >
-                  <div className="text-[10px] font-medium">{phase.name}</div>
-                  <div className="text-[10px] text-gray-600">{phase.contenuto_fase}</div>
+                  <div className="text-xs font-medium">{phase.name}</div>
+                  <div className="text-xs text-gray-600">{phase.contenuto_fase}</div>
                 </div>
               ))}
             </div>
@@ -372,7 +372,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       
       return (
         <div className="space-y-2">
-          <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">
+          <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">
             Parametri Fase Selezionata
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -386,7 +386,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                     value={getPhaseParamValue(field.name)} 
                     onChange={(e) => handlePhaseParamChange(field.name, e.target.value)} 
                   />
-                  <span className="text-[10px] text-gray-500 whitespace-nowrap">{field.unit}</span>
+                  <span className="text-xs text-gray-500 whitespace-nowrap">{field.unit}</span>
                 </div>
               </div>
             ))}
@@ -403,13 +403,13 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       
       return (
         <div className="space-y-2">
-          <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">
+          <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">
             Risultati Calcolo Produzione
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div className="space-y-2">
               <Label>Durata Calcolata (ore):</Label>
-              <div className="text-[10px] font-semibold text-gray-600">
+              <div className="text-sm font-semibold text-gray-600">
                 {calculationResults.totals.duration.toFixed(2)}
               </div>
             </div>
@@ -421,13 +421,13 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 min="0"
                 value={additionalHours}
                 onChange={(e) => setAdditionalHours(e.target.value)}
-                className="text-[10px]"
+                className="text-sm"
                 placeholder="0"
               />
             </div>
             <div className="space-y-2">
               <Label>Durata Finale (ore):</Label>
-              <div className="text-[10px] font-semibold text-navy-800">
+              <div className="text-sm font-semibold text-navy-800">
                 {finalDuration.toFixed(2)}
               </div>
             </div>
@@ -435,7 +435,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
           <div className="grid grid-cols-1 gap-2 mt-2">
             <div className="space-y-2">
               <Label>Costo Totale (€):</Label>
-              <div className="text-[10px] font-semibold text-green-600">
+              <div className="text-sm font-semibold text-green-600">
                 {calculationResults.totals.cost.toFixed(2)}
               </div>
             </div>

@@ -2,31 +2,24 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
-/**
- * ProtectedRoute component that secures application routes
- * Redirects unauthenticated users to the login page
- */
 const ProtectedRoute = () => {
   const { user, loading } = useAuth();
 
-  // Show loading state while checking authentication
   if (loading) {
     return (
-      <div className="auth-loading">
-        <div className="auth-loading__container">
-          <div className="auth-loading__spinner"></div>
-          <p>Checking authentication...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin border-4 border-gray-200 border-t-blue-500 rounded-full w-8 h-8" />
+          <p className="text-sm text-gray-500">Verifica autenticazione...</p>
         </div>
       </div>
     );
   }
 
-  // Redirect to login if not authenticated
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  // Render protected content if authenticated
   return <Outlet />;
 };
 

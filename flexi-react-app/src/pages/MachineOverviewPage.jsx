@@ -8,6 +8,7 @@ import { normalizeOdpNumber, showError, showSuccess } from '../utils';
 import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
 import { useQueryClient } from '@tanstack/react-query';
 import { arrayMove } from '@dnd-kit/sortable';
+import LoadingState from '../components/LoadingState';
 
 function MachineOverviewPage() {
   const [selectedMachineId, setSelectedMachineId] = useState('');
@@ -15,25 +16,13 @@ function MachineOverviewPage() {
   
   const { data: machines = [], isLoading: machinesLoading } = useMachines();
   const { data: odpOrders = [], isLoading: ordersLoading } = useOrders();
-  const { isLoading: storeLoading, isInitialized, init, cleanup } = useMainStore();
+  const { isLoading: storeLoading } = useMainStore();
   const { showConfirmDialog } = useUIStore();
   const removeOrderMutation = useRemoveOrder();
   const { reorderTaskInQueue } = useSchedulerStore();
   const queryClient = useQueryClient();
   const [reorderingId, setReorderingId] = useState(null);
   const [orderedOdps, setOrderedOdps] = useState([]);
-
-  // Initialize store on component mount
-  useEffect(() => {
-    if (!isInitialized) {
-      init();
-    }
-    
-    // Cleanup function for component unmount
-    return () => {
-      cleanup();
-    };
-  }, [init, isInitialized, cleanup]);
 
   const scheduledOdps = useMemo(() => {
     if (!selectedMachineId || !odpOrders || !Array.isArray(odpOrders)) return [];
@@ -165,7 +154,7 @@ Material Global: ${order.material_availability_global || 'N/A'}%`}
   }, []);
 
   if (machinesLoading || storeLoading) {
-    return <div className="text-center py-4 text-[10px]">Caricamento...</div>;
+    return <LoadingState />;
   }
 
   return (

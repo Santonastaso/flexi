@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense, lazy, useReducer } from 'react';
-import { DndContext, DragOverlay, PointerSensor, MouseSensor, useSensor, useSensors } from '@dnd-kit/core';
+import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useReducer } from 'react';
 import { useUIStore, useMainStore } from '../store';
-import { useOrders, useMachines, useScheduledOrders, useOrdersByWorkCenter } from '../hooks';
+import { useOrders, useMachines } from '../hooks';
 import { startOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { getTodayInCET, getDateInCET, ITALY_TIMEZONE } from '../utils/dateFormatting';
@@ -108,32 +107,13 @@ function SchedulerPage() {
   const { data: machines = [], isLoading: machinesLoading, error: machinesError } = useMachines();
   
   // Use Zustand store for client state only
-  const { selectedWorkCenter, isLoading, isInitialized, showAlert, setDragPreview, clearDragPreview, dragPreview } = useUIStore();
+  const { selectedWorkCenter, isLoading, isInitialized, showAlert } = useUIStore();
   // Note: All scheduling methods removed - Gantt is now read-only, use Spotify Scheduler for task management
   const { init, cleanup } = useMainStore();
 
-  // Configure drag and drop sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 0, // No distance required - immediate activation
-      },
-    }),
-    useSensor(MouseSensor, {
-      activationConstraint: {
-        distance: 0, // No distance required - immediate activation
-      },
-    })
-  );
-
-  // Initialize with CET today
   const [currentDate, setCurrentDate] = useState(() => getTodayInCET());
-  const [activeDragItem, setActiveDragItem] = useState(null);
-  
-  
-  // Combined loading state
+
   const isDataLoading = ordersLoading || machinesLoading || isLoading;
-  const [dropTargetId, setDropTargetId] = useState(null);
   const [taskLookup, setTaskLookup] = useState(() => localStorage.getItem('schedulerTaskLookup') || '');
   const [articleCodeLookup, setArticleCodeLookup] = useState(() => localStorage.getItem('schedulerArticleLookup') || '');
   const [customerNameLookup, setCustomerNameLookup] = useState(() => localStorage.getItem('schedulerCustomerLookup') || '');
@@ -422,75 +402,7 @@ function SchedulerPage() {
     showAlert(`Lavoro trovato per ${fieldLabel} "${fieldValue}" su ${machine.machine_name}`, 'success');
   }, [machines, showAlert, setTaskLookup, setArticleCodeLookup, setCustomerNameLookup, setCurrentDate]);
 
-  // Debounce ref to prevent rapid drag operations
-  const dragTimeoutRef = useRef(null);
-  const isDragOperationRef = useRef(false);
 
-  // Memoize drag handlers with performance optimizations
-  const handleDragStart = useCallback((event) => {
-    const draggedItem = event.active.data.current;
-
-    if (draggedItem && draggedItem.type === 'task') {
-      setActiveDragItem(draggedItem.task);
-    } else if (draggedItem && draggedItem.type === 'event') {
-      setActiveDragItem(draggedItem.event);
-    }
-  }, []);
-
-  const handleDragOver = useCallback((event) => {
-    const { over } = event;
-    
-    if (over && over.data.current?.type === 'slot') {
-      const { machine, hour, minute, isUnavailable, hasScheduledTask } = over.data.current;
-      
-      // Don't show indicator for unavailable or occupied slots
-      if (isUnavailable || hasScheduledTask) {
-        setDropTargetId(null);
-        clearDragPreview();
-        return;
-      }
-      
-      // Create a unique ID for the drop target
-      const targetId = `${machine.id}-${hour}-${minute}`;
-      setDropTargetId(targetId);
-      
-      // Calculate drag preview if we have an active drag item
-      if (activeDragItem) {
-        const durationHours = activeDragItem.time_remaining || activeDragItem.duration || 1;
-        const durationSlots = Math.ceil(durationHours * 4); // Convert hours to 15-minute slots
-        const startSlot = (hour - 6) * 4 + Math.floor(minute / 15); // Convert to slot index (0-based from 6 AM)
-        
-        setDragPreview({
-          isActive: true,
-          startSlot,
-          durationSlots,
-          machineId: machine.id
-        });
-      }
-    } else if (over && over.data.current?.type === 'next-day') {
-      // Set drop target for next day zone
-      setDropTargetId('next-day-drop-zone');
-      clearDragPreview();
-    } else if (over && over.data.current?.type === 'previous-day') {
-      // Set drop target for previous day zone
-      setDropTargetId('previous-day-drop-zone');
-      clearDragPreview();
-    } else {
-      setDropTargetId(null);
-      clearDragPreview();
-    }
-  }, [activeDragItem, setDragPreview, clearDragPreview]);
-
-  const handleDragEnd = useCallback(async (event) => {
-    // Read-only mode - no drag and drop operations allowed
-    setActiveDragItem(null);
-    setDropTargetId(null);
-    clearDragPreview();
-    return;
-  }, [clearDragPreview]);
-
-
-  // Show loading state during initial load
   if (isDataLoading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -530,7 +442,7 @@ function SchedulerPage() {
   if (!selectedWorkCenter) {
     return (
       <div className="p-1 bg-white rounded shadow-sm border">
-        <div className="text-center py-1 text-red-600 text-[10px]">Seleziona un centro di lavoro per visualizzare i dati dello scheduler.</div>
+        <div className="text-center py-1 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati dello scheduler.</div>
       </div>
     );
   }
@@ -546,14 +458,14 @@ function SchedulerPage() {
               <line x1="12" y1="8" x2="12" y2="12"/>
               <line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            <span>Modalità Visualizzazione: Questa pagina è di sola lettura. Usa <strong>Spotify Scheduler</strong> per modificare la pianificazione.</span>
+            <span>Modalità Visualizzazione: Questa pagina è di sola lettura. Usa <strong>Pianificazione</strong> per modificare la pianificazione.</span>
           </div>
         </div>
         
         {/* Task Pool Section - HIDDEN (Read-only mode) */}
         {/* <div className="task-pool-section">
           <div className="task-pool-header">
-            <h2 className="text-[10px] font-semibold text-gray-900">Pool Lavori</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Pool Lavori</h2>
           </div>
           <Suspense fallback={<LoadingFallback />}>
             <TaskPoolDataTable />
@@ -563,7 +475,7 @@ function SchedulerPage() {
         {/* Filters Section */}
         <div className="section-controls">
           <div className="task-pool-header">
-            <h2 className="text-[10px] font-semibold text-gray-900">Filtri</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Filtri</h2>
           </div>
           <div className="filters-grid">
             {/* Action Buttons - Moved to far left */}

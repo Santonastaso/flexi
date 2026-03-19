@@ -48,15 +48,15 @@ const AppLayout = () => {
             <div className="flex items-center space-x-4">
               {user && (
                 <>
-                  <button className="px-2 py-1 text-[10px] font-medium text-white bg-green-500 hover:bg-green-600 rounded transition-colors">
+                  <span className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded select-none">
                     {selectedWorkCenter}
-                  </button>
-                  <span className="text-[10px] text-navy-200">{user.email}</span>
+                  </span>
+                  <span className="text-xs text-navy-200">{user.email}</span>
                   <button 
                     onClick={signOut}
-                    className="px-3 py-1.5 text-[10px] font-medium text-navy-200 hover:text-white hover:bg-navy-700 rounded transition-colors"
+                    className="px-3 py-2 text-xs font-medium text-navy-200 hover:text-white hover:bg-navy-700 rounded transition-colors"
                   >
-                    Sign out
+                    Esci
                   </button>
                 </>
               )}

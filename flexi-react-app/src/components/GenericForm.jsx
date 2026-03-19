@@ -178,7 +178,7 @@ function GenericForm({
           <textarea
             {...baseInputProps}
             rows={field.rows || 3}
-            className={`w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-800 focus:border-transparent text-[10px] placeholder:text-muted-foreground ${field.className || ''}`}
+            className={`w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-800 focus:border-transparent text-sm placeholder:text-muted-foreground ${field.className || ''}`}
           />
         );
 
@@ -202,7 +202,7 @@ function GenericForm({
                   }}
                   className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
                 />
-                <Label htmlFor={`${field.name}_${option.value}`} className="text-[10px] font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                <Label htmlFor={`${field.name}_${option.value}`} className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                   {option.label}
                 </Label>
               </div>
@@ -238,7 +238,7 @@ function GenericForm({
 
     return (
       <div key={section.title} className="space-y-2">
-        <h3 className="text-[10px] font-semibold text-gray-900 border-b pb-2">
+        <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">
           {section.title}
         </h3>
         <div className={`grid gap-2 ${section.gridCols || 'grid-cols-2 md:grid-cols-4 lg:grid-cols-8'}`}>
@@ -249,7 +249,7 @@ function GenericForm({
               </Label>
               {renderField(field)}
               {field.helpText && (
-                <p className="text-[10px] text-gray-500">{field.helpText}</p>
+                <p className="text-xs text-gray-500">{field.helpText}</p>
               )}
             </div>
           ))}

@@ -213,7 +213,7 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
   };
 
   const tableMarkup = (
-    <table className="caption-bottom text-[10px] !text-[10px] relative" style={{ width: 'max-content', minWidth: '100%' }}>
+    <table className="caption-bottom text-xs relative" style={{ width: 'max-content', minWidth: '100%' }}>
       <thead className="sticky top-0 z-20 bg-gray-50 border-b border-gray-200">
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id}>

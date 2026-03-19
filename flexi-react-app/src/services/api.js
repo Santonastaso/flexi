@@ -298,20 +298,6 @@ class ApiService {
     }
   }
 
-  async getEventsByDate(dateStr) {
-    try {
-      const { data, error } = await supabase
-        .from('machine_availability')
-        .select('*')
-        .eq('date', dateStr);
-        
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      throw new AppError(`Failed to fetch events by date: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, { originalError: error, source: 'API.getEventsByDate' });
-    }
-  }
-
   async setUnavailableHoursForRange(machineId, startDate, endDate, startTime, endTime) {
     try {
       const startHour = parseInt(startTime.split(':')[0]);

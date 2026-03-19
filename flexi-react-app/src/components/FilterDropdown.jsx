@@ -151,25 +151,25 @@ const FilterDropdown = ({ column, options, onFilterChange, isOpen, onToggle, act
                 onClick={handleSelectAll}
                 className="text-blue-600 text-xs font-medium hover:underline"
               >
-                {isSelectAll ? 'Select all' : `Select all ${filteredOptions.length}`}
+                {isSelectAll ? 'Seleziona tutto' : `Seleziona tutto (${filteredOptions.length})`}
               </button>
               <button
                 onClick={handleClearFilter}
                 className="text-blue-600 text-xs font-medium hover:underline"
               >
-                Clear
+                Cancella
               </button>
             </div>
             
             <div className="text-xs text-gray-600 mb-1">
-              Displaying {filteredOptions.length}
+              Visualizzati: {filteredOptions.length}
             </div>
             
             {/* Search input */}
             <div className="relative mb-1">
               <input
                 type="text"
-                placeholder="Search values..."
+                placeholder="Cerca..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -194,12 +194,12 @@ const FilterDropdown = ({ column, options, onFilterChange, isOpen, onToggle, act
                     onChange={() => handleOptionToggle(option)}
                     className="mr-2 h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
-                  <span className="text-xs truncate flex-1">{option || '(Blanks)'}</span>
+                  <span className="text-xs truncate flex-1">{option || '(Vuoto)'}</span>
                 </label>
               ))}
               {filteredOptions.length === 0 && searchTerm && (
                 <div className="px-2 py-2 text-xs text-gray-500 text-center">
-                  No results found
+                  Nessun risultato
                 </div>
               )}
             </div>
@@ -211,13 +211,13 @@ const FilterDropdown = ({ column, options, onFilterChange, isOpen, onToggle, act
               onClick={handleCancel}
               className="px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 rounded"
             >
-              Cancel
+              Annulla
             </button>
             <button
               onClick={handleApplyFilter}
               className="px-2 py-1 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded"
             >
-              OK
+              Conferma
             </button>
           </div>
         </div>

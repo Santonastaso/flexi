@@ -1,18 +1,23 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import DataTable from '../components/DataTable';
 import { Button } from '../components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
 
 import { useUIStore } from '../store';
 import { useOrders, useMachines, usePhases, useRemoveOrder } from '../hooks';
 import { normalizeOdpNumber, showError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
 import { formatScheduledTime, formatInItalyTimezone } from '../utils/dateFormatting';
+import LoadingState from '../components/LoadingState';
 
 function BacklogListPage() {
   const { selectedWorkCenter, showConfirmDialog } = useUIStore();
   const navigate = useNavigate();
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportStartDate, setExportStartDate] = useState('');
+  const [exportEndDate, setExportEndDate] = useState('');
 
   // React Query hooks
   const { data: orders = [], isLoading: ordersLoading, error: ordersError } = useOrders();
@@ -22,7 +27,7 @@ function BacklogListPage() {
 
   // Show error if query failed
   if (ordersError) {
-           return <div className="text-center py-2 text-red-600 text-[10px]">Errore nel caricamento degli ordini: {ordersError.message}</div>;
+           return <div className="text-center py-2 text-red-600 text-xs">Errore nel caricamento degli ordini: {ordersError.message}</div>;
   }
 
   // Filter orders by work center and join with machine and phase data
@@ -78,7 +83,7 @@ function BacklogListPage() {
         const value = info.getValue();
         if (!value) return 'N/A';
         return (
-          <div className="max-w-[200px] truncate text-[10px]" title={value}>
+          <div className="max-w-[200px] truncate text-xs" title={value}>
             {value}
           </div>
         );
@@ -171,7 +176,7 @@ function BacklogListPage() {
         if (typeof value !== 'number') return value || 'N/A';
         const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
         return (
-          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[10px] font-medium`}>
+          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[11px] font-medium`}>
             {value}
           </div>
         );
@@ -185,7 +190,7 @@ function BacklogListPage() {
         if (typeof value !== 'number') return value || 'N/A';
         const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
         return (
-          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[10px] font-medium`}>
+          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[11px] font-medium`}>
             {value}
           </div>
         );
@@ -199,7 +204,7 @@ function BacklogListPage() {
         if (typeof value !== 'number') return value || 'N/A';
         const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
         return (
-          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[10px] font-medium`}>
+          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[11px] font-medium`}>
             {value}
           </div>
         );
@@ -217,19 +222,19 @@ function BacklogListPage() {
     navigate(`/backlog/${order.id}/edit`);
   };
 
-  const handleExportXlsx = useCallback(() => {
+  const handleOpenExportDialog = useCallback(() => {
     if (!filteredOrders.length) {
       showError('Nessun ordine da esportare');
       return;
     }
+    setExportStartDate('');
+    setExportEndDate('');
+    setExportDialogOpen(true);
+  }, [filteredOrders]);
 
-    const startDateInput = window.prompt('Data inizio (YYYY-MM-DD):');
-    if (!startDateInput) return;
-    const endDateInput = window.prompt('Data fine (YYYY-MM-DD):');
-    if (!endDateInput) return;
-
-    const startDate = new Date(`${startDateInput}T00:00:00`);
-    const endDate = new Date(`${endDateInput}T23:59:59`);
+  const handleExportXlsx = useCallback(() => {
+    const startDate = new Date(`${exportStartDate}T00:00:00`);
+    const endDate = new Date(`${exportEndDate}T23:59:59`);
 
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
       showError('Formato data non valido');
@@ -303,8 +308,9 @@ function BacklogListPage() {
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Backlog');
-    XLSX.writeFile(wb, `odp_backlog_${startDateInput.replaceAll('-', '')}_${endDateInput.replaceAll('-', '')}.xlsx`);
-  }, [filteredOrders]);
+    XLSX.writeFile(wb, `odp_backlog_${exportStartDate.replaceAll('-', '')}_${exportEndDate.replaceAll('-', '')}.xlsx`);
+    setExportDialogOpen(false);
+  }, [filteredOrders, exportStartDate, exportEndDate]);
 
   const handleDeleteOrder = async (orderToDelete) => {
     const displayOdp = normalizeOdpNumber(orderToDelete.odp_number);
@@ -324,17 +330,17 @@ function BacklogListPage() {
   };
 
   if (isLoading) {
-    return <div>Caricamento dati backlog...</div>;
+    return <LoadingState message="Caricamento dati backlog..." />;
   }
 
   if (!selectedWorkCenter) {
-           return <div className="text-center py-2 text-red-600 text-[10px]">Seleziona un centro di lavoro per visualizzare i dati del backlog.</div>;
+           return <div className="text-center py-2 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati del backlog.</div>;
   }
 
   return (
     <div className="p-1 bg-white rounded shadow-sm border min-w-0">
       <div className="flex items-center justify-end mb-2">
-        <Button size="sm" variant="outline" onClick={handleExportXlsx}>
+        <Button size="sm" variant="outline" onClick={handleOpenExportDialog}>
           Export XLSX
         </Button>
       </div>
@@ -351,6 +357,49 @@ function BacklogListPage() {
           filterStorageKey="backlogListFilters"
         />
       </div>
+
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Esporta Backlog</DialogTitle>
+            <DialogDescription>
+              Seleziona il range di date di consegna da esportare.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 py-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-700">Data inizio:</label>
+              <input
+                type="date"
+                value={exportStartDate}
+                onChange={(e) => setExportStartDate(e.target.value)}
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-700">Data fine:</label>
+              <input
+                type="date"
+                value={exportEndDate}
+                onChange={(e) => setExportEndDate(e.target.value)}
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button size="sm" variant="outline" onClick={() => setExportDialogOpen(false)}>
+              Annulla
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleExportXlsx}
+              disabled={!exportStartDate || !exportEndDate}
+            >
+              Esporta XLSX
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

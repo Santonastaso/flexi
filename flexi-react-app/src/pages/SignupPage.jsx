@@ -108,8 +108,8 @@ function SignupPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-6 px-2 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-4">
         <div className="text-center">
-          <h1 className="text-[10px] font-bold text-gray-900">Crea Account</h1>
-                       <p className="mt-2 text-[10px] text-gray-600">Registrati per iniziare con il tuo account</p>
+          <h1 className="text-xl font-bold text-gray-900">Crea Account</h1>
+                       <p className="mt-2 text-sm text-gray-600">Registrati per iniziare con il tuo account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
@@ -208,7 +208,7 @@ function SignupPage() {
                   <span className="text-red-400">●</span>
                 </div>
                 <div className="ml-3">
-                  <p className="text-[10px] text-red-800">{authError}</p>
+                  <p className="text-xs text-red-800">{authError}</p>
                 </div>
               </div>
             </div>
@@ -231,7 +231,7 @@ function SignupPage() {
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300" />
             </div>
-            <div className="relative flex justify-center text-[10px]">
+            <div className="relative flex justify-center text-xs">
               <span className="px-1 bg-gray-50 text-gray-500">Hai già un account?</span>
             </div>
           </div>

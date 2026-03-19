@@ -6,6 +6,7 @@ import { useUIStore } from '../store';
 import { useMachinesByWorkCenter, useRemoveMachine } from '../hooks';
 import { showError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
+import LoadingState from '../components/LoadingState';
 
 function MachineryListPage() {
   const { selectedWorkCenter, showConfirmDialog } = useUIStore();
@@ -17,7 +18,7 @@ function MachineryListPage() {
 
   // Show error if query failed
   if (error) {
-           return <div className="text-center py-2 text-red-600 text-[10px]">Errore nel caricamento delle macchine: {error.message}</div>;
+           return <div className="text-center py-2 text-red-600 text-xs">Errore nel caricamento delle macchine: {error.message}</div>;
   }
 
   const columns = useMemo(() => [
@@ -49,7 +50,7 @@ function MachineryListPage() {
       cell: info => (
         <Link 
           to={`/machinery/${info.getValue()}/calendar`}
-          className="inline-flex items-center px-1 py-1 border border-gray-300 rounded shadow-sm text-[10px] font-medium text-gray-700 bg-white hover:bg-gray-50"
+          className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
         >
           Visualizza Calendario
         </Link>
@@ -78,11 +79,11 @@ function MachineryListPage() {
   };
 
   if (isLoading) {
-    return <div>Caricamento dati macchine...</div>;
+    return <LoadingState message="Caricamento dati macchine..." />;
   }
 
   if (!selectedWorkCenter) {
-           return <div className="text-center py-2 text-red-600 text-[10px]">Seleziona un centro di lavoro per visualizzare i dati delle macchine.</div>;
+           return <div className="text-center py-2 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati delle macchine.</div>;
   }
 
   return (

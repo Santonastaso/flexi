@@ -67,7 +67,7 @@ const PasswordPrompt = ({ onAuthenticated }) => {
           <svg className="w-16 h-16 mx-auto mb-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
-          <h2 className="text-2xl font-bold text-gray-900">Spotify Scheduler</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Pianificazione</h2>
           <p className="text-sm text-gray-600 mt-2">Inserisci la password per accedere</p>
         </div>
         
@@ -414,7 +414,7 @@ function SpotifySchedulerPage() {
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 shadow-lg flex items-center space-x-3">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-          <span className="text-gray-700 font-medium">Caricamento Spotify Scheduler...</span>
+          <span className="text-gray-700 font-medium">Caricamento pianificazione...</span>
         </div>
       </div>
     );
@@ -448,7 +448,7 @@ function SpotifySchedulerPage() {
   if (!selectedWorkCenter) {
     return (
       <div className="p-1 bg-white rounded shadow-sm border">
-        <div className="text-center py-1 text-red-600 text-[10px]">Seleziona un centro di lavoro per visualizzare i dati dello scheduler.</div>
+        <div className="text-center py-1 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati dello scheduler.</div>
       </div>
     );
   }
@@ -461,7 +461,7 @@ function SpotifySchedulerPage() {
           {/* Task Pool Section */}
           <div className="task-pool-section">
             <div className="task-pool-header">
-              <h2 className="text-[10px] font-semibold text-gray-900">Pool Lavori</h2>
+              <h2 className="text-sm font-semibold text-gray-900">Pool Lavori</h2>
             </div>
             <Suspense fallback={<LoadingFallback />}>
               <TaskPoolDataTable filterByCost={false} />
@@ -471,7 +471,7 @@ function SpotifySchedulerPage() {
           {/* Filters and Pause Creation Section */}
           <div className="section-controls">
             <div className="task-pool-header">
-              <h2 className="text-[10px] font-semibold text-gray-900">Filtri Macchine & Aggiungi Pausa</h2>
+              <h2 className="text-sm font-semibold text-gray-900">Filtri Macchine & Aggiungi Pausa</h2>
             </div>
             <div className="filters-grid">
               {/* Pause Creation Controls */}
@@ -573,7 +573,7 @@ function SpotifySchedulerPage() {
               .map(machine => (
                 <div
                   key={machine.id}
-                  className="flex items-center justify-between bg-yellow-50 border border-yellow-300 rounded px-3 py-2 mb-2 text-[10px] text-yellow-800"
+                  className="flex items-center justify-between bg-yellow-50 border border-yellow-300 rounded px-3 py-2 mb-2 text-xs text-yellow-800"
                 >
                   <span>
                     <strong>{machine.machine_name}</strong>: tutti i task programmati sono scaduti e non completati. Aggiungi o sposta un task per riaggiornare la coda.

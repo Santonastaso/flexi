@@ -1,4 +1,3 @@
-import { format } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { apiService } from '../../services/api';
 import { convertCETHourToUTC } from '../../utils/dateFormatting';
@@ -49,12 +48,7 @@ export class SpotifyQueueScheduler {
     }
 
     const now = new Date();
-    const runningIndex = queue.findIndex(task => {
-      if (!task.scheduled_start_time || !task.scheduled_end_time) return false;
-      const start = new Date(task.scheduled_start_time);
-      const end = new Date(task.scheduled_end_time);
-      return start <= now && end > now;
-    });
+    const runningIndex = queue.findIndex(task => task.status === 'IN PROGRESS');
 
     if (runningIndex >= 0) {
       const runningTask = queue[runningIndex];
@@ -319,8 +313,6 @@ export class SpotifyQueueScheduler {
     const fixedPrefix = queue.slice(0, fixedPrefixLength);
     const remainingQueue = queue.slice(fixedPrefixLength);
     const updatedQueue = [...remainingQueue, task];
-
-    console.log('🟡 scheduleTaskAtEnd - Task:', taskId.substring(0, 8), 'Duration:', duration, 'Start time:', anchor.toISOString());
 
     await this.rescheduleFromAnchor(machineId, updatedQueue, anchor);
 

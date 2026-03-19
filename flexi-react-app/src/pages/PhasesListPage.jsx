@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 
-import { useUIStore, useMainStore } from '../store';
+import { useUIStore } from '../store';
 import { usePhases, useRemovePhase } from '../hooks';
 import { showError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
+import LoadingState from '../components/LoadingState';
 
 
 function PhasesListPage() {
@@ -14,8 +15,7 @@ function PhasesListPage() {
   const removePhaseMutation = useRemovePhase();
   
   // Use Zustand store for client state
-  const { selectedWorkCenter, isInitialized, showConfirmDialog } = useUIStore();
-  const { init, cleanup } = useMainStore();
+  const { selectedWorkCenter, showConfirmDialog } = useUIStore();
   const navigate = useNavigate();
 
   // Filter phases by work center
@@ -24,18 +24,6 @@ function PhasesListPage() {
     if (selectedWorkCenter === WORK_CENTERS.BOTH) return phases;
     return phases.filter(phase => phase.work_center === selectedWorkCenter);
   }, [phases, selectedWorkCenter]);
-
-  // Initialize store on component mount
-  useEffect(() => {
-    if (!isInitialized) {
-      init();
-    }
-    
-    // Cleanup function for component unmount
-    return () => {
-      cleanup();
-    };
-  }, [init, isInitialized, cleanup]);
 
   const columns = useMemo(() => [
     // Identificazione
@@ -75,15 +63,15 @@ function PhasesListPage() {
   };
 
   if (phasesLoading) {
-    return <div>Caricamento dati fasi...</div>;
+    return <LoadingState message="Caricamento dati fasi..." />;
   }
 
   if (phasesError) {
-    return <div className="text-center py-2 text-red-600 text-[10px]">Errore nel caricamento delle fasi: {phasesError.message}</div>;
+    return <div className="text-center py-2 text-red-600 text-xs">Errore nel caricamento delle fasi: {phasesError.message}</div>;
   }
 
   if (!selectedWorkCenter) {
-           return <div className="text-center py-2 text-red-600 text-[10px]">Seleziona un centro di lavoro per visualizzare i dati delle fasi.</div>;
+           return <div className="text-center py-2 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati delle fasi.</div>;
   }
 
   return (

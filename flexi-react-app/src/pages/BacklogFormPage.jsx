@@ -45,12 +45,12 @@ function BacklogFormPage() {
   }
 
   if (isEditMode && !order) {
-           return <div className="text-center py-2 text-red-600 text-[10px]">Ordine non trovato.</div>;
+           return <div className="text-center py-2 text-red-600 text-xs">Ordine non trovato.</div>;
   }
 
   // Allow access if work center is selected or if BOTH is selected (which allows any work center)
   if (!selectedWorkCenter) {
-           return <div className="text-center py-2 text-red-600 text-[10px]">Seleziona un centro di lavoro per gestire gli ordini del backlog.</div>;
+           return <div className="text-center py-2 text-red-600 text-xs">Seleziona un centro di lavoro per gestire gli ordini del backlog.</div>;
   }
 
   return (
@@ -64,7 +64,7 @@ function BacklogFormPage() {
             variant="outline" 
             size="sm"
             onClick={() => navigate('/backlog')}
-            className="text-[10px]"
+            className="text-xs"
           >
             ← Torna alla Lista Backlog
           </Button>

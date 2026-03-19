@@ -4,7 +4,7 @@ const Table = React.forwardRef(({ className, ...props }, ref) => (
   <div className="table-container">
     <table
       ref={ref}
-      className={`caption-bottom text-[10px] !text-[10px] relative ${className}`}
+      className={`caption-bottom text-xs relative ${className}`}
       style={{ width: 'max-content', minWidth: '100%' }}
       {...props}
     />
@@ -39,7 +39,7 @@ TableRow.displayName = "TableRow";
 const TableHead = React.forwardRef(({ className, ...props }, ref) => (
                     <th
                     ref={ref}
-                    className={`h-6 px-1 text-left align-middle font-medium text-[10px] !text-[10px] text-gray-900 bg-gray-50 border-r border-gray-200 whitespace-nowrap ${className}`}
+                    className={`h-6 px-1 text-left align-middle font-medium text-xs text-gray-900 bg-gray-50 border-r border-gray-200 whitespace-nowrap ${className}`}
                     {...props}
                   />
 ));
@@ -48,7 +48,7 @@ TableHead.displayName = "TableHead";
 const TableCell = React.forwardRef(({ className, ...props }, ref) => (
                     <td
                     ref={ref}
-                    className={`p-1 align-middle whitespace-nowrap text-[10px] !text-[10px] border-r border-gray-200 ${className}`}
+                    className={`p-1 align-middle whitespace-nowrap text-xs border-r border-gray-200 ${className}`}
                     {...props}
                   />
 ));
@@ -57,7 +57,7 @@ TableCell.displayName = "TableCell";
 const TableCaption = React.forwardRef(({ className, ...props }, ref) => (
                     <caption
                     ref={ref}
-                    className={`mt-2 text-[10px] text-gray-500 ${className}`}
+                    className={`mt-2 text-xs text-gray-500 ${className}`}
                     {...props}
                   />
 ));

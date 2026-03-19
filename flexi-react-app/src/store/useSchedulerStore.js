@@ -38,15 +38,6 @@ export const useSchedulerStore = create((set, get) => {
     createPauseTask: spotifyScheduler.createPauseTask,
     removeTaskFromQueue: spotifyScheduler.removeFromQueue,
 
-    // Get events by date (if needed by other components)
-    getEventsByDate: async (dateStr) => {
-      try {
-        return await apiService.getEventsByDate(dateStr);
-      } catch (e) {
-        return [];
-      }
-    },
-
     reset: () => set({ machineAvailability: {} }),
   };
 });

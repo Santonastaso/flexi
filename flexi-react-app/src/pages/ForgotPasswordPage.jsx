@@ -55,17 +55,17 @@ function ForgotPasswordPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-2 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-4">
           <div className="text-center">
-            <h1 className="text-[10px] font-bold text-gray-900">Controlla la Tua Email</h1>
-                         <p className="mt-2 text-[10px] text-gray-600">Abbiamo inviato un link per il reset della password a {email}</p>
+            <h1 className="text-xl font-bold text-gray-900">Controlla la Tua Email</h1>
+                         <p className="mt-2 text-sm text-gray-600">Abbiamo inviato un link per il reset della password a {email}</p>
           </div>
           
                         <div className="bg-green-50 border border-green-200 rounded-md p-1">
             <div className="flex">
               <div className="flex-shrink-0">
-                <span className="text-green-400 text-[10px]">✅</span>
+                <span className="text-green-400 text-xs">✅</span>
               </div>
               <div className="ml-3">
-                <p className="text-[10px] text-green-800">Se non vedi l'email, controlla la cartella spam.</p>
+                <p className="text-xs text-green-800">Se non vedi l'email, controlla la cartella spam.</p>
               </div>
             </div>
           </div>
@@ -86,8 +86,8 @@ function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-6 px-2 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-4">
         <div className="text-center">
-          <h1 className="text-[10px] font-bold text-gray-900">Reset Password</h1>
-                       <p className="mt-2 text-[10px] text-gray-600">Inserisci la tua email per ricevere un link per il reset della password</p>
+          <h1 className="text-xl font-bold text-gray-900">Reimposta Password</h1>
+                       <p className="mt-2 text-sm text-gray-600">Inserisci la tua email per ricevere un link per il reset della password</p>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
@@ -112,7 +112,7 @@ function ForgotPasswordPage() {
                   <span className="text-red-400">●</span>
                 </div>
                 <div className="ml-3">
-                  <p className="text-[10px] text-red-800">{error}</p>
+                  <p className="text-xs text-red-800">{error}</p>
                 </div>
               </div>
             </div>
@@ -129,7 +129,7 @@ function ForgotPasswordPage() {
         </form>
 
         <div className="text-center">
-                       <Link to="/login" className="text-[10px] text-navy-800 hover:text-navy-600">
+                       <Link to="/login" className="text-xs text-navy-800 hover:text-navy-600">
             Torna all'Accesso
           </Link>
         </div>

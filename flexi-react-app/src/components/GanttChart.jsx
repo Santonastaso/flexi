@@ -84,7 +84,7 @@ const TimeSlot = React.memo(({ machine, hour, minute, isUnavailable, hasSchedule
 // A scheduled event that can be dragged to be rescheduled or unscheduled
 const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, readOnly = false }) => {
     const navigate = useNavigate();
-    const { schedulingLoading } = useUIStore();
+    const { schedulingLoading, showConfirmDialog } = useUIStore();
     
     // Note: updateOdpOrder and handleAsync are available if needed for future features
 
@@ -428,16 +428,23 @@ ${event.scheduled_end_time ? `Fine Programmata: ${formatScheduledTime(event.sche
                                     {/* Unschedule Button */}
                                     <button 
                                         className="event-btn unschedule-btn"
-                                        onClick={async (e) => {
+                                        onClick={(e) => {
                                             e.stopPropagation();
                                             e.preventDefault();
-                                            try {
-                                                const allOrders = queryClient.getQueryData(['orders']) ?? [];
-                                                await useSchedulerStore.getState().removeTaskFromQueue(machine.id, event.id, allOrders);
-                                                await queryClient.refetchQueries({ queryKey: ['orders'], exact: true, type: 'active' });
-                                            } catch (error) {
-                                                // Error handled by removeTaskFromQueue
-                                            }
+                                            showConfirmDialog(
+                                                'Rimuovi dalla coda',
+                                                'Sei sicuro di voler rimuovere questo ordine dalla coda?',
+                                                async () => {
+                                                    try {
+                                                        const allOrders = queryClient.getQueryData(['orders']) ?? [];
+                                                        await useSchedulerStore.getState().removeTaskFromQueue(machine.id, event.id, allOrders);
+                                                        await queryClient.refetchQueries({ queryKey: ['orders'], exact: true, type: 'active' });
+                                                    } catch (error) {
+                                                        // Error handled by removeTaskFromQueue
+                                                    }
+                                                },
+                                                'danger'
+                                            );
                                         }}
                                         onMouseDown={(e) => {
                                             e.stopPropagation();

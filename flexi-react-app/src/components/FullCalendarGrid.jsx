@@ -275,11 +275,11 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
   }), [handleEventClick, handleDateClick, scheduledEvents, availabilityEvents]);
 
   if (!machine) {
-    return <div className="loading">Loading machine data...</div>;
+    return <div className="loading">Caricamento dati macchina...</div>;
   }
 
   if (isLoading) {
-    return <div className="loading">Loading calendar data...</div>;
+    return <div className="loading">Caricamento calendario...</div>;
   }
 
   return (

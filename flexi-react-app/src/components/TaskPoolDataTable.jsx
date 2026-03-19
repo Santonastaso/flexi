@@ -210,7 +210,7 @@ function TaskPoolDataTable({ filterByCost = true }) {
         if (typeof value !== 'number') return value || 'N/A';
         const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
         return (
-          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[10px] font-medium`}>
+          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[11px] font-medium`}>
             {value}
           </div>
         );
@@ -224,7 +224,7 @@ function TaskPoolDataTable({ filterByCost = true }) {
         if (typeof value !== 'number') return value || 'N/A';
         const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
         return (
-          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[10px] font-medium`}>
+          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[11px] font-medium`}>
             {value}
           </div>
         );
@@ -238,7 +238,7 @@ function TaskPoolDataTable({ filterByCost = true }) {
         if (typeof value !== 'number') return value || 'N/A';
         const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
         return (
-          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[10px] font-medium`}>
+          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[11px] font-medium`}>
             {value}
           </div>
         );
@@ -251,7 +251,7 @@ function TaskPoolDataTable({ filterByCost = true }) {
         const value = row.original.asd_notes;
         if (!value) return 'N/A';
         return (
-          <div className="max-w-[200px] truncate text-[10px]" title={value}>
+          <div className="max-w-[200px] truncate text-xs" title={value}>
             {value}
           </div>
         );
