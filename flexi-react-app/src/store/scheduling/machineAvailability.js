@@ -1,5 +1,6 @@
 import { apiService } from '../../services';
 import { format, addDays } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { handleApiError, AppError, ERROR_TYPES } from '../../utils/errorHandling';
 import { useUIStore } from '../useUIStore';
 import { convertCETHourToUTC } from '../../utils/dateFormatting';
@@ -78,8 +79,8 @@ export class MachineAvailabilityManager {
   // Load machine availability for a date range
   loadMachineAvailabilityForDateRange = async (machineId, startDate, endDate) => {
     // Convert Date objects to date strings using UTC consistently
-    const startDateStr = startDate instanceof Date ? format(startDate, 'yyyy-MM-dd') : startDate;
-    const endDateStr = endDate instanceof Date ? format(endDate, 'yyyy-MM-dd') : endDate;
+    const startDateStr = startDate instanceof Date ? formatInTimeZone(startDate, 'Europe/Rome', 'yyyy-MM-dd') : startDate;
+    const endDateStr = endDate instanceof Date ? formatInTimeZone(endDate, 'Europe/Rome', 'yyyy-MM-dd') : endDate;
     
     try {
       const data = await apiService.getMachineAvailabilityForDateRange(machineId, startDateStr, endDateStr);
@@ -184,7 +185,7 @@ export class MachineAvailabilityManager {
       
       let current = new Date(startDate);
       while (current <= endDate) {
-        const dateStr = format(current, 'yyyy-MM-dd');
+        const dateStr = formatInTimeZone(current, 'Europe/Rome', 'yyyy-MM-dd');
         const existing = this.get().machineAvailability[dateStr];
         if (!existing) {
           await this.loadMachineAvailabilityForDate(dateStr);
@@ -218,7 +219,7 @@ export class MachineAvailabilityManager {
       // Check for overlaps with existing scheduled tasks on the same machine and date
       const existingTasks = allOrders.filter(o => 
         o.scheduled_machine_id === machineId && 
-        o.status === 'SCHEDULED' &&
+        ['SCHEDULED', 'IN PROGRESS'].includes(o.status) &&
         o.scheduled_start_time && 
         o.scheduled_end_time
       );
@@ -346,7 +347,7 @@ export class MachineAvailabilityManager {
           // Process each date in the updated data
           updatedData.forEach(item => {
             if (item.date && item.unavailable_hours) {
-              const dateStr = format(new Date(item.date), 'yyyy-MM-dd');
+              const dateStr = item.date;
               
               // Initialize the date array if it doesn't exist
               if (!next[dateStr]) {

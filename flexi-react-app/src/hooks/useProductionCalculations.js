@@ -36,7 +36,7 @@ export const useProductionCalculations = () => {
   /**
    * Calculate production metrics for a given phase and quantity
    */
-  const calculateProductionMetrics = useCallback((phase, quantity, bagStep) => {
+  const calculateProductionMetrics = useCallback((phase, quantity, bagStep, efficiency = 0.80) => {
     if (!phase || !quantity) {
       return null;
     }
@@ -60,16 +60,16 @@ export const useProductionCalculations = () => {
       const vStampa = parseFloat(phase.v_stampa);
       const tSetupStampa = parseFloat(phase.t_setup_stampa) || 0;
       const costoHStampa = parseFloat(phase.costo_h_stampa) || 0;
-      
+
       if (isNaN(vStampa) || vStampa <= 0) {
         return null; // Invalid print speed
       }
-      
+
       // Printing calculations - new formula
       // Calcolo metri lineari da stampare
       const mtDaStampare = (bagStep * quantity) / 1000;
-      // Calcolo tempo stampa netto
-      const tempoStampa = mtDaStampare / vStampa;
+      // Calcolo tempo stampa netto (efficiency applied to effective speed)
+      const tempoStampa = mtDaStampare / (vStampa * efficiency);
       // Calcolo tempo totale stampa
       const totalTime = tempoStampa + tSetupStampa;
       const totalCost = totalTime * costoHStampa;
@@ -94,8 +94,8 @@ export const useProductionCalculations = () => {
           return null; // Invalid packaging speed
         }
         
-        // Packaging calculations
-        const packageTime = quantity / vConf;
+        // Packaging calculations (efficiency applied to effective speed)
+        const packageTime = quantity / (vConf * efficiency);
         const setupTime = tSetupConf;
         const totalTime = packageTime + setupTime;
         const totalCost = totalTime * costoHConf;

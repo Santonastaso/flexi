@@ -1,4 +1,6 @@
 import { MACHINE_STATUSES } from '../constants';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { ITALY_TIMEZONE } from './dateFormatting';
 
 /**
  * Calculate comprehensive metrics for the home page dashboard
@@ -23,12 +25,12 @@ export const calculateHomeMetrics = (machines, orders) => {
 
   // Calculate completed tasks this week (Monday as first day)
   const now = new Date();
+  const nowInCET = toZonedTime(now, ITALY_TIMEZONE);
   const startOfWeek = new Date(now);
-  // Adjust for Monday as first day: if today is Sunday (0), go back 6 days; otherwise go back (day - 1) days
-  const dayOfWeek = now.getUTCDay();
+  const dayOfWeek = nowInCET.getDay();
   const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  startOfWeek.setUTCDate(now.getUTCDate() - daysToSubtract);
-  startOfWeek.setUTCHours(0, 0, 0, 0);
+  startOfWeek.setDate(nowInCET.getDate() - daysToSubtract);
+  startOfWeek.setHours(0, 0, 0, 0);
 
   const completedThisWeek = orders.filter(order => {
     if (!order.completion_date) return false;
@@ -38,13 +40,13 @@ export const calculateHomeMetrics = (machines, orders) => {
 
   // Tasks currently in work in progress
   const tasksInWip = orders.filter(order =>
-    order.status === 'SCHEDULED'
+    ['SCHEDULED', 'IN PROGRESS'].includes(order.status)
   ).length;
 
   // Delayed tasks (past delivery_date and not completed)
   const delayedTasks = orders.filter(order => {
     if (!order.delivery_date) return false;
-    const dueDate = new Date(order.delivery_date);
+    const dueDate = new Date(order.delivery_date + 'T23:59:59');
     return dueDate < now && (order.quantity_completed || 0) < (order.quantity || 0);
   }).length;
 
@@ -54,15 +56,15 @@ export const calculateHomeMetrics = (machines, orders) => {
   // Tasks per day (start date) for the last 7 days and next 7 days (14 days total)
   const tasksPerDay = {};
   const sevenDaysAgo = new Date(now);
-  sevenDaysAgo.setUTCDate(now.getUTCDate() - 7);
+  sevenDaysAgo.setDate(now.getDate() - 7);
   const sevenDaysFromNow = new Date(now);
-  sevenDaysFromNow.setUTCDate(now.getUTCDate() + 7);
+  sevenDaysFromNow.setDate(now.getDate() + 7);
   
   orders.forEach(order => {
     if (order.scheduled_start_time) {
       const startDate = new Date(order.scheduled_start_time);
       if (startDate >= sevenDaysAgo && startDate <= sevenDaysFromNow) {
-        const dateStr = startDate.toISOString().split('T')[0];
+        const dateStr = formatInTimeZone(startDate, ITALY_TIMEZONE, 'yyyy-MM-dd');
         tasksPerDay[dateStr] = (tasksPerDay[dateStr] || 0) + 1;
       }
     }

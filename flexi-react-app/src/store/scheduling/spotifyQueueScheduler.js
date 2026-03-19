@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { apiService } from '../../services/api';
 import { convertCETHourToUTC } from '../../utils/dateFormatting';
 import { CALENDAR_CONSTANTS } from '../../utils/calendarConstants';
@@ -26,7 +27,7 @@ export class SpotifyQueueScheduler {
     return allOrders
       .filter(task => 
         task.scheduled_machine_id === machineId &&
-        task.status === 'SCHEDULED' &&
+        ['SCHEDULED', 'IN PROGRESS'].includes(task.status) &&
         task.scheduled_start_time
       )
       .sort((a, b) => {
@@ -90,7 +91,7 @@ export class SpotifyQueueScheduler {
         scheduled_machine_id: machineId,
         scheduled_start_time: actualStart.toISOString(),
         scheduled_end_time: endTime.toISOString(),
-        status: 'SCHEDULED',
+        status: task.status === 'IN PROGRESS' ? 'IN PROGRESS' : 'SCHEDULED',
         description: JSON.stringify({
           segments: segments.map(s => ({
             start: s.start.toISOString(),
@@ -138,7 +139,7 @@ export class SpotifyQueueScheduler {
     endDate.setUTCHours(23, 59, 59, 999);
     
     while (currentDate <= endDate) {
-      const dateStr = format(currentDate, 'yyyy-MM-dd');
+      const dateStr = formatInTimeZone(currentDate, 'Europe/Rome', 'yyyy-MM-dd');
       const dateAvailability = machineAvailability[dateStr];
       
       if (dateAvailability && Array.isArray(dateAvailability)) {
@@ -211,21 +212,21 @@ export class SpotifyQueueScheduler {
       );
       
       if (!overlappingSlot) {
-        // Fully available hour - add to current segment or create new one
+        const chunk = Math.min(1, remainingDuration);
+        const actualEnd = new Date(hourStart.getTime() + chunk * 60 * 60 * 1000);
+
         if (segments.length === 0 || segments[segments.length - 1].end.getTime() !== hourStart.getTime()) {
-          // New segment
           segments.push({
             start: new Date(hourStart),
-            end: new Date(hourEnd),
-            duration: 1
+            end: new Date(actualEnd),
+            duration: chunk
           });
         } else {
-          // Extend current segment
-          segments[segments.length - 1].end = new Date(hourEnd);
-          segments[segments.length - 1].duration += 1;
+          segments[segments.length - 1].end = new Date(actualEnd);
+          segments[segments.length - 1].duration += chunk;
         }
         
-        remainingDuration -= 1;
+        remainingDuration -= chunk;
       } else {
         // Partial overlap - use only the available portion before the unavailability
         if (hourStart < overlappingSlot.start) {
@@ -476,18 +477,4 @@ export class SpotifyQueueScheduler {
     }
   };
 
-  /**
-   * Remove a task from the queue (unschedule it, return it to the pool)
-   * @param {string} taskId - Task ID
-   */
-  removeFromQueue = async (taskId) => {
-    await apiService.updateOdpOrder(taskId, {
-      status: 'NOT SCHEDULED',
-      scheduled_machine_id: null,
-      scheduled_start_time: null,
-      scheduled_end_time: null,
-      description: null,
-    });
-    return { success: true };
-  };
 }

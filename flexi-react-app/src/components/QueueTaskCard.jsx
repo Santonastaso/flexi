@@ -2,8 +2,7 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { format } from 'date-fns';
-import { useSchedulerStore } from '../store';
+import { useSchedulerStore, useUIStore } from '../store';
 import { usePhase, useOrders } from '../hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
@@ -13,6 +12,7 @@ function QueueTaskCard({ task, index, machineId, enableReorder = true }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { removeTaskFromQueue } = useSchedulerStore();
+  const { showConfirmDialog } = useUIStore();
   const { data: allOrders = [] } = useOrders();
   
   // Get phase name if available using React Query
@@ -90,47 +90,44 @@ function QueueTaskCard({ task, index, machineId, enableReorder = true }) {
   const cardColor = getOdpColor(task.status, task.material_availability_global || 0);
 
   // Handle unschedule with confirmation
-  const handleUnschedule = async (e) => {
+  const handleUnschedule = (e) => {
     e.stopPropagation();
     e.preventDefault();
     
-    // Ask for confirmation
-    const confirmed = window.confirm(
+    showConfirmDialog(
+      isPauseTask ? 'Rimuovi Pausa' : 'Rimuovi dalla Coda',
       isPauseTask 
-        ? `Sei sicuro di voler rimuovere questa pausa?`
-        : `Sei sicuro di voler rimuovere "${displayOdpNumber}" dalla coda?\n\nI task successivi verranno ricalcolati automaticamente.`
+        ? 'Sei sicuro di voler rimuovere questa pausa?'
+        : `Sei sicuro di voler rimuovere "${displayOdpNumber}" dalla coda?\n\nI task successivi verranno ricalcolati automaticamente.`,
+      async () => {
+        try {
+          const result = await removeTaskFromQueue(machineId, task.id, allOrders);
+          
+          if (result.error) {
+            const { showError } = await import('../utils/toast');
+            showError(result.error);
+          } else {
+            queryClient.invalidateQueries({ queryKey: ['orders'], exact: true, refetchType: 'all' });
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            await queryClient.refetchQueries({ 
+              queryKey: ['orders'],
+              exact: true,
+              type: 'active'
+            });
+            
+            const { showSuccess } = await import('../utils/toast');
+            showSuccess('Lavoro rimosso dalla coda');
+          }
+        } catch (error) {
+          console.error('Error unscheduling task:', error);
+          const { showError } = await import('../utils/toast');
+          showError('Errore durante la rimozione del lavoro dalla coda');
+        }
+      },
+      'danger'
     );
-    
-    if (!confirmed) return;
-    
-    try {
-      const result = await removeTaskFromQueue(machineId, task.id, allOrders);
-      
-      if (result.error) {
-        const { showError } = await import('../utils/toast');
-        showError(result.error);
-      } else {
-        // Invalidate cache immediately and force refetch
-        queryClient.invalidateQueries({ queryKey: ['orders'], exact: true, refetchType: 'all' });
-        
-        // Add a small delay to ensure database has propagated
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Force refetch and wait for it
-        await queryClient.refetchQueries({ 
-          queryKey: ['orders'],
-          exact: true,
-          type: 'active'
-        });
-        
-        const { showSuccess } = await import('../utils/toast');
-        showSuccess('Lavoro rimosso dalla coda');
-      }
-    } catch (error) {
-      console.error('Error unscheduling task:', error);
-      const { showError } = await import('../utils/toast');
-      showError('Errore durante la rimozione del lavoro dalla coda');
-    }
   };
 
   // Handle edit
@@ -319,7 +316,7 @@ function QueueTaskCard({ task, index, machineId, enableReorder = true }) {
             `Codice Articolo: ${task.article_code || 'Non specificato'}
 Codice Articolo Esterno: ${task.external_article_code || 'Non specificato'}
 Nome Cliente: ${task.nome_cliente || 'Non specificato'}
-Data Consegna: ${task.delivery_date ? format(new Date(task.delivery_date), 'yyyy-MM-dd') : 'Non impostata'}
+Data Consegna: ${task.delivery_date ? formatDeliveryDate(task.delivery_date) : 'Non impostata'}
 Quantità: ${task.quantity || 'Non specificata'}
 Note Libere: ${task.user_notes || 'Nessuna nota'}
 Note ASD: ${task.asd_notes || 'Nessuna nota'}

@@ -6,17 +6,9 @@ import { useUIStore } from './useUIStore';
 
 // Real-time subscription setup
 const setupRealtimeSubscriptions = (set, get) => {
-  const onOdpOrdersChange = (payload) => {
-    handleOdpOrdersChange(payload, set, get);
-  };
-  
-  const onMachinesChange = (payload) => {
-    handleMachinesChange(payload, set, get);
-  };
-  
-  const onPhasesChange = (payload) => {
-    handlePhasesChange(payload, set, get);
-  };
+  const onOdpOrdersChange = () => {};
+  const onMachinesChange = () => {};
+  const onPhasesChange = () => {};
   
   return apiService.setupRealtimeSubscriptions(
     onOdpOrdersChange,

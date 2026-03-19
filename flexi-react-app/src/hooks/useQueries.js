@@ -20,8 +20,9 @@ export const queryKeys = {
     ['machineAvailability', machineId, startDate, endDate],
   machineAvailabilityForDate: (machineId, dateStr) => 
     ['machineAvailability', machineId, 'date', dateStr],
-  machineAvailabilityForDateAllMachines: (dateStr) => 
+  machineAvailabilityForDateAllMachines: (dateStr) =>
     ['machineAvailability', 'allMachines', dateStr],
+  siteEfficiency: ['siteEfficiency'],
 };
 
 // ===== MACHINES =====
@@ -82,7 +83,7 @@ export const useAddMachine = () => {
     onSuccess: (newMachine) => {
       // Invalidate and refetch machines queries
       queryClient.invalidateQueries({ queryKey: queryKeys.machines });
-      queryClient.invalidateQueries({ queryKey: queryKeys.machinesByWorkCenter() });
+      queryClient.invalidateQueries({ queryKey: ['machines', 'workCenter'] });
       
       // Add to cache optimistically
       queryClient.setQueryData(queryKeys.machines, (oldData) => {
@@ -100,7 +101,7 @@ export const useUpdateMachine = () => {
     onSuccess: (updatedMachine, { id }) => {
       // Invalidate and refetch machines queries
       queryClient.invalidateQueries({ queryKey: queryKeys.machines });
-      queryClient.invalidateQueries({ queryKey: queryKeys.machinesByWorkCenter() });
+      queryClient.invalidateQueries({ queryKey: ['machines', 'workCenter'] });
       
       // Update cache optimistically
       queryClient.setQueryData(queryKeys.machines, (oldData) => {
@@ -130,7 +131,7 @@ export const useRemoveMachine = () => {
     onSuccess: (removedMachine) => {
       // Invalidate and refetch machines queries
       queryClient.invalidateQueries({ queryKey: queryKeys.machines });
-      queryClient.invalidateQueries({ queryKey: queryKeys.machinesByWorkCenter() });
+      queryClient.invalidateQueries({ queryKey: ['machines', 'workCenter'] });
       
       // Remove from cache optimistically
       queryClient.setQueryData(queryKeys.machines, (oldData) => {
@@ -386,11 +387,21 @@ export const useBulkUpsertMachineAvailability = () => {
 
 export const useScheduledOrders = () => {
   const { data: orders = [] } = useOrders();
-  return orders.filter(o => o.status === 'SCHEDULED');
+  return orders.filter(o => ['SCHEDULED', 'IN PROGRESS'].includes(o.status));
 };
 
 export const useOrdersByWorkCenter = (workCenter) => {
   const { data: orders = [] } = useOrders();
   if (workCenter === 'BOTH') return orders;
   return orders.filter(o => o.work_center === workCenter);
+};
+
+// ===== SITE EFFICIENCY =====
+
+export const useSiteEfficiency = () => {
+  return useQuery({
+    queryKey: queryKeys.siteEfficiency,
+    queryFn: () => apiService.getSiteEfficiency(),
+    staleTime: 5 * 60 * 1000, // 5 min — efficiency rarely changes
+  });
 };

@@ -1,12 +1,11 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
 import DataTable from '../components/DataTable';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { useMachines, useOrders, useRemoveOrder } from '../hooks/useQueries';
 import { useMainStore, useSchedulerStore, useUIStore } from '../store';
 import { normalizeOdpNumber, showError, showSuccess } from '../utils';
-import { formatScheduledTime } from '../utils/dateFormatting';
+import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
 import { useQueryClient } from '@tanstack/react-query';
 import { arrayMove } from '@dnd-kit/sortable';
 
@@ -119,7 +118,7 @@ function MachineOverviewPage() {
       header: 'Data Consegna', 
       accessorKey: 'delivery_date',
       cell: ({ row }) => row.original.delivery_date
-        ? format(new Date(row.original.delivery_date), 'yyyy-MM-dd')
+        ? formatDeliveryDate(row.original.delivery_date)
         : 'Non impostata'
     },
     { header: '%ISP', accessorKey: 'material_availability_isp', cell: ({ row }) => row.original.material_availability_isp != null ? `${row.original.material_availability_isp}%` : 'N/A' },
@@ -153,7 +152,7 @@ function MachineOverviewPage() {
           title={`Codice Articolo: ${order.article_code || 'Non specificato'}
 Codice Articolo Esterno: ${order.external_article_code || 'Non specificato'}
 Nome Cliente: ${order.nome_cliente || 'Non specificato'}
-Data Consegna: ${order.delivery_date ? format(new Date(order.delivery_date), 'yyyy-MM-dd') : 'Non impostata'}
+Data Consegna: ${order.delivery_date ? formatDeliveryDate(order.delivery_date) : 'Non impostata'}
 Quantità: ${order.quantity || 'Non specificata'}
 Note Libere: ${order.user_notes || 'Nessuna nota'}
 Note ASD: ${order.asd_notes || 'Nessuna nota'}

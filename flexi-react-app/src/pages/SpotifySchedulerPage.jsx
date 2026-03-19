@@ -281,7 +281,7 @@ function SpotifySchedulerPage() {
     const now = new Date();
     return filteredMachines.filter(machine => {
       const queue = orders.filter(o =>
-        o.scheduled_machine_id === machine.id && o.status === 'SCHEDULED'
+        o.scheduled_machine_id === machine.id && ['SCHEDULED', 'IN PROGRESS'].includes(o.status)
       );
       return queue.length > 0 && queue.every(o => new Date(o.scheduled_end_time) < now);
     });
@@ -355,7 +355,6 @@ function SpotifySchedulerPage() {
     // Check if any scheduling operation is in progress
     const currentSchedulingState = useUIStore.getState().schedulingLoading;
     if (currentSchedulingState.isScheduling || currentSchedulingState.isRescheduling) {
-      console.log('⚠️ Scheduling operation already in progress, blocking new operation');
       showError('Operazione in corso, attendere...');
       return;
     }
@@ -368,22 +367,7 @@ function SpotifySchedulerPage() {
       try {
         startSchedulingOperation('schedule', taskId);
         
-        console.log('🔵 BEFORE REFETCH - Scheduling task:', taskId);
-        
-        // Fetch orders directly to avoid stale cache
         let ordersToUse = await apiService.getOdpOrders();
-        
-        console.log('🔵 AFTER REFRESH - Orders count:', ordersToUse.length);
-        console.log('🔵 AFTER REFETCH - Machine queue:', ordersToUse.filter(o => 
-          o.scheduled_machine_id === machineId && 
-          o.status === 'SCHEDULED' && 
-          o.scheduled_start_time
-        ).map(o => ({
-          id: o.id.substring(0, 8),
-          odp: o.odp_number,
-          start: o.scheduled_start_time,
-          end: o.scheduled_end_time
-        })));
         
         // If task doesn't exist in orders cache, add it temporarily for scheduling
         if (!ordersToUse.some(o => o.id === taskId)) {
@@ -403,13 +387,11 @@ function SpotifySchedulerPage() {
             exact: true,
             type: 'active'
           });
-          console.log('✅ Scheduling complete, cache refreshed');
         }
       } catch (error) {
         showError('Errore durante la programmazione del lavoro');
       } finally {
         stopSchedulingOperation();
-        console.log('🔓 Scheduling operation unlocked');
       }
     }
     
@@ -514,14 +496,9 @@ function SpotifySchedulerPage() {
                   className="pause-select"
                   disabled={isCreatingPause}
                 >
-                  <option value="0.5">0.5h</option>
-                  <option value="1">1h</option>
-                  <option value="2">2h</option>
-                  <option value="4">4h</option>
-                  <option value="8">8h</option>
-                  <option value="12">12h</option>
-                  <option value="16">16h</option>
-                  <option value="24">24h</option>
+                  {Array.from({ length: 100 }, (_, i) => i + 1).map(h => (
+                    <option key={h} value={String(h)}>{h}h</option>
+                  ))}
                 </select>
                 
                 <Button

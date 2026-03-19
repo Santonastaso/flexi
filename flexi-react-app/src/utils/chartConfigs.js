@@ -1,4 +1,6 @@
 import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { ITALY_TIMEZONE } from './dateFormatting';
 
 /**
  * Create line chart configuration for tasks per day
@@ -14,8 +16,8 @@ export const createTasksPerDayChartData = (tasksPerDay) => {
   
   for (let i = -7; i <= 7; i++) {
     const date = new Date(now);
-    date.setUTCDate(now.getUTCDate() + i);
-    const dateStr = date.toISOString().split('T')[0];
+    date.setDate(now.getDate() + i);
+    const dateStr = formatInTimeZone(date, ITALY_TIMEZONE, 'yyyy-MM-dd');
     allDates.push(dateStr);
   }
 

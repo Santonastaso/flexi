@@ -4,7 +4,7 @@ import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { useUIStore, useSchedulerStore } from '../store';
 import { useOrders } from '../hooks';
 import { format, startOfDay, endOfDay, startOfWeek, isSameDay, addDays } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
+import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { normalizeOdpNumber } from '../utils';
 import { formatScheduledTime, formatDeliveryDate, ITALY_TIMEZONE } from '../utils/dateFormatting';
 import { getTaskSegments } from '../utils/taskSegments';
@@ -97,8 +97,8 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
     // Calculate segments for ALL tasks using description column only
     const eventSegments = useMemo(() => {
         const segmentInfo = getTaskSegments(event);
-        const currentDayStart = startOfDay(currentDate);
-        const currentDayEnd = endOfDay(currentDate);
+        const currentDayStart = startOfDay(toZonedTime(currentDate, ITALY_TIMEZONE));
+        const currentDayEnd = endOfDay(toZonedTime(currentDate, ITALY_TIMEZONE));
         
         // Calculate overall task progress
         const totalDuration = event.duration || 1;
@@ -125,9 +125,9 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
                 duration: timeRemaining
             };
             
-            // Check if this segment is visible on current day - use UTC consistently
-            const segmentStartsOnCurrentDay = isSameDay(singleSegment.start, currentDate);
-            const segmentEndsOnCurrentDay = isSameDay(singleSegment.end, currentDate);
+            // Check if this segment is visible on current day - use CET timezone
+            const segmentStartsOnCurrentDay = isSameDay(toZonedTime(singleSegment.start, ITALY_TIMEZONE), toZonedTime(currentDate, ITALY_TIMEZONE));
+            const segmentEndsOnCurrentDay = isSameDay(toZonedTime(singleSegment.end, ITALY_TIMEZONE), toZonedTime(currentDate, ITALY_TIMEZONE));
             const segmentSpansCurrentDay = singleSegment.start < currentDayEnd && singleSegment.end > currentDayStart;
             
             if (!segmentStartsOnCurrentDay && !segmentEndsOnCurrentDay && !segmentSpansCurrentDay) {
@@ -203,9 +203,9 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
             const segmentEnd = new Date(segment.end);
             const segmentDuration = segment.duration || 0;
             
-            // Check if this segment is visible on the current day - use UTC consistently
-            const segmentStartsOnCurrentDay = isSameDay(segmentStart, currentDate);
-            const segmentEndsOnCurrentDay = isSameDay(segmentEnd, currentDate);
+            // Check if this segment is visible on the current day - use CET timezone
+            const segmentStartsOnCurrentDay = isSameDay(toZonedTime(segmentStart, ITALY_TIMEZONE), toZonedTime(currentDate, ITALY_TIMEZONE));
+            const segmentEndsOnCurrentDay = isSameDay(toZonedTime(segmentEnd, ITALY_TIMEZONE), toZonedTime(currentDate, ITALY_TIMEZONE));
             const segmentSpansCurrentDay = segmentStart < currentDayEnd && segmentEnd > currentDayStart;
             
             if (segmentStartsOnCurrentDay || segmentEndsOnCurrentDay || segmentSpansCurrentDay) {
@@ -432,7 +432,8 @@ ${event.scheduled_end_time ? `Fine Programmata: ${formatScheduledTime(event.sche
                                             e.stopPropagation();
                                             e.preventDefault();
                                             try {
-                                                await useSchedulerStore.getState().removeTaskFromQueue(event.id);
+                                                const allOrders = queryClient.getQueryData(['orders']) ?? [];
+                                                await useSchedulerStore.getState().removeTaskFromQueue(machine.id, event.id, allOrders);
                                                 await queryClient.refetchQueries({ queryKey: ['orders'], exact: true, type: 'active' });
                                             } catch (error) {
                                                 // Error handled by removeTaskFromQueue
@@ -538,11 +539,11 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
   
   // Generate week dates
   const weekDates = useMemo(() => {
-          const weekStart = startOfWeek(currentDate, { weekStartsOn: AppConfig.APP.FIRST_DAY_OF_WEEK });
+    const weekStart = startOfWeek(currentDate, { weekStartsOn: AppConfig.APP.FIRST_DAY_OF_WEEK });
     const dates = [];
     for (let i = 0; i < 7; i++) {
       const day = new Date(weekStart);
-      day.setUTCDate(weekStart.getUTCDate() + i);
+      day.setDate(weekStart.getDate() + i);
       dates.push(day);
     }
     return dates;
@@ -561,7 +562,7 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
       
       if (segmentInfo && segmentInfo.segments && segmentInfo.segments.length > 0) {
         // Check if any segment falls on this day
-        const targetDate = new Date(dateStr + 'T00:00:00Z');
+        const targetDate = new Date(dateStr + 'T00:00:00');
         const nextDay = new Date(targetDate.getTime() + 24 * 60 * 60 * 1000);
         
         return segmentInfo.segments.some(segment => {
@@ -573,7 +574,7 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
         });
       } else {
         // Fallback: check if task start date matches (for tasks without segment info)
-        return format(new Date(task.scheduled_start_time), 'yyyy-MM-dd') === dateStr;
+        return formatInTimeZone(new Date(task.scheduled_start_time), ITALY_TIMEZONE, 'yyyy-MM-dd') === dateStr;
       }
     });
   }, [scheduledTasks]);
@@ -595,8 +596,8 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
         <div className="machine-label-header">Macchine</div>
         {weekDates.map(day => (
           <div key={day.toISOString()} className="day-header-cell">
-                            <div className="day-name">{format(day, 'yyyy-MM-dd')}</div>
-                <div className="day-date">{format(day, 'yyyy-MM-dd')}</div>
+                            <div className="day-name">{formatInTimeZone(day, ITALY_TIMEZONE, 'yyyy-MM-dd')}</div>
+                <div className="day-date">{formatInTimeZone(day, ITALY_TIMEZONE, 'yyyy-MM-dd')}</div>
           </div>
         ))}
       </div>
@@ -610,12 +611,12 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
             </div>
             
             {weekDates.map(day => {
-              const dateStr = format(day, 'yyyy-MM-dd');
+              const dateStr = formatInTimeZone(day, ITALY_TIMEZONE, 'yyyy-MM-dd');
               const dayTasks = getTasksForMachineAndDay(machine.id, dateStr).sort((a, b) => 
                 new Date(a.scheduled_start_time) - new Date(b.scheduled_start_time)
               );
               const taskCount = getDayTaskCount(machine.id, dateStr);
-              const isToday = day.toDateString() === new Date().toDateString();
+              const isToday = formatInTimeZone(day, ITALY_TIMEZONE, 'yyyy-MM-dd') === formatInTimeZone(new Date(), ITALY_TIMEZONE, 'yyyy-MM-dd');
               
               return (
                 <div 
@@ -718,14 +719,14 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
   // Use React Query for orders
   const { data: tasks = [] } = useOrders();
   const scheduledTasks = useMemo(() =>
-    tasks.filter(task => task.status === 'SCHEDULED'),
+    tasks.filter(task => ['SCHEDULED', 'IN PROGRESS'].includes(task.status)),
     [tasks]
   );
 
   const queryClient = useQueryClient();
 
   // Use the exact same date that's displayed in the banner - no conversion needed
-  const dateStr = useMemo(() => format(currentDate, 'yyyy-MM-dd'), [currentDate]);
+  const dateStr = useMemo(() => formatInTimeZone(currentDate, ITALY_TIMEZONE, 'yyyy-MM-dd'), [currentDate]);
 
   // Use React Query hook for machine availability data with caching and background updates
   const { 
@@ -822,7 +823,7 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
             >
               &lt;
             </Button>
-            <span className="current-date">{format(currentDate, 'dd/MM/yyyy')}</span>
+            <span className="current-date">{formatInTimeZone(currentDate, ITALY_TIMEZONE, 'dd/MM/yyyy')}</span>
             <Button
               variant="secondary"
               size="sm"

@@ -11,8 +11,7 @@ import {
 } from './ui/table';
 import { useUIStore } from '../store';
 import { useOrders, useRemoveOrder } from '../hooks';
-import { format } from 'date-fns';
-import { formatScheduledTime } from '../utils/dateFormatting';
+import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
 import { normalizeOdpNumber } from '../utils';
 import DataTable from './DataTable';
 import { showSuccess, showError } from '../utils/toast';
@@ -51,7 +50,7 @@ const GanttActionsCell = ({ task, schedulingLoading }) => {
         title={`Codice Articolo: ${task.article_code || 'Non specificato'}
 Codice Articolo Esterno: ${task.external_article_code || 'Non specificato'}
 Nome Cliente: ${task.nome_cliente || 'Non specificato'}
-Data Consegna: ${task.delivery_date ? format(new Date(task.delivery_date), 'yyyy-MM-dd') : 'Non impostata'}
+Data Consegna: ${task.delivery_date ? formatDeliveryDate(task.delivery_date) : 'Non impostata'}
 Quantità: ${task.quantity || 'Non specificata'}
 Note Libere: ${task.user_notes || 'Nessuna nota'}
 Note ASD: ${task.asd_notes || 'Nessuna nota'}
@@ -142,7 +141,7 @@ function TaskPoolDataTable({ filterByCost = true }) {
   // Memoize unscheduled tasks filtering for better performance
   const unscheduledTasks = useMemo(() => {
     let filtered = tasks.filter(task => {
-      const isNotScheduled = task.status !== 'SCHEDULED';
+      const isNotScheduled = task.status === 'NOT SCHEDULED';
       const hasDuration = task.duration > 0;
       const hasCost = filterByCost ? task.cost > 0 : true;
       

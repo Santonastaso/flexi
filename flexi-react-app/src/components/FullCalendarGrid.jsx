@@ -6,8 +6,8 @@ import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import { useSchedulerStore, useUIStore } from '../store';
 import { useMachines, useOrders } from '../hooks';
-import { format, parseISO } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
+import { parseISO } from 'date-fns';
+import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { showError, normalizeOdpNumber } from '../utils';
 import { AppConfig } from '../services/config';
 import { convertCETHourToUTC, ITALY_TIMEZONE } from '../utils/dateFormatting';
@@ -60,7 +60,7 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
     
     odpOrders
       .filter(task => 
-        task.status === 'SCHEDULED' && 
+        ['SCHEDULED', 'IN PROGRESS'].includes(task.status) && 
         task.scheduled_machine_id === machine.id &&
         task.scheduled_start_time &&
         task.scheduled_end_time
@@ -155,13 +155,14 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
       try {
         // Load data for the current month (UTC)
         const now = new Date();
-        const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-        const endDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+        const nowInCET = toZonedTime(now, ITALY_TIMEZONE);
+        const startDate = new Date(Date.UTC(nowInCET.getFullYear(), nowInCET.getMonth(), 1));
+        const endDate = new Date(Date.UTC(nowInCET.getFullYear(), nowInCET.getMonth() + 1, 0));
         
         await loadMachineAvailabilityForDateRange(
           machineId, 
-          format(startDate, 'yyyy-MM-dd'), 
-          format(endDate, 'yyyy-MM-dd')
+          formatInTimeZone(startDate, ITALY_TIMEZONE, 'yyyy-MM-dd'), 
+          formatInTimeZone(endDate, ITALY_TIMEZONE, 'yyyy-MM-dd')
         );
       } catch (error) {
         // Data loading handled by React Query
@@ -179,7 +180,7 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
     
     // Convert clicked date to CET timezone to get the correct hour
     const clickedDateInCET = toZonedTime(clickedDate, 'Europe/Rome');
-    const dateStr = format(clickedDateInCET, 'yyyy-MM-dd');
+    const dateStr = formatInTimeZone(clickedDate, ITALY_TIMEZONE, 'yyyy-MM-dd');
     const hour = clickedDateInCET.getHours();
     
     // Check if there are scheduled tasks at this time

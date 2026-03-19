@@ -8,8 +8,7 @@ import { useUIStore } from '../store';
 import { useOrders, useMachines, usePhases, useRemoveOrder } from '../hooks';
 import { normalizeOdpNumber, showError, showSuccess } from '../utils';
 import { WORK_CENTERS } from '../constants';
-import { format } from 'date-fns';
-import { formatScheduledTime } from '../utils/dateFormatting';
+import { formatScheduledTime, formatInItalyTimezone } from '../utils/dateFormatting';
 
 function BacklogListPage() {
   const { selectedWorkCenter, showConfirmDialog } = useUIStore();
@@ -103,7 +102,7 @@ function BacklogListPage() {
     { 
       header: 'Data Consegna', 
       accessorKey: 'delivery_date',
-              cell: info => info.getValue() ? format(new Date(info.getValue()), 'yyyy-MM-dd') : 'Non impostata'
+              cell: info => info.getValue() ? formatInItalyTimezone(info.getValue(), 'dd/MM/yyyy') : 'Non impostata'
     },
     { 
       header: 'Inizio Programmato', 
@@ -244,7 +243,7 @@ function BacklogListPage() {
 
     const rowsToExport = filteredOrders.filter(order => {
       if (!order.delivery_date) return false;
-      const deliveryDate = new Date(order.delivery_date);
+      const deliveryDate = new Date(order.delivery_date + 'T12:00:00');
       return deliveryDate >= startDate && deliveryDate <= endDate;
     });
 
@@ -289,7 +288,7 @@ function BacklogListPage() {
       toValue(order.bag_height),
       toValue(order.bag_width),
       toValue(order.bag_step),
-      (() => { if (!order.delivery_date) return ''; try { return format(new Date(order.delivery_date), 'yyyy-MM-dd'); } catch { return ''; } })(),
+      order.delivery_date ? formatInItalyTimezone(order.delivery_date, 'yyyy-MM-dd') : '',
       toValue(order.status),
       toValue(order.work_center),
       toValue(order.department),

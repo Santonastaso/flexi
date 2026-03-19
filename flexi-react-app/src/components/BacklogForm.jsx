@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useUIStore } from '../store';
-import { useProductionCalculations, useValidation, useAddOrder, useUpdateOrder } from '../hooks';
+import { useProductionCalculations, useValidation, useAddOrder, useUpdateOrder, useSiteEfficiency } from '../hooks';
 import { usePhaseSearch } from '../hooks/usePhaseSearch';
 import { normalizeOdpNumber, showValidationError, showSuccess, showWarning, showInfo } from '../utils';
 import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES, TASK_STATUSES } from '../constants';
 import { backlogFormConfig } from './formConfigs';
+import { formatInTimeZone } from 'date-fns-tz';
+import { ITALY_TIMEZONE } from '../utils/dateFormatting';
 import GenericForm from './GenericForm';
 import {
   Button,
@@ -17,6 +19,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   const { selectedWorkCenter } = useUIStore();
   const { calculateProductionMetrics, validatePhaseParameters, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
   const { validateOrder } = useValidation();
+  const { data: siteEfficiencyMap = {} } = useSiteEfficiency();
   
   // React Query mutations
   const addOrderMutation = useAddOrder();
@@ -50,7 +53,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     article_code: orderToEdit?.article_code || '', 
     work_center: orderToEdit?.work_center || (selectedWorkCenter === WORK_CENTERS.BOTH ? '' : selectedWorkCenter),
     nome_cliente: orderToEdit?.nome_cliente || '', 
-    delivery_date: orderToEdit?.delivery_date ? new Date(orderToEdit.delivery_date).toISOString().slice(0, 16) : '', 
+    delivery_date: orderToEdit?.delivery_date ? formatInTimeZone(new Date(orderToEdit.delivery_date), ITALY_TIMEZONE, "yyyy-MM-dd'T'HH:mm") : '', 
     quantity: orderToEdit?.quantity || '', 
     customer_order_ref: orderToEdit?.customer_order_ref || '', 
     department: orderToEdit?.department || '', 
@@ -251,7 +254,8 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     }
     
     try {
-      const results = calculateProductionMetrics(phaseForCalculation, quantity, bagStep);
+      const efficiency = siteEfficiencyMap[workCenter] ?? 0.80;
+      const results = calculateProductionMetrics(phaseForCalculation, quantity, bagStep, efficiency);
       setCalculationResults(results);
       showSuccess("Calcolo completato con successo!");
     } catch (error) {

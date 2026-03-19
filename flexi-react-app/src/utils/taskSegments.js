@@ -9,7 +9,7 @@
  * Parses the description field which contains segment data
  */
 export const getTaskSegments = (task) => {
-  if (!task || !task.description || task.status !== 'SCHEDULED') {
+  if (!task || !task.description || !['SCHEDULED', 'IN PROGRESS'].includes(task.status)) {
     return null;
   }
   

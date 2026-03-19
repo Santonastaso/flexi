@@ -24,7 +24,7 @@ function MachineQueueColumn({ machine, queryClient }) {
     return odpOrders
       .filter(task => 
         task.scheduled_machine_id === machine.id && 
-        task.status === 'SCHEDULED' &&
+        ['SCHEDULED', 'IN PROGRESS'].includes(task.status) &&
         task.scheduled_start_time
       )
       .sort((a, b) => {

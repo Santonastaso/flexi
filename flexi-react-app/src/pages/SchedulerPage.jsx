@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense, laz
 import { DndContext, DragOverlay, PointerSensor, MouseSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { useUIStore, useMainStore } from '../store';
 import { useOrders, useMachines, useScheduledOrders, useOrdersByWorkCenter } from '../hooks';
-import { format, startOfWeek, addWeeks, subWeeks } from 'date-fns';
-import { getTodayInCET, getDateInCET } from '../utils/dateFormatting';
+import { startOfWeek, addWeeks, subWeeks } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { getTodayInCET, getDateInCET, ITALY_TIMEZONE } from '../utils/dateFormatting';
 
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
 import { showError } from '../utils';
@@ -209,7 +210,7 @@ function SchedulerPage() {
 
   // Get scheduled orders filtered by selected work center
   const scheduledOrders = useMemo(() => {
-    const scheduled = filteredOdpOrders.filter(order => order.status === 'SCHEDULED');
+    const scheduled = filteredOdpOrders.filter(order => ['SCHEDULED', 'IN PROGRESS'].includes(order.status));
     return scheduled;
   }, [filteredOdpOrders, selectedWorkCenter]);
 
@@ -349,7 +350,7 @@ function SchedulerPage() {
       return 'Oggi';
     } else {
       // Format the date for display
-      return format(currentDate, 'yyyy-MM-dd');
+      return formatInTimeZone(currentDate, ITALY_TIMEZONE, 'yyyy-MM-dd');
     }
   }, [currentDate]);
 
