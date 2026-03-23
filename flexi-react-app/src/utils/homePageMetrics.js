@@ -1,5 +1,5 @@
 import { MACHINE_STATUSES } from '../constants';
-import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { ITALY_TIMEZONE } from './dateFormatting';
 
 /**
@@ -16,21 +16,22 @@ export const calculateHomeMetrics = (machines, orders) => {
       acc[center] = {
         [MACHINE_STATUSES.ACTIVE]: 0,
         [MACHINE_STATUSES.INACTIVE]: 0,
-        [MACHINE_STATUSES.MAINTENANCE]: 0
       };
     }
     acc[center][machine.status] = (acc[center][machine.status] || 0) + 1;
     return acc;
   }, {});
 
-  // Calculate completed tasks this week (Monday as first day)
+  // Calculate completed tasks this week (Monday 00:00 CET as boundary)
   const now = new Date();
   const nowInCET = toZonedTime(now, ITALY_TIMEZONE);
-  const startOfWeek = new Date(now);
   const dayOfWeek = nowInCET.getDay();
   const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  startOfWeek.setDate(nowInCET.getDate() - daysToSubtract);
-  startOfWeek.setHours(0, 0, 0, 0);
+  // Build CET Monday midnight and convert to proper UTC timestamp
+  const mondayCET = new Date(nowInCET);
+  mondayCET.setDate(nowInCET.getDate() - daysToSubtract);
+  mondayCET.setHours(0, 0, 0, 0);
+  const startOfWeek = fromZonedTime(mondayCET, ITALY_TIMEZONE);
 
   const completedThisWeek = orders.filter(order => {
     if (!order.completion_date) return false;

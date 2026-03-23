@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { useUIStore, useSchedulerStore } from '../store';
 import { useOrders } from '../hooks';
-import { format, startOfDay, endOfDay, startOfWeek, isSameDay, addDays } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, isSameDay, addDays } from 'date-fns';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { normalizeOdpNumber } from '../utils';
 import { formatScheduledTime, formatDeliveryDate, ITALY_TIMEZONE } from '../utils/dateFormatting';

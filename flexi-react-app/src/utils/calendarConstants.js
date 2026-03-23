@@ -45,3 +45,6 @@ export function isWithinWorkHours(hour) {
  * @param {number} hour - Hour to clamp (0-23)
  * @returns {number} Clamped hour
  */
+export function clampHour(hour) {
+  return Math.max(CALENDAR_CONSTANTS.WORK_START_HOUR, Math.min(hour, CALENDAR_CONSTANTS.WORK_END_HOUR));
+}

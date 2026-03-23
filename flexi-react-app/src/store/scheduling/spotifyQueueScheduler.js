@@ -411,8 +411,8 @@ export class SpotifyQueueScheduler {
       return { error: 'Machine ID is required' };
     }
     
-    if (durationHours <= 0 || durationHours > 24) {
-      return { error: 'Duration must be between 0 and 24 hours' };
+    if (durationHours <= 0 || durationHours > 100) {
+      return { error: 'Duration must be between 1 and 100 hours' };
     }
     
     const machine = allMachines.find(m => m.id === machineId);
@@ -452,7 +452,7 @@ export class SpotifyQueueScheduler {
       return { error: result.error };
     }
     
-    return { success: true, pauseTask: result.task };
+    return { success: true };
   };
 
   /**

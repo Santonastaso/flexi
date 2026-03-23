@@ -106,14 +106,14 @@ export const FORM_FIELDS = {
 
 // ===== VALIDATION MESSAGES =====
 export const VALIDATION_MESSAGES = {
-  REQUIRED: 'This field is required',
-  END_DATE_BEFORE_START: 'End date cannot be before start date',
-  END_TIME_BEFORE_START: 'End time must be after start time when dates are the same',
-  MIN_WEB_WIDTH_EXCEEDS_MAX: 'Minimum web width cannot exceed maximum web width',
-  MIN_BAG_HEIGHT_EXCEEDS_MAX: 'Minimum bag height cannot exceed maximum bag height',
-  BAG_WIDTH_LESS_THAN_STEP: 'Bag width cannot be less than bag step',
-  QUANTITY_COMPLETED_EXCEEDS_TOTAL: 'Quantity completed cannot exceed total quantity',
-  SCHEDULED_START_AFTER_DELIVERY: 'Scheduled start cannot be after delivery date'
+  REQUIRED: 'Questo campo è obbligatorio',
+  END_DATE_BEFORE_START: 'La data di fine non può precedere la data di inizio',
+  END_TIME_BEFORE_START: 'L\'ora di fine deve essere successiva all\'ora di inizio quando le date coincidono',
+  MIN_WEB_WIDTH_EXCEEDS_MAX: 'La larghezza minima del nastro non può superare la larghezza massima',
+  MIN_BAG_HEIGHT_EXCEEDS_MAX: 'L\'altezza minima della busta non può superare l\'altezza massima',
+  BAG_WIDTH_LESS_THAN_STEP: 'La larghezza della busta non può essere inferiore al passo',
+  QUANTITY_COMPLETED_EXCEEDS_TOTAL: 'La quantità completata non può superare la quantità totale',
+  SCHEDULED_START_AFTER_DELIVERY: 'L\'inizio programmato non può essere successivo alla data di consegna'
 };
 
 // ===== DEFAULT VALUES =====

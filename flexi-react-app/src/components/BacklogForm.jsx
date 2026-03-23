@@ -15,6 +15,57 @@ import {
 } from './ui';
 import { useQueryClient } from '@tanstack/react-query';
 
+const PhaseSearchField = ({
+  field, watch, setValue, register,
+  department, setDepartment, workCenter, setWorkCenter,
+  quantity, setQuantity, bagStep, setBagStep,
+  phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible,
+  filteredPhases, handleBlur, handlePhaseSelect, setCalculationResults,
+}) => {
+  const currentDepartment = watch('department');
+  const currentWorkCenter = watch('work_center');
+  const currentQuantity = watch('quantity');
+  const currentBagStep = watch('bag_step');
+
+  useEffect(() => {
+    if (currentDepartment !== department) setDepartment(currentDepartment);
+    if (currentWorkCenter !== workCenter) setWorkCenter(currentWorkCenter);
+    if (currentQuantity !== quantity) setQuantity(currentQuantity);
+    if (currentBagStep !== bagStep) setBagStep(currentBagStep);
+  }, [currentDepartment, currentWorkCenter, currentQuantity, currentBagStep, department, workCenter, quantity, bagStep, setDepartment, setWorkCenter, setQuantity, setBagStep]);
+
+  return (
+    <div className="relative">
+      <Input
+        type="text"
+        value={phaseSearch}
+        onChange={(e) => setPhaseSearch(e.target.value)}
+        onFocus={() => setIsDropdownVisible(true)}
+        onBlur={handleBlur}
+        placeholder="Cerca fase di produzione..."
+      />
+      <input type="hidden" {...register('fase')} />
+      {isDropdownVisible && filteredPhases.length > 0 && (
+        <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
+          {filteredPhases.map(phase => (
+            <div
+              key={phase.id}
+              className="px-3 py-1 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+              onMouseDown={() => {
+                handlePhaseSelect(phase, setValue, () => {});
+                setCalculationResults(null);
+              }}
+            >
+              <div className="text-xs font-medium">{phase.name}</div>
+              <div className="text-xs text-gray-600">{phase.contenuto_fase}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const BacklogForm = ({ onSuccess, orderToEdit }) => {
   const { selectedWorkCenter } = useUIStore();
   const { calculateProductionMetrics, validatePhaseParameters, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
@@ -28,6 +79,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   
   const [calculationResults, setCalculationResults] = useState(null);
   const [additionalHours, setAdditionalHours] = useState(0);
+  const [efficiency, setEfficiency] = useState(null);
   const isEditMode = Boolean(orderToEdit);
   
   // Create dynamic config based on selected work center
@@ -79,6 +131,15 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   const [quantity, setQuantity] = useState(initialData.quantity);
   const [bagStep, setBagStep] = useState(initialData.bag_step);
 
+  // Initialize efficiency from DB when work center changes
+  useEffect(() => {
+    if (workCenter && siteEfficiencyMap[workCenter] != null) {
+      setEfficiency(siteEfficiencyMap[workCenter]);
+    } else if (workCenter) {
+      setEfficiency(0.80);
+    }
+  }, [workCenter, siteEfficiencyMap]);
+
   const { phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, selectedPhase, setSelectedPhase, filteredPhases, editablePhaseParams, setEditablePhaseParams, handlePhaseParamChange, handlePhaseSelect, handleBlur } = usePhaseSearch(
     department, 
     workCenter,
@@ -91,7 +152,8 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     setEditablePhaseParams({});
     setCalculationResults(null);
     setAdditionalHours(0);
-  }, [setPhaseSearch, setSelectedPhase, setEditablePhaseParams]);
+    setEfficiency(siteEfficiencyMap[workCenter] ?? 0.80);
+  }, [setPhaseSearch, setSelectedPhase, setEditablePhaseParams, siteEfficiencyMap, workCenter]);
 
   // Handle article code changes to auto-determine department and work center
   const handleArticleCodeChange = useCallback((articleCode, setValue) => {
@@ -249,13 +311,13 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     const validation = validatePhaseParameters(phaseForCalculation);
     
     if (!validation.isValid) {
-      showWarning(`Parametri fase non validi: ${Object.values(validation.errors).join(', ')}`);
+      showWarning(`Parametri fase non validi: ${validation.error || 'Errore sconosciuto'}`);
       return;
     }
     
     try {
-      const efficiency = siteEfficiencyMap[workCenter] ?? 0.80;
-      const results = calculateProductionMetrics(phaseForCalculation, quantity, bagStep, efficiency);
+      const effValue = parseFloat(efficiency) || 0.80;
+      const results = calculateProductionMetrics(phaseForCalculation, quantity, bagStep, effValue);
       setCalculationResults(results);
       showSuccess("Calcolo completato con successo!");
     } catch (error) {
@@ -311,58 +373,31 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       );
     },
 
-    // Phase search field
+    // Phase search field -- delegates to PhaseSearchField component to avoid hooks-in-callback violation
     phase_search: (field, { watch, setValue, getValues, register }) => {
-      const currentDepartment = watch('department');
-      const currentWorkCenter = watch('work_center');
-      const currentQuantity = watch('quantity');
-      const currentBagStep = watch('bag_step');
-      
-      // Update local state when form values change
-      useEffect(() => {
-        if (currentDepartment !== department) {
-          setDepartment(currentDepartment);
-        }
-        if (currentWorkCenter !== workCenter) {
-          setWorkCenter(currentWorkCenter);
-        }
-        if (currentQuantity !== quantity) {
-          setQuantity(currentQuantity);
-        }
-        if (currentBagStep !== bagStep) {
-          setBagStep(currentBagStep);
-        }
-      }, [currentDepartment, currentWorkCenter, currentQuantity, currentBagStep, department, workCenter, quantity, bagStep]);
-
       return (
-        <div className="relative">
-          <Input 
-            type="text" 
-            value={phaseSearch} 
-            onChange={(e) => setPhaseSearch(e.target.value)} 
-            onFocus={() => setIsDropdownVisible(true)} 
-            onBlur={handleBlur}
-            placeholder="Cerca fase di produzione..."
-          />
-          <input type="hidden" {...register('fase')} />
-          {isDropdownVisible && filteredPhases.length > 0 && (
-            <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
-              {filteredPhases.map(phase => (
-                <div 
-                  key={phase.id} 
-                  className="px-3 py-1 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
-                  onMouseDown={() => { 
-                    handlePhaseSelect(phase, setValue, () => {}); 
-                    setCalculationResults(null);
-                  }}
-                >
-                  <div className="text-xs font-medium">{phase.name}</div>
-                  <div className="text-xs text-gray-600">{phase.contenuto_fase}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <PhaseSearchField
+          field={field}
+          watch={watch}
+          setValue={setValue}
+          register={register}
+          department={department}
+          setDepartment={setDepartment}
+          workCenter={workCenter}
+          setWorkCenter={setWorkCenter}
+          quantity={quantity}
+          setQuantity={setQuantity}
+          bagStep={bagStep}
+          setBagStep={setBagStep}
+          phaseSearch={phaseSearch}
+          setPhaseSearch={setPhaseSearch}
+          isDropdownVisible={isDropdownVisible}
+          setIsDropdownVisible={setIsDropdownVisible}
+          filteredPhases={filteredPhases}
+          handleBlur={handleBlur}
+          handlePhaseSelect={handlePhaseSelect}
+          setCalculationResults={setCalculationResults}
+        />
       );
     },
 
@@ -375,7 +410,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
           <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">
             Parametri Fase Selezionata
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
             {getPhaseFields().map(field => (
               <div className="space-y-2" key={field.name}>
                 <Label htmlFor={field.name}>{field.label}</Label>
@@ -390,6 +425,24 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
                 </div>
               </div>
             ))}
+            <div className="space-y-2">
+              <Label htmlFor="efficiency">Fattore Efficienza</Label>
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="number"
+                  id="efficiency"
+                  step="0.01"
+                  min="0.01"
+                  max="1"
+                  value={efficiency ?? ''}
+                  onChange={(e) => {
+                    setEfficiency(e.target.value);
+                    setCalculationResults(null);
+                  }}
+                />
+                <span className="text-xs text-gray-500 whitespace-nowrap">0-1</span>
+              </div>
+            </div>
           </div>
         </div>
       );
@@ -443,7 +496,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         </div>
       );
     }
-  }), [phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, filteredPhases, handleBlur, handlePhaseSelect, selectedPhase, getPhaseParamValue, handlePhaseParamChange, getPhaseFields, calculationResults, additionalHours, handleArticleCodeChange, department, workCenter, quantity, bagStep]);
+  }), [phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, filteredPhases, handleBlur, handlePhaseSelect, selectedPhase, getPhaseParamValue, handlePhaseParamChange, getPhaseFields, calculationResults, additionalHours, handleArticleCodeChange, department, workCenter, quantity, bagStep, efficiency]);
 
   // Custom actions (Calculate button)
   const customActions = useMemo(() => (

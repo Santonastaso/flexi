@@ -136,7 +136,6 @@ function SpotifySchedulerPage() {
   const [pauseHours, setPauseHours] = useState('1');
   const [pauseMachine, setPauseMachine] = useState('');
   const [isCreatingPause, setIsCreatingPause] = useState(false);
-  const [dismissedStaleMachines, setDismissedStaleMachines] = useState(new Set());
   
   // Combined loading state
   const isDataLoading = ordersLoading || machinesLoading || isLoading;
@@ -276,16 +275,6 @@ function SpotifySchedulerPage() {
     dispatch({ type: 'CLEAR_FILTERS' });
   }, []);
 
-  // Detect machines where ALL scheduled tasks have ended (stale queue)
-  const staleMachines = useMemo(() => {
-    const now = new Date();
-    return filteredMachines.filter(machine => {
-      const queue = orders.filter(o =>
-        o.scheduled_machine_id === machine.id && ['SCHEDULED', 'IN PROGRESS'].includes(o.status)
-      );
-      return queue.length > 0 && queue.every(o => new Date(o.scheduled_end_time) < now);
-    });
-  }, [filteredMachines, orders]);
 
   // Handle pause creation
   const handleCreatePause = async () => {
@@ -567,27 +556,6 @@ function SpotifySchedulerPage() {
 
           {/* Machine Queue Columns Section */}
           <div className="queue-columns-section">
-            {/* Stale queue banners */}
-            {staleMachines
-              .filter(m => !dismissedStaleMachines.has(m.id))
-              .map(machine => (
-                <div
-                  key={machine.id}
-                  className="flex items-center justify-between bg-yellow-50 border border-yellow-300 rounded px-3 py-2 mb-2 text-xs text-yellow-800"
-                >
-                  <span>
-                    <strong>{machine.machine_name}</strong>: tutti i task programmati sono scaduti e non completati. Aggiungi o sposta un task per riaggiornare la coda.
-                  </span>
-                  <button
-                    className="ml-4 text-yellow-600 hover:text-yellow-900 font-bold"
-                    onClick={() => setDismissedStaleMachines(prev => new Set([...prev, machine.id]))}
-                    aria-label="Chiudi"
-                  >
-                    x
-                  </button>
-                </div>
-              ))
-            }
             {filteredMachines.length === 0 ? (
               <div className="empty-state">
                 <h3>Nessuna macchina disponibile</h3>

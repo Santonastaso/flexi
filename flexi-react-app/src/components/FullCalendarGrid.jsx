@@ -12,6 +12,7 @@ import { showError, normalizeOdpNumber } from '../utils';
 import { AppConfig } from '../services/config';
 import { convertCETHourToUTC, ITALY_TIMEZONE } from '../utils/dateFormatting';
 import { CALENDAR_CONSTANTS, isWithinWorkHours } from '../utils/calendarConstants';
+import { getTaskSegments as getTaskSegmentsFromDescription } from '../utils/taskSegments';
 
 function FullCalendarGrid({ machineId, refreshTrigger }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -21,21 +22,23 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
   // Use React Query for data
   const { data: machines = [] } = useMachines();
   const { data: odpOrders = [] } = useOrders();
-  const { machineAvailability, loadMachineAvailabilityForDateRange, toggleMachineHourAvailability, getTaskOccupiedSegments } = useSchedulerStore();
+  const { machineAvailability, loadMachineAvailabilityForDateRange, toggleMachineHourAvailability } = useSchedulerStore();
   const { showAlert } = useUIStore();
   
   const machine = machines.find(m => m.id === machineId);
 
-  // Helper function to get actual task segments
+  // Helper function to get actual task segments from description JSON
   const getTaskSegments = useCallback((task) => {
     try {
-      // Try to get segments from the split task manager
-      const segments = getTaskOccupiedSegments(task);
-      if (segments && segments.length > 0) {
-        return segments;
+      const segmentInfo = getTaskSegmentsFromDescription(task);
+      if (segmentInfo && segmentInfo.segments && segmentInfo.segments.length > 0) {
+        return segmentInfo.segments.map(s => ({
+          start: new Date(s.start),
+          end: new Date(s.end),
+          duration: s.duration
+        }));
       }
-      
-      // Fallback: if no segments found, create a single segment from scheduled times
+
       if (task.scheduled_start_time && task.scheduled_end_time) {
         return [{
           start: new Date(task.scheduled_start_time),
@@ -43,12 +46,12 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
           duration: (new Date(task.scheduled_end_time).getTime() - new Date(task.scheduled_start_time).getTime()) / (1000 * 60 * 60)
         }];
       }
-      
+
       return [];
     } catch (error) {
       return [];
     }
-  }, [getTaskOccupiedSegments]);
+  }, []);
 
 
 

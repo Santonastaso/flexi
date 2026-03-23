@@ -20,29 +20,31 @@ export class MachineAvailabilityManager {
   // Get lock key for a machine and date
   getLockKey = (machineId, dateStr) => `${machineId}-${dateStr}`;
 
-  // Acquire lock for a machine and date
+  // Acquire lock for a machine and date. Returns a release function.
   acquireLock = async (machineId, dateStr) => {
     const lockKey = this.getLockKey(machineId, dateStr);
-    
-    // If there's already a lock, wait for it to complete
-    if (this.updateLocks.has(lockKey)) {
+
+    // Wait for the existing lock holder (if any) to finish
+    while (this.updateLocks.has(lockKey)) {
       await this.updateLocks.get(lockKey);
     }
-    
-    // Create new lock
+
+    // Create a new lock promise whose resolve we hand back as the release function
     let resolveLock;
     const lockPromise = new Promise(resolve => {
       resolveLock = resolve;
     });
-    
-    this.updateLocks.set(lockKey, lockPromise);
-    return resolveLock;
-  };
 
-  // Release lock for a machine and date
-  releaseLock = (machineId, dateStr) => {
-    const lockKey = this.getLockKey(machineId, dateStr);
-    this.updateLocks.delete(lockKey);
+    this.updateLocks.set(lockKey, lockPromise);
+
+    // Return a one-shot release: delete the entry then resolve waiters
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      this.updateLocks.delete(lockKey);
+      resolveLock();
+    };
   };
 
   // Load machine availability for a specific date
@@ -212,11 +214,9 @@ export class MachineAvailabilityManager {
   // Set machine availability for a specific date
   // @param {Array} allOrders - All orders from React Query (optional, for overlap checking)
   setMachineAvailability = async (machineId, dateStr, unavailableHours, allOrders = []) => {
-    // Acquire lock to prevent concurrent updates
     const releaseLock = await this.acquireLock(machineId, dateStr);
     
     try {
-      // Check for overlaps with existing scheduled tasks on the same machine and date
       const existingTasks = allOrders.filter(o => 
         o.scheduled_machine_id === machineId && 
         ['SCHEDULED', 'IN PROGRESS'].includes(o.status) &&
@@ -224,21 +224,17 @@ export class MachineAvailabilityManager {
         o.scheduled_end_time
       );
 
-      // Unavailable hours are in CET timezone - convert properly for overlap checking
       for (const task of existingTasks) {
         const taskStart = new Date(task.scheduled_start_time);
         const taskEnd = new Date(task.scheduled_end_time);
         
-          // Check if any unavailable hour overlaps with scheduled task
-          for (const hour of unavailableHours) {
+        for (const hour of unavailableHours) {
           const hourInt = parseInt(hour);
-          
-          // Convert CET hour to UTC using centralized utility function
           const hourStart = convertCETHourToUTC(dateStr, hourInt);
-            const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
+          const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
             
-            if (hourStart < taskEnd && hourEnd > taskStart) {
-              throw new AppError(`Cannot set machine unavailable during scheduled task: ${task.odp_number}`, ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, null, 'MachineAvailabilityManager.setMachineUnavailability');
+          if (hourStart < taskEnd && hourEnd > taskStart) {
+            throw new AppError(`Cannot set machine unavailable during scheduled task: ${task.odp_number}`, ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, null, 'MachineAvailabilityManager.setMachineUnavailability');
           }
         }
       }
@@ -253,24 +249,19 @@ export class MachineAvailabilityManager {
         return { machineAvailability: next };
       });
       
-      // Show success alert
       useUIStore.getState().showAlert(`Machine availability updated successfully for ${dateStr}`, 'success');
       return true;
     } catch (_error) {
-      // Use centralized error handling
       const appError = handleApiError(_error, 'Machine Availability');
       useUIStore.getState().showAlert(appError.message, 'error');
       throw appError;
     } finally {
-      // Always release the lock
       releaseLock();
-      this.releaseLock(machineId, dateStr);
     }
   };
 
   // Toggle machine hour availability
   toggleMachineHourAvailability = async (machineId, dateStr, hour) => {
-    // Acquire lock to prevent concurrent updates
     const releaseLock = await this.acquireLock(machineId, dateStr);
     
     try {
@@ -285,10 +276,8 @@ export class MachineAvailabilityManager {
         newUnavailableHours = [...currentUnavailableHours, hourStr].sort((a, b) => parseInt(a) - parseInt(b));
       }
       
-      // First, update the database via the API service.
       await apiService.setMachineAvailability(machineId, dateStr, newUnavailableHours);
       
-      // After the API call succeeds, directly update the state.
       this.set(state => {
         const next = { ...state.machineAvailability };
         
@@ -311,18 +300,14 @@ export class MachineAvailabilityManager {
         return { machineAvailability: next };
       });
 
-      // Show success alert
       useUIStore.getState().showAlert(`Time slot ${hourStr}:00 updated successfully`, 'success');
       return true;
     } catch (error) {
-      // Use centralized error handling
       const appError = handleApiError(error, 'Machine Availability');
       useUIStore.getState().showAlert(appError.message, 'error');
       throw appError;
     } finally {
-      // Always release the lock
       releaseLock();
-      this.releaseLock(machineId, dateStr);
     }
   };
 

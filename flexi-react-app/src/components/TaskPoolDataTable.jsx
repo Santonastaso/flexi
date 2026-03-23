@@ -113,7 +113,7 @@ ${task.scheduled_end_time ? `Fine Programmata: ${formatScheduledTime(task.schedu
 // Main Task Pool Data Table Component
 function TaskPoolDataTable({ filterByCost = true }) {
   const navigate = useNavigate();
-  const { selectedWorkCenter, conflictDialog, schedulingLoading, showConfirmDialog } = useUIStore();
+  const { selectedWorkCenter, schedulingLoading, showConfirmDialog } = useUIStore();
   const { setNodeRef } = useDroppable({
     id: 'task-pool',
     data: { type: 'pool' },
@@ -264,11 +264,10 @@ function TaskPoolDataTable({ filterByCost = true }) {
         <GanttActionsCell 
           task={row.original}
           schedulingLoading={schedulingLoading}
-          conflictDialog={conflictDialog}
         />
       ),
     },
-  ], [schedulingLoading, conflictDialog]);
+  ], [schedulingLoading]);
 
   const handleEditRow = (task) => {
     // Ensure the task data is available before navigation
