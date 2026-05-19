@@ -136,6 +136,7 @@ function SpotifySchedulerPage() {
   const [pauseHours, setPauseHours] = useState('1');
   const [pauseMachine, setPauseMachine] = useState('');
   const [isCreatingPause, setIsCreatingPause] = useState(false);
+  const [isRepairing, setIsRepairing] = useState(false);
   
   // Combined loading state
   const isDataLoading = ordersLoading || machinesLoading || isLoading;
@@ -315,7 +316,22 @@ function SpotifySchedulerPage() {
   };
 
   // Drag handlers
-  const { scheduleTaskAtEndOfQueue } = useSchedulerStore();
+  const { scheduleTaskAtEndOfQueue, repairAllQueues } = useSchedulerStore();
+
+  const handleRepairAllQueues = async () => {
+    if (!window.confirm('Ricalcolare tutte le code macchina? Questa operazione aggiornerà i tempi schedulati.')) return;
+    setIsRepairing(true);
+    try {
+      const freshOrders = await queryClient.fetchQuery({ queryKey: ['orders'] });
+      await repairAllQueues(freshOrders, machines);
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      showSuccess('Code ricalcolate per tutte le macchine');
+    } catch (e) {
+      showError('Errore durante il ripristino delle code');
+    } finally {
+      setIsRepairing(false);
+    }
+  };
 
   const handleDragStart = useCallback((event) => {
     const draggedItem = event.active.data.current;
@@ -509,6 +525,15 @@ function SpotifySchedulerPage() {
                   title="Clear all filters"
                 >
                   Cancella Filtri
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRepairAllQueues}
+                  disabled={isRepairing || isDataLoading}
+                  title="Ricalcola tutte le code macchina"
+                >
+                  {isRepairing ? 'Aggiornamento...' : '↺ Aggiorna Coda'}
                 </Button>
               </div>
 

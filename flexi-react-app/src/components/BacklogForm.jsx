@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { useUIStore } from '../store';
+import { useUIStore, useSchedulerStore } from '../store';
 import { useProductionCalculations, useValidation, useAddOrder, useUpdateOrder, useSiteEfficiency } from '../hooks';
 import { usePhaseSearch } from '../hooks/usePhaseSearch';
 import { normalizeOdpNumber, showValidationError, showSuccess, showWarning, showInfo } from '../utils';
@@ -68,6 +68,7 @@ const PhaseSearchField = ({
 
 const BacklogForm = ({ onSuccess, orderToEdit }) => {
   const { selectedWorkCenter } = useUIStore();
+  const { getQueueForMachine, rescheduleQueueFromTask } = useSchedulerStore();
   const { calculateProductionMetrics, validatePhaseParameters, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
   const { validateOrder } = useValidation();
   const { data: siteEfficiencyMap = {} } = useSiteEfficiency();
@@ -243,21 +244,34 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         // Calculate new duration
         const baseDuration = calculationResults?.totals?.duration || orderToEdit.duration;
         const newDuration = baseDuration + (parseFloat(additionalHours) || 0);
-        const progress = (orderToEdit.quantity_completed / orderToEdit.quantity) || 0;
         // Update order data only (no scheduling)
-        const orderData = { 
-          ...cleanedData, 
+        const orderData = {
+          ...cleanedData,
           duration: newDuration,
           cost: calculationResults?.totals?.cost || null
         };
-        
-        // Show warning if task is scheduled
-        if (orderToEdit.scheduled_machine_id && orderToEdit.scheduled_start_time) {
-          showInfo('⚠️ Attenzione: Il task è già schedulato. Le modifiche ai dati sono state salvate, ma dovrai riposizionarlo nella coda se la durata è cambiata.');
-        }
-        
+
         await updateOrderMutation.mutateAsync({ id: orderToEdit.id, updates: orderData });
-        showSuccess('Ordine aggiornato con successo');
+
+        // Auto-reschedule downstream tasks if duration changed on a scheduled task
+        const isScheduled = orderToEdit.scheduled_machine_id && orderToEdit.scheduled_start_time;
+        const durationChanged = Math.abs(newDuration - (orderToEdit.duration ?? 0)) > 0.01;
+
+        if (isScheduled && durationChanged) {
+          const allOrders = queryClient.getQueryData(['orders']) || [];
+          const queue = getQueueForMachine(orderToEdit.scheduled_machine_id, allOrders);
+          const taskIndex = queue.findIndex(t => t.id === orderToEdit.id);
+          if (taskIndex >= 0) {
+            await rescheduleQueueFromTask(
+              orderToEdit.scheduled_machine_id,
+              queue.slice(taskIndex),
+              new Date(orderToEdit.scheduled_start_time)
+            );
+          }
+          showSuccess('Ordine aggiornato · Coda ricalcolata');
+        } else {
+          showSuccess('Ordine aggiornato con successo');
+        }
       } else {
         // New order - create with NOT SCHEDULED status
         // Note: time_remaining should NOT be set for new orders as it's a generated column

@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { apiService } from '../services';
 import { MachineAvailabilityManager } from './scheduling/machineAvailability';
 import { SpotifyQueueScheduler } from './scheduling/spotifyQueueScheduler';
 
@@ -37,6 +36,20 @@ export const useSchedulerStore = create((set, get) => {
     reorderTaskInQueue: spotifyScheduler.reorderQueue,
     createPauseTask: spotifyScheduler.createPauseTask,
     removeTaskFromQueue: spotifyScheduler.removeFromQueue,
+    rescheduleQueueFromTask: spotifyScheduler.rescheduleFromAnchor,
+
+    repairAllQueues: async (allOrders, allMachines) => {
+      for (const machine of allMachines) {
+        const { anchor, fixedPrefixLength, queue } =
+          spotifyScheduler.getGreedyAnchor(machine.id, allOrders);
+        const tasksToReschedule = queue.slice(fixedPrefixLength);
+        if (tasksToReschedule.length > 0) {
+          await spotifyScheduler.rescheduleFromAnchor(
+            machine.id, tasksToReschedule, anchor
+          );
+        }
+      }
+    },
 
     reset: () => set({ machineAvailability: {} }),
   };
