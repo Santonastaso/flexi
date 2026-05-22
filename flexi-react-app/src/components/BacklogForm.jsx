@@ -170,6 +170,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   }, [autoDetermineDepartment, autoDetermineWorkCenter]);
 
   const handleSubmit = async (data) => {
+    const phaseIdForSave = selectedPhase?.id || data.fase || null;
     const validation = validateOrder(data);
     
     if (!validation.isValid) {
@@ -204,7 +205,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     
     // Optional: Only require calculation results if phase is provided
     // For STAMPA phases, also require bag_step; for CONFEZIONAMENTO, only fase is needed
-    const hasPhase = data.fase;
+    const hasPhase = Boolean(phaseIdForSave);
     const needsBagStep = selectedPhase?.department === DEPARTMENT_TYPES.PRINTING;
     const hasRequiredFields = hasPhase && (!needsBagStep || data.bag_step);
     
@@ -221,7 +222,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       const cleanedData = {
         ...dbData,
         // UUID fields
-        fase: dbData.fase === '' ? null : dbData.fase,
+        fase: phaseIdForSave,
         scheduled_machine_id: dbData.scheduled_machine_id === '' ? null : dbData.scheduled_machine_id,
         // Optional string fields
         production_lot: dbData.production_lot === '' ? null : dbData.production_lot,
