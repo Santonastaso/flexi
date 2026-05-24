@@ -42,6 +42,10 @@ dist
 dist-ssr
 *.local
 
+# Vite caches (dev-only optimised deps)
+.vite/
+**/.vite/
+
 # Optional npm cache directory
 .npm
 
