@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: flexi-react-app
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: flexi-react-app/package-lock.json
+
+      - run: npm ci --legacy-peer-deps
+      # Lint is intentionally not gated yet: the existing codebase has ~900
+      # outstanding ESLint findings. Build is the hard gate; lint stays as
+      # a local-dev signal until the existing findings are triaged.
+      - run: npm run build
+        env:
+          # CI build only checks that the bundle compiles; the deploy workflow
+          # injects the real Supabase project URL + anon key. Keep these as
+          # placeholders so vite doesn't fail the env guard.
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci_build_only_placeholder
