@@ -5,9 +5,19 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import BacklogListPage from '../pages/BacklogListPage';
 import { WORK_CENTERS } from '../constants';
-import { useUIStore } from '../store';
 
-const mockRemoveOrder = vi.fn();
+const mocks = vi.hoisted(() => ({
+  removeOrder: vi.fn(),
+  selectedWorkCenter: 'ZANICA',
+  showConfirmDialog: vi.fn(),
+}));
+
+vi.mock('../store', () => ({
+  useUIStore: () => ({
+    selectedWorkCenter: mocks.selectedWorkCenter,
+    showConfirmDialog: mocks.showConfirmDialog,
+  }),
+}));
 
 vi.mock('../hooks', () => ({
   useOrders: () => ({
@@ -41,17 +51,15 @@ vi.mock('../hooks', () => ({
     isLoading: false,
   }),
   useRemoveOrder: () => ({
-    mutateAsync: mockRemoveOrder,
+    mutateAsync: mocks.removeOrder,
     isPending: false,
   }),
 }));
 
 describe('BacklogListPage', () => {
   beforeEach(() => {
-    useUIStore.setState({
-      selectedWorkCenter: WORK_CENTERS.ZANICA,
-      showConfirmDialog: vi.fn(),
-    });
+    mocks.selectedWorkCenter = WORK_CENTERS.ZANICA;
+    mocks.showConfirmDialog.mockReset();
   });
 
   it('renders backlog rows from mocked query data', () => {
