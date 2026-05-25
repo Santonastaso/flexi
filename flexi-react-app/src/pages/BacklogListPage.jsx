@@ -242,8 +242,9 @@ function BacklogListPage() {
 
     const rowsToExport = filteredOrders.filter(order => {
       if (!order.delivery_date) return false;
-      const deliveryDate = new Date(order.delivery_date + 'T12:00:00');
-      return deliveryDate >= startDate && deliveryDate <= endDate;
+      const deliveryDate = formatInItalyTimezone(order.delivery_date, 'yyyy-MM-dd');
+      if (deliveryDate === '—') return false;
+      return deliveryDate >= exportStartDate && deliveryDate <= exportEndDate;
     });
 
     if (!rowsToExport.length) {
