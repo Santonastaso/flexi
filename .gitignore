@@ -66,3 +66,4 @@ dist-ssr
 .env.production.local
 # Supabase CLI cache
 supabase/.temp/
+.vercel

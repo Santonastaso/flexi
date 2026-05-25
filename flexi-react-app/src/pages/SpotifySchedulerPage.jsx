@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useReducer, Suspense, lazy } from 'react';
-import { DndContext, DragOverlay, PointerSensor, MouseSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
+import { DndContext, DragOverlay, PointerSensor, MouseSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { useUIStore, useSchedulerStore, useMainStore } from '../store';
 import { useOrders, useMachines } from '../hooks';
 import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
@@ -8,7 +8,6 @@ import SearchableDropdown from '../components/SearchableDropdown';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
 import { Select } from '../components/ui/select';
 
 // Lazy load heavy components
@@ -44,65 +43,7 @@ const SchedulingLoadingOverlay = ({ schedulingLoading }) => {
   );
 };
 
-// Password Protection Component
-const PasswordPrompt = ({ onAuthenticated }) => {
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (password === '1234') {
-      localStorage.setItem('spotifySchedulerAuth', 'true');
-      onAuthenticated();
-    } else {
-      setError('Password non corretta');
-      setPassword('');
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-8 shadow-2xl max-w-md w-full mx-4">
-        <div className="text-center mb-6">
-          <svg className="w-16 h-16 mx-auto mb-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-          <h2 className="text-2xl font-bold text-gray-900">Pianificazione</h2>
-          <p className="text-sm text-gray-600 mt-2">Inserisci la password per accedere</p>
-        </div>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setError('');
-              }}
-              className="w-full"
-              autoFocus
-            />
-            {error && (
-              <p className="text-red-600 text-sm mt-2">{error}</p>
-            )}
-          </div>
-          
-          <Button type="submit" className="w-full">
-            Accedi
-          </Button>
-        </form>
-      </div>
-    </div>
-  );
-};
-
 function SpotifySchedulerPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('spotifySchedulerAuth') === 'true';
-  });
-
   // Use React Query for data fetching
   const { data: orders = [], isLoading: ordersLoading, error: ordersError } = useOrders();
   const { data: machines = [], isLoading: machinesLoading, error: machinesError } = useMachines();
@@ -200,13 +141,6 @@ function SpotifySchedulerPage() {
       cleanup();
     };
   }, [init, isInitialized, cleanup]);
-
-  // Get ODP orders filtered by selected work center
-  const filteredOdpOrders = useMemo(() => {
-    if (!selectedWorkCenter) return [];
-    if (selectedWorkCenter === 'BOTH') return orders;
-    return orders.filter(order => order.work_center === selectedWorkCenter);
-  }, [selectedWorkCenter, orders]);
 
   // Memoize machine filtering with optimized dependencies
   const machineData = useMemo(() => {
@@ -407,11 +341,6 @@ function SpotifySchedulerPage() {
       return;
     }
   }, [scheduleTaskAtEndOfQueue, queryClient]);
-
-  // Show password prompt if not authenticated
-  if (!isAuthenticated) {
-    return <PasswordPrompt onAuthenticated={() => setIsAuthenticated(true)} />;
-  }
 
   // Show loading state during initial load
   if (isDataLoading) {
@@ -636,4 +565,3 @@ function SpotifySchedulerPage() {
 }
 
 export default SpotifySchedulerPage;
-

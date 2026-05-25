@@ -1,8 +1,7 @@
 import { supabase, handleSupabaseError } from './supabase/client';
-import { handleApiError, AppError, ERROR_TYPES } from '../utils/errorHandling';
+import { AppError, ERROR_TYPES } from '../utils/errorHandling';
 import { addDays } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
-import { AppConfig } from './config';
 
 class ApiService {
   async init() {
@@ -361,45 +360,6 @@ class ApiService {
       return map;
     } catch (error) {
       throw new AppError(`Failed to fetch site efficiency: ${handleSupabaseError(error)}`, ERROR_TYPES.SERVER_ERROR, 500, { originalError: error, source: 'API.getSiteEfficiency' });
-    }
-  }
-
-  // ===== REAL-TIME SUBSCRIPTIONS =====
-  
-  setupRealtimeSubscriptions(onOdpOrdersChange, onMachinesChange, onPhasesChange) {
-    if (!AppConfig.SUPABASE.ENABLE_REALTIME) {
-      return null;
-    }
-    
-    const channel = supabase.channel('table-db-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'odp_orders' },
-        onOdpOrdersChange
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'machines' },
-        onMachinesChange
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'phases' },
-        onPhasesChange
-      )
-      .subscribe((status) => {
-      });
-
-    return channel;
-  }
-
-  cleanupRealtimeSubscriptions(channel) {
-    if (channel) {
-      try {
-        channel.unsubscribe();
-      } catch (error) {
-        // Silent cleanup - subscription might already be closed
-      }
     }
   }
 }

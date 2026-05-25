@@ -1,6 +1,5 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as XLSX from 'xlsx';
 import DataTable from '../components/DataTable';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
@@ -232,7 +231,7 @@ function BacklogListPage() {
     setExportDialogOpen(true);
   }, [filteredOrders]);
 
-  const handleExportXlsx = useCallback(() => {
+  const handleExportCsv = useCallback(() => {
     const startDate = new Date(`${exportStartDate}T00:00:00`);
     const endDate = new Date(`${exportEndDate}T23:59:59`);
 
@@ -305,10 +304,22 @@ function BacklogListPage() {
       toValue(order.asd_notes)
     ]);
 
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Backlog');
-    XLSX.writeFile(wb, `odp_backlog_${exportStartDate.replaceAll('-', '')}_${exportEndDate.replaceAll('-', '')}.xlsx`);
+    const escapeCsvCell = (value) => {
+      const text = String(toValue(value));
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+    const csv = [headers, ...rows]
+      .map(row => row.map(escapeCsvCell).join(','))
+      .join('\r\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `odp_backlog_${exportStartDate.replaceAll('-', '')}_${exportEndDate.replaceAll('-', '')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
     setExportDialogOpen(false);
   }, [filteredOrders, exportStartDate, exportEndDate]);
 
@@ -341,7 +352,7 @@ function BacklogListPage() {
     <div className="p-1 bg-white rounded shadow-sm border min-w-0">
       <div className="flex items-center justify-end mb-2">
         <Button size="sm" variant="outline" onClick={handleOpenExportDialog}>
-          Export XLSX
+          Export CSV
         </Button>
       </div>
       
@@ -392,10 +403,10 @@ function BacklogListPage() {
             </Button>
             <Button
               size="sm"
-              onClick={handleExportXlsx}
+              onClick={handleExportCsv}
               disabled={!exportStartDate || !exportEndDate}
             >
-              Esporta XLSX
+              Esporta CSV
             </Button>
           </DialogFooter>
         </DialogContent>

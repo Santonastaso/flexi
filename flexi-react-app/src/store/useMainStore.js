@@ -4,45 +4,9 @@ import { handleApiError, AppError } from '../utils/errorHandling';
 import { useSchedulerStore } from './useSchedulerStore';
 import { useUIStore } from './useUIStore';
 
-// Real-time subscription setup
-const setupRealtimeSubscriptions = (set, get) => {
-  const onOdpOrdersChange = () => {};
-  const onMachinesChange = () => {};
-  const onPhasesChange = () => {};
-  
-  return apiService.setupRealtimeSubscriptions(
-    onOdpOrdersChange,
-    onMachinesChange,
-    onPhasesChange
-  );
-};
-
-// Cleanup function for real-time subscriptions
-const cleanupRealtimeSubscriptions = (get, set) => {
-  const { realtimeChannel } = get();
-  if (realtimeChannel) {
-    apiService.cleanupRealtimeSubscriptions(realtimeChannel);
-    set({ realtimeChannel: null });
-  }
-};
-
-// Setup global cleanup on page unload - will be managed by store instance
-let beforeUnloadHandler = null;
-
-// Cleanup function for removing global event listeners
-const cleanupGlobalListeners = () => {
-  if (typeof window !== 'undefined' && beforeUnloadHandler) {
-    window.removeEventListener('beforeunload', beforeUnloadHandler);
-    beforeUnloadHandler = null;
-  }
-};
-
-// Realtime subscription handlers removed - React Query handles cache invalidation automatically
-
 export const useMainStore = create((set, get) => ({
   // State
   isInitializing: false,
-  realtimeChannel: null, // Store realtime channel in state instead of global window
   
   // Lifecycle - simplified to only handle non-data initialization
   init: async () => {
@@ -122,34 +86,7 @@ export const useMainStore = create((set, get) => ({
       try {
         // Initialize empty machine availability
         initializeEmptyMachineAvailability();
-        
-        // Step 3: Setup real-time subscriptions with error handling
-        const { realtimeChannel: existingChannel } = get();
-        if (!existingChannel) {
-          try {
-            const realtimeChannel = setupRealtimeSubscriptions(set, get);
-            if (realtimeChannel) {
-              set({ realtimeChannel });
-              
-              // Setup cleanup on page unload
-              if (typeof window !== 'undefined' && !beforeUnloadHandler) {
-                beforeUnloadHandler = () => {
-                  cleanupRealtimeSubscriptions(get, set);
-                };
-                window.addEventListener('beforeunload', beforeUnloadHandler);
-              }
-            }
-          } catch (realtimeError) {
-            const appError = handleApiError(realtimeError, 'Real-time Subscriptions Setup');
-            // Error automatically logged by handleApiError (Sentry integration)
-            showAlert(
-              'Warning: Real-time updates are not available. Data may not update automatically.',
-              'warning'
-            );
-            // Continue without real-time subscriptions
-          }
-        }
-        
+
         // Success - mark as initialized
         setLoading(false);
         setInitialized(true);
@@ -205,9 +142,6 @@ export const useMainStore = create((set, get) => ({
   },
 
   reset: () => {
-    // Cleanup real-time subscriptions
-    cleanupRealtimeSubscriptions(get, set);
-    
     // Reset remaining stores
     const { reset: resetSchedulerStore } = useSchedulerStore.getState();
     const { reset: resetUIStore } = useUIStore.getState();
@@ -216,14 +150,10 @@ export const useMainStore = create((set, get) => ({
     resetUIStore();
     
     // Reset local state
-    set({ isInitializing: false, realtimeChannel: null });
+    set({ isInitializing: false });
   },
 
-  // Cleanup function for component unmounting
-  cleanup: () => {
-    cleanupRealtimeSubscriptions(get, set);
-    cleanupGlobalListeners();
-  },
+  cleanup: () => {},
 
   // Get combined state from stores
   // Note: Data fetching is now handled by React Query hooks
