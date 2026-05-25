@@ -26,9 +26,22 @@ jobs:
           cache-dependency-path: flexi-react-app/package-lock.json
 
       - run: npm ci --legacy-peer-deps
-      # Lint is intentionally not gated yet: the existing codebase has ~900
-      # outstanding ESLint findings. Build is the hard gate; lint stays as
-      # a local-dev signal until the existing findings are triaged.
+
+      # ESLint ratchet. The existing codebase has 987 outstanding findings
+      # (946 errors + 41 warnings); we don't fix them in CI but we refuse
+      # to let the number grow. New errors/warnings introduced by a PR
+      # push the total above the baseline and fail this step.
+      - name: ESLint ratchet (baseline 987)
+        run: |
+          set -euo pipefail
+          npx eslint . -f json > /tmp/eslint.json || true
+          total=$(node -e "const r=require('/tmp/eslint.json'); console.log(r.reduce((s,f)=>s+f.errorCount+f.warningCount,0))")
+          echo "ESLint problems: $total (baseline 987)"
+          if [ "$total" -gt 987 ]; then
+            echo "::error::ESLint regression — $total > baseline 987. Lower the count or fix new findings." >&2
+            exit 1
+          fi
+
       - run: npm run build
         env:
           # CI build only checks that the bundle compiles; the deploy workflow
