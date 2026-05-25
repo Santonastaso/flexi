@@ -24,7 +24,7 @@ export function formatInItalyTimezone(date, formatString = 'dd/MM HH:mm') {
     
     // Format in Italy timezone
     return formatInTimeZone(dateObj, ITALY_TIMEZONE, formatString);
-  } catch (error) {
+  } catch {
     return '—';
   }
 }

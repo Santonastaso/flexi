@@ -2,6 +2,14 @@ import { MACHINE_STATUSES } from '../constants';
 import { formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { ITALY_TIMEZONE } from './dateFormatting';
 
+const getDeliveryEndOfDay = (deliveryDate) => {
+  const parsedDeliveryDate = new Date(deliveryDate);
+  if (Number.isNaN(parsedDeliveryDate.getTime())) return null;
+
+  const deliveryDay = formatInTimeZone(parsedDeliveryDate, ITALY_TIMEZONE, 'yyyy-MM-dd');
+  return fromZonedTime(`${deliveryDay}T23:59:59`, ITALY_TIMEZONE);
+};
+
 /**
  * Calculate comprehensive metrics for the home page dashboard
  * @param {Array} machines - Array of machine objects
@@ -47,7 +55,8 @@ export const calculateHomeMetrics = (machines, orders) => {
   // Delayed tasks (past delivery_date and not completed)
   const delayedTasks = orders.filter(order => {
     if (!order.delivery_date) return false;
-    const dueDate = new Date(order.delivery_date + 'T23:59:59');
+    const dueDate = getDeliveryEndOfDay(order.delivery_date);
+    if (!dueDate) return false;
     return dueDate < now && (order.quantity_completed || 0) < (order.quantity || 0);
   }).length;
 

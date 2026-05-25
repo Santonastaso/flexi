@@ -21,7 +21,9 @@ const loadStoredFilters = (key) => {
       const parsed = JSON.parse(stored);
       return typeof parsed === 'object' && parsed !== null ? parsed : {};
     }
-  } catch (_) {}
+  } catch {
+    return {};
+  }
   return {};
 };
 

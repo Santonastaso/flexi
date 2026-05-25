@@ -5,7 +5,7 @@ import { useOrders } from '../hooks';
 import { format } from 'date-fns';
 import QueueTaskCard from './QueueTaskCard';
 
-function MachineQueueColumn({ machine, queryClient }) {
+function MachineQueueColumn({ machine }) {
   // Use React Query for orders
   const { data: odpOrders = [] } = useOrders();
 
@@ -110,4 +110,3 @@ function MachineQueueColumn({ machine, queryClient }) {
 }
 
 export default MachineQueueColumn;
-

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { useUIStore, useSchedulerStore } from '../store';
 import { useOrders } from '../hooks';
-import { startOfDay, endOfDay, startOfWeek, isSameDay, addDays } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, isSameDay } from 'date-fns';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { normalizeOdpNumber } from '../utils';
 import { formatScheduledTime, formatDeliveryDate, ITALY_TIMEZONE } from '../utils/dateFormatting';
@@ -104,7 +104,6 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
         const totalDuration = event.duration || 1;
         const progressPercentage = event.progress || 0;
         const completedDuration = totalDuration * (progressPercentage / 100);
-        const remainingDuration = totalDuration - completedDuration;
         
         
         // If no segment info exists, create a single segment from the task data
@@ -439,7 +438,7 @@ ${event.scheduled_end_time ? `Fine Programmata: ${formatScheduledTime(event.sche
                                                         const allOrders = queryClient.getQueryData(['orders']) ?? [];
                                                         await useSchedulerStore.getState().removeTaskFromQueue(machine.id, event.id, allOrders);
                                                         await queryClient.refetchQueries({ queryKey: ['orders'], exact: true, type: 'active' });
-                                                    } catch (error) {
+                                                    } catch {
                                                         // Error handled by removeTaskFromQueue
                                                     }
                                                 },
@@ -736,11 +735,7 @@ const GanttChart = React.memo(({ machines, currentDate, dropTargetId, dragPrevie
   const dateStr = useMemo(() => formatInTimeZone(currentDate, ITALY_TIMEZONE, 'yyyy-MM-dd'), [currentDate]);
 
   // Use React Query hook for machine availability data with caching and background updates
-  const { 
-    data: machineAvailabilityData = [], 
-    isLoading: isMachineAvailabilityLoading, 
-    error: machineAvailabilityError 
-  } = useMachineAvailabilityForDateAllMachines(dateStr);
+	  const { data: machineAvailabilityData = [] } = useMachineAvailabilityForDateAllMachines(dateStr);
 
   // Optimize unavailable hours processing with early returns
   const unavailableByMachine = useMemo(() => {

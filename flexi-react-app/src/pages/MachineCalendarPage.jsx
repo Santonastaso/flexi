@@ -25,7 +25,7 @@ function MachineCalendarPage() {
         setTimeout(() => reject(new Error('Initialization timeout')), 10000)
       );
       
-      Promise.race([initPromise, timeoutPromise]).catch(error => {
+      Promise.race([initPromise, timeoutPromise]).catch(() => {
         // Initialization handled
       });
     }
@@ -87,7 +87,6 @@ function MachineCalendarPage() {
       
       <OffTimeForm
         machineId={machine.id}
-        currentDate={new Date()}
         onSuccess={handleOffTimeSuccess}
       />
       

@@ -1,9 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig(({ command }) => {
-  const isDev = command === 'serve'
-  
+export default defineConfig(() => {
   return {
     plugins: [react()],
     base: '/', // Correct for custom domain deployment
@@ -24,6 +22,11 @@ export default defineConfig(({ command }) => {
           assetFileNames: 'assets/[name]-[hash].[ext]'
         }
       }
+    },
+    test: {
+      environment: 'jsdom',
+      setupFiles: './src/test/setup.js',
+      globals: false
     }
   }
 })

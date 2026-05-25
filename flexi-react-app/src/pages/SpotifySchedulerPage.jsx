@@ -8,7 +8,6 @@ import SearchableDropdown from '../components/SearchableDropdown';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services';
 import { Button } from '../components/ui/button';
-import { Select } from '../components/ui/select';
 
 // Lazy load heavy components
 const TaskPoolDataTable = lazy(() => import('../components/TaskPoolDataTable'));
@@ -122,8 +121,8 @@ function SpotifySchedulerPage() {
           machineName: Array.isArray(parsed.machineName) ? parsed.machineName : []
         };
       }
-    } catch (error) {
-      console.warn('Failed to parse saved filters, using defaults:', error);
+    } catch {
+      console.warn('Failed to parse saved filters, using defaults.');
       localStorage.removeItem('spotifySchedulerFilters');
     }
     return initialFilterState;
@@ -242,7 +241,7 @@ function SpotifySchedulerPage() {
         setPauseHours('1');
         setPauseMachine('');
       }
-    } catch (error) {
+    } catch {
       showError('Errore nella creazione della pausa');
     } finally {
       setIsCreatingPause(false);
@@ -260,7 +259,7 @@ function SpotifySchedulerPage() {
       await repairAllQueues(freshOrders, machines);
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       showSuccess('Code ricalcolate per tutte le macchine');
-    } catch (e) {
+    } catch {
       showError('Errore durante il ripristino delle code');
     } finally {
       setIsRepairing(false);
@@ -276,7 +275,7 @@ function SpotifySchedulerPage() {
     }
   }, []);
 
-  const handleDragOver = useCallback((event) => {
+  const handleDragOver = useCallback(() => {
     // Preview logic can be added here if needed
   }, []);
 
@@ -327,7 +326,7 @@ function SpotifySchedulerPage() {
             type: 'active'
           });
         }
-      } catch (error) {
+      } catch {
         showError('Errore durante la programmazione del lavoro');
       } finally {
         stopSchedulingOperation();

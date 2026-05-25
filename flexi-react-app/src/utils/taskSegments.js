@@ -18,10 +18,9 @@ export const getTaskSegments = (task) => {
     if (parsed.segments && Array.isArray(parsed.segments)) {
       return parsed;
     }
-  } catch (error) {
+  } catch {
     // Invalid JSON, return null
   }
   
   return null;
 };
-

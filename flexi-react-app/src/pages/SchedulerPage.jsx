@@ -25,30 +25,30 @@ const LoadingFallback = () => (
 const downloadGanttAsHTML = (ganttElementSelector, dateDisplay) => {
   // Find the actual Gantt chart element that's currently rendered on screen
   const ganttElement = document.querySelector(ganttElementSelector);
-  
+
   if (!ganttElement) {
     showError('Grafico Gantt non trovato. Assicurati che il grafico sia visibile sullo schermo.');
     return;
   }
-  
+
   // Get all the CSS styles from the current page
   const styleSheets = Array.from(document.styleSheets);
   let allStyles = '';
-  
+
   styleSheets.forEach(styleSheet => {
     try {
       const rules = Array.from(styleSheet.cssRules || styleSheet.rules || []);
       rules.forEach(rule => {
         allStyles += rule.cssText + '\n';
       });
-    } catch (e) {
+    } catch {
       // Handle stylesheet access error silently
     }
   });
-  
+
   // Clone the Gantt chart element with all its content
   const clonedElement = ganttElement.cloneNode(true);
-  
+
   // Create the HTML content with the exact Gantt chart that's on screen
   const htmlContent = `
     <!DOCTYPE html>
@@ -57,9 +57,9 @@ const downloadGanttAsHTML = (ganttElementSelector, dateDisplay) => {
         <title>Grafico Gantt - ${dateDisplay}</title>
         <style>
           ${allStyles}
-          body { 
-            margin: 0; 
-            padding: 20px; 
+          body {
+            margin: 0;
+            padding: 20px;
             font-family: Arial, sans-serif;
           }
           .calendar-section {
@@ -78,24 +78,24 @@ const downloadGanttAsHTML = (ganttElementSelector, dateDisplay) => {
       </body>
     </html>
   `;
-  
+
   // Create a blob from the HTML content
   const blob = new Blob([htmlContent], { type: 'text/html' });
-  
+
   // Create a download link
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  
+
   // Generate filename with current date - use UTC consistently
   const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
   const timeStr = new Date().toISOString().split('T')[1].split('.')[0].replace(/:/g, '-'); // HH-MM-SS format
   link.download = `grafico-gantt-${dateStr}-${timeStr}.html`;
-  
+
   // Trigger download
   document.body.appendChild(link);
   link.click();
-  
+
   // Cleanup
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
@@ -105,7 +105,7 @@ function SchedulerPage() {
   // Use React Query for data fetching
   const { data: orders = [], isLoading: ordersLoading, error: ordersError } = useOrders();
   const { data: machines = [], isLoading: machinesLoading, error: machinesError } = useMachines();
-  
+
   // Use Zustand store for client state only
   const { selectedWorkCenter, isLoading, isInitialized, showAlert } = useUIStore();
   // Note: All scheduling methods removed - Gantt is now read-only, use Spotify Scheduler for task management
@@ -119,11 +119,11 @@ function SchedulerPage() {
   const [customerNameLookup, setCustomerNameLookup] = useState(() => localStorage.getItem('schedulerCustomerLookup') || '');
 
   // Filter state management with useReducer and localStorage persistence
-  const initialFilterState = { 
-    workCenter: [], 
-    department: [], 
-    machineType: [], 
-    machineName: [] 
+  const initialFilterState = {
+    workCenter: [],
+    department: [],
+    machineType: [],
+    machineName: []
   };
 
   function filterReducer(state, action) {
@@ -161,7 +161,7 @@ function SchedulerPage() {
           machineName: Array.isArray(parsed.machineName) ? parsed.machineName : []
         };
       }
-    } catch (error) {
+    } catch {
       localStorage.removeItem('schedulerFilters');
     }
     return initialFilterState;
@@ -174,7 +174,7 @@ function SchedulerPage() {
     if (!isInitialized) {
       init();
     }
-    
+
     // Cleanup function for component unmount
     return () => {
       cleanup();
@@ -192,12 +192,10 @@ function SchedulerPage() {
   const scheduledOrders = useMemo(() => {
     const scheduled = filteredOdpOrders.filter(order => ['SCHEDULED', 'IN PROGRESS'].includes(order.status));
     return scheduled;
-  }, [filteredOdpOrders, selectedWorkCenter]);
+  }, [filteredOdpOrders]);
 
   // Memoize machine filtering with optimized dependencies and early returns
   const machineData = useMemo(() => {
-    const startTime = performance.now();
-
     if (!machines || machines.length === 0) {
       return { activeMachines: [], workCenters: [], departments: [], machineTypes: [], machineNames: [] };
     }
@@ -232,9 +230,6 @@ function SchedulerPage() {
     const machineTypes = Array.from(machineTypeSet).sort();
     const machineNames = Array.from(machineNameSet).sort();
 
-    const endTime = performance.now();
-    // Performance logging removed for production
-
     return { activeMachines, workCenters, departments, machineTypes, machineNames };
   }, [machines, selectedWorkCenter]);
 
@@ -249,7 +244,7 @@ function SchedulerPage() {
     if (filters.workCenter && Array.isArray(filters.workCenter) && filters.workCenter.length > 0) {
       filtered = filtered.filter(machine => filters.workCenter.includes(machine.work_center));
     }
-    
+
     // Filter by department (if selected)
     if (filters.department && Array.isArray(filters.department) && filters.department.length > 0) {
       filtered = filtered.filter(machine => filters.department.includes(machine.department));
@@ -271,10 +266,10 @@ function SchedulerPage() {
   // Memoize navigation functions to prevent unnecessary re-renders
   const navigateDate = useCallback(async (direction, view = 'Daily') => {
     const { startSchedulingOperation, stopSchedulingOperation } = useUIStore.getState();
-    
+
     try {
       startSchedulingOperation('navigate');
-      
+
       // Calculate the new date first
       let newDate;
       setCurrentDate(prevDate => {
@@ -310,10 +305,10 @@ function SchedulerPage() {
         newDate = prevDate;
         return prevDate;
       });
-      
+
       // React Query will automatically fetch machine availability data when the date changes
       // No need for manual loading or artificial delays
-      
+
     } finally {
       stopSchedulingOperation();
     }
@@ -322,10 +317,10 @@ function SchedulerPage() {
   const formatDateDisplay = useCallback(() => {
     // Use CET today for comparison
     const cetToday = getTodayInCET();
-    
+
     // currentDate represents a CET day, so compare directly
     const isToday = currentDate.getTime() === cetToday.getTime();
-    
+
     if (isToday) {
       return 'Oggi';
     } else {
@@ -344,50 +339,27 @@ function SchedulerPage() {
     localStorage.removeItem('schedulerCustomerLookup');
   }, []);
 
-  // Generic lookup function that consolidates the three original lookup functions
-  const handleLookup = useCallback((value, field, fieldLabel) => {
-    if (!value.trim()) return;
-    
-    // Find the task in scheduled orders with exact match first, then partial match
-    let task = scheduledOrders.find(t => t[field] === value.trim());
-    
-    // If no exact match, try partial match
-    if (!task) {
-      task = scheduledOrders.find(t => 
-        t[field] && t[field].toLowerCase().includes(value.trim().toLowerCase())
-      );
-    }
-    
-    if (!task) {
-      showAlert(`Lavoro non trovato per ${fieldLabel}: ${value}`, 'warning');
-      return;
-    }
-    
-    // Execute the lookup using the helper function
-    executeLookupFromDropdown(task, field, fieldLabel, value);
-  }, [scheduledOrders, machines, showAlert]);
-
   // Helper function to execute lookup from dropdown selection
-  const executeLookupFromDropdown = useCallback((task, field, fieldLabel, searchValue) => {
+  const executeLookupFromDropdown = useCallback((task, field, fieldLabel) => {
     // Find the machine
     const machine = machines.find(m => m.id === task.scheduled_machine_id);
     if (!machine) {
       showAlert('Macchina non trovata per questo lavoro', 'error');
       return;
     }
-    
+
     // Set machine filters to show only this machine
     dispatch({ type: 'SET_FILTER', payload: { filterName: 'machineName', value: [machine.machine_name] } });
     dispatch({ type: 'SET_FILTER', payload: { filterName: 'workCenter', value: [machine.work_center] } });
     dispatch({ type: 'SET_FILTER', payload: { filterName: 'department', value: [machine.department] } });
     dispatch({ type: 'SET_FILTER', payload: { filterName: 'machineType', value: [machine.machine_type] } });
-    
+
     // Navigate to the start date of the task in CET timezone
     if (task.scheduled_start_time) {
       const taskDate = new Date(task.scheduled_start_time);
       setCurrentDate(getDateInCET(taskDate));
     }
-    
+
     // Clear the appropriate search input based on field
     if (field === 'odp_number') {
       setTaskLookup('');
@@ -396,11 +368,34 @@ function SchedulerPage() {
     } else if (field === 'nome_cliente') {
       setCustomerNameLookup('');
     }
-    
+
     // Show success message
     const fieldValue = task[field];
     showAlert(`Lavoro trovato per ${fieldLabel} "${fieldValue}" su ${machine.machine_name}`, 'success');
   }, [machines, showAlert, setTaskLookup, setArticleCodeLookup, setCustomerNameLookup, setCurrentDate]);
+
+  // Generic lookup function that consolidates the three original lookup functions
+  const handleLookup = useCallback((value, field, fieldLabel) => {
+    if (!value.trim()) return;
+
+    // Find the task in scheduled orders with exact match first, then partial match
+    let task = scheduledOrders.find(t => t[field] === value.trim());
+
+    // If no exact match, try partial match
+    if (!task) {
+      task = scheduledOrders.find(t =>
+        t[field] && t[field].toLowerCase().includes(value.trim().toLowerCase())
+      );
+    }
+
+    if (!task) {
+      showAlert(`Lavoro non trovato per ${fieldLabel}: ${value}`, 'warning');
+      return;
+    }
+
+    // Execute the lookup using the helper function
+    executeLookupFromDropdown(task, field, fieldLabel);
+  }, [scheduledOrders, showAlert, executeLookupFromDropdown]);
 
 
   if (isDataLoading) {
@@ -461,7 +456,7 @@ function SchedulerPage() {
             <span>Modalità Visualizzazione: Questa pagina è di sola lettura. Usa <strong>Pianificazione</strong> per modificare la pianificazione.</span>
           </div>
         </div>
-        
+
         {/* Task Pool Section - HIDDEN (Read-only mode) */}
         {/* <div className="task-pool-section">
           <div className="task-pool-header">
@@ -509,7 +504,7 @@ function SchedulerPage() {
               id="odp_filter"
               width="150px"
             />
-            
+
             <SearchableDropdown
               label="Codice Articolo"
               options={scheduledOrders.map(order => order.article_code).filter(Boolean)}
@@ -528,7 +523,7 @@ function SchedulerPage() {
               id="article_filter"
               width="150px"
             />
-            
+
             <SearchableDropdown
               label="Nome Cliente"
               options={scheduledOrders.map(order => order.nome_cliente).filter(Boolean)}
@@ -558,7 +553,7 @@ function SchedulerPage() {
               id="work_center_filter"
               width="150px"
             />
-            
+
             <SearchableDropdown
               label="Reparto"
               options={machineData.departments}
@@ -568,7 +563,7 @@ function SchedulerPage() {
               id="department_filter"
               width="150px"
             />
-            
+
             <SearchableDropdown
               label="Tipo Macchina"
               options={machineData.machineTypes}
@@ -578,7 +573,7 @@ function SchedulerPage() {
               id="machine_type_filter"
               width="150px"
             />
-            
+
             <SearchableDropdown
               label="Nome Macchina"
               options={machineData.machineNames}
@@ -607,9 +602,9 @@ function SchedulerPage() {
         {/* Calendar Section */}
         <div className="calendar-section relative">
           <Suspense fallback={<LoadingFallback />}>
-            <GanttChart 
-              machines={filteredMachines} 
-              currentDate={currentDate} 
+            <GanttChart
+              machines={filteredMachines}
+              currentDate={currentDate}
               dropTargetId={null}
               dragPreview={null}
               onNavigateToNextDay={(view) => navigateDate('next', view)}

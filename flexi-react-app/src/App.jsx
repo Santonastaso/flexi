@@ -6,7 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './auth/ProtectedRoute';
 import ConfirmDialog from './components/ui/confirm-dialog';
 import { useUIStore, useMainStore } from './store';
-import { useAuth } from './auth/AuthContext';
+import { useAuth } from './auth/useAuth';
 
 const MachineryListPage = lazy(() => import('./pages/MachineryListPage'));
 const MachineryFormPage = lazy(() => import('./pages/MachineryFormPage'));

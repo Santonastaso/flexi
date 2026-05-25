@@ -16,11 +16,6 @@ function MachineryListPage() {
   const { data: machines = [], isLoading, error } = useMachinesByWorkCenter(selectedWorkCenter);
   const removeMachineMutation = useRemoveMachine();
 
-  // Show error if query failed
-  if (error) {
-           return <div className="text-center py-2 text-red-600 text-xs">Errore nel caricamento delle macchine: {error.message}</div>;
-  }
-
   const columns = useMemo(() => [
     // Identificazione
     { header: 'Nome Macchina', accessorKey: 'machine_name' },
@@ -78,12 +73,17 @@ function MachineryListPage() {
     );
   };
 
+  // Show error if query failed
+  if (error) {
+    return <div className="text-center py-2 text-red-600 text-xs">Errore nel caricamento delle macchine: {error.message}</div>;
+  }
+
   if (isLoading) {
     return <LoadingState message="Caricamento dati macchine..." />;
   }
 
   if (!selectedWorkCenter) {
-           return <div className="text-center py-2 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati delle macchine.</div>;
+    return <div className="text-center py-2 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati delle macchine.</div>;
   }
 
   return (

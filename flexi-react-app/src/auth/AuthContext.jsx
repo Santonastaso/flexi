@@ -1,10 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { AuthContext } from './auth-context';
 import { supabase } from '../services/supabase/client';
 import { WORK_CENTERS } from '../constants';
 import { AppError, ERROR_TYPES } from '../utils/errorHandling';
-
-// Create the authentication context
-const AuthContext = createContext();
 
 /**
  * AuthProvider component that manages authentication state
@@ -219,7 +217,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       return data;
-    } catch (error) {
+    } catch {
       return null;
     }
   };
@@ -245,16 +243,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-/**
- * Custom hook to use the authentication context
- */
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-export default AuthContext;

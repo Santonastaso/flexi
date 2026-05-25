@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../auth/useAuth';
 import {
   Button,
   Input,
@@ -89,7 +89,7 @@ function SignupPage() {
       if (result.success) {
         navigate('/', { replace: true });
       }
-    } catch (error) {
+    } catch {
       // Error is already handled by AuthContext and displayed via authError
     } finally {
       setIsSubmitting(false);

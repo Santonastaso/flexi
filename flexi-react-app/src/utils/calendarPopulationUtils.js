@@ -4,7 +4,7 @@
  */
 
 import { WORK_CENTERS, DEPARTMENT_TYPES } from '../constants.js';
-import { format, getDay, startOfYear, endOfYear, addDays, isAfter, isSameDay } from 'date-fns';
+import { format, getDay, startOfYear, endOfYear, addDays, isAfter } from 'date-fns';
 
 /**
  * This function generates all unavailable hours for a given machine and day based on rules
@@ -87,4 +87,3 @@ export function generateCalendarForYear(machines, year) {
     }
     return records;
 }
-

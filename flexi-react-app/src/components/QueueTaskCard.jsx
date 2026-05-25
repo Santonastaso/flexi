@@ -57,7 +57,7 @@ function QueueTaskCard({ task, index, machineId, enableReorder = true }) {
         } : null;
         return { isPauseTask: isPause, splitInfo: split };
       }
-    } catch (e) {
+    } catch {
       // Not JSON or no description
     }
     const isPause = task.odp_number?.startsWith('PAUSE-') || task.article_code === 'PAUSE';
@@ -358,4 +358,3 @@ Material Global: ${task.material_availability_global || 'N/A'}%`
 }
 
 export default QueueTaskCard;
-

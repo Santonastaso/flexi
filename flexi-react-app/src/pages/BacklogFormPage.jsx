@@ -16,7 +16,7 @@ function BacklogFormPage() {
   
   // Use Zustand store for client state
   const { selectedWorkCenter } = useUIStore();
-  const { isLoading, isInitialized, init, cleanup } = useMainStore();
+  const { isInitialized, init, cleanup } = useMainStore();
 
   // Check if this is edit mode (has ID) or add mode (no ID)
   const isEditMode = Boolean(id);
@@ -45,12 +45,12 @@ function BacklogFormPage() {
   }
 
   if (isEditMode && !order) {
-           return <div className="text-center py-2 text-red-600 text-xs">Ordine non trovato.</div>;
+    return <div className="text-center py-2 text-red-600 text-xs">Ordine non trovato.</div>;
   }
 
   // Allow access if work center is selected or if BOTH is selected (which allows any work center)
   if (!selectedWorkCenter) {
-           return <div className="text-center py-2 text-red-600 text-xs">Seleziona un centro di lavoro per gestire gli ordini del backlog.</div>;
+    return <div className="text-center py-2 text-red-600 text-xs">Seleziona un centro di lavoro per gestire gli ordini del backlog.</div>;
   }
 
   return (

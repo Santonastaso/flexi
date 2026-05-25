@@ -60,7 +60,7 @@ export const backlogFormConfig = {
             { value: WORK_CENTERS.ZANICA, label: WORK_CENTERS.ZANICA },
             { value: WORK_CENTERS.BUSTO_GAROLFO, label: WORK_CENTERS.BUSTO_GAROLFO }
           ],
-          conditional: (fieldValue, watch, getValues) => {
+          conditional: () => {
             // This will be handled dynamically in the component
             return true;
           }
@@ -230,7 +230,7 @@ export const backlogFormConfig = {
   },
 
   // Custom validation for the backlog form
-  customValidation: (data) => {
+  customValidation: () => {
     const errors = {};
     
     // Note: fase and bag_step are optional in the database

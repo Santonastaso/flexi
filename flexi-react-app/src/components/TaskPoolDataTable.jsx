@@ -18,8 +18,6 @@ import { showSuccess, showError } from '../utils/toast';
 
 // Gantt Actions Cell Component
 const GanttActionsCell = ({ task, schedulingLoading }) => {
-  const navigate = useNavigate();
-
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: `task-${task.id}`,
     data: { task, type: 'task' },

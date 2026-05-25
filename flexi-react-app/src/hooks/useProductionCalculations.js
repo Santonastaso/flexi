@@ -113,7 +113,7 @@ export const useProductionCalculations = () => {
       }
       
       return null;
-    } catch (error) {
+    } catch {
       return null;
     }
   }, [validatePhaseParameters]);

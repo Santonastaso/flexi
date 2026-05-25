@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useSchedulerStore, useUIStore } from '../store';
 import { format, addDays } from 'date-fns';
 import GenericForm from './GenericForm';
 import { offTimeFormConfig } from './formConfigs';
 
-function OffTimeForm({ machineId, currentDate, onSuccess }) {
+function OffTimeForm({ machineId, onSuccess }) {
   const { setMachineUnavailability } = useSchedulerStore();
   const { showAlert } = useUIStore();
 
@@ -19,7 +19,7 @@ function OffTimeForm({ machineId, currentDate, onSuccess }) {
       startTime: offTimeFormConfig.sections[0].fields[1].defaultValue,
       endTime: offTimeFormConfig.sections[0].fields[3].defaultValue
     };
-  }, [currentDate]);
+  }, []);
 
   const handleSubmit = async (data) => {
     await setMachineUnavailability(machineId, data.startDate, data.endDate, data.startTime, data.endTime);
