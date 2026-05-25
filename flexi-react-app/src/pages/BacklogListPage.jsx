@@ -24,11 +24,6 @@ function BacklogListPage() {
   const { data: phases = [], isLoading: phasesLoading } = usePhases();
   const removeOrderMutation = useRemoveOrder();
 
-  // Show error if query failed
-  if (ordersError) {
-           return <div className="text-center py-2 text-red-600 text-xs">Errore nel caricamento degli ordini: {ordersError.message}</div>;
-  }
-
   // Filter orders by work center and join with machine and phase data
   const filteredOrders = useMemo(() => {
     if (!selectedWorkCenter) return [];
@@ -340,12 +335,17 @@ function BacklogListPage() {
     );
   };
 
+  // Show error if query failed
+  if (ordersError) {
+    return <div className="text-center py-2 text-red-600 text-xs">Errore nel caricamento degli ordini: {ordersError.message}</div>;
+  }
+
   if (isLoading) {
     return <LoadingState message="Caricamento dati backlog..." />;
   }
 
   if (!selectedWorkCenter) {
-           return <div className="text-center py-2 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati del backlog.</div>;
+    return <div className="text-center py-2 text-red-600 text-xs">Seleziona un centro di lavoro per visualizzare i dati del backlog.</div>;
   }
 
   return (

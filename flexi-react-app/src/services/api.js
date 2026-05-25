@@ -134,7 +134,8 @@ class ApiService {
 
   async updateOdpOrder(id, updates) {
     try {
-      const { time_remaining, ...safeUpdates } = updates || {};
+      const safeUpdates = { ...(updates || {}) };
+      delete safeUpdates.time_remaining;
       const { data, error } = await supabase
         .from('odp_orders')
         .update(safeUpdates)

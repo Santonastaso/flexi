@@ -310,7 +310,6 @@ export class SpotifyQueueScheduler {
     const { anchor, fixedPrefixLength, queue } = this.getGreedyAnchor(machineId, allOrders, taskId);
 
     // Build greedy queue: keep fixed prefix (running task), append rest + new task
-    const fixedPrefix = queue.slice(0, fixedPrefixLength);
     const remainingQueue = queue.slice(fixedPrefixLength);
     const updatedQueue = [...remainingQueue, task];
 

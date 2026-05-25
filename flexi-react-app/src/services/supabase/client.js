@@ -24,7 +24,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 /**
  * Handle Supabase errors with user-friendly messages
  */
-export const handleSupabaseError = (error, _context = '') => {
+export const handleSupabaseError = (error) => {
   
   // User-friendly error messages
   if (error.code === '23505') {
@@ -55,7 +55,7 @@ export const checkSupabaseConnection = async () => {
     }
     
     return true;
-  } catch (_error) {
+  } catch {
     return false;
   }
 };

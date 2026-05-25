@@ -52,21 +52,21 @@ export class MachineAvailabilityManager {
     const { machineAvailability } = this.get();
     if (machineAvailability[dateStr]?._loading) return;
     if (machineAvailability[dateStr] && machineAvailability[dateStr].length >= 0) return;
-    
-    this.set(state => ({ 
-      machineAvailability: { 
-        ...state.machineAvailability, 
-        [dateStr]: { _loading: true } 
-      } 
+
+    this.set(state => ({
+      machineAvailability: {
+        ...state.machineAvailability,
+        [dateStr]: { _loading: true }
+      }
     }));
-    
+
     try {
       const data = await apiService.getMachineAvailabilityForDateAllMachines(dateStr);
-      this.set(state => ({ 
-        machineAvailability: { 
-          ...state.machineAvailability, 
-          [dateStr]: data || [] 
-        } 
+      this.set(state => ({
+        machineAvailability: {
+          ...state.machineAvailability,
+          [dateStr]: data || []
+        }
       }));
     } catch (e) {
       this.set(state => {
@@ -83,50 +83,46 @@ export class MachineAvailabilityManager {
     // Convert Date objects to date strings using UTC consistently
     const startDateStr = startDate instanceof Date ? formatInTimeZone(startDate, 'Europe/Rome', 'yyyy-MM-dd') : startDate;
     const endDateStr = endDate instanceof Date ? formatInTimeZone(endDate, 'Europe/Rome', 'yyyy-MM-dd') : endDate;
-    
-    try {
-      const data = await apiService.getMachineAvailabilityForDateRange(machineId, startDateStr, endDateStr);
-      
-      // Store the data in the proper date-based structure that the rest of the system expects
-      this.set(state => {
-        const next = { ...state.machineAvailability };
-        
-        // Process each date from the API response
-        if (Array.isArray(data)) {
-          data.forEach(item => {
-            if (item.date && item.unavailable_hours) {
-              const dateStr = item.date;
-              
-              // Ensure the date array exists
-              if (!next[dateStr]) {
-                next[dateStr] = [];
-              }
-              
-              // Find existing machine data for this date
-              const existingMachineData = next[dateStr].find(r => r.machine_id === machineId);
-              
-              if (existingMachineData) {
-                // Update existing machine data
-                existingMachineData.unavailable_hours = item.unavailable_hours;
-              } else {
-                // Add new machine data
-                next[dateStr].push({
-                  machine_id: machineId,
-                  date: dateStr,
-                  unavailable_hours: item.unavailable_hours
-                });
-              }
+
+    const data = await apiService.getMachineAvailabilityForDateRange(machineId, startDateStr, endDateStr);
+
+    // Store the data in the proper date-based structure that the rest of the system expects
+    this.set(state => {
+      const next = { ...state.machineAvailability };
+
+      // Process each date from the API response
+      if (Array.isArray(data)) {
+        data.forEach(item => {
+          if (item.date && item.unavailable_hours) {
+            const dateStr = item.date;
+
+            // Ensure the date array exists
+            if (!next[dateStr]) {
+              next[dateStr] = [];
             }
-          });
-        }
-        
-        return { machineAvailability: next };
-      });
-      
-      return data;
-    } catch (error) {
-      throw error;
-    }
+
+            // Find existing machine data for this date
+            const existingMachineData = next[dateStr].find(r => r.machine_id === machineId);
+
+            if (existingMachineData) {
+              // Update existing machine data
+              existingMachineData.unavailable_hours = item.unavailable_hours;
+            } else {
+              // Add new machine data
+              next[dateStr].push({
+                machine_id: machineId,
+                date: dateStr,
+                unavailable_hours: item.unavailable_hours
+              });
+            }
+          }
+        });
+      }
+
+      return { machineAvailability: next };
+    });
+
+    return data;
   };
 
   // Get machine availability for a specific machine and date
@@ -134,17 +130,17 @@ export class MachineAvailabilityManager {
     try {
       // First check if we have cached data
       const dateData = this.get().machineAvailability[dateStr];
-      
+
       if (dateData && Array.isArray(dateData)) {
         const row = dateData.find(r => r.machine_id === machineId);
         if (row) {
           return row.unavailable_hours || [];
         }
       }
-      
+
       // If no cached data, fetch from API
       const data = await apiService.getMachineAvailabilityForDate(machineId, dateStr);
-      
+
       if (data) {
         // Normalize to strings to keep UI logic consistent
         const normalizedHours = (data.unavailable_hours || []).map(h => h.toString());
@@ -153,7 +149,7 @@ export class MachineAvailabilityManager {
           const next = { ...state.machineAvailability };
           if (!next[dateStr]) next[dateStr] = [];
           const existingRow = next[dateStr].find(r => r.machine_id === machineId);
-          
+
           if (existingRow) {
             existingRow.unavailable_hours = normalizedHours;
           } else {
@@ -163,13 +159,13 @@ export class MachineAvailabilityManager {
               unavailable_hours: normalizedHours
             });
           }
-          
+
           return { machineAvailability: next };
         });
         return normalizedHours;
       }
       return [];
-    } catch (error) {
+    } catch {
       return [];
     }
   };
@@ -181,10 +177,10 @@ export class MachineAvailabilityManager {
       // Test if machine availability table is accessible
       try {
         await apiService.getMachineAvailabilityForDate('test', '2025-01-01');
-      } catch (_tableError) {
+      } catch {
         return {};
       }
-      
+
       let current = new Date(startDate);
       while (current <= endDate) {
         const dateStr = formatInTimeZone(current, 'Europe/Rome', 'yyyy-MM-dd');
@@ -200,7 +196,7 @@ export class MachineAvailabilityManager {
         current = addDays(current, 1);
       }
       return result;
-    } catch (_e) {
+    } catch {
       return {};
     }
   };
@@ -215,24 +211,24 @@ export class MachineAvailabilityManager {
   // @param {Array} allOrders - All orders from React Query (optional, for overlap checking)
   setMachineAvailability = async (machineId, dateStr, unavailableHours, allOrders = []) => {
     const releaseLock = await this.acquireLock(machineId, dateStr);
-    
+
     try {
-      const existingTasks = allOrders.filter(o => 
-        o.scheduled_machine_id === machineId && 
+      const existingTasks = allOrders.filter(o =>
+        o.scheduled_machine_id === machineId &&
         ['SCHEDULED', 'IN PROGRESS'].includes(o.status) &&
-        o.scheduled_start_time && 
+        o.scheduled_start_time &&
         o.scheduled_end_time
       );
 
       for (const task of existingTasks) {
         const taskStart = new Date(task.scheduled_start_time);
         const taskEnd = new Date(task.scheduled_end_time);
-        
+
         for (const hour of unavailableHours) {
           const hourInt = parseInt(hour);
           const hourStart = convertCETHourToUTC(dateStr, hourInt);
           const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
-            
+
           if (hourStart < taskEnd && hourEnd > taskStart) {
             throw new AppError(`Cannot set machine unavailable during scheduled task: ${task.odp_number}`, ERROR_TYPES.BUSINESS_LOGIC_ERROR, 400, null, 'MachineAvailabilityManager.setMachineUnavailability');
           }
@@ -248,7 +244,7 @@ export class MachineAvailabilityManager {
         else next[dateStr].push({ machine_id: machineId, date: dateStr, unavailable_hours: unavailableHours });
         return { machineAvailability: next };
       });
-      
+
       useUIStore.getState().showAlert(`Machine availability updated successfully for ${dateStr}`, 'success');
       return true;
     } catch (_error) {
@@ -263,30 +259,30 @@ export class MachineAvailabilityManager {
   // Toggle machine hour availability
   toggleMachineHourAvailability = async (machineId, dateStr, hour) => {
     const releaseLock = await this.acquireLock(machineId, dateStr);
-    
+
     try {
       const currentUnavailableHours = await this.getMachineAvailability(machineId, dateStr);
-      
+
       const hourStr = hour.toString();
-      
+
       let newUnavailableHours;
       if (currentUnavailableHours.includes(hourStr)) {
         newUnavailableHours = currentUnavailableHours.filter(h => h !== hourStr);
       } else {
         newUnavailableHours = [...currentUnavailableHours, hourStr].sort((a, b) => parseInt(a) - parseInt(b));
       }
-      
+
       await apiService.setMachineAvailability(machineId, dateStr, newUnavailableHours);
-      
+
       this.set(state => {
         const next = { ...state.machineAvailability };
-        
+
         if (!next[dateStr]) {
           next[dateStr] = [];
         }
-        
+
         const existingMachineData = next[dateStr].find(r => r.machine_id === machineId);
-        
+
         if (existingMachineData) {
           existingMachineData.unavailable_hours = newUnavailableHours;
         } else {
@@ -296,7 +292,7 @@ export class MachineAvailabilityManager {
             unavailable_hours: newUnavailableHours
           });
         }
-        
+
         return { machineAvailability: next };
       });
 
@@ -313,57 +309,53 @@ export class MachineAvailabilityManager {
 
   // Set machine unavailability for a date range
   setMachineUnavailability = async (machineId, startDate, endDate, startTime, endTime) => {
-    try {
-      // Set the unavailable hours for the date range
-      const results = await apiService.setUnavailableHoursForRange(machineId, startDate, endDate, startTime, endTime);
-      
-      // Refresh the local availability data for the affected date range
-      const startDateObj = new Date(startDate);
-      const endDateObj = new Date(endDate);
-      
-      // Load updated availability data for the range
-      const updatedData = await this.loadMachineAvailabilityForDateRange(machineId, startDateObj, endDateObj);
-      
-      // Update the store in the format that FullCalendar expects
-      if (updatedData && Array.isArray(updatedData)) {
-        this.set(state => {
-          const next = { ...state.machineAvailability };
-          
-          // Process each date in the updated data
-          updatedData.forEach(item => {
-            if (item.date && item.unavailable_hours) {
-              const dateStr = item.date;
-              
-              // Initialize the date array if it doesn't exist
-              if (!next[dateStr]) {
-                next[dateStr] = [];
-              }
-              
-              // Find existing machine data for this date
-              const existingMachineData = next[dateStr].find(r => r.machine_id === machineId);
-              
-              if (existingMachineData) {
-                // Update existing machine data
-                existingMachineData.unavailable_hours = item.unavailable_hours;
-              } else {
-                // Add new machine data
-                next[dateStr].push({
-                  machine_id: machineId,
-                  date: dateStr,
-                  unavailable_hours: item.unavailable_hours
-                });
-              }
+    // Set the unavailable hours for the date range
+    const results = await apiService.setUnavailableHoursForRange(machineId, startDate, endDate, startTime, endTime);
+
+    // Refresh the local availability data for the affected date range
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+
+    // Load updated availability data for the range
+    const updatedData = await this.loadMachineAvailabilityForDateRange(machineId, startDateObj, endDateObj);
+
+    // Update the store in the format that FullCalendar expects
+    if (updatedData && Array.isArray(updatedData)) {
+      this.set(state => {
+        const next = { ...state.machineAvailability };
+
+        // Process each date in the updated data
+        updatedData.forEach(item => {
+          if (item.date && item.unavailable_hours) {
+            const dateStr = item.date;
+
+            // Initialize the date array if it doesn't exist
+            if (!next[dateStr]) {
+              next[dateStr] = [];
             }
-          });
-          
-          return { machineAvailability: next };
+
+            // Find existing machine data for this date
+            const existingMachineData = next[dateStr].find(r => r.machine_id === machineId);
+
+            if (existingMachineData) {
+              // Update existing machine data
+              existingMachineData.unavailable_hours = item.unavailable_hours;
+            } else {
+              // Add new machine data
+              next[dateStr].push({
+                machine_id: machineId,
+                date: dateStr,
+                unavailable_hours: item.unavailable_hours
+              });
+            }
+          }
         });
-      }
-      
-      return results;
-    } catch (e) {
-      throw e;
+
+        return { machineAvailability: next };
+      });
     }
+
+    return results;
   };
 
   // Check if machine availability is accessible
@@ -371,7 +363,7 @@ export class MachineAvailabilityManager {
     try {
       await apiService.getMachineAvailabilityForDateAllMachines('2025-01-01');
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   };
@@ -380,9 +372,9 @@ export class MachineAvailabilityManager {
   getMachineAvailabilityStatus = async () => {
     try {
       const accessible = await this.isMachineAvailabilityAccessible();
-      return { 
-        accessible, 
-        message: accessible ? 'Table is accessible' : 'Table is not accessible - check permissions or table existence' 
+      return {
+        accessible,
+        message: accessible ? 'Table is accessible' : 'Table is not accessible - check permissions or table existence'
       };
     } catch (e) {
       return { accessible: false, message: `Error checking table: ${e.message}` };

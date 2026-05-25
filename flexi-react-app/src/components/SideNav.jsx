@@ -1,11 +1,9 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
-import { useUIStore } from '../store';
+import { useAuth } from '../auth/useAuth';
 
 function SideNav() {
   const { user } = useAuth();
-  const { selectedWorkCenter } = useUIStore();
   const location = useLocation();
 
   const navLinks = [

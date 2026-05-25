@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 
 // Filter Dropdown Component
 const FilterDropdown = ({ column, options, onFilterChange, isOpen, onToggle, activeFilter }) => {
@@ -14,7 +14,7 @@ const FilterDropdown = ({ column, options, onFilterChange, isOpen, onToggle, act
       option && option.toLowerCase().includes(searchTerm.toLowerCase())
     );
     return filtered;
-  }, [options, searchTerm, column]);
+  }, [options, searchTerm]);
 
   // Initialize selected values when dropdown opens
   useEffect(() => {
@@ -65,10 +65,10 @@ const FilterDropdown = ({ column, options, onFilterChange, isOpen, onToggle, act
     onToggle();
   };
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setSearchTerm('');
     onToggle();
-  };
+  }, [onToggle]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -85,7 +85,7 @@ const FilterDropdown = ({ column, options, onFilterChange, isOpen, onToggle, act
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isOpen, handleCancel]);
 
   // Reset search term when dropdown closes
   useEffect(() => {
@@ -227,4 +227,3 @@ const FilterDropdown = ({ column, options, onFilterChange, isOpen, onToggle, act
 };
 
 export default FilterDropdown;
-

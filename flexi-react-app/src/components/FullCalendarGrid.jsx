@@ -6,17 +6,15 @@ import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import { useSchedulerStore, useUIStore } from '../store';
 import { useMachines, useOrders } from '../hooks';
-import { parseISO } from 'date-fns';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
-import { showError, normalizeOdpNumber } from '../utils';
+import { normalizeOdpNumber } from '../utils';
 import { AppConfig } from '../services/config';
 import { convertCETHourToUTC, ITALY_TIMEZONE } from '../utils/dateFormatting';
-import { CALENDAR_CONSTANTS, isWithinWorkHours } from '../utils/calendarConstants';
+import { isWithinWorkHours } from '../utils/calendarConstants';
 import { getTaskSegments as getTaskSegmentsFromDescription } from '../utils/taskSegments';
 
 function FullCalendarGrid({ machineId, refreshTrigger }) {
   const [isLoading, setIsLoading] = useState(false);
-  const [updatingSlots, setUpdatingSlots] = useState({});
   const calendarRef = React.useRef(null);
   
   // Use React Query for data
@@ -48,7 +46,7 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
       }
 
       return [];
-    } catch (error) {
+    } catch {
       return [];
     }
   }, []);
@@ -167,7 +165,7 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
           formatInTimeZone(startDate, ITALY_TIMEZONE, 'yyyy-MM-dd'), 
           formatInTimeZone(endDate, ITALY_TIMEZONE, 'yyyy-MM-dd')
         );
-      } catch (error) {
+      } catch {
         // Data loading handled by React Query
       } finally {
         setIsLoading(false);
@@ -175,7 +173,7 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
     };
     
     loadData();
-  }, [machineId, refreshTrigger]);
+  }, [machineId, refreshTrigger, loadMachineAvailabilityForDateRange]);
 
   // Handle date click for availability toggle
   const handleDateClick = useCallback(async (arg) => {
@@ -202,15 +200,10 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
     
     if (!machine) return;
     
-    const slotKey = `${dateStr}-${hour}`;
-    setUpdatingSlots(prev => ({ ...prev, [slotKey]: true }));
-    
     try {
       await toggleMachineHourAvailability(machine.id, dateStr, hour);
-    } catch (error) {
+    } catch {
       showAlert('An unexpected error occurred.', 'error');
-    } finally {
-      setUpdatingSlots(prev => ({ ...prev, [slotKey]: false }));
     }
   }, [scheduledEvents, showAlert, machine, toggleMachineHourAvailability]);
 

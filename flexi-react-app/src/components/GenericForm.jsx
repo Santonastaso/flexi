@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { useValidation } from '../hooks';
 import { showValidationError, showError } from '../utils';
@@ -85,8 +85,7 @@ function GenericForm({
     watch,
     setValue,
     getValues,
-    reset,
-    clearErrors
+    reset
   } = useForm({
     defaultValues: initialFormData
   });

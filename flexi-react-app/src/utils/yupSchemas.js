@@ -4,7 +4,6 @@ import * as yup from 'yup';
 
 // Common field validations
 const requiredString = yup.string().required('This field is required');
-const requiredNumber = yup.number().required('This field is required').min(0, 'Value must be at least 0');
 const optionalNumber = yup.number().nullable().transform((value) => (isNaN(value) ? null : value)).min(0, 'Value must be at least 0');
 
 // Shared validation functions

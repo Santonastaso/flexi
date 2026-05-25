@@ -15,7 +15,7 @@ function MachineOverviewPage() {
   const navigate = useNavigate();
   
   const { data: machines = [], isLoading: machinesLoading } = useMachines();
-  const { data: odpOrders = [], isLoading: ordersLoading } = useOrders();
+  const { data: odpOrders = [] } = useOrders();
   const { isLoading: storeLoading } = useMainStore();
   const { showConfirmDialog } = useUIStore();
   const removeOrderMutation = useRemoveOrder();
@@ -44,7 +44,7 @@ function MachineOverviewPage() {
 
   useEffect(() => {
     setOrderedOdps(scheduledOdps);
-  }, [scheduledKey]);
+  }, [scheduledKey, scheduledOdps]);
 
   const handleEditOrder = (order) => {
     navigate(`/backlog/${order.id}/edit`);
@@ -83,7 +83,7 @@ function MachineOverviewPage() {
         await queryClient.refetchQueries({ queryKey: ['orders'], exact: true, type: 'active' });
         showSuccess('Sequenza aggiornata');
       }
-    } catch (error) {
+    } catch {
       showError('Errore durante il riordino');
     } finally {
       setReorderingId(null);

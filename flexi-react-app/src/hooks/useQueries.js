@@ -162,7 +162,7 @@ export const useOrder = (id) => {
       try {
         // Try to fetch the specific order first
         return await apiService.getOdpOrder(id);
-      } catch (error) {
+      } catch {
         // If that fails, fall back to fetching all orders and finding the one we need
         // This provides better resilience and can use cached data
         const orders = await apiService.getOdpOrders();

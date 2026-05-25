@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useUIStore } from '../store';
 import { useProductionCalculations, useAddMachine, useUpdateMachine } from '../hooks';
 import { WORK_CENTERS } from '../constants';

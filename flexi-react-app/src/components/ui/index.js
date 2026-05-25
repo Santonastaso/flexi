@@ -1,4 +1,5 @@
-export { Button, buttonVariants } from './button';
+export { Button } from './button';
+export { buttonVariants } from './buttonVariants';
 export { Input } from './input';
 export { Label } from './label';
 export {

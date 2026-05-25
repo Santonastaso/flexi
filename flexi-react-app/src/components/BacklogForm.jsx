@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useUIStore, useSchedulerStore } from '../store';
 import { useProductionCalculations, useValidation, useAddOrder, useUpdateOrder, useSiteEfficiency } from '../hooks';
 import { usePhaseSearch } from '../hooks/usePhaseSearch';
-import { normalizeOdpNumber, showValidationError, showSuccess, showWarning, showInfo } from '../utils';
+import { showValidationError, showSuccess, showWarning } from '../utils';
 import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES, TASK_STATUSES } from '../constants';
 import { backlogFormConfig } from './formConfigs';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -42,7 +42,7 @@ const PhaseSearchField = ({
         onChange={(e) => setPhaseSearch(e.target.value)}
         onFocus={() => setIsDropdownVisible(true)}
         onBlur={handleBlur}
-        placeholder="Cerca fase di produzione..."
+        placeholder={field.placeholder || "Cerca fase di produzione..."}
       />
       <input type="hidden" {...register('fase')} />
       {isDropdownVisible && filteredPhases.length > 0 && (
@@ -216,7 +216,8 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
 
     try {
       // Filter out UI-only fields that shouldn't be sent to the database
-      const { phase_search, ...dbData } = data;
+      const dbData = { ...data };
+      delete dbData.phase_search;
       
       // Clean data: convert empty strings to null for optional fields
       const cleanedData = {
@@ -305,7 +306,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     }
   };
 
-  const handleCalculate = () => {
+  const handleCalculate = useCallback(() => {
     if (!selectedPhase) {
       showWarning("Seleziona una fase prima di calcolare.");
       return;
@@ -335,10 +336,10 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
       const results = calculateProductionMetrics(phaseForCalculation, quantity, bagStep, effValue);
       setCalculationResults(results);
       showSuccess("Calcolo completato con successo!");
-    } catch (error) {
+    } catch {
       showWarning("Errore durante il calcolo delle metriche.");
     }
-  };
+  }, [selectedPhase, quantity, bagStep, editablePhaseParams, validatePhaseParameters, efficiency, calculateProductionMetrics]);
 
   const getPhaseFields = useCallback(() => {
     if (!selectedPhase) return [];
@@ -361,12 +362,15 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     return [];
   }, [selectedPhase]);
 
-  const getPhaseParamValue = (paramName) => editablePhaseParams[paramName] ?? selectedPhase[paramName] ?? '';
+  const getPhaseParamValue = useCallback(
+    (paramName) => editablePhaseParams[paramName] ?? selectedPhase?.[paramName] ?? '',
+    [editablePhaseParams, selectedPhase]
+  );
 
   // Custom field renderers for the backlog form
   const customFieldRenderers = useMemo(() => ({
     // Article code field with auto-determination
-    article_code: (field, { watch, setValue, getValues, register }) => {
+    article_code: (field, { setValue, register }) => {
       return (
         <Input 
           type="text" 
@@ -389,7 +393,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     },
 
     // Phase search field -- delegates to PhaseSearchField component to avoid hooks-in-callback violation
-    phase_search: (field, { watch, setValue, getValues, register }) => {
+    phase_search: (field, { watch, setValue, register }) => {
       return (
         <PhaseSearchField
           field={field}

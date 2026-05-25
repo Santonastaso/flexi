@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useUIStore } from '../store';
 import { useAddPhase, useUpdatePhase } from '../hooks';
 import { showError, showSuccess } from '../utils';
-import { WORK_CENTERS, DEPARTMENT_TYPES } from '../constants';
+import { WORK_CENTERS } from '../constants';
 import GenericForm from './GenericForm';
 import { phaseFormConfig } from './formConfigs';
 
