@@ -4,12 +4,6 @@
  */
 
 export const AppConfig = {
-  // Supabase configuration
-  SUPABASE: {
-    ENABLE_REALTIME: true, // Enable realtime subscriptions for multi-user sync
-    LOG_QUERIES: false,      // Disable query logging in production
-  },
-  
   // Application settings
   APP: {
     DEFAULT_PAGE_SIZE: 50,
