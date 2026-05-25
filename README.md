@@ -2,7 +2,8 @@
 
 Internal scheduler. React + Vite SPA backed by Supabase (Auth, Postgres,
 RLS, Storage). Deployed as a static site to GitHub Pages on every push to
-`main`.
+`main`. Vercel is configured in parallel for preview/prod deploys, but the
+public production URL currently resolves to GitHub Pages.
 
 ## Stack
 
@@ -28,15 +29,27 @@ Push to `main` triggers [`.github/workflows/deploy.yml`](.github/workflows/deplo
 
 Custom domain is set via [`flexi-react-app/public/CNAME`](flexi-react-app/public/CNAME).
 
-### Required GitHub Secrets
+### Vercel
+
+The Vercel project is configured with:
+
+| Setting | Value |
+|---------|-------|
+| Root directory | `flexi-react-app` |
+| Install command | `npm ci --legacy-peer-deps` |
+| Build command | `npm run build` |
+| Output directory | `dist` |
+| Custom domain | `scheduler.flexi.pingersoftware.it` |
+
+### Required Environment Variables
 
 | Secret | Value |
 |--------|-------|
 | `VITE_SUPABASE_URL` | `https://<ref>.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | Project anon / publishable key |
 
-Set in repo Settings → Secrets and variables → Actions. **Service role keys
-must never be added here** — they would be baked into the public JS bundle.
+Set these in GitHub Actions secrets and Vercel project settings. **Service role
+keys must never be added here** — they would be baked into the public JS bundle.
 
 ## Tests
 

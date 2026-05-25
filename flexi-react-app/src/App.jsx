@@ -1,27 +1,36 @@
-import React, { useEffect } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import SideNav from './components/SideNav';
-import MachineryListPage from './pages/MachineryListPage';
-import MachineryFormPage from './pages/MachineryFormPage';
-import MachineCalendarPage from './pages/MachineCalendarPage';
-import PhasesListPage from './pages/PhasesListPage';
-import PhasesFormPage from './pages/PhasesFormPage';
-import BacklogListPage from './pages/BacklogListPage';
-import BacklogFormPage from './pages/BacklogFormPage';
-import SchedulerPage from './pages/SchedulerPage';
-import SpotifySchedulerPage from './pages/SpotifySchedulerPage';
-import MachineOverviewPage from './pages/MachineOverviewPage';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './auth/ProtectedRoute';
 import ConfirmDialog from './components/ui/confirm-dialog';
 import { useUIStore, useMainStore } from './store';
 import { useAuth } from './auth/AuthContext';
 
+const MachineryListPage = lazy(() => import('./pages/MachineryListPage'));
+const MachineryFormPage = lazy(() => import('./pages/MachineryFormPage'));
+const MachineCalendarPage = lazy(() => import('./pages/MachineCalendarPage'));
+const PhasesListPage = lazy(() => import('./pages/PhasesListPage'));
+const PhasesFormPage = lazy(() => import('./pages/PhasesFormPage'));
+const BacklogListPage = lazy(() => import('./pages/BacklogListPage'));
+const BacklogFormPage = lazy(() => import('./pages/BacklogFormPage'));
+const SchedulerPage = lazy(() => import('./pages/SchedulerPage'));
+const SpotifySchedulerPage = lazy(() => import('./pages/SpotifySchedulerPage'));
+const MachineOverviewPage = lazy(() => import('./pages/MachineOverviewPage'));
+const HomePage = lazy(() => import('./pages/HomePage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const SignupPage = lazy(() => import('./pages/SignupPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+
+const RouteLoading = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="flex flex-col items-center gap-3">
+      <div className="animate-spin border-4 border-gray-200 border-t-blue-500 rounded-full w-8 h-8" />
+      <p className="text-sm text-gray-500">Caricamento...</p>
+    </div>
+  </div>
+);
 
 // This component creates the main layout with the sidebar
 const AppLayout = () => {
@@ -91,38 +100,40 @@ const AppLayout = () => {
 function App() {
   return (
     <ErrorBoundary>
-      <Routes>
-        {/* Public authentication routes */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        
-        {/* Protected application routes */}
-        <Route path="/" element={<ProtectedRoute />}>
-          <Route element={<AppLayout />}>
-            {/* Define the component for the home page */}
-            <Route index element={<HomePage />} />
-            
-            {/* Add routes for your migrated pages */}
-            <Route path="machinery" element={<MachineryListPage />} />
-            <Route path="machinery/add" element={<MachineryFormPage />} />
-            <Route path="machinery/:id/edit" element={<MachineryFormPage />} />
-            <Route path="machinery/:machineId/calendar" element={<MachineCalendarPage />} />
-            <Route path="phases" element={<PhasesListPage />} />
-            <Route path="phases/add" element={<PhasesFormPage />} />
-            <Route path="phases/:id/edit" element={<PhasesFormPage />} />
-            <Route path="backlog" element={<BacklogListPage />} />
-            <Route path="backlog/add" element={<BacklogFormPage />} />
-            <Route path="backlog/:id/edit" element={<BacklogFormPage />} />
-            <Route path="scheduler" element={<SchedulerPage />} />
-            <Route path="spotify-scheduler" element={<SpotifySchedulerPage />} />
-            <Route path="machine-overview" element={<MachineOverviewPage />} />
+      <Suspense fallback={<RouteLoading />}>
+        <Routes>
+          {/* Public authentication routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+
+          {/* Protected application routes */}
+          <Route path="/" element={<ProtectedRoute />}>
+            <Route element={<AppLayout />}>
+              {/* Define the component for the home page */}
+              <Route index element={<HomePage />} />
+
+              {/* Add routes for your migrated pages */}
+              <Route path="machinery" element={<MachineryListPage />} />
+              <Route path="machinery/add" element={<MachineryFormPage />} />
+              <Route path="machinery/:id/edit" element={<MachineryFormPage />} />
+              <Route path="machinery/:machineId/calendar" element={<MachineCalendarPage />} />
+              <Route path="phases" element={<PhasesListPage />} />
+              <Route path="phases/add" element={<PhasesFormPage />} />
+              <Route path="phases/:id/edit" element={<PhasesFormPage />} />
+              <Route path="backlog" element={<BacklogListPage />} />
+              <Route path="backlog/add" element={<BacklogFormPage />} />
+              <Route path="backlog/:id/edit" element={<BacklogFormPage />} />
+              <Route path="scheduler" element={<SchedulerPage />} />
+              <Route path="spotify-scheduler" element={<SpotifySchedulerPage />} />
+              <Route path="machine-overview" element={<MachineOverviewPage />} />
+            </Route>
           </Route>
-        </Route>
-        
-        {/* Catch-all route for unmatched paths */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+
+          {/* Catch-all route for unmatched paths */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </ErrorBoundary>
   );
 }
