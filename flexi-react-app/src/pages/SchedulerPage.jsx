@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useReducer } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
 import { useUIStore, useMainStore } from '../store';
-import { useOrders, useMachines } from '../hooks';
+import { useMachineFilters, useOrders, useMachines } from '../hooks';
 import { startOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { getTodayInCET, getDateInCET, ITALY_TIMEZONE } from '../utils/dateFormatting';
 
-import { MACHINE_STATUSES, WORK_CENTERS } from '../constants';
 import { showError } from '../utils';
+import MachineFilterControls from '../components/MachineFilterControls';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { Button } from '../components/ui/button';
 
@@ -118,56 +118,17 @@ function SchedulerPage() {
   const [articleCodeLookup, setArticleCodeLookup] = useState(() => localStorage.getItem('schedulerArticleLookup') || '');
   const [customerNameLookup, setCustomerNameLookup] = useState(() => localStorage.getItem('schedulerCustomerLookup') || '');
 
-  // Filter state management with useReducer and localStorage persistence
-  const initialFilterState = {
-    workCenter: [],
-    department: [],
-    machineType: [],
-    machineName: []
-  };
-
-  function filterReducer(state, action) {
-    let newState;
-    switch (action.type) {
-      case 'SET_FILTER':
-        // payload: { filterName: 'workCenter', value: [...] }
-        newState = { ...state, [action.payload.filterName]: action.payload.value };
-        break;
-      case 'CLEAR_FILTERS':
-        newState = initialFilterState;
-        break;
-      case 'LOAD_FILTERS':
-        newState = action.payload;
-        break;
-      default:
-        return state;
-    }
-    // Save to localStorage whenever filters change
-    localStorage.setItem('schedulerFilters', JSON.stringify(newState));
-    return newState;
-  }
-
-  // Initialize filters from localStorage
-  const getInitialFilters = () => {
-    try {
-      const saved = localStorage.getItem('schedulerFilters');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Ensure all required filter properties exist and are arrays
-        return {
-          workCenter: Array.isArray(parsed.workCenter) ? parsed.workCenter : [],
-          department: Array.isArray(parsed.department) ? parsed.department : [],
-          machineType: Array.isArray(parsed.machineType) ? parsed.machineType : [],
-          machineName: Array.isArray(parsed.machineName) ? parsed.machineName : []
-        };
-      }
-    } catch {
-      localStorage.removeItem('schedulerFilters');
-    }
-    return initialFilterState;
-  };
-
-  const [filters, dispatch] = useReducer(filterReducer, getInitialFilters());
+  const {
+    filters,
+    machineData,
+    filteredMachines,
+    setFilter,
+    clearMachineFilters
+  } = useMachineFilters({
+    machines,
+    selectedWorkCenter,
+    storageKey: 'schedulerFilters'
+  });
 
   // Initialize store on mount
   useEffect(() => {
@@ -193,75 +154,6 @@ function SchedulerPage() {
     const scheduled = filteredOdpOrders.filter(order => ['SCHEDULED', 'IN PROGRESS'].includes(order.status));
     return scheduled;
   }, [filteredOdpOrders]);
-
-  // Memoize machine filtering with optimized dependencies and early returns
-  const machineData = useMemo(() => {
-    if (!machines || machines.length === 0) {
-      return { activeMachines: [], workCenters: [], departments: [], machineTypes: [], machineNames: [] };
-    }
-
-    // First filter by work center, then by status
-    let workCenterFiltered = machines;
-    if (selectedWorkCenter && selectedWorkCenter !== WORK_CENTERS.BOTH) {
-      workCenterFiltered = machines.filter(m => m.work_center === selectedWorkCenter);
-    }
-
-    const activeMachines = workCenterFiltered.filter(m => m.status === MACHINE_STATUSES.ACTIVE);
-
-    if (activeMachines.length === 0) {
-      return { activeMachines: [], workCenters: [], departments: [], machineTypes: [], machineNames: [] };
-    }
-
-    // Pre-compute work centers and departments with Set for better performance
-    const workCenterSet = new Set();
-    const departmentSet = new Set();
-    const machineTypeSet = new Set();
-    const machineNameSet = new Set();
-
-    for (const machine of activeMachines) {
-      if (machine.work_center) workCenterSet.add(machine.work_center);
-      if (machine.department) departmentSet.add(machine.department);
-      if (machine.machine_type) machineTypeSet.add(machine.machine_type);
-      if (machine.machine_name) machineNameSet.add(machine.machine_name);
-    }
-
-    const workCenters = Array.from(workCenterSet).sort();
-    const departments = Array.from(departmentSet).sort();
-    const machineTypes = Array.from(machineTypeSet).sort();
-    const machineNames = Array.from(machineNameSet).sort();
-
-    return { activeMachines, workCenters, departments, machineTypes, machineNames };
-  }, [machines, selectedWorkCenter]);
-
-  // Apply additional filters to machines
-  const filteredMachines = useMemo(() => {
-    const { activeMachines } = machineData;
-
-    // Apply filters sequentially for better performance
-    let filtered = activeMachines;
-
-    // Filter by work center (if selected)
-    if (filters.workCenter && Array.isArray(filters.workCenter) && filters.workCenter.length > 0) {
-      filtered = filtered.filter(machine => filters.workCenter.includes(machine.work_center));
-    }
-
-    // Filter by department (if selected)
-    if (filters.department && Array.isArray(filters.department) && filters.department.length > 0) {
-      filtered = filtered.filter(machine => filters.department.includes(machine.department));
-    }
-
-    // Filter by machine type (if selected)
-    if (filters.machineType && Array.isArray(filters.machineType) && filters.machineType.length > 0) {
-      filtered = filtered.filter(machine => filters.machineType.includes(machine.machine_type));
-    }
-
-    // Filter by machine name (if selected)
-    if (filters.machineName && Array.isArray(filters.machineName) && filters.machineName.length > 0) {
-      filtered = filtered.filter(machine => filters.machineName.includes(machine.machine_name));
-    }
-
-    return filtered;
-  }, [machineData, filters]);
 
   // Memoize navigation functions to prevent unnecessary re-renders
   const navigateDate = useCallback(async (direction, view = 'Daily') => {
@@ -330,14 +222,14 @@ function SchedulerPage() {
   }, [currentDate]);
 
   const clearFilters = useCallback(() => {
-    dispatch({ type: 'CLEAR_FILTERS' });
+    clearMachineFilters();
     setTaskLookup('');
     setArticleCodeLookup('');
     setCustomerNameLookup('');
     localStorage.removeItem('schedulerTaskLookup');
     localStorage.removeItem('schedulerArticleLookup');
     localStorage.removeItem('schedulerCustomerLookup');
-  }, []);
+  }, [clearMachineFilters]);
 
   // Helper function to execute lookup from dropdown selection
   const executeLookupFromDropdown = useCallback((task, field, fieldLabel) => {
@@ -349,10 +241,10 @@ function SchedulerPage() {
     }
 
     // Set machine filters to show only this machine
-    dispatch({ type: 'SET_FILTER', payload: { filterName: 'machineName', value: [machine.machine_name] } });
-    dispatch({ type: 'SET_FILTER', payload: { filterName: 'workCenter', value: [machine.work_center] } });
-    dispatch({ type: 'SET_FILTER', payload: { filterName: 'department', value: [machine.department] } });
-    dispatch({ type: 'SET_FILTER', payload: { filterName: 'machineType', value: [machine.machine_type] } });
+    setFilter('machineName', [machine.machine_name]);
+    setFilter('workCenter', [machine.work_center]);
+    setFilter('department', [machine.department]);
+    setFilter('machineType', [machine.machine_type]);
 
     // Navigate to the start date of the task in CET timezone
     if (task.scheduled_start_time) {
@@ -372,7 +264,7 @@ function SchedulerPage() {
     // Show success message
     const fieldValue = task[field];
     showAlert(`Lavoro trovato per ${fieldLabel} "${fieldValue}" su ${machine.machine_name}`, 'success');
-  }, [machines, showAlert, setTaskLookup, setArticleCodeLookup, setCustomerNameLookup, setCurrentDate]);
+  }, [machines, setFilter, showAlert, setTaskLookup, setArticleCodeLookup, setCustomerNameLookup, setCurrentDate]);
 
   // Generic lookup function that consolidates the three original lookup functions
   const handleLookup = useCallback((value, field, fieldLabel) => {
@@ -544,44 +436,10 @@ function SchedulerPage() {
             />
 
             {/* Machine Filters */}
-            <SearchableDropdown
-              label="Centro di Lavoro"
-              options={machineData.workCenters}
-              selectedOptions={filters.workCenter}
-              onSelectionChange={(value) => dispatch({ type: 'SET_FILTER', payload: { filterName: 'workCenter', value } })}
-              searchPlaceholder="Cerca Centri di Lavoro"
-              id="work_center_filter"
-              width="150px"
-            />
-
-            <SearchableDropdown
-              label="Reparto"
-              options={machineData.departments}
-              selectedOptions={filters.department}
-              onSelectionChange={(value) => dispatch({ type: 'SET_FILTER', payload: { filterName: 'department', value } })}
-              searchPlaceholder="Cerca Reparti"
-              id="department_filter"
-              width="150px"
-            />
-
-            <SearchableDropdown
-              label="Tipo Macchina"
-              options={machineData.machineTypes}
-              selectedOptions={filters.machineType}
-              onSelectionChange={(value) => dispatch({ type: 'SET_FILTER', payload: { filterName: 'machineType', value } })}
-              searchPlaceholder="Cerca Tipi di Macchina"
-              id="machine_type_filter"
-              width="150px"
-            />
-
-            <SearchableDropdown
-              label="Nome Macchina"
-              options={machineData.machineNames}
-              selectedOptions={filters.machineName}
-              onSelectionChange={(value) => dispatch({ type: 'SET_FILTER', payload: { filterName: 'machineName', value } })}
-              searchPlaceholder="Cerca Nomi Macchine"
-              id="machine_name_filter"
-              width="150px"
+            <MachineFilterControls
+              machineData={machineData}
+              filters={filters}
+              onFilterChange={setFilter}
             />
 
             {/* Action Buttons - Right side */}

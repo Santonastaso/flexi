@@ -4,7 +4,8 @@
  */
 
 export { default as useProductionCalculations } from './useProductionCalculations';
-export { default as useValidation } from './useValidation';
+export { useConfirmDelete } from './useConfirmDelete';
+export { useMachineFilters } from './useMachineFilters';
 export { usePhaseSearch } from './usePhaseSearch';
 
 // React Query hooks

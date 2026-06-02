@@ -1,6 +1,6 @@
 import { formatInTimeZone } from 'date-fns-tz';
 import { apiService } from '../../services/api';
-import { convertCETHourToUTC } from '../../utils/dateFormatting';
+import { convertCETHourToUTC, ITALY_TIMEZONE } from '../../utils/dateFormatting';
 import { CALENDAR_CONSTANTS } from '../../utils/calendarConstants';
 
 /**
@@ -133,7 +133,7 @@ export class SpotifyQueueScheduler {
     endDate.setUTCHours(23, 59, 59, 999);
     
     while (currentDate <= endDate) {
-      const dateStr = formatInTimeZone(currentDate, 'Europe/Rome', 'yyyy-MM-dd');
+      const dateStr = formatInTimeZone(currentDate, ITALY_TIMEZONE, 'yyyy-MM-dd');
       const dateAvailability = machineAvailability[dateStr];
       
       if (dateAvailability && Array.isArray(dateAvailability)) {

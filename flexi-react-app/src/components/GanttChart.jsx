@@ -5,8 +5,8 @@ import { useUIStore, useSchedulerStore } from '../store';
 import { useOrders } from '../hooks';
 import { startOfDay, endOfDay, startOfWeek, isSameDay } from 'date-fns';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
-import { normalizeOdpNumber } from '../utils';
-import { formatScheduledTime, formatDeliveryDate, ITALY_TIMEZONE } from '../utils/dateFormatting';
+import { formatTaskInfoTooltip, normalizeOdpNumber } from '../utils';
+import { ITALY_TIMEZONE } from '../utils/dateFormatting';
 import { getTaskSegments } from '../utils/taskSegments';
 import { AppConfig } from '../services/config';
 import { useQueryClient } from '@tanstack/react-query';
@@ -138,8 +138,8 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
             
                             if (segmentStartsOnCurrentDay && segmentEndsOnCurrentDay) {
                     // Segment starts and ends on current day - convert UTC to CET timezone
-                    const startInCET = toZonedTime(singleSegment.start, 'Europe/Rome');
-                    const endInCET = toZonedTime(singleSegment.end, 'Europe/Rome');
+                    const startInCET = toZonedTime(singleSegment.start, ITALY_TIMEZONE);
+                    const endInCET = toZonedTime(singleSegment.end, ITALY_TIMEZONE);
                     const startHour = startInCET.getHours();
                     const startMinute = startInCET.getMinutes();
                     const endHour = endInCET.getHours();
@@ -156,7 +156,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
                     segmentWidth = (endSlot - startSlot) * 15;
                 } else if (segmentStartsOnCurrentDay) {
                     // Segment starts on current day but ends later - convert UTC to CET timezone
-                    const startInCET = toZonedTime(singleSegment.start, 'Europe/Rome');
+                    const startInCET = toZonedTime(singleSegment.start, ITALY_TIMEZONE);
                     const startHour = startInCET.getHours();
                     const startMinute = startInCET.getMinutes();
                     const adjustedStartHour = Math.max(6, startHour);
@@ -166,7 +166,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
                     segmentWidth = (64 - startSlot) * 15; // Rest of the day (64 slots from 6 AM to 10 PM)
                 } else if (segmentEndsOnCurrentDay) {
                     // Segment starts earlier but ends on current day - convert UTC to CET timezone
-                    const endInCET = toZonedTime(singleSegment.end, 'Europe/Rome');
+                    const endInCET = toZonedTime(singleSegment.end, ITALY_TIMEZONE);
                     const endHour = endInCET.getHours();
                     const endMinute = endInCET.getMinutes();
                     const adjustedEndHour = Math.min(22, endHour);
@@ -213,8 +213,8 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
                 
                 if (segmentStartsOnCurrentDay && segmentEndsOnCurrentDay) {
                     // Segment starts and ends on current day - convert UTC to CET timezone
-                    const startInCET = toZonedTime(segmentStart, 'Europe/Rome');
-                    const endInCET = toZonedTime(segmentEnd, 'Europe/Rome');
+                    const startInCET = toZonedTime(segmentStart, ITALY_TIMEZONE);
+                    const endInCET = toZonedTime(segmentEnd, ITALY_TIMEZONE);
                     const startHour = startInCET.getHours();
                     const startMinute = startInCET.getMinutes();
                     const endHour = endInCET.getHours();
@@ -231,7 +231,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
                     segmentWidth = (endSlot - startSlot) * 15;
                 } else if (segmentStartsOnCurrentDay) {
                     // Segment starts on current day but ends later - convert UTC to CET timezone
-                    const startInCET = toZonedTime(segmentStart, 'Europe/Rome');
+                    const startInCET = toZonedTime(segmentStart, ITALY_TIMEZONE);
                     const startHour = startInCET.getHours();
                     const startMinute = startInCET.getMinutes();
                     const adjustedStartHour = Math.max(6, startHour);
@@ -241,7 +241,7 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
                     segmentWidth = (64 - startSlot) * 15; // Rest of the day (64 slots from 6 AM to 10 PM)
                 } else if (segmentEndsOnCurrentDay) {
                     // Segment starts earlier but ends on current day - convert UTC to CET timezone
-                    const endInCET = toZonedTime(segmentEnd, 'Europe/Rome');
+                    const endInCET = toZonedTime(segmentEnd, ITALY_TIMEZONE);
                     const endHour = endInCET.getHours();
                     const endMinute = endInCET.getMinutes();
                     const adjustedEndHour = Math.min(22, endHour);
@@ -366,18 +366,11 @@ const ScheduledEvent = React.memo(({ event, machine, currentDate, queryClient, r
                                     e.stopPropagation();
                                     e.preventDefault();
                                 }}
-                                title={`Codice Articolo: ${event.article_code || 'Non specificato'}
-Codice Articolo Esterno: ${event.external_article_code || 'Non specificato'}
-Nome Cliente: ${event.nome_cliente || 'Non specificato'}
-Data Consegna: ${event.delivery_date ? formatDeliveryDate(event.delivery_date) : 'Non impostata'}
-Quantità: ${event.quantity || 'Non specificata'}
-Altezza Busta: ${event.bag_height || 'Non specificata'} mm
-Passo Busta: ${event.bag_step || 'Non specificato'} mm
-Note Libere: ${event.user_notes || 'Nessuna nota'}
-Note ASD: ${event.asd_notes || 'Nessuna nota'}
-Material Global: ${event.material_availability_global || 'N/A'}%
-${event.scheduled_start_time ? `Inizio Programmato: ${formatScheduledTime(event.scheduled_start_time)}` : 'Non programmato'}
-${event.scheduled_end_time ? `Fine Programmata: ${formatScheduledTime(event.scheduled_end_time)}` : 'Non programmato'}`}
+                                title={formatTaskInfoTooltip(event, {
+                                    includeBagDetails: true,
+                                    includeScheduledStart: true,
+                                    includeScheduledEnd: true
+                                })}
                             >
                                 <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>i</span>
                             </button>
@@ -659,18 +652,11 @@ const WeeklyGanttView = React.memo(({ machines, currentDate, scheduledTasks }) =
                                 e.stopPropagation();
                                 e.preventDefault();
                               }}
-                              title={`Codice Articolo: ${task.article_code || 'Non specificato'}
-Codice Articolo Esterno: ${task.external_article_code || 'Non specificato'}
-Nome Cliente: ${task.nome_cliente || 'Non specificato'}
-Data Consegna: ${task.delivery_date ? formatDeliveryDate(task.delivery_date) : 'Non impostata'}
-Quantità: ${task.quantity || 'Non specificata'}
-Altezza Busta: ${task.bag_height || 'Non specificata'} mm
-Passo Busta: ${task.bag_step || 'Non specificato'} mm
-Note Libere: ${task.user_notes || 'Nessuna nota'}
-Note ASD: ${task.asd_notes || 'Nessuna nota'}
-Material Global: ${task.material_availability_global || 'N/A'}%
-
-${task.scheduled_end_time ? `Fine Programmata: ${formatScheduledTime(task.scheduled_end_time)}` : 'Non programmato'}`}
+                              title={formatTaskInfoTooltip(task, {
+                                includeBagDetails: true,
+                                includeScheduledEnd: true,
+                                blankLineBeforeScheduledEnd: true
+                              })}
                             >
                               <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#374151' }}>i</span>
                             </button>

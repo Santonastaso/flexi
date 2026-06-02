@@ -1,18 +1,23 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useReactTable, getCoreRowModel, flexRender, getSortedRowModel } from '@tanstack/react-table';
+import { useReactTable, getCoreRowModel, flexRender, getFilteredRowModel, getSortedRowModel } from '@tanstack/react-table';
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  Table,
-  TableBody,
   TableCell,
   TableHead,
-  TableHeader,
   TableRow,
 } from './ui/table';
 import { Button } from './ui/button';
 import FilterDropdown from './FilterDropdown';
+
+const DEFAULT_COLUMN_SIZE = 140;
+const PINNED_COLUMN_SIZES = {
+  __drag: 40,
+  odp_number: 96,
+  article_code: 136,
+  actions: 156,
+};
 
 const loadStoredFilters = (key) => {
   try {
@@ -32,6 +37,14 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
     filterStorageKey ? loadStoredFilters(filterStorageKey) : {}
   );
   const [openFilter, setOpenFilter] = useState(null);
+  const stickyColumnIds = useMemo(
+    () => stickyColumns.filter(Boolean),
+    [stickyColumns]
+  );
+  const stickyColumnSet = useMemo(
+    () => new Set(stickyColumnIds),
+    [stickyColumnIds]
+  );
 
   useEffect(() => {
     if (filterStorageKey) {
@@ -39,27 +52,13 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
     }
   }, [filterStorageKey, filters]);
 
-  // Apply column filters
-  const filteredData = useMemo(() => {
-    if (!enableFiltering || Object.keys(filters).length === 0) return data;
-    
-    return data.filter(item => {
-      return Object.entries(filters).every(([column, filterValue]) => {
-        if (!filterValue) return true;
-        
-        const itemValue = item[column];
-        if (itemValue == null) return false;
-        
-        // Handle array of selected values (multi-selection)
-        if (Array.isArray(filterValue)) {
-          return filterValue.includes(itemValue);
-        }
-        
-        // Handle single value (legacy support)
-        return itemValue.toString().toLowerCase().includes(filterValue.toLowerCase());
-      });
-    });
-  }, [data, filters, enableFiltering]);
+  const columnFilters = useMemo(() => {
+    if (!enableFiltering) return [];
+
+    return Object.entries(filters)
+      .filter(([, filterValue]) => Array.isArray(filterValue) ? filterValue.length > 0 : Boolean(filterValue))
+      .map(([id, value]) => ({ id, value }));
+  }, [enableFiltering, filters]);
 
   // Get unique values for each filterable column
   const filterOptions = useMemo(() => {
@@ -91,12 +90,14 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
     const dragColumn = enableRowReorder ? [{
       id: '__drag',
       header: '',
+      size: PINNED_COLUMN_SIZES.__drag,
       cell: () => null
     }] : [];
 
     const actionColumn = {
       id: 'actions',
       header: 'Azioni',
+      size: PINNED_COLUMN_SIZES.actions,
       cell: ({ row }) => {
         const extraActions = renderRowActions ? renderRowActions(row.original) : null;
         return (
@@ -112,34 +113,81 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
         );
       },
     };
-    return [...dragColumn, ...columns, actionColumn];
-  }, [columns, enableRowReorder, onEditRow, onDeleteRow, renderRowActions]);
 
-  // Calculate sticky column positions
-  const getStickyLeftPosition = (columnId, columnIndex) => {
-    if (!stickyColumns.includes(columnId)) return 0;
+    return [...dragColumn, ...columns, actionColumn].map((column) => {
+      const columnId = column.id || column.accessorKey;
+      const isPinned = stickyColumnSet.has(columnId);
+      return {
+        ...column,
+        size: column.size ?? PINNED_COLUMN_SIZES[columnId] ?? (isPinned ? 132 : DEFAULT_COLUMN_SIZE),
+        minSize: column.minSize ?? (columnId === 'actions' ? 148 : 72),
+        maxSize: column.maxSize ?? 360,
+      };
+    });
+  }, [columns, enableRowReorder, onEditRow, onDeleteRow, renderRowActions, stickyColumnSet]);
+
+  const columnPinning = useMemo(() => ({
+    left: stickyColumnIds,
+  }), [stickyColumnIds]);
+
+  const dataTableFilter = (row, columnId, filterValue) => {
+    if (!filterValue) return true;
     
-    let leftPosition = 0;
-    for (let i = 0; i < columnIndex; i++) {
-      const colId = tableColumns[i]?.id || tableColumns[i]?.accessorKey;
-      if (stickyColumns.includes(colId)) {
-        // Approximate column widths based on content - adjusted for actual column widths
-        if (colId === 'odp_number') leftPosition += 71; // Numero ODP
-        else if (colId === 'article_code') leftPosition += 80; // Codice Articolo
-        else leftPosition += 100; // Default width
-      }
+    const itemValue = row.getValue(columnId);
+    if (itemValue == null) return false;
+    
+    if (Array.isArray(filterValue)) {
+      return filterValue.includes(itemValue);
     }
-    return leftPosition;
+    
+    return itemValue.toString().toLowerCase().includes(filterValue.toLowerCase());
   };
 
-  const tableData = useMemo(() => filteredData, [filteredData]);
-
   const table = useReactTable({
-    data: tableData,
+    data,
     columns: tableColumns,
+    state: {
+      columnFilters,
+      columnPinning
+    },
+    enableColumnPinning: true,
+    filterFns: {
+      dataTableFilter
+    },
+    defaultColumn: {
+      filterFn: 'dataTableFilter'
+    },
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel()
   });
+
+  const getColumnStyle = (column, isHeader = false) => {
+    const size = column.getSize();
+    const isPinned = column.getIsPinned();
+    const isLeftPinned = isPinned === 'left';
+
+    return {
+      width: `${size}px`,
+      minWidth: `${size}px`,
+      ...(isLeftPinned ? {
+        left: `${column.getStart('left')}px`,
+        maxWidth: `${size}px`,
+        position: 'sticky',
+        zIndex: isHeader ? 40 : 30,
+        boxShadow: column.getIsLastColumn('left')
+          ? '2px 0 4px -2px rgba(15, 23, 42, 0.35)'
+          : undefined,
+      } : {}),
+    };
+  };
+
+  const getPinnedClassName = (columnId, baseClassName) => {
+    const isPinned = table.getColumn(columnId)?.getIsPinned();
+    return isPinned
+      ? `${baseClassName} overflow-hidden text-ellipsis`
+      : baseClassName;
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -176,16 +224,15 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
       transition
     };
 
-    return (
-      <TableRow ref={setNodeRef} style={style}>
-        {row.getVisibleCells().map((cell, cellIndex) => {
-          const cellKey = `${row.id}_${cell.column.id}_${cellIndex}`;
-          const columnId = cell.column.id;
-          const isSticky = stickyColumns.includes(columnId);
+          return (
+            <TableRow ref={setNodeRef} style={style}>
+              {row.getVisibleCells().map((cell, cellIndex) => {
+                const cellKey = `${row.id}_${cell.column.id}_${cellIndex}`;
+                const columnId = cell.column.id;
 
-          if (columnId === '__drag') {
-            return (
-              <TableCell key={cellKey} className="w-8">
+                if (columnId === '__drag') {
+                  return (
+              <TableCell key={cellKey} style={getColumnStyle(cell.column)}>
                 <div
                   className="inline-flex items-center justify-center w-6 h-6 rounded bg-gray-100 text-gray-600"
                   {...attributes}
@@ -203,8 +250,8 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
           return (
             <TableCell
               key={cellKey}
-              className={isSticky ? 'sticky z-10 bg-white shadow-sm' : ''}
-              style={isSticky ? { left: `${getStickyLeftPosition(columnId, cellIndex)}px` } : {}}
+              className={getPinnedClassName(columnId, cell.column.getIsPinned() ? 'bg-white shadow-sm' : '')}
+              style={getColumnStyle(cell.column)}
             >
               {flexRender(cell.column.columnDef.cell, cell.getContext())}
             </TableCell>
@@ -215,7 +262,18 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
   };
 
   const tableMarkup = (
-    <table className="caption-bottom text-xs relative" style={{ width: 'max-content', minWidth: '100%' }}>
+    <table
+      className="caption-bottom text-xs relative"
+      style={{
+        width: `max(100%, ${table.getTotalSize()}px)`,
+        minWidth: '100%',
+      }}
+    >
+      <colgroup>
+        {table.getVisibleLeafColumns().map((column) => (
+          <col key={column.id} style={{ width: `${column.getSize()}px` }} />
+        ))}
+      </colgroup>
       <thead className="sticky top-0 z-20 bg-gray-50 border-b border-gray-200">
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id}>
@@ -223,16 +281,13 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
               const headerKey = `${headerGroup.id}_${header.id}_${headerIndex}`;
               const columnId = header.column.id;
               const isFilterable = enableFiltering && filterableColumns.includes(columnId);
-              const isSticky = stickyColumns.includes(columnId);
               
               return (
                 <TableHead 
                   key={headerKey} 
                   onClick={header.column.getToggleSortingHandler()}
-                  className={isSticky ? 'sticky top-0 z-30 bg-gray-50 shadow-sm' : ''}
-                  style={isSticky ? { 
-                    left: `${getStickyLeftPosition(columnId, headerIndex)}px`
-                  } : {}}
+                  className={getPinnedClassName(columnId, header.column.getIsPinned() ? 'top-0 bg-gray-50 shadow-sm' : '')}
+                  style={getColumnStyle(header.column, true)}
                 >
                   <div className="flex items-center gap-2">
                     {flexRender(header.column.columnDef.header, header.getContext())}
@@ -264,15 +319,12 @@ function DataTable({ data, columns, onEditRow, onDeleteRow, enableFiltering = fa
               {row.getVisibleCells().map((cell, cellIndex) => {
                 const cellKey = `${rowKey}_${cell.column.id}_${cellIndex}`;
                 const columnId = cell.column.id;
-                const isSticky = stickyColumns.includes(columnId);
                 
                 return (
                   <TableCell 
                     key={cellKey}
-                    className={isSticky ? 'sticky z-10 bg-white shadow-sm' : ''}
-                    style={isSticky ? { 
-                      left: `${getStickyLeftPosition(columnId, cellIndex)}px`
-                    } : {}}
+                    className={getPinnedClassName(columnId, cell.column.getIsPinned() ? 'bg-white shadow-sm' : '')}
+                    style={getColumnStyle(cell.column)}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>

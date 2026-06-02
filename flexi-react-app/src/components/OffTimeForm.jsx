@@ -24,11 +24,6 @@ function OffTimeForm({ machineId, onSuccess }) {
   const handleSubmit = async (data) => {
     await setMachineUnavailability(machineId, data.startDate, data.endDate, data.startTime, data.endTime);
     showAlert('Indisponibilità macchina impostata con successo!', 'success');
-    
-    // Call the success callback to refresh calendar data
-    if (onSuccess) {
-      onSuccess();
-    }
   };
 
   return (

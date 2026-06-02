@@ -180,7 +180,7 @@ function FullCalendarGrid({ machineId, refreshTrigger }) {
     const clickedDate = arg.date;
     
     // Convert clicked date to CET timezone to get the correct hour
-    const clickedDateInCET = toZonedTime(clickedDate, 'Europe/Rome');
+    const clickedDateInCET = toZonedTime(clickedDate, ITALY_TIMEZONE);
     const dateStr = formatInTimeZone(clickedDate, ITALY_TIMEZONE, 'yyyy-MM-dd');
     const hour = clickedDateInCET.getHours();
     

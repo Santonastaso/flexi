@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import { useAuth } from '../auth/useAuth';
+import { SCHEMAS } from '../utils';
 import {
   Button,
   Input,
@@ -12,41 +15,35 @@ import {
  * Allows users to request a password reset email
  */
 function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [error, setError] = useState('');
+  const [submittedEmail, setSubmittedEmail] = useState('');
+  const [submitError, setSubmitError] = useState('');
 
   const { resetPassword } = useAuth();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting }
+  } = useForm({
+    defaultValues: {
+      email: ''
+    },
+    resolver: yupResolver(SCHEMAS.FORGOT_PASSWORD)
+  });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!email.trim()) {
-      setError('Inserisci il tuo indirizzo email');
-      return;
-    }
-
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setError('Inserisci un indirizzo email valido');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError('');
-
+  const onSubmit = async ({ email }) => {
+    setSubmitError('');
     try {
       const result = await resetPassword(email);
       
       if (result.success) {
+        setSubmittedEmail(email);
         setIsSuccess(true);
       } else {
-        setError(result.error || 'Invio email di reset fallito');
+        setSubmitError(result.error || 'Invio email di reset fallito');
       }
     } catch (error) {
-      setError(error.message || 'Invio email di reset fallito. Riprova.');
-    } finally {
-      setIsSubmitting(false);
+      setSubmitError(error.message || 'Invio email di reset fallito. Riprova.');
     }
   };
 
@@ -56,7 +53,7 @@ function ForgotPasswordPage() {
         <div className="max-w-md w-full space-y-4">
           <div className="text-center">
             <h1 className="text-xl font-bold text-gray-900">Controlla la Tua Email</h1>
-                         <p className="mt-2 text-sm text-gray-600">Abbiamo inviato un link per il reset della password a {email}</p>
+                         <p className="mt-2 text-sm text-gray-600">Abbiamo inviato un link per il reset della password a {submittedEmail}</p>
           </div>
           
                         <div className="bg-green-50 border border-green-200 rounded-md p-1">
@@ -90,29 +87,33 @@ function ForgotPasswordPage() {
                        <p className="mt-2 text-sm text-gray-600">Inserisci la tua email per ricevere un link per il reset della password</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Indirizzo Email</Label>
             <Input
               type="email"
               id="email"
-              name="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              {...register('email')}
               placeholder="Inserisci la tua email"
+              className={errors.email ? 'border-red-500' : ''}
               disabled={isSubmitting}
               autoComplete="email"
             />
+            {errors.email?.message && (
+              <span className="error-message" style={{ color: 'red', fontSize: '12px', marginTop: '4px' }}>
+                {errors.email.message}
+              </span>
+            )}
           </div>
 
-          {error && (
+          {submitError && (
             <div className="bg-red-50 border border-red-200 rounded-md p-1">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <span className="text-red-400">●</span>
                 </div>
                 <div className="ml-3">
-                  <p className="text-xs text-red-800">{error}</p>
+                  <p className="text-xs text-red-800">{submitError}</p>
                 </div>
               </div>
             </div>

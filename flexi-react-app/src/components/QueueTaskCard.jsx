@@ -6,7 +6,7 @@ import { useSchedulerStore, useUIStore } from '../store';
 import { usePhase, useOrders } from '../hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
-import { normalizeOdpNumber } from '../utils';
+import { formatTaskInfoTooltip, normalizeOdpNumber } from '../utils';
 
 function QueueTaskCard({ task, index, machineId, enableReorder = true }) {
   const navigate = useNavigate();
@@ -311,17 +311,7 @@ function QueueTaskCard({ task, index, machineId, enableReorder = true }) {
             e.stopPropagation();
             e.preventDefault();
           }}
-          title={isPauseTask ? 
-            `Pausa di ${duration}h` :
-            `Codice Articolo: ${task.article_code || 'Non specificato'}
-Codice Articolo Esterno: ${task.external_article_code || 'Non specificato'}
-Nome Cliente: ${task.nome_cliente || 'Non specificato'}
-Data Consegna: ${task.delivery_date ? formatDeliveryDate(task.delivery_date) : 'Non impostata'}
-Quantità: ${task.quantity || 'Non specificata'}
-Note Libere: ${task.user_notes || 'Nessuna nota'}
-Note ASD: ${task.asd_notes || 'Nessuna nota'}
-Material Global: ${task.material_availability_global || 'N/A'}%`
-          }
+          title={isPauseTask ? `Pausa di ${duration}h` : formatTaskInfoTooltip(task)}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>

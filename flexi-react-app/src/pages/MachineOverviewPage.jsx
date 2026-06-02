@@ -1,11 +1,21 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../components/DataTable';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { useConfirmDelete } from '../hooks';
 import { useMachines, useOrders, useRemoveOrder } from '../hooks/useQueries';
-import { useMainStore, useSchedulerStore, useUIStore } from '../store';
-import { normalizeOdpNumber, showError, showSuccess } from '../utils';
-import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
+import { useMainStore, useSchedulerStore } from '../store';
+import {
+  deliveryDateColumn,
+  fixedNumberColumn,
+  formatTaskInfoTooltip,
+  normalizeOdpNumber,
+  odpColumn,
+  percentTextColumn,
+  scheduledTimeColumn,
+  showError,
+  showSuccess,
+  simpleColumn
+} from '../utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { arrayMove } from '@dnd-kit/sortable';
 import LoadingState from '../components/LoadingState';
@@ -17,8 +27,8 @@ function MachineOverviewPage() {
   const { data: machines = [], isLoading: machinesLoading } = useMachines();
   const { data: odpOrders = [] } = useOrders();
   const { isLoading: storeLoading } = useMainStore();
-  const { showConfirmDialog } = useUIStore();
   const removeOrderMutation = useRemoveOrder();
+  const confirmDelete = useConfirmDelete();
   const { reorderTaskInQueue } = useSchedulerStore();
   const queryClient = useQueryClient();
   const [reorderingId, setReorderingId] = useState(null);
@@ -51,19 +61,14 @@ function MachineOverviewPage() {
   };
 
   const handleDeleteOrder = async (orderToDelete) => {
-    showConfirmDialog(
-      'Elimina Ordine',
-        `Sei sicuro di voler eliminare "${normalizeOdpNumber(orderToDelete.odp_number)}"? Questa azione non può essere annullata.`,
-      async () => {
-        try {
-          await removeOrderMutation.mutateAsync(orderToDelete.id);
-          showSuccess(`Ordine "${normalizeOdpNumber(orderToDelete.odp_number)}" eliminato con successo`);
-        } catch (error) {
-          showError(error.message || 'Eliminazione ordine fallita');
-        }
-      },
-      'danger'
-    );
+    const displayOdp = normalizeOdpNumber(orderToDelete.odp_number);
+    confirmDelete({
+      title: 'Elimina Ordine',
+      message: `Sei sicuro di voler eliminare "${displayOdp}"? Questa azione non può essere annullata.`,
+      onConfirm: () => removeOrderMutation.mutateAsync(orderToDelete.id),
+      successMessage: `Ordine "${displayOdp}" eliminato con successo`,
+      errorMessage: 'Eliminazione ordine fallita'
+    });
   };
 
   const handleRowReorder = useCallback(async ({ oldIndex, newIndex, activeId }) => {
@@ -92,41 +97,19 @@ function MachineOverviewPage() {
 
   // Reuse columns from BacklogListPage but minimal set
   const columns = useMemo(() => [
-    { 
-      header: 'ODP', 
-      accessorKey: 'odp_number',
-      cell: ({ row }) => normalizeOdpNumber(row.original.odp_number)
-    },
-    { header: 'Codice Articolo', accessorKey: 'article_code' },
-    { header: 'Cliente', accessorKey: 'nome_cliente' },
-    { header: 'Quantità', accessorKey: 'quantity' },
-    { header: 'Quantità Completata', accessorKey: 'quantity_completed' },
-    { header: 'Passo Busta (mm)', accessorKey: 'bag_step' },
-    { header: 'Altezza Busta (mm)', accessorKey: 'bag_height' },
-    { 
-      header: 'Data Consegna', 
-      accessorKey: 'delivery_date',
-      cell: ({ row }) => row.original.delivery_date
-        ? formatDeliveryDate(row.original.delivery_date)
-        : 'Non impostata'
-    },
-    { header: '%ISP', accessorKey: 'material_availability_isp', cell: ({ row }) => row.original.material_availability_isp != null ? `${row.original.material_availability_isp}%` : 'N/A' },
-    { header: '%Mat. Globale', accessorKey: 'material_availability_global', cell: ({ row }) => row.original.material_availability_global != null ? `${row.original.material_availability_global}%` : 'N/A' },
-    { header: 'Durata (h)', accessorKey: 'duration', cell: ({ row }) => row.original.duration?.toFixed(1) || 'N/A' },
-    { 
-      header: 'Inizio Programmato', 
-      accessorKey: 'scheduled_start_time',
-      cell: ({ row }) => row.original.scheduled_start_time 
-        ? formatScheduledTime(row.original.scheduled_start_time)
-        : 'N/A'
-    },
-    { 
-      header: 'Fine Programmata', 
-      accessorKey: 'scheduled_end_time',
-      cell: ({ row }) => row.original.scheduled_end_time 
-        ? formatScheduledTime(row.original.scheduled_end_time)
-        : 'N/A'
-    },
+    odpColumn('ODP'),
+    simpleColumn('Codice Articolo', 'article_code'),
+    simpleColumn('Cliente', 'nome_cliente'),
+    simpleColumn('Quantità', 'quantity'),
+    simpleColumn('Quantità Completata', 'quantity_completed'),
+    simpleColumn('Passo Busta (mm)', 'bag_step'),
+    simpleColumn('Altezza Busta (mm)', 'bag_height'),
+    deliveryDateColumn('Data Consegna', 'delivery_date'),
+    percentTextColumn('%ISP', 'material_availability_isp'),
+    percentTextColumn('%Mat. Globale', 'material_availability_global'),
+    fixedNumberColumn('Durata (h)', 'duration', 1, 'N/A'),
+    scheduledTimeColumn('Inizio Programmato', 'scheduled_start_time', 'N/A'),
+    scheduledTimeColumn('Fine Programmata', 'scheduled_end_time', 'N/A'),
   ], []);
 
   const renderRowActions = useCallback((order) => {
@@ -138,14 +121,7 @@ function MachineOverviewPage() {
             e.stopPropagation();
             e.preventDefault();
           }}
-          title={`Codice Articolo: ${order.article_code || 'Non specificato'}
-Codice Articolo Esterno: ${order.external_article_code || 'Non specificato'}
-Nome Cliente: ${order.nome_cliente || 'Non specificato'}
-Data Consegna: ${order.delivery_date ? formatDeliveryDate(order.delivery_date) : 'Non impostata'}
-Quantità: ${order.quantity || 'Non specificata'}
-Note Libere: ${order.user_notes || 'Nessuna nota'}
-Note ASD: ${order.asd_notes || 'Nessuna nota'}
-Material Global: ${order.material_availability_global || 'N/A'}%`}
+          title={formatTaskInfoTooltip(order)}
         >
           i
         </button>
@@ -161,18 +137,18 @@ Material Global: ${order.material_availability_global || 'N/A'}%`}
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <h1 className="text-lg font-semibold">Panoramica Macchina</h1>
-        <Select value={selectedMachineId} onValueChange={setSelectedMachineId}>
-          <SelectTrigger className="w-64">
-            <SelectValue placeholder="Seleziona macchina..." />
-          </SelectTrigger>
-          <SelectContent>
-            {machines && Array.isArray(machines) ? machines.map(machine => (
-              <SelectItem key={machine.id} value={machine.id.toString()}>
-                {machine.machine_name}
-              </SelectItem>
-            )) : null}
-          </SelectContent>
-        </Select>
+        <select
+          value={selectedMachineId}
+          onChange={(event) => setSelectedMachineId(event.target.value)}
+          className="w-64 h-8 rounded border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        >
+          <option value="">Seleziona macchina...</option>
+          {machines && Array.isArray(machines) ? machines.map(machine => (
+            <option key={machine.id} value={machine.id.toString()}>
+              {machine.machine_name}
+            </option>
+          )) : null}
+        </select>
       </div>
 
       {selectedMachineId ? (

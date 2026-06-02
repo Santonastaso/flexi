@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { useValidation } from '../hooks';
-import { showValidationError, showError } from '../utils';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { SCHEMAS, showValidationError, showError } from '../utils';
 import {
   Input,
   Select,
@@ -46,6 +46,16 @@ import {
  * }
  */
 
+const getValidationMessages = (errors) => {
+  if (!errors || typeof errors !== 'object') return [];
+
+  return Object.entries(errors).flatMap(([key, error]) => {
+    if (!error || key === 'ref') return [];
+    if (typeof error.message === 'string') return [error.message];
+    return getValidationMessages(error);
+  });
+};
+
 function GenericForm({ 
   config, 
   initialData = {}, 
@@ -57,8 +67,6 @@ function GenericForm({
   customFieldRenderers = {},
   className = "p-1 bg-white rounded-lg shadow-sm border"
 }) {
-  const { validate } = useValidation();
-  
   // Create initial form data from config and provided data
   const initialFormData = useMemo(() => {
     const formData = {};
@@ -78,30 +86,29 @@ function GenericForm({
     return formData;
   }, [config, initialData]);
 
+  const validationSchema = config.validationSchema ? SCHEMAS[config.validationSchema] : null;
+  const resolver = useMemo(
+    () => validationSchema ? yupResolver(validationSchema) : undefined,
+    [validationSchema]
+  );
+
   const {
     register,
     handleSubmit,
-    formState: { isSubmitting },
+    formState: { errors, isSubmitting },
+    control,
     watch,
     setValue,
     getValues,
     reset
   } = useForm({
-    defaultValues: initialFormData
+    defaultValues: initialFormData,
+    resolver,
+    reValidateMode: 'onChange'
   });
 
   // Handle form submission with validation
   const handleFormSubmit = async (data) => {
-    // Validate data if validation schema is provided
-    if (config.validationSchema) {
-      const validation = validate(data, config.validationSchema);
-      
-      if (!validation.isValid) {
-        showValidationError(Object.values(validation.errors));
-        return;
-      }
-    }
-    
     // Call custom validation if provided
     if (config.customValidation) {
       const validation = config.customValidation(data);
@@ -122,9 +129,14 @@ function GenericForm({
     }
   };
 
+  const handleInvalidSubmit = (formErrors) => {
+    showValidationError(getValidationMessages(formErrors));
+  };
+
   // Render a single field based on its configuration
   const renderField = (field) => {
     const fieldValue = watch(field.name);
+    const fieldError = errors[field.name]?.message;
     
     // Check conditional rendering
     if (field.conditional && !field.conditional(fieldValue, watch, getValues)) {
@@ -135,19 +147,23 @@ function GenericForm({
     if (customFieldRenderers[field.type]) {
       return customFieldRenderers[field.type](field, {
         watch,
+        control,
         setValue,
         getValues,
         register,
         isSubmitting,
-        fieldValue
+        fieldError,
+        fieldValue,
+        errors
       });
     }
 
+    const inputClassName = `${field.className || ''} ${fieldError ? 'border-red-500' : ''}`.trim();
     const baseInputProps = {
       id: field.name,
       placeholder: field.placeholder,
       disabled: field.disabled || isSubmitting,
-      className: field.className || '',
+      className: inputClassName,
       ...register(field.name, field.validation || {})
     };
 
@@ -155,11 +171,11 @@ function GenericForm({
       case 'select':
         return (
           <Select 
-            onValueChange={(value) => setValue(field.name, value)} 
-            value={getValues(field.name) || ''}
+            onValueChange={(value) => setValue(field.name, value, { shouldDirty: true, shouldValidate: true })} 
+            value={fieldValue || ''}
             disabled={field.disabled || isSubmitting}
           >
-            <SelectTrigger>
+            <SelectTrigger className={fieldError ? 'border-red-500' : ''}>
               <SelectValue placeholder={field.placeholder || `Seleziona ${field.label.toLowerCase()}`} />
             </SelectTrigger>
             <SelectContent>
@@ -177,7 +193,7 @@ function GenericForm({
           <textarea
             {...baseInputProps}
             rows={field.rows || 3}
-            className={`w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-800 focus:border-transparent text-sm placeholder:text-muted-foreground ${field.className || ''}`}
+            className={`w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-800 focus:border-transparent text-sm placeholder:text-muted-foreground ${inputClassName}`}
           />
         );
 
@@ -194,9 +210,9 @@ function GenericForm({
                   onChange={(e) => {
                     const currentValues = getValues(field.name) || [];
                     if (e.target.checked) {
-                      setValue(field.name, [...currentValues, option.value].sort());
+                      setValue(field.name, [...currentValues, option.value].sort(), { shouldDirty: true, shouldValidate: true });
                     } else {
-                      setValue(field.name, currentValues.filter(v => v !== option.value));
+                      setValue(field.name, currentValues.filter(v => v !== option.value), { shouldDirty: true, shouldValidate: true });
                     }
                   }}
                   className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
@@ -250,6 +266,9 @@ function GenericForm({
               {field.helpText && (
                 <p className="text-xs text-gray-500">{field.helpText}</p>
               )}
+              {errors[field.name]?.message && (
+                <p className="text-xs text-red-600">{errors[field.name].message}</p>
+              )}
             </div>
           ))}
         </div>
@@ -267,7 +286,7 @@ function GenericForm({
 
   return (
     <div className={className}>
-      <form onSubmit={handleSubmit(handleFormSubmit)} noValidate className="space-y-2">
+      <form onSubmit={handleSubmit(handleFormSubmit, handleInvalidSubmit)} noValidate className="space-y-2">
         {config.sections.map(renderSection)}
         
         {/* Render custom sections */}

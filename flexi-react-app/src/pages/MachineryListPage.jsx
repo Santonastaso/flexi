@@ -3,35 +3,36 @@ import { Link, useNavigate } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 
 import { useUIStore } from '../store';
-import { useMachinesByWorkCenter, useRemoveMachine } from '../hooks';
-import { showError, showSuccess } from '../utils';
+import { useConfirmDelete, useMachinesByWorkCenter, useRemoveMachine } from '../hooks';
+import { simpleColumn } from '../utils';
 import { WORK_CENTERS } from '../constants';
 import LoadingState from '../components/LoadingState';
 
 function MachineryListPage() {
-  const { selectedWorkCenter, showConfirmDialog } = useUIStore();
+  const { selectedWorkCenter } = useUIStore();
   const navigate = useNavigate();
 
   // React Query hooks
   const { data: machines = [], isLoading, error } = useMachinesByWorkCenter(selectedWorkCenter);
   const removeMachineMutation = useRemoveMachine();
+  const confirmDelete = useConfirmDelete();
 
   const columns = useMemo(() => [
     // Identificazione
-    { header: 'Nome Macchina', accessorKey: 'machine_name' },
-    { header: 'Centro di Lavoro', accessorKey: 'work_center' },
-    { header: 'Reparto', accessorKey: 'department' },
-    { header: 'Stato', accessorKey: 'status' },
+    simpleColumn('Nome Macchina', 'machine_name'),
+    simpleColumn('Centro di Lavoro', 'work_center'),
+    simpleColumn('Reparto', 'department'),
+    simpleColumn('Stato', 'status'),
     // Capacità Tecniche
-    { header: 'Larghezza Min (mm)', accessorKey: 'min_web_width' },
-    { header: 'Larghezza Max (mm)', accessorKey: 'max_web_width' },
-    { header: 'Altezza Min (mm)', accessorKey: 'min_bag_height' },
-    { header: 'Altezza Max (mm)', accessorKey: 'max_bag_height' },
+    simpleColumn('Larghezza Min (mm)', 'min_web_width'),
+    simpleColumn('Larghezza Max (mm)', 'max_web_width'),
+    simpleColumn('Altezza Min (mm)', 'min_bag_height'),
+    simpleColumn('Altezza Max (mm)', 'max_bag_height'),
     // Performance
-    { header: 'Velocità Std', accessorKey: 'standard_speed' },
-    { header: 'Setup (h)', accessorKey: 'setup_time_standard' },
-    { header: 'Cambio Colore (h)', accessorKey: 'changeover_color' },
-    { header: 'Cambio Materiale (h)', accessorKey: 'changeover_material' },
+    simpleColumn('Velocità Std', 'standard_speed'),
+    simpleColumn('Setup (h)', 'setup_time_standard'),
+    simpleColumn('Cambio Colore (h)', 'changeover_color'),
+    simpleColumn('Cambio Materiale (h)', 'changeover_material'),
     // Disponibilità
     { 
       header: 'Turni Attivi', 
@@ -58,19 +59,13 @@ function MachineryListPage() {
   };
 
   const handleDeleteMachine = async (machineToDelete) => {
-    showConfirmDialog(
-      'Elimina Macchina',
-      `Sei sicuro di voler eliminare "${machineToDelete.machine_name}"? Questa azione non può essere annullata.`,
-      async () => {
-        try {
-          await removeMachineMutation.mutateAsync(machineToDelete.id);
-          showSuccess(`Macchina "${machineToDelete.machine_name}" eliminata con successo`);
-        } catch (error) {
-          showError(error.message || 'Eliminazione macchina fallita');
-        }
-      },
-      'danger'
-    );
+    confirmDelete({
+      title: 'Elimina Macchina',
+      message: `Sei sicuro di voler eliminare "${machineToDelete.machine_name}"? Questa azione non può essere annullata.`,
+      onConfirm: () => removeMachineMutation.mutateAsync(machineToDelete.id),
+      successMessage: `Macchina "${machineToDelete.machine_name}" eliminata con successo`,
+      errorMessage: 'Eliminazione macchina fallita'
+    });
   };
 
   // Show error if query failed

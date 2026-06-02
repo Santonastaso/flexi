@@ -196,35 +196,24 @@ export const offTimeSchema = yup.object({
 
 // ===== AUTH SCHEMAS =====
 export const loginSchema = yup.object({
-  email: requiredString.email('Please enter a valid email address'),
-  password: requiredString.min(6, 'Password must be at least 6 characters')
+  email: yup.string().required('Email richiesta').email('Inserisci un indirizzo email valido'),
+  password: yup.string().required('Password richiesta').min(6, 'La password deve essere di almeno 6 caratteri'),
+  workCenter: yup.string().required('Centro di lavoro richiesto').oneOf(['ZANICA', 'BUSTO_GAROLFO', 'BOTH'], 'Centro di lavoro richiesto')
 });
 
 export const signupSchema = yup.object({
-  email: requiredString.email('Please enter a valid email address'),
-  password: requiredString.min(6, 'Password must be at least 6 characters'),
-  confirmPassword: yup.string().required('Please confirm your password')
-}).test('passwords-match', 'Passwords must match', function(value) {
-  return value.password === value.confirmPassword;
+  firstName: yup.string().required('Nome richiesto'),
+  lastName: yup.string().required('Cognome richiesto'),
+  email: yup.string().required('Email richiesta').email('Inserisci un indirizzo email valido'),
+  password: yup.string().required('Password richiesta').min(6, 'La password deve essere di almeno 6 caratteri'),
+  confirmPassword: yup.string()
+    .required('Conferma la tua password')
+    .oneOf([yup.ref('password')], 'Le password non coincidono')
 });
 
 export const forgotPasswordSchema = yup.object({
-  email: requiredString.email('Please enter a valid email address')
+  email: yup.string().required('Inserisci il tuo indirizzo email').email('Inserisci un indirizzo email valido')
 });
-
-// ===== VALIDATION FUNCTION =====
-export const validateData = (data, schema) => {
-  try {
-    schema.validateSync(data, { abortEarly: false });
-    return { isValid: true, errors: {} };
-  } catch (validationError) {
-    const errors = {};
-    validationError.inner.forEach((error) => {
-      errors[error.path] = error.message;
-    });
-    return { isValid: false, errors };
-  }
-};
 
 // ===== SCHEMA MAP =====
 export const SCHEMAS = {

@@ -1,20 +1,18 @@
 import React, { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from './ui/table';
 import { useUIStore } from '../store';
-import { useOrders, useRemoveOrder } from '../hooks';
-import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
-import { normalizeOdpNumber } from '../utils';
+import { useConfirmDelete, useOrders, useRemoveOrder } from '../hooks';
+import {
+  materialBadgeColumn,
+  formatTaskInfoTooltip,
+  normalizeOdpNumber,
+  odpColumn,
+  simpleColumn,
+  truncatedTextColumn,
+  truthyFixedNumberColumn
+} from '../utils';
 import DataTable from './DataTable';
-import { showSuccess, showError } from '../utils/toast';
 
 // Gantt Actions Cell Component
 const GanttActionsCell = ({ task, schedulingLoading }) => {
@@ -45,16 +43,10 @@ const GanttActionsCell = ({ task, schedulingLoading }) => {
           e.stopPropagation();
           e.preventDefault();
         }}
-        title={`Codice Articolo: ${task.article_code || 'Non specificato'}
-Codice Articolo Esterno: ${task.external_article_code || 'Non specificato'}
-Nome Cliente: ${task.nome_cliente || 'Non specificato'}
-Data Consegna: ${task.delivery_date ? formatDeliveryDate(task.delivery_date) : 'Non impostata'}
-Quantità: ${task.quantity || 'Non specificata'}
-Note Libere: ${task.user_notes || 'Nessuna nota'}
-Note ASD: ${task.asd_notes || 'Nessuna nota'}
-Material Global: ${task.material_availability_global || 'N/A'}%
-${task.scheduled_start_time ? `Inizio Programmato: ${formatScheduledTime(task.scheduled_start_time)}` : 'Non programmato'}
-${task.scheduled_end_time ? `Fine Programmata: ${formatScheduledTime(task.scheduled_end_time)}` : 'Non programmato'}`}
+        title={formatTaskInfoTooltip(task, {
+          includeScheduledStart: true,
+          includeScheduledEnd: true
+        })}
       >
         i
       </button>
@@ -111,7 +103,7 @@ ${task.scheduled_end_time ? `Fine Programmata: ${formatScheduledTime(task.schedu
 // Main Task Pool Data Table Component
 function TaskPoolDataTable({ filterByCost = true }) {
   const navigate = useNavigate();
-  const { selectedWorkCenter, schedulingLoading, showConfirmDialog } = useUIStore();
+  const { selectedWorkCenter, schedulingLoading } = useUIStore();
   const { setNodeRef } = useDroppable({
     id: 'task-pool',
     data: { type: 'pool' },
@@ -120,6 +112,7 @@ function TaskPoolDataTable({ filterByCost = true }) {
   // Use React Query to fetch orders data
   const { data: queryTasks = [], isLoading, error, refetch } = useOrders();
   const removeOrderMutation = useRemoveOrder();
+  const confirmDelete = useConfirmDelete();
 
   // Refetch data when returning from edit page (window focus)
   useEffect(() => {
@@ -155,106 +148,19 @@ function TaskPoolDataTable({ filterByCost = true }) {
 
   // Define columns for the DataTable
   const columns = useMemo(() => [
-    {
-      header: 'ODP',
-      accessorKey: 'odp_number',
-      cell: ({ row }) => normalizeOdpNumber(row.original.odp_number),
-    },
-    {
-      header: 'Codice Articolo',
-      accessorKey: 'article_code',
-    },
-    {
-      header: 'Nome Cliente',
-      accessorKey: 'nome_cliente',
-    },
-    {
-      header: 'Quantità',
-      accessorKey: 'quantity',
-    },
-    {
-      header: 'Quantità Completata',
-      accessorKey: 'quantity_completed',
-    },
-    {
-      header: 'Altezza Busta (mm)',
-      accessorKey: 'bag_height',
-    },
-    {
-      header: 'Passo Busta (mm)',
-      accessorKey: 'bag_step',
-    },
-    {
-      header: 'Durata (h)',
-      accessorKey: 'duration',
-      cell: ({ row }) => {
-        const duration = row.original.duration;
-        return duration ? Number(duration).toFixed(1) : 'N/A';
-      },
-    },
-    {
-      header: 'Costo (€)',
-      accessorKey: 'cost',
-      cell: ({ row }) => {
-        const cost = row.original.cost;
-        return cost ? Number(cost).toFixed(2) : 'N/A';
-      },
-    },
-    {
-      header: 'Material ISP (%)',
-      accessorKey: 'material_availability_isp',
-      cell: ({ row }) => {
-        const value = row.original.material_availability_isp;
-        if (typeof value !== 'number') return value || 'N/A';
-        const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
-        return (
-          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[11px] font-medium`}>
-            {value}
-          </div>
-        );
-      },
-    },
-    {
-      header: 'Material Lotti (%)',
-      accessorKey: 'material_availability_lotti',
-      cell: ({ row }) => {
-        const value = row.original.material_availability_lotti;
-        if (typeof value !== 'number') return value || 'N/A';
-        const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
-        return (
-          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[11px] font-medium`}>
-            {value}
-          </div>
-        );
-      },
-    },
-    {
-      header: 'Material Global (%)',
-      accessorKey: 'material_availability_global',
-      cell: ({ row }) => {
-        const value = row.original.material_availability_global;
-        if (typeof value !== 'number') return value || 'N/A';
-        const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
-        return (
-          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[11px] font-medium`}>
-            {value}
-          </div>
-        );
-      },
-    },
-    {
-      header: 'Note ASD',
-      accessorKey: 'asd_notes',
-      cell: ({ row }) => {
-        const value = row.original.asd_notes;
-        if (!value) return 'N/A';
-        return (
-          <div className="max-w-[200px] truncate text-xs" title={value}>
-            {value}
-          </div>
-        );
-      },
-    },
+    odpColumn('ODP'),
+    simpleColumn('Codice Articolo', 'article_code'),
+    simpleColumn('Nome Cliente', 'nome_cliente'),
+    simpleColumn('Quantità', 'quantity'),
+    simpleColumn('Quantità Completata', 'quantity_completed'),
+    simpleColumn('Altezza Busta (mm)', 'bag_height'),
+    simpleColumn('Passo Busta (mm)', 'bag_step'),
+    truthyFixedNumberColumn('Durata (h)', 'duration'),
+    truthyFixedNumberColumn('Costo (€)', 'cost', 2),
+    materialBadgeColumn('Material ISP (%)', 'material_availability_isp'),
+    materialBadgeColumn('Material Lotti (%)', 'material_availability_lotti'),
+    materialBadgeColumn('Material Global (%)', 'material_availability_global'),
+    truncatedTextColumn('Note ASD', 'asd_notes'),
     {
       header: 'Gantt',
       id: 'gantt_actions',
@@ -279,19 +185,13 @@ function TaskPoolDataTable({ filterByCost = true }) {
 
   const handleDeleteRow = async (taskToDelete) => {
     const displayOdp = normalizeOdpNumber(taskToDelete.odp_number);
-    showConfirmDialog(
-      'Elimina Ordine',
-      `Sei sicuro di voler eliminare "${displayOdp}"? Questa azione non può essere annullata.`,
-      async () => {
-        try {
-          await removeOrderMutation.mutateAsync(taskToDelete.id);
-          showSuccess(`Ordine "${displayOdp}" eliminato con successo`);
-        } catch (error) {
-          showError(error.message || 'Eliminazione ordine fallita');
-        }
-      },
-      'danger'
-    );
+    confirmDelete({
+      title: 'Elimina Ordine',
+      message: `Sei sicuro di voler eliminare "${displayOdp}"? Questa azione non può essere annullata.`,
+      onConfirm: () => removeOrderMutation.mutateAsync(taskToDelete.id),
+      successMessage: `Ordine "${displayOdp}" eliminato con successo`,
+      errorMessage: 'Eliminazione ordine fallita'
+    });
   };
 
   return (

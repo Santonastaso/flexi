@@ -3,7 +3,7 @@ import { addDays } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { handleApiError, AppError, ERROR_TYPES } from '../../utils/errorHandling';
 import { useUIStore } from '../useUIStore';
-import { convertCETHourToUTC } from '../../utils/dateFormatting';
+import { convertCETHourToUTC, ITALY_TIMEZONE } from '../../utils/dateFormatting';
 
 /**
  * Machine Availability Manager
@@ -81,8 +81,8 @@ export class MachineAvailabilityManager {
   // Load machine availability for a date range
   loadMachineAvailabilityForDateRange = async (machineId, startDate, endDate) => {
     // Convert Date objects to date strings using UTC consistently
-    const startDateStr = startDate instanceof Date ? formatInTimeZone(startDate, 'Europe/Rome', 'yyyy-MM-dd') : startDate;
-    const endDateStr = endDate instanceof Date ? formatInTimeZone(endDate, 'Europe/Rome', 'yyyy-MM-dd') : endDate;
+    const startDateStr = startDate instanceof Date ? formatInTimeZone(startDate, ITALY_TIMEZONE, 'yyyy-MM-dd') : startDate;
+    const endDateStr = endDate instanceof Date ? formatInTimeZone(endDate, ITALY_TIMEZONE, 'yyyy-MM-dd') : endDate;
 
     const data = await apiService.getMachineAvailabilityForDateRange(machineId, startDateStr, endDateStr);
 
@@ -183,7 +183,7 @@ export class MachineAvailabilityManager {
 
       let current = new Date(startDate);
       while (current <= endDate) {
-        const dateStr = formatInTimeZone(current, 'Europe/Rome', 'yyyy-MM-dd');
+        const dateStr = formatInTimeZone(current, ITALY_TIMEZONE, 'yyyy-MM-dd');
         const existing = this.get().machineAvailability[dateStr];
         if (!existing) {
           await this.loadMachineAvailabilityForDate(dateStr);

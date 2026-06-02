@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { usePhases } from './useQueries';
+import { valueOrDefault } from '../utils';
 
 export const usePhaseSearch = (department, workCenter, initialPhaseId = null) => {
   const { data: phases = [] } = usePhases();
@@ -37,12 +38,12 @@ export const usePhaseSearch = (department, workCenter, initialPhaseId = null) =>
         setPhaseSearch(phase.name);
         // Initialize editable phase parameters with current phase values
         setEditablePhaseParams({
-          v_stampa: phase.v_stampa || null,
-          t_setup_stampa: phase.t_setup_stampa || null,
-          costo_h_stampa: phase.costo_h_stampa || null,
-          v_conf: phase.v_conf || null,
-          t_setup_conf: phase.t_setup_conf || null,
-          costo_h_conf: phase.costo_h_conf || null,
+          v_stampa: valueOrDefault(phase.v_stampa, null),
+          t_setup_stampa: valueOrDefault(phase.t_setup_stampa, null),
+          costo_h_stampa: valueOrDefault(phase.costo_h_stampa, null),
+          v_conf: valueOrDefault(phase.v_conf, null),
+          t_setup_conf: valueOrDefault(phase.t_setup_conf, null),
+          costo_h_conf: valueOrDefault(phase.costo_h_conf, null),
         });
       }
     }
@@ -74,12 +75,12 @@ export const usePhaseSearch = (department, workCenter, initialPhaseId = null) =>
     
     // Initialize editable phase parameters with current phase values
     setEditablePhaseParams({
-      v_stampa: phase.v_stampa || null,
-      t_setup_stampa: phase.t_setup_stampa || null,
-      costo_h_stampa: phase.costo_h_stampa || null,
-      v_conf: phase.v_conf || null,
-      t_setup_conf: phase.t_setup_conf || null,
-      costo_h_conf: phase.costo_h_conf || null,
+      v_stampa: valueOrDefault(phase.v_stampa, null),
+      t_setup_stampa: valueOrDefault(phase.t_setup_stampa, null),
+      costo_h_stampa: valueOrDefault(phase.costo_h_stampa, null),
+      v_conf: valueOrDefault(phase.v_conf, null),
+      t_setup_conf: valueOrDefault(phase.t_setup_conf, null),
+      costo_h_conf: valueOrDefault(phase.costo_h_conf, null),
     });
   }, []);
 

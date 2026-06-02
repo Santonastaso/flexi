@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useUIStore, useSchedulerStore } from '../store';
-import { useProductionCalculations, useValidation, useAddOrder, useUpdateOrder, useSiteEfficiency } from '../hooks';
+import { useProductionCalculations, useAddOrder, useUpdateOrder, useSiteEfficiency } from '../hooks';
 import { usePhaseSearch } from '../hooks/usePhaseSearch';
-import { showValidationError, showSuccess, showWarning } from '../utils';
+import { cloneFormConfig, showValidationError, showSuccess, showWarning, valueOrDefault } from '../utils';
 import { DEPARTMENT_TYPES, WORK_CENTERS, DEFAULT_VALUES, TASK_STATUSES } from '../constants';
 import { backlogFormConfig } from './formConfigs';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -14,25 +14,39 @@ import {
   Label,
 } from './ui';
 import { useQueryClient } from '@tanstack/react-query';
+import { useWatch } from 'react-hook-form';
 
 const PhaseSearchField = ({
-  field, watch, setValue, register,
-  department, setDepartment, workCenter, setWorkCenter,
-  quantity, setQuantity, bagStep, setBagStep,
+  field, control, setValue, register, setPhaseInputs,
   phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible,
   filteredPhases, handleBlur, handlePhaseSelect, setCalculationResults,
 }) => {
-  const currentDepartment = watch('department');
-  const currentWorkCenter = watch('work_center');
-  const currentQuantity = watch('quantity');
-  const currentBagStep = watch('bag_step');
+  const [currentDepartment, currentWorkCenter, currentQuantity, currentBagStep] = useWatch({
+    control,
+    name: ['department', 'work_center', 'quantity', 'bag_step']
+  });
 
   useEffect(() => {
-    if (currentDepartment !== department) setDepartment(currentDepartment);
-    if (currentWorkCenter !== workCenter) setWorkCenter(currentWorkCenter);
-    if (currentQuantity !== quantity) setQuantity(currentQuantity);
-    if (currentBagStep !== bagStep) setBagStep(currentBagStep);
-  }, [currentDepartment, currentWorkCenter, currentQuantity, currentBagStep, department, workCenter, quantity, bagStep, setDepartment, setWorkCenter, setQuantity, setBagStep]);
+    setPhaseInputs(prev => {
+      const next = {
+        department: currentDepartment,
+        workCenter: currentWorkCenter,
+        quantity: currentQuantity,
+        bagStep: currentBagStep
+      };
+
+      if (
+        prev.department === next.department &&
+        prev.workCenter === next.workCenter &&
+        prev.quantity === next.quantity &&
+        prev.bagStep === next.bagStep
+      ) {
+        return prev;
+      }
+
+      return next;
+    });
+  }, [currentDepartment, currentWorkCenter, currentQuantity, currentBagStep, setPhaseInputs]);
 
   return (
     <div className="relative">
@@ -70,7 +84,6 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   const { selectedWorkCenter } = useUIStore();
   const { getQueueForMachine, rescheduleQueueFromTask } = useSchedulerStore();
   const { calculateProductionMetrics, validatePhaseParameters, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
-  const { validateOrder } = useValidation();
   const { data: siteEfficiencyMap = {} } = useSiteEfficiency();
   
   // React Query mutations
@@ -85,7 +98,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
   
   // Create dynamic config based on selected work center
   const dynamicConfig = useMemo(() => {
-    const config = { ...backlogFormConfig };
+    const config = cloneFormConfig(backlogFormConfig);
     
     // Update work center field based on selected work center
     if (selectedWorkCenter !== WORK_CENTERS.BOTH) {
@@ -102,48 +115,50 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
 
   const initialData = useMemo(() => ({
     // Required fields
-    odp_number: orderToEdit?.odp_number || '', 
-    article_code: orderToEdit?.article_code || '', 
-    work_center: orderToEdit?.work_center || (selectedWorkCenter === WORK_CENTERS.BOTH ? '' : selectedWorkCenter),
-    nome_cliente: orderToEdit?.nome_cliente || '', 
+    odp_number: valueOrDefault(orderToEdit?.odp_number, ''), 
+    article_code: valueOrDefault(orderToEdit?.article_code, ''), 
+    work_center: valueOrDefault(orderToEdit?.work_center, selectedWorkCenter === WORK_CENTERS.BOTH ? '' : selectedWorkCenter),
+    nome_cliente: valueOrDefault(orderToEdit?.nome_cliente, ''), 
     delivery_date: orderToEdit?.delivery_date ? formatInTimeZone(new Date(orderToEdit.delivery_date), ITALY_TIMEZONE, "yyyy-MM-dd'T'HH:mm") : '', 
-    quantity: orderToEdit?.quantity || '', 
-    customer_order_ref: orderToEdit?.customer_order_ref || '', 
-    department: orderToEdit?.department || '', 
-    quantity_completed: orderToEdit?.quantity_completed || DEFAULT_VALUES.ORDER.QUANTITY_COMPLETED,
+    quantity: valueOrDefault(orderToEdit?.quantity, ''), 
+    customer_order_ref: valueOrDefault(orderToEdit?.customer_order_ref, ''), 
+    department: valueOrDefault(orderToEdit?.department, ''), 
+    quantity_completed: valueOrDefault(orderToEdit?.quantity_completed, DEFAULT_VALUES.ORDER.QUANTITY_COMPLETED),
     
     // Optional fields (can be null)
-    production_lot: orderToEdit?.production_lot || null,
-    bag_height: orderToEdit?.bag_height || null,
-    bag_width: orderToEdit?.bag_width || null, 
-    bag_step: orderToEdit?.bag_step || null, 
-    seal_sides: orderToEdit?.seal_sides || null, 
-    product_type: orderToEdit?.product_type || null,
-    internal_customer_code: orderToEdit?.internal_customer_code || null, 
-    external_customer_code: orderToEdit?.external_customer_code || null,
-    user_notes: orderToEdit?.user_notes || null,
-    asd_notes: orderToEdit?.asd_notes || null,
-    material_availability_global: orderToEdit?.material_availability_global || null,
-    fase: orderToEdit?.fase || null,
+    production_lot: valueOrDefault(orderToEdit?.production_lot, null),
+    bag_height: valueOrDefault(orderToEdit?.bag_height, null),
+    bag_width: valueOrDefault(orderToEdit?.bag_width, null), 
+    bag_step: valueOrDefault(orderToEdit?.bag_step, null), 
+    seal_sides: valueOrDefault(orderToEdit?.seal_sides, null), 
+    product_type: valueOrDefault(orderToEdit?.product_type, null),
+    internal_customer_code: valueOrDefault(orderToEdit?.internal_customer_code, null), 
+    external_customer_code: valueOrDefault(orderToEdit?.external_customer_code, null),
+    user_notes: valueOrDefault(orderToEdit?.user_notes, null),
+    asd_notes: valueOrDefault(orderToEdit?.asd_notes, null),
+    material_availability_global: valueOrDefault(orderToEdit?.material_availability_global, null),
+    fase: valueOrDefault(orderToEdit?.fase, null),
   }), [selectedWorkCenter, orderToEdit]);
 
-  const [department, setDepartment] = useState(initialData.department);
-  const [workCenter, setWorkCenter] = useState(initialData.work_center);
-  const [quantity, setQuantity] = useState(initialData.quantity);
-  const [bagStep, setBagStep] = useState(initialData.bag_step);
+  const [phaseInputs, setPhaseInputs] = useState(() => ({
+    department: initialData.department,
+    workCenter: initialData.work_center,
+    quantity: initialData.quantity,
+    bagStep: initialData.bag_step
+  }));
 
   // Initialize efficiency from DB when work center changes
   useEffect(() => {
-    if (workCenter && siteEfficiencyMap[workCenter] != null) {
-      setEfficiency(siteEfficiencyMap[workCenter]);
-    } else if (workCenter) {
+    if (phaseInputs.workCenter && siteEfficiencyMap[phaseInputs.workCenter] != null) {
+      setEfficiency(siteEfficiencyMap[phaseInputs.workCenter]);
+    } else if (phaseInputs.workCenter) {
       setEfficiency(0.80);
     }
-  }, [workCenter, siteEfficiencyMap]);
+  }, [phaseInputs.workCenter, siteEfficiencyMap]);
 
   const { phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, selectedPhase, setSelectedPhase, filteredPhases, editablePhaseParams, setEditablePhaseParams, handlePhaseParamChange, handlePhaseSelect, handleBlur } = usePhaseSearch(
-    department, 
-    workCenter,
+    phaseInputs.department, 
+    phaseInputs.workCenter,
     isEditMode ? orderToEdit?.fase : null
   );
 
@@ -153,55 +168,23 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     setEditablePhaseParams({});
     setCalculationResults(null);
     setAdditionalHours(0);
-    setEfficiency(siteEfficiencyMap[workCenter] ?? 0.80);
-  }, [setPhaseSearch, setSelectedPhase, setEditablePhaseParams, siteEfficiencyMap, workCenter]);
+    setEfficiency(siteEfficiencyMap[phaseInputs.workCenter] ?? 0.80);
+  }, [setPhaseSearch, setSelectedPhase, setEditablePhaseParams, siteEfficiencyMap, phaseInputs.workCenter]);
 
   // Handle article code changes to auto-determine department and work center
   const handleArticleCodeChange = useCallback((articleCode, setValue) => {
     if (articleCode) {
       const dept = autoDetermineDepartment(articleCode);
       setValue('department', dept);
-      setDepartment(dept);
       
       const wc = autoDetermineWorkCenter(articleCode);
       setValue('work_center', wc);
-      setWorkCenter(wc);
+      setPhaseInputs(prev => ({ ...prev, department: dept, workCenter: wc }));
     }
   }, [autoDetermineDepartment, autoDetermineWorkCenter]);
 
   const handleSubmit = async (data) => {
     const phaseIdForSave = selectedPhase?.id || data.fase || null;
-    const validation = validateOrder(data);
-    
-    if (!validation.isValid) {
-      // Show validation errors with better formatting
-      const errorMessages = Object.entries(validation.errors).map(([field, message]) => {
-        // Map field names to user-friendly labels
-        const fieldLabels = {
-          'odp_number': 'Numero ODP',
-          'article_code': 'Codice Articolo',
-          'work_center': 'Centro di Lavoro',
-          'nome_cliente': 'Nome Cliente',
-          'quantity': 'Quantità',
-          'delivery_date': 'Data di Consegna',
-          'customer_order_ref': 'Riferimento Ordine Cliente',
-          'department': 'Reparto',
-          'bag_height': 'Altezza Busta',
-          'bag_width': 'Larghezza Busta',
-          'bag_step': 'Passo Busta',
-          'seal_sides': 'Lati Sigillatura',
-          'product_type': 'Linea di Produzione',
-          'internal_customer_code': 'Codice Cliente Interno',
-          'external_customer_code': 'Codice Cliente Esterno'
-        };
-        
-        const fieldLabel = fieldLabels[field] || field;
-        return `${fieldLabel}: ${message}`;
-      });
-      
-      showValidationError(errorMessages);
-      return;
-    }
     
     // Optional: Only require calculation results if phase is provided
     // For STAMPA phases, also require bag_step; for CONFEZIONAMENTO, only fase is needed
@@ -296,8 +279,6 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
 
       // Invalidate React Query cache
       queryClient.invalidateQueries({ queryKey: ['orders'] });
-      
-      if (onSuccess) onSuccess();
       resetFormAndPhaseState();
     } catch (error) {
       console.error('Error saving order:', error);
@@ -313,12 +294,12 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     }
     
     // Validate required fields based on department
-    if (!quantity) {
+    if (!phaseInputs.quantity) {
       showWarning("Inserisci la quantità per calcolare.");
       return;
     }
     
-    if (selectedPhase.department === DEPARTMENT_TYPES.PRINTING && !bagStep) {
+    if (selectedPhase.department === DEPARTMENT_TYPES.PRINTING && !phaseInputs.bagStep) {
       showWarning("Inserisci il passo busta per calcolare la stampa.");
       return;
     }
@@ -333,13 +314,13 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     
     try {
       const effValue = parseFloat(efficiency) || 0.80;
-      const results = calculateProductionMetrics(phaseForCalculation, quantity, bagStep, effValue);
+      const results = calculateProductionMetrics(phaseForCalculation, phaseInputs.quantity, phaseInputs.bagStep, effValue);
       setCalculationResults(results);
       showSuccess("Calcolo completato con successo!");
     } catch {
       showWarning("Errore durante il calcolo delle metriche.");
     }
-  }, [selectedPhase, quantity, bagStep, editablePhaseParams, validatePhaseParameters, efficiency, calculateProductionMetrics]);
+  }, [selectedPhase, phaseInputs.quantity, phaseInputs.bagStep, editablePhaseParams, validatePhaseParameters, efficiency, calculateProductionMetrics]);
 
   const getPhaseFields = useCallback(() => {
     if (!selectedPhase) return [];
@@ -393,21 +374,14 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
     },
 
     // Phase search field -- delegates to PhaseSearchField component to avoid hooks-in-callback violation
-    phase_search: (field, { watch, setValue, register }) => {
+    phase_search: (field, { control, setValue, register }) => {
       return (
         <PhaseSearchField
           field={field}
-          watch={watch}
+          control={control}
           setValue={setValue}
           register={register}
-          department={department}
-          setDepartment={setDepartment}
-          workCenter={workCenter}
-          setWorkCenter={setWorkCenter}
-          quantity={quantity}
-          setQuantity={setQuantity}
-          bagStep={bagStep}
-          setBagStep={setBagStep}
+          setPhaseInputs={setPhaseInputs}
           phaseSearch={phaseSearch}
           setPhaseSearch={setPhaseSearch}
           isDropdownVisible={isDropdownVisible}
@@ -515,7 +489,7 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         </div>
       );
     }
-  }), [phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, filteredPhases, handleBlur, handlePhaseSelect, selectedPhase, getPhaseParamValue, handlePhaseParamChange, getPhaseFields, calculationResults, additionalHours, handleArticleCodeChange, department, workCenter, quantity, bagStep, efficiency]);
+  }), [phaseSearch, setPhaseSearch, isDropdownVisible, setIsDropdownVisible, filteredPhases, handleBlur, handlePhaseSelect, selectedPhase, getPhaseParamValue, handlePhaseParamChange, getPhaseFields, calculationResults, additionalHours, handleArticleCodeChange, efficiency]);
 
   // Custom actions (Calculate button)
   const customActions = useMemo(() => (

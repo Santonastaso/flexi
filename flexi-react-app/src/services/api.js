@@ -2,6 +2,7 @@ import { supabase, handleSupabaseError } from './supabase/client';
 import { AppError, ERROR_TYPES } from '../utils/errorHandling';
 import { addDays } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+import { ITALY_TIMEZONE } from '../utils/dateFormatting';
 
 class ApiService {
   async init() {
@@ -315,7 +316,7 @@ class ApiService {
       const results = [];
       
       while (currentDate <= endDateObj) {
-        const dateStr = formatInTimeZone(currentDate, 'Europe/Rome', 'yyyy-MM-dd');
+        const dateStr = formatInTimeZone(currentDate, ITALY_TIMEZONE, 'yyyy-MM-dd');
         
         const currentData = await this.getMachineAvailabilityForDate(machineId, dateStr);
         const currentUnavailableHours = currentData?.unavailable_hours || [];

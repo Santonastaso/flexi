@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   removeOrder: vi.fn(),
   selectedWorkCenter: 'ZANICA',
   showConfirmDialog: vi.fn(),
+  confirmDelete: vi.fn(),
 }));
 
 vi.mock('../store', () => ({
@@ -54,12 +55,14 @@ vi.mock('../hooks', () => ({
     mutateAsync: mocks.removeOrder,
     isPending: false,
   }),
+  useConfirmDelete: () => mocks.confirmDelete,
 }));
 
 describe('BacklogListPage', () => {
   beforeEach(() => {
     mocks.selectedWorkCenter = WORK_CENTERS.ZANICA;
     mocks.showConfirmDialog.mockReset();
+    mocks.confirmDelete.mockReset();
   });
 
   it('renders backlog rows from mocked query data', () => {

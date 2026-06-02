@@ -3,7 +3,7 @@
  * Centralized export for all utility functions
  */
 
-export { validateData, SCHEMAS } from './yupSchemas';
+export { SCHEMAS } from './yupSchemas';
 export { 
   showValidationError, 
   showSuccess, 
@@ -25,6 +25,26 @@ export {
 export {
   getTaskSegments
 } from './taskSegments';
-export { normalizeOdpNumber } from './odpFormatting';
+export {
+  formatTaskInfoTooltip,
+  getExternalArticleCode,
+  normalizeOdpNumber
+} from './odpFormatting';
+export {
+  cloneFormConfig,
+  valueOrDefault
+} from './formConfig';
+export {
+  deliveryDateColumn,
+  fixedNumberColumn,
+  italyDateColumn,
+  materialBadgeColumn,
+  odpColumn,
+  percentTextColumn,
+  scheduledTimeColumn,
+  simpleColumn,
+  truthyFixedNumberColumn,
+  truncatedTextColumn
+} from './tableColumns.jsx';
 
 // Legacy validation utilities removed - all validation now handled by Yup schemas

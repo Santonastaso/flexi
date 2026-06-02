@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 
 import { useUIStore } from '../store';
-import { usePhases, useRemovePhase } from '../hooks';
-import { showError, showSuccess } from '../utils';
+import { useConfirmDelete, usePhases, useRemovePhase } from '../hooks';
+import { simpleColumn } from '../utils';
 import { WORK_CENTERS } from '../constants';
 import LoadingState from '../components/LoadingState';
 
@@ -13,9 +13,10 @@ function PhasesListPage() {
   // Use React Query for data fetching
   const { data: phases = [], isLoading: phasesLoading, error: phasesError } = usePhases();
   const removePhaseMutation = useRemovePhase();
+  const confirmDelete = useConfirmDelete();
   
   // Use Zustand store for client state
-  const { selectedWorkCenter, showConfirmDialog } = useUIStore();
+  const { selectedWorkCenter } = useUIStore();
   const navigate = useNavigate();
 
   // Filter phases by work center
@@ -27,19 +28,19 @@ function PhasesListPage() {
 
   const columns = useMemo(() => [
     // Identificazione
-    { header: 'Nome Fase', accessorKey: 'name' },
-    { header: 'Centro di Lavoro', accessorKey: 'work_center' },
-    { header: 'Reparto', accessorKey: 'department' },
+    simpleColumn('Nome Fase', 'name'),
+    simpleColumn('Centro di Lavoro', 'work_center'),
+    simpleColumn('Reparto', 'department'),
     // Capacità Tecniche
-    { header: 'Numero Persone', accessorKey: 'numero_persone' },
-    { header: 'V Stampa', accessorKey: 'v_stampa' },
-    { header: 'T Setup Stampa (h)', accessorKey: 't_setup_stampa' },
-    { header: 'Costo H Stampa', accessorKey: 'costo_h_stampa' },
-    { header: 'V Conf', accessorKey: 'v_conf' },
-    { header: 'T Setup Conf (h)', accessorKey: 't_setup_conf' },
-    { header: 'Costo H Conf', accessorKey: 'costo_h_conf' },
+    simpleColumn('Numero Persone', 'numero_persone'),
+    simpleColumn('V Stampa', 'v_stampa'),
+    simpleColumn('T Setup Stampa (h)', 't_setup_stampa'),
+    simpleColumn('Costo H Stampa', 'costo_h_stampa'),
+    simpleColumn('V Conf', 'v_conf'),
+    simpleColumn('T Setup Conf (h)', 't_setup_conf'),
+    simpleColumn('Costo H Conf', 'costo_h_conf'),
     // Contenuto
-    { header: 'Contenuto Fase', accessorKey: 'contenuto_fase' },
+    simpleColumn('Contenuto Fase', 'contenuto_fase'),
   ], []);
 
   const handleEditPhase = (phase) => {
@@ -47,19 +48,13 @@ function PhasesListPage() {
   };
 
   const handleDeletePhase = async (phaseToDelete) => {
-    showConfirmDialog(
-      'Elimina Fase',
-      `Sei sicuro di voler eliminare "${phaseToDelete.name}"? Questa azione non può essere annullata.`,
-      async () => {
-        try {
-          await removePhaseMutation.mutateAsync(phaseToDelete.id);
-          showSuccess(`Fase "${phaseToDelete.name}" eliminata con successo`);
-        } catch (error) {
-          showError(error.message || 'Errore durante l\'eliminazione della fase');
-        }
-      },
-      'danger'
-    );
+    confirmDelete({
+      title: 'Elimina Fase',
+      message: `Sei sicuro di voler eliminare "${phaseToDelete.name}"? Questa azione non può essere annullata.`,
+      onConfirm: () => removePhaseMutation.mutateAsync(phaseToDelete.id),
+      successMessage: `Fase "${phaseToDelete.name}" eliminata con successo`,
+      errorMessage: 'Errore durante l\'eliminazione della fase'
+    });
   };
 
   if (phasesLoading) {

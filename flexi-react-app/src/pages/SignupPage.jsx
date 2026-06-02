@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import { useAuth } from '../auth/useAuth';
+import { SCHEMAS } from '../utils';
 import {
   Button,
   Input,
@@ -12,94 +15,40 @@ import {
  * Provides signup form and handles user creation
  */
 function SignupPage() {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    firstName: '',
-    lastName: '',
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formErrors, setFormErrors] = useState({});
-
   const { signUp, error: authError } = useAuth();
   const navigate = useNavigate();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting }
+  } = useForm({
+    defaultValues: {
+      email: '',
+      password: '',
+      confirmPassword: '',
+      firstName: '',
+      lastName: ''
+    },
+    resolver: yupResolver(SCHEMAS.SIGNUP)
+  });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear field error when user starts typing
-    if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: '' }));
-    }
-  };
+  const onSubmit = async (formData) => {
+    const userData = {
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      full_name: `${formData.firstName} ${formData.lastName}`,
+    };
 
-  const validateForm = () => {
-    const errors = {};
-    
-    if (!formData.email.trim()) {
-      errors.email = 'Email richiesta';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Inserisci un indirizzo email valido';
-    }
-    
-    if (!formData.password) {
-      errors.password = 'Password richiesta';
-    } else if (formData.password.length < 6) {
-      errors.password = 'La password deve essere di almeno 6 caratteri';
-    }
-    
-    if (!formData.confirmPassword) {
-      errors.confirmPassword = 'Conferma la tua password';
-    } else if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = 'Le password non coincidono';
-    }
-    
-    if (!formData.firstName.trim()) {
-      errors.firstName = 'Nome richiesto';
-    }
-    
-    if (!formData.lastName.trim()) {
-      errors.lastName = 'Cognome richiesto';
-    }
-    
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    
-    try {
-      const userData = {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        full_name: `${formData.firstName} ${formData.lastName}`,
-      };
-
-      const result = await signUp(formData.email, formData.password, userData);
-      
-      if (result.success) {
-        navigate('/', { replace: true });
-      }
-    } catch {
-      // Error is already handled by AuthContext and displayed via authError
-    } finally {
-      setIsSubmitting(false);
+    const result = await signUp(formData.email, formData.password, userData);
+    if (result.success) {
+      navigate('/', { replace: true });
     }
   };
 
   const getFieldError = (fieldName) => {
-    return formErrors[fieldName] ? (
+    return errors[fieldName]?.message ? (
       <span className="error-message" style={{ color: 'red', fontSize: '12px', marginTop: '4px' }}>
-        {formErrors[fieldName]}
+        {errors[fieldName].message}
       </span>
     ) : null;
   };
@@ -112,7 +61,7 @@ function SignupPage() {
                        <p className="mt-2 text-sm text-gray-600">Registrati per iniziare con il tuo account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
           {/* Name Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <div className="space-y-2">
@@ -120,11 +69,9 @@ function SignupPage() {
               <Input
                 type="text"
                 id="firstName"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
+                {...register('firstName')}
                 placeholder="Inserisci il tuo nome"
-                className={formErrors.firstName ? 'border-red-500' : ''}
+                className={errors.firstName ? 'border-red-500' : ''}
                 disabled={isSubmitting}
                 autoComplete="given-name"
               />
@@ -136,11 +83,9 @@ function SignupPage() {
               <Input
                 type="text"
                 id="lastName"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
+                {...register('lastName')}
                 placeholder="Inserisci il tuo cognome"
-                className={formErrors.lastName ? 'border-red-500' : ''}
+                className={errors.lastName ? 'border-red-500' : ''}
                 disabled={isSubmitting}
                 autoComplete="family-name"
               />
@@ -154,11 +99,9 @@ function SignupPage() {
             <Input
               type="email"
               id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
+              {...register('email')}
               placeholder="Inserisci la tua email"
-              className={formErrors.email ? 'border-red-500' : ''}
+              className={errors.email ? 'border-red-500' : ''}
               disabled={isSubmitting}
               autoComplete="email"
             />
@@ -172,11 +115,9 @@ function SignupPage() {
               <Input
                 type="password"
                 id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
+                {...register('password')}
                 placeholder="Crea una password"
-                className={formErrors.password ? 'border-red-500' : ''}
+                className={errors.password ? 'border-red-500' : ''}
                 disabled={isSubmitting}
                 autoComplete="new-password"
               />
@@ -188,11 +129,9 @@ function SignupPage() {
               <Input
                 type="password"
                 id="confirmPassword"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
+                {...register('confirmPassword')}
                 placeholder="Conferma la tua password"
-                className={formErrors.confirmPassword ? 'border-red-500' : ''}
+                className={errors.confirmPassword ? 'border-red-500' : ''}
                 disabled={isSubmitting}
                 autoComplete="new-password"
               />

@@ -5,14 +5,25 @@ import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
 
 import { useUIStore } from '../store';
-import { useOrders, useMachines, usePhases, useRemoveOrder } from '../hooks';
-import { normalizeOdpNumber, showError, showSuccess } from '../utils';
+import { useConfirmDelete, useOrders, useMachines, usePhases, useRemoveOrder } from '../hooks';
+import {
+  fixedNumberColumn,
+  italyDateColumn,
+  materialBadgeColumn,
+  normalizeOdpNumber,
+  odpColumn,
+  percentTextColumn,
+  scheduledTimeColumn,
+  showError,
+  simpleColumn,
+  truncatedTextColumn
+} from '../utils';
 import { WORK_CENTERS } from '../constants';
-import { formatScheduledTime, formatInItalyTimezone } from '../utils/dateFormatting';
+import { formatInItalyTimezone } from '../utils/dateFormatting';
 import LoadingState from '../components/LoadingState';
 
 function BacklogListPage() {
-  const { selectedWorkCenter, showConfirmDialog } = useUIStore();
+  const { selectedWorkCenter } = useUIStore();
   const navigate = useNavigate();
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportStartDate, setExportStartDate] = useState('');
@@ -23,6 +34,7 @@ function BacklogListPage() {
   const { data: machines = [], isLoading: machinesLoading } = useMachines();
   const { data: phases = [], isLoading: phasesLoading } = usePhases();
   const removeOrderMutation = useRemoveOrder();
+  const confirmDelete = useConfirmDelete();
 
   // Filter orders by work center and join with machine and phase data
   const filteredOrders = useMemo(() => {
@@ -55,155 +67,51 @@ function BacklogListPage() {
 
   const columns = useMemo(() => [
     // Primary columns - most important first
-    { 
-      header: 'Numero ODP', 
-      accessorKey: 'odp_number',
-      cell: info => {
-        const status = info.row.original.status;
-        const value = info.getValue();
-        const isScheduled = status === 'SCHEDULED';
-        return (
-          <span className={isScheduled ? 'text-green-600 font-medium' : ''}>
-            {normalizeOdpNumber(value)}
-          </span>
-        );
-      }
-    },
-    { header: 'Codice Articolo', accessorKey: 'article_code' },
-    { 
-      header: 'Note ASD', 
-      accessorKey: 'asd_notes',
-      cell: info => {
-        const value = info.getValue();
-        if (!value) return 'N/A';
-        return (
-          <div className="max-w-[200px] truncate text-xs" title={value}>
-            {value}
-          </div>
-        );
-      }
-    },
-    { header: 'Nome Cliente', accessorKey: 'nome_cliente' },
-    { header: 'Quantità', accessorKey: 'quantity' },
-    { header: 'Quantità Completata', accessorKey: 'quantity_completed' },
-    { header: 'Altezza Busta (mm)', accessorKey: 'bag_height' },
-    { header: 'Larghezza Busta (mm)', accessorKey: 'bag_width' },
-    { header: 'Passo Busta (mm)', accessorKey: 'bag_step' },
+    odpColumn('Numero ODP', { highlightScheduled: true }),
+    simpleColumn('Codice Articolo', 'article_code'),
+    truncatedTextColumn('Note ASD', 'asd_notes'),
+    simpleColumn('Nome Cliente', 'nome_cliente'),
+    simpleColumn('Quantità', 'quantity'),
+    simpleColumn('Quantità Completata', 'quantity_completed'),
+    simpleColumn('Altezza Busta (mm)', 'bag_height'),
+    simpleColumn('Larghezza Busta (mm)', 'bag_width'),
+    simpleColumn('Passo Busta (mm)', 'bag_step'),
     
     // Secondary columns
-    { header: 'Lotto Produzione', accessorKey: 'production_lot' },
-    { header: 'Centro di Lavoro', accessorKey: 'work_center' },
-    { header: 'Reparto', accessorKey: 'department' },
-    { header: 'Lati Sigillati', accessorKey: 'seal_sides' },
-    { header: 'Linea di Produzione', accessorKey: 'product_type' },
+    simpleColumn('Lotto Produzione', 'production_lot'),
+    simpleColumn('Centro di Lavoro', 'work_center'),
+    simpleColumn('Reparto', 'department'),
+    simpleColumn('Lati Sigillati', 'seal_sides'),
+    simpleColumn('Linea di Produzione', 'product_type'),
     
     // Date e Tempi
-    { 
-      header: 'Data Consegna', 
-      accessorKey: 'delivery_date',
-              cell: info => info.getValue() ? formatInItalyTimezone(info.getValue(), 'dd/MM/yyyy') : 'Non impostata'
-    },
-    { 
-      header: 'Inizio Programmato', 
-      accessorKey: 'scheduled_start_time',
-      cell: info => info.getValue() ? formatScheduledTime(info.getValue()) : 'Non programmato'
-    },
-    { 
-      header: 'Fine Programmata', 
-      accessorKey: 'scheduled_end_time',
-      cell: info => info.getValue() ? formatScheduledTime(info.getValue()) : 'Non programmato'
-    },
+    italyDateColumn('Data Consegna', 'delivery_date'),
+    scheduledTimeColumn('Inizio Programmato', 'scheduled_start_time'),
+    scheduledTimeColumn('Fine Programmata', 'scheduled_end_time'),
     
     // Codici Cliente
-    { header: 'Codice Cliente Interno', accessorKey: 'internal_customer_code' },
-    { header: 'Codice Cliente Esterno', accessorKey: 'external_customer_code' },
-    { header: 'Riferimento Ordine Cliente', accessorKey: 'customer_order_ref' },
-    { header: 'Note Libere', accessorKey: 'user_notes' },
+    simpleColumn('Codice Cliente Interno', 'internal_customer_code'),
+    simpleColumn('Codice Cliente Esterno', 'external_customer_code'),
+    simpleColumn('Riferimento Ordine Cliente', 'customer_order_ref'),
+    simpleColumn('Note Libere', 'user_notes'),
     
     // Fase e Calcoli
-    { header: 'Nome Fase', accessorKey: 'phase_name' },
-    { 
-      header: 'Durata (ore)', 
-      accessorKey: 'duration', 
-      cell: info => {
-        const value = info.getValue();
-        return typeof value === 'number' ? value.toFixed(1) : value;
-      }
-    },
-    { 
-      header: 'Costo (€)', 
-      accessorKey: 'cost', 
-      cell: info => {
-        const value = info.getValue();
-        return typeof value === 'number' ? value.toFixed(1) : value;
-      }
-    },
-    { header: 'Stato', accessorKey: 'status' },
+    simpleColumn('Nome Fase', 'phase_name'),
+    fixedNumberColumn('Durata (ore)', 'duration'),
+    fixedNumberColumn('Costo (€)', 'cost'),
+    simpleColumn('Stato', 'status'),
     
     // Macchina Programmata
-    { header: 'Nome Macchina', accessorKey: 'machine_name' },
+    simpleColumn('Nome Macchina', 'machine_name'),
     
     // Campi Calcolati
-    { 
-      header: 'Progresso (%)', 
-      accessorKey: 'progress',
-      cell: info => {
-        const value = info.getValue();
-        return typeof value === 'number' ? `${value}%` : value;
-      }
-    },
-    { 
-      header: 'Tempo Rimanente (ore)', 
-      accessorKey: 'time_remaining', 
-      cell: info => {
-        const value = info.getValue();
-        return typeof value === 'number' ? value.toFixed(1) : value;
-      }
-    },
+    percentTextColumn('Progresso (%)', 'progress', ''),
+    fixedNumberColumn('Tempo Rimanente (ore)', 'time_remaining'),
     
     // Material Availability
-    { 
-      header: 'Material ISP (%)', 
-      accessorKey: 'material_availability_isp',
-      cell: info => {
-        const value = info.getValue();
-        if (typeof value !== 'number') return value || 'N/A';
-        const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
-        return (
-          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[11px] font-medium`}>
-            {value}
-          </div>
-        );
-      }
-    },
-    { 
-      header: 'Material Lotti (%)', 
-      accessorKey: 'material_availability_lotti',
-      cell: info => {
-        const value = info.getValue();
-        if (typeof value !== 'number') return value || 'N/A';
-        const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
-        return (
-          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[11px] font-medium`}>
-            {value}
-          </div>
-        );
-      }
-    },
-    { 
-      header: 'Material Global (%)', 
-      accessorKey: 'material_availability_global',
-      cell: info => {
-        const value = info.getValue();
-        if (typeof value !== 'number') return value || 'N/A';
-        const bgColor = value <= 39 ? 'bg-gray-300' : value <= 69 ? 'bg-yellow-400' : 'bg-green-400';
-        return (
-          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${bgColor} text-black text-[11px] font-medium`}>
-            {value}
-          </div>
-        );
-      }
-    },
+    materialBadgeColumn('Material ISP (%)', 'material_availability_isp'),
+    materialBadgeColumn('Material Lotti (%)', 'material_availability_lotti'),
+    materialBadgeColumn('Material Global (%)', 'material_availability_global'),
   ], []);
 
   // Extract all filterable column keys
@@ -321,19 +229,13 @@ function BacklogListPage() {
 
   const handleDeleteOrder = async (orderToDelete) => {
     const displayOdp = normalizeOdpNumber(orderToDelete.odp_number);
-    showConfirmDialog(
-      'Elimina Ordine',
-      `Sei sicuro di voler eliminare "${displayOdp}"? Questa azione non può essere annullata.`,
-      async () => {
-        try {
-          await removeOrderMutation.mutateAsync(orderToDelete.id);
-          showSuccess(`Ordine "${displayOdp}" eliminato con successo`);
-        } catch (error) {
-          showError(error.message || 'Eliminazione ordine fallita');
-        }
-      },
-      'danger'
-    );
+    confirmDelete({
+      title: 'Elimina Ordine',
+      message: `Sei sicuro di voler eliminare "${displayOdp}"? Questa azione non può essere annullata.`,
+      onConfirm: () => removeOrderMutation.mutateAsync(orderToDelete.id),
+      successMessage: `Ordine "${displayOdp}" eliminato con successo`,
+      errorMessage: 'Eliminazione ordine fallita'
+    });
   };
 
   // Show error if query failed
