@@ -16,7 +16,7 @@ const PhasesFormPage = lazy(() => import('./pages/PhasesFormPage'));
 const BacklogListPage = lazy(() => import('./pages/BacklogListPage'));
 const BacklogFormPage = lazy(() => import('./pages/BacklogFormPage'));
 const SchedulerPage = lazy(() => import('./pages/SchedulerPage'));
-const SpotifySchedulerPage = lazy(() => import('./pages/SpotifySchedulerPage'));
+const SchedulerV2BoardPage = lazy(() => import('./pages/SchedulerV2BoardPage'));
 const MachineOverviewPage = lazy(() => import('./pages/MachineOverviewPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -125,7 +125,8 @@ function App() {
               <Route path="backlog/add" element={<BacklogFormPage />} />
               <Route path="backlog/:id/edit" element={<BacklogFormPage />} />
               <Route path="scheduler" element={<SchedulerPage />} />
-              <Route path="spotify-scheduler" element={<SpotifySchedulerPage />} />
+              <Route path="spotify-scheduler" element={<SchedulerV2BoardPage />} />
+              <Route path="scheduler-v2" element={<Navigate to="/spotify-scheduler" replace />} />
               <Route path="machine-overview" element={<MachineOverviewPage />} />
             </Route>
           </Route>

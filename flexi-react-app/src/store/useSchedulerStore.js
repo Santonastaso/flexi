@@ -1,23 +1,21 @@
 import { create } from 'zustand';
 import { MachineAvailabilityManager } from './scheduling/machineAvailability';
-import { SpotifyQueueScheduler } from './scheduling/spotifyQueueScheduler';
+import { schedulerV2Client } from '../services/schedulerV2Client';
+
+const queued = (snapshot, machineId) => (snapshot.queue || [])
+  .filter((task) => task.machine_id === machineId)
+  .sort((a, b) => a.position - b.position);
 
 export const useSchedulerStore = create((set, get) => {
-  // Initialize helper classes (only Spotify and Machine Availability)
   const machineAvailabilityManager = new MachineAvailabilityManager(get, set);
-  const spotifyScheduler = new SpotifyQueueScheduler(get, set, machineAvailabilityManager);
+  const snapshot = () => schedulerV2Client.snapshot();
+  const revision = (data, machineId) => Number(data.revisions?.[machineId] ?? 0);
 
   return {
-    // State
     machineAvailability: {},
-
-    // Selectors
     getMachineAvailabilityState: () => get().machineAvailability,
-
-    // Actions
     setMachineAvailabilityState: (availability) => set({ machineAvailability: availability }),
 
-    // Machine availability methods (delegated to MachineAvailabilityManager)
     loadMachineAvailabilityForDate: machineAvailabilityManager.loadMachineAvailabilityForDate,
     loadMachineAvailabilityForDateRange: machineAvailabilityManager.loadMachineAvailabilityForDateRange,
     getMachineAvailability: machineAvailabilityManager.getMachineAvailability,
@@ -30,24 +28,43 @@ export const useSchedulerStore = create((set, get) => {
     getMachineAvailabilityStatus: machineAvailabilityManager.getMachineAvailabilityStatus,
     initializeEmptyMachineAvailability: machineAvailabilityManager.initializeEmptyMachineAvailability,
 
-    // Queue scheduling methods (delegated to SpotifyQueueScheduler)
-    getQueueForMachine: spotifyScheduler.getQueue,
-    scheduleTaskAtEndOfQueue: spotifyScheduler.scheduleTaskAtEnd,
-    reorderTaskInQueue: spotifyScheduler.reorderQueue,
-    createPauseTask: spotifyScheduler.createPauseTask,
-    removeTaskFromQueue: spotifyScheduler.removeFromQueue,
-    rescheduleQueueFromTask: spotifyScheduler.rescheduleFromAnchor,
+    getQueueForMachine: (machineId, allOrders = []) => allOrders
+      .filter((task) => task.scheduled_machine_id === machineId && ['SCHEDULED', 'IN PROGRESS'].includes(task.status))
+      .sort((a, b) => new Date(a.scheduled_start_time || 0) - new Date(b.scheduled_start_time || 0)),
 
-    repairAllQueues: async (allOrders, allMachines) => {
+    scheduleTaskAtEndOfQueue: async (machineId, taskId) => {
+      const data = await snapshot();
+      return schedulerV2Client.schedule({ machineId, taskId, revision: revision(data, machineId) });
+    },
+
+    reorderTaskInQueue: async (machineId, taskId, _oldIndex, newIndex) => {
+      const data = await snapshot();
+      const queue = queued(data, machineId).filter((task) => task.id !== taskId);
+      const beforeTaskId = queue[newIndex]?.id || null;
+      return schedulerV2Client.schedule({ machineId, taskId, beforeTaskId, revision: revision(data, machineId) });
+    },
+
+    createPauseTask: async (machineId, durationHours) => {
+      const data = await snapshot();
+      return schedulerV2Client.createPause({ machineId, durationMinutes: Math.max(1, Math.round(Number(durationHours) * 60)), revision: revision(data, machineId) });
+    },
+
+    removeTaskFromQueue: async (_machineId, taskId) => {
+      const data = await snapshot();
+      const task = (data.queue || []).find((item) => item.id === taskId);
+      if (!task) throw new Error('Lavoro non presente nella coda');
+      return schedulerV2Client.unschedule({ taskId, revision: revision(data, task.machine_id) });
+    },
+
+    rescheduleQueueFromTask: async (machineId) => {
+      const data = await snapshot();
+      return schedulerV2Client.repair({ machineId, revision: revision(data, machineId) });
+    },
+
+    repairAllQueues: async (_allOrders, allMachines) => {
+      const data = await snapshot();
       for (const machine of allMachines) {
-        const { anchor, fixedPrefixLength, queue } =
-          spotifyScheduler.getGreedyAnchor(machine.id, allOrders);
-        const tasksToReschedule = queue.slice(fixedPrefixLength);
-        if (tasksToReschedule.length > 0) {
-          await spotifyScheduler.rescheduleFromAnchor(
-            machine.id, tasksToReschedule, anchor
-          );
-        }
+        await schedulerV2Client.repair({ machineId: machine.id, revision: revision(data, machine.id) });
       }
     },
 
