@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import DataTable from '../components/DataTable';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { useMachines, useOrders, useRemoveOrder } from '../hooks/useQueries';
-import { useMainStore, useSchedulerStore, useUIStore } from '../store';
+import { useMainStore, useUIStore } from '../store';
+import { schedulerV2Client } from '../services/schedulerV2Client';
 import { normalizeOdpNumber, showError, showSuccess } from '../utils';
 import { formatScheduledTime, formatDeliveryDate } from '../utils/dateFormatting';
 import { useQueryClient } from '@tanstack/react-query';
@@ -19,7 +20,6 @@ function MachineOverviewPage() {
   const { isLoading: storeLoading } = useMainStore();
   const { showConfirmDialog } = useUIStore();
   const removeOrderMutation = useRemoveOrder();
-  const { reorderTaskInQueue } = useSchedulerStore();
   const queryClient = useQueryClient();
   const [reorderingId, setReorderingId] = useState(null);
   const [orderedOdps, setOrderedOdps] = useState([]);
@@ -75,8 +75,9 @@ function MachineOverviewPage() {
 
     try {
       await queryClient.refetchQueries({ queryKey: ['orders'], exact: true, type: 'active' });
-      const freshOrders = queryClient.getQueryData(['orders']) || [];
-      const result = await reorderTaskInQueue(selectedMachineId, activeId, oldIndex, newIndex, freshOrders);
+      const snapshot = await schedulerV2Client.snapshot();
+      const queue = (snapshot.queue || []).filter((task) => task.machine_id === selectedMachineId).sort((a, b) => a.position - b.position).filter((task) => task.id !== activeId);
+      const result = await schedulerV2Client.schedule({ machineId: selectedMachineId, taskId: activeId, beforeTaskId: queue[newIndex]?.id || null, revision: Number(snapshot.revisions?.[selectedMachineId] ?? 0) });
       if (result?.error) {
         showError(result.error);
       } else {
@@ -88,7 +89,7 @@ function MachineOverviewPage() {
     } finally {
       setReorderingId(null);
     }
-  }, [queryClient, reorderTaskInQueue, selectedMachineId, reorderingId]);
+  }, [queryClient, selectedMachineId, reorderingId]);
 
   // Reuse columns from BacklogListPage but minimal set
   const columns = useMemo(() => [

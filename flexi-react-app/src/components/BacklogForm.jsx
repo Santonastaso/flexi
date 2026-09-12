@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { useUIStore, useSchedulerStore } from '../store';
+import { useUIStore } from '../store';
+import { schedulerV2Client } from '../services/schedulerV2Client';
 import { useProductionCalculations, useValidation, useAddOrder, useUpdateOrder, useSiteEfficiency } from '../hooks';
 import { usePhaseSearch } from '../hooks/usePhaseSearch';
 import { showValidationError, showSuccess, showWarning } from '../utils';
@@ -68,7 +69,6 @@ const PhaseSearchField = ({
 
 const BacklogForm = ({ onSuccess, orderToEdit }) => {
   const { selectedWorkCenter } = useUIStore();
-  const { getQueueForMachine, rescheduleQueueFromTask } = useSchedulerStore();
   const { calculateProductionMetrics, validatePhaseParameters, autoDetermineWorkCenter, autoDetermineDepartment } = useProductionCalculations();
   const { validateOrder } = useValidation();
   const { data: siteEfficiencyMap = {} } = useSiteEfficiency();
@@ -260,16 +260,9 @@ const BacklogForm = ({ onSuccess, orderToEdit }) => {
         const durationChanged = Math.abs(newDuration - (orderToEdit.duration ?? 0)) > 0.01;
 
         if (isScheduled && durationChanged) {
-          const allOrders = queryClient.getQueryData(['orders']) || [];
-          const queue = getQueueForMachine(orderToEdit.scheduled_machine_id, allOrders);
-          const taskIndex = queue.findIndex(t => t.id === orderToEdit.id);
-          if (taskIndex >= 0) {
-            await rescheduleQueueFromTask(
-              orderToEdit.scheduled_machine_id,
-              queue.slice(taskIndex),
-              new Date(orderToEdit.scheduled_start_time)
-            );
-          }
+          const snapshot = await schedulerV2Client.snapshot();
+          const revision = Number(snapshot.revisions?.[orderToEdit.scheduled_machine_id] ?? 0);
+          await schedulerV2Client.setDuration({ taskId: orderToEdit.id, durationMinutes: Math.max(1, Math.round(newDuration * 60)), revision });
           showSuccess('Ordine aggiornato · Coda ricalcolata');
         } else {
           showSuccess('Ordine aggiornato con successo');

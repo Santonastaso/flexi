@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
-import { useUIStore, useSchedulerStore } from '../store';
+import { useUIStore } from '../store';
+import { schedulerV2Client } from '../services/schedulerV2Client';
 import { useOrders } from '../hooks';
 import { startOfDay, endOfDay, startOfWeek, isSameDay } from 'date-fns';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
@@ -435,11 +436,14 @@ ${event.scheduled_end_time ? `Fine Programmata: ${formatScheduledTime(event.sche
                                                 'Sei sicuro di voler rimuovere questo ordine dalla coda?',
                                                 async () => {
                                                     try {
-                                                        const allOrders = queryClient.getQueryData(['orders']) ?? [];
-                                                        await useSchedulerStore.getState().removeTaskFromQueue(machine.id, event.id, allOrders);
+                                                        const snapshot = await schedulerV2Client.snapshot();
+                                                        const task = (snapshot.queue || []).find((item) => item.id === event.id);
+                                                        if (!task) throw new Error('Lavoro non presente nella coda');
+                                                        const revision = Number(snapshot.revisions?.[task.machine_id] ?? 0);
+                                                        await schedulerV2Client.unschedule({ taskId: event.id, revision });
                                                         await queryClient.refetchQueries({ queryKey: ['orders'], exact: true, type: 'active' });
                                                     } catch {
-                                                        // Error handled by removeTaskFromQueue
+                                                        // Error handled by the surrounding mutation flow
                                                     }
                                                 },
                                                 'danger'
